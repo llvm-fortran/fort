@@ -20,7 +20,8 @@
 #include "flang/Sema/Sema.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
-using namespace flang;
+
+namespace flang {
 
 /// ParseExecutableConstruct - Parse the executable construct.
 ///
@@ -188,3 +189,5 @@ Parser::StmtResult Parser::ParseEND_PROGRAMStmt() {
 
   return Actions.ActOnENDPROGRAM(Context, IDInfo, Loc, NameLoc, StmtLabel);
 }
+
+} //namespace flang

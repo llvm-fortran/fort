@@ -16,7 +16,8 @@
 #include "flang/AST/Expr.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
-using namespace flang;
+
+namespace flang {
 
 QualType
 QualifierCollector::apply(const ASTContext &Context, QualType QT) const {
@@ -154,3 +155,5 @@ void ArrayType::print(raw_ostream &OS) const {
 
   OS << ")";
 }
+
+} //namespace flang

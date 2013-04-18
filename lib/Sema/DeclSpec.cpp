@@ -17,7 +17,6 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/ErrorHandling.h"
-using namespace flang;
 
 namespace flang {
   namespace diag {
@@ -29,7 +28,6 @@ namespace flang {
       NUM_BUILTIN_PARSE_DIAGNOSTICS
     };
   }  // end namespace diag
-}  // end namespace flang
 
 DeclSpec::~DeclSpec() {}
 
@@ -96,3 +94,5 @@ void DeclSpec::setDimensions(ArrayRef<ExprResult> Dims) {
          I = Dims.begin(), E = Dims.end(); I != E; ++I)
     Dimensions.push_back(*I);
 }
+
+} //namespace flang

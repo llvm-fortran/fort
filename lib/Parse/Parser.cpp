@@ -24,7 +24,8 @@
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallString.h"
-using namespace flang;
+
+namespace flang {
 
 /// print - If a crash happens while the parser is active, print out a line
 /// indicating what the current token is.
@@ -1354,3 +1355,5 @@ Parser::StmtResult Parser::ParseFORALLStmt() {
 Parser::StmtResult Parser::ParseEND_FORALLStmt() {
   return StmtResult();
 }
+
+} //namespace flang

@@ -14,7 +14,8 @@
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/ADT/Twine.h"
-using namespace flang;
+
+namespace flang {
 
 bool Diagnostic::hadErrors() {
   return Client->getNumErrors() != 0;
@@ -57,3 +58,5 @@ void DiagnosticClient::HandleDiagnostic(Diagnostic::Level DiagLevel,
   else if (DiagLevel >= Diagnostic::Error)
     ++NumErrors;
 }
+
+} //namespace flang

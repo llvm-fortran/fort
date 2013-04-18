@@ -19,7 +19,8 @@
 #include "llvm/ADT/FoldingSet.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
-using namespace flang;
+
+namespace flang {
 
 //===----------------------------------------------------------------------===//
 // DeclarationName Implementation
@@ -133,6 +134,8 @@ llvm::SMLoc DeclarationNameInfo::getEndLoc() const {
   return llvm::SMLoc();
 }
 
+} //namespace flang
+
 //===----------------------------------------------------------------------===//
 // DenseMapInfo Implementation
 //===----------------------------------------------------------------------===//
@@ -142,3 +145,4 @@ llvm::DenseMapInfo<flang::DeclarationName>::
 getHashValue(flang::DeclarationName N) {
   return DenseMapInfo<void*>::getHashValue(N.getAsOpaquePtr());
 }
+

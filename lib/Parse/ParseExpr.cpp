@@ -19,7 +19,8 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/Twine.h"
-using namespace flang;
+
+namespace flang {
 
 // ParseExpression - Expressions are level-5 expresisons optionally involving
 // defined binary operators.
@@ -651,3 +652,5 @@ ExprResult Parser::ParsePartReference() {
   ExprResult E;
   return E;
 }
+
+} //namespace flang

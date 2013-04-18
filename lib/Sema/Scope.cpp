@@ -13,7 +13,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Sema/Scope.h"
-using namespace flang;
+
+namespace flang {
 
 void Scope::Init(Scope *parent, unsigned flags) {
   AnyParent = parent;
@@ -38,3 +39,5 @@ void Scope::Init(Scope *parent, unsigned flags) {
   Entity = 0;
   ErrorTrap.reset();
 }
+
+} //namespace flang

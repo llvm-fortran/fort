@@ -20,7 +20,8 @@
 #include "flang/AST/Stmt.h"
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
-using namespace flang;
+
+namespace flang {
 
 Sema::Sema(ASTContext &ctxt, Diagnostic &D)
   : Context(ctxt), Diags(D), CurContext(0) {}
@@ -286,3 +287,5 @@ StmtResult Sema::ActOnPrintStmt(ASTContext &C, SMLoc Loc, FormatSpec *FS,
                                 Expr *StmtLabel) {
   return PrintStmt::Create(C, Loc, FS, OutputItemList, StmtLabel);
 }
+
+} //namespace flang

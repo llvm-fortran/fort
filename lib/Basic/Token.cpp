@@ -17,7 +17,8 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/Twine.h"
 #include "flang/Basic/LLVM.h"
-using namespace flang;
+
+namespace flang {
 
 static inline bool isHorizontalWhitespace(char C) {
   return C == ' ' || C == '\t' || C == '\f' || C == '\v';
@@ -87,3 +88,5 @@ llvm::Twine Token::CleanCharContext() {
   return CharContext +
     llvm::Twine(llvm::StringRef(CurPtr, Start - CurPtr));
 }
+
+} //namespace flang

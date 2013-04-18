@@ -16,7 +16,8 @@
 #include "flang/AST/Expr.h"
 #include "flang/AST/ASTContext.h"
 #include "llvm/Support/raw_ostream.h"
-using namespace flang;
+
+namespace flang {
 
 //===----------------------------------------------------------------------===//
 // DeclContext Implementation
@@ -329,3 +330,5 @@ void DeclaratorDecl::print(raw_ostream &OS) const {
 void VarDecl::print(raw_ostream &OS) const {
   DeclaratorDecl::print(OS);
 }
+
+} //namespace flang

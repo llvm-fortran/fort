@@ -14,7 +14,9 @@
 #include "flang/AST/ASTContext.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/ErrorHandling.h"
-using namespace flang;
+
+
+namespace flang {
 
 ASTContext::ASTContext(llvm::SourceMgr &SM)
   : SrcMgr(SM), LastSDM(0) {
@@ -152,3 +154,5 @@ QualType ASTContext::getRecordType(const RecordDecl *Decl) const {
   return QualType(newType, 0);
 #endif
 }
+
+} //namespace flang

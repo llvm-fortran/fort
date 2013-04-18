@@ -10,3 +10,7 @@ add_dependencies(flangParse
   FlangDeclNodes
   FlangDiagnosticParse
   )
+
+target_link_libraries(flangParse
+  flangAST
+  )

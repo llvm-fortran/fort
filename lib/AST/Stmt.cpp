@@ -15,7 +15,8 @@
 #include "flang/AST/ASTContext.h"
 #include "flang/Basic/IdentifierTable.h"
 #include "llvm/ADT/StringRef.h"
-using namespace flang;
+
+namespace flang {
 
 //===----------------------------------------------------------------------===//
 // Statement Base Class
@@ -205,3 +206,5 @@ PrintStmt *PrintStmt::Create(ASTContext &C, SMLoc L, FormatSpec *fs,
                              ExprResult StmtLabel) {
   return new (C) PrintStmt(C, L, fs, OutList, StmtLabel);
 }
+
+} //namespace flang

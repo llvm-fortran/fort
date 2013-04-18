@@ -15,7 +15,8 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/Sema/Sema.h"
-using namespace flang;
+
+namespace flang {
 
 /// AssignAttrSpec - Helper function that assigns the attribute specification to
 /// the list, but reports an error if that attribute was all ready assigned.
@@ -519,3 +520,5 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
   DS.setLengthSelector(Len.get());
   return false;
 }
+
+} //namespace flang

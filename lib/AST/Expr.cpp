@@ -12,7 +12,8 @@
 #include "flang/AST/Decl.h"
 #include "llvm/ADT/APSInt.h"
 #include "llvm/ADT/StringRef.h"
-using namespace flang;
+
+namespace flang {
 
 void APNumericStorage::setIntValue(ASTContext &C, const APInt &Val) {
   if (hasAllocation())
@@ -30,33 +31,33 @@ void APNumericStorage::setIntValue(ASTContext &C, const APInt &Val) {
     VAL = 0;
 }
 
-IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, SMLoc Loc,
-                                         StringRef Data)
+IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                                         llvm::StringRef Data)
   : ConstantExpr(IntegerConstant, C.IntegerTy,  Loc) {
   llvm::APSInt Val(64);
   Data.getAsInteger(10, Val);
   Num.setValue(C, Val);
 }
 
-IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, SMLoc Loc,
-                                                 StringRef Data) {
+IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+                                                 llvm::StringRef Data) {
   return new (C) IntegerConstantExpr(C, Loc, Data);
 }
 
-RealConstantExpr::RealConstantExpr(ASTContext &C, SMLoc Loc, StringRef Data)
+RealConstantExpr::RealConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data)
   : ConstantExpr(RealConstant, C.RealTy /*FIXME: Double?*/, Loc) {
   // FIXME: IEEEdouble?
   APFloat Val(APFloat::IEEEsingle, Data);
   Num.setValue(C, Val);
 }
 
-RealConstantExpr *RealConstantExpr::Create(ASTContext &C, SMLoc Loc,
-                                           StringRef Data) {
+RealConstantExpr *RealConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+                                           llvm::StringRef Data) {
   return new (C) RealConstantExpr(C, Loc, Data);
 }
 
-CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, SMLoc Loc,
-                                             StringRef data)
+CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                                             llvm::StringRef data)
   : ConstantExpr(CharacterConstant, C.CharacterTy, Loc) {
   // TODO: A 'kind' on a character literal constant.
   Data = new (C) char[data.size() + 1];
@@ -64,12 +65,12 @@ CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, SMLoc Loc,
   Data[data.size()] = '\0';
 }
 
-CharacterConstantExpr *CharacterConstantExpr::Create(ASTContext &C, SMLoc Loc,
-                                                     StringRef Data) {
+CharacterConstantExpr *CharacterConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+                                                     llvm::StringRef Data) {
   return new (C) CharacterConstantExpr(C, Loc, Data);
 }
 
-BOZConstantExpr::BOZConstantExpr(ASTContext &C, SMLoc Loc, StringRef Data)
+BOZConstantExpr::BOZConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data)
   : ConstantExpr(BOZConstant, C.IntegerTy, Loc) {
   unsigned Radix = 0;
   switch (Data[0]) {
@@ -88,26 +89,26 @@ BOZConstantExpr::BOZConstantExpr(ASTContext &C, SMLoc Loc, StringRef Data)
   }
 
   size_t LastQuote = Data.rfind(Data[1]);
-  assert(LastQuote == StringRef::npos && "Invalid BOZ constant!");
+  assert(LastQuote == llvm::StringRef::npos && "Invalid BOZ constant!");
   llvm::StringRef NumStr = Data.slice(2, LastQuote);
   APInt Val;
   NumStr.getAsInteger(Radix, Val);
   Num.setValue(C, Val);
 }
 
-BOZConstantExpr *BOZConstantExpr::Create(ASTContext &C, SMLoc Loc,
-                                         StringRef Data) {
+BOZConstantExpr *BOZConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+                                         llvm::StringRef Data) {
   return new (C) BOZConstantExpr(C, Loc, Data);
 }
 
-LogicalConstantExpr::LogicalConstantExpr(ASTContext &C, SMLoc Loc,
-                                         StringRef Data)
+LogicalConstantExpr::LogicalConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                                         llvm::StringRef Data)
   : ConstantExpr(LogicalConstant, C.LogicalTy, Loc) {
   Val = (Data.compare_lower(".TRUE.") == 0);
 }
 
-LogicalConstantExpr *LogicalConstantExpr::Create(ASTContext &C, SMLoc Loc,
-                                                 StringRef Data) {
+LogicalConstantExpr *LogicalConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+                                                 llvm::StringRef Data) {
   return new (C) LogicalConstantExpr(C, Loc, Data);
 }
 
@@ -115,30 +116,30 @@ VarExpr::VarExpr(llvm::SMLoc Loc, const VarDecl *Var)
   : DesignatorExpr(Loc, Var->getType(), DesignatorExpr::ObjectName),
     Variable(Var) {}
 
-VarExpr *VarExpr::Create(ASTContext &C, SMLoc Loc, const VarDecl *VD) {
+VarExpr *VarExpr::Create(ASTContext &C, llvm::SMLoc Loc, const VarDecl *VD) {
   return new (C) VarExpr(Loc, VD);
 }
 
-UnaryExpr *UnaryExpr::Create(ASTContext &C, SMLoc loc, Operator op,
+UnaryExpr *UnaryExpr::Create(ASTContext &C, llvm::SMLoc loc, Operator op,
                              ExprResult e) {
   return new (C) UnaryExpr(Expr::Unary,
                            (op != Not) ? e.get()->getType() : C.LogicalTy,
                            loc, op, e);
 }
 
-DefinedOperatorUnaryExpr::DefinedOperatorUnaryExpr(SMLoc loc, ExprResult e,
+DefinedOperatorUnaryExpr::DefinedOperatorUnaryExpr(llvm::SMLoc loc, ExprResult e,
                                                    IdentifierInfo *ii)
   : UnaryExpr(Expr::DefinedUnaryOperator, e.get()->getType(), loc, Defined, e),
     II(ii) {}
 
 DefinedOperatorUnaryExpr *DefinedOperatorUnaryExpr::Create(ASTContext &C,
-                                                           SMLoc loc,
+                                                           llvm::SMLoc loc,
                                                            ExprResult e,
                                                            IdentifierInfo *ii) {
   return new (C) DefinedOperatorUnaryExpr(loc, e, ii);
 }
 
-BinaryExpr *BinaryExpr::Create(ASTContext &C, SMLoc loc, Operator op,
+BinaryExpr *BinaryExpr::Create(ASTContext &C, llvm::SMLoc loc, Operator op,
                                ExprResult lhs, ExprResult rhs) {
   QualType Ty;
 
@@ -162,7 +163,7 @@ BinaryExpr *BinaryExpr::Create(ASTContext &C, SMLoc loc, Operator op,
 }
 
 DefinedOperatorBinaryExpr *
-DefinedOperatorBinaryExpr::Create(ASTContext &C, SMLoc loc, ExprResult lhs,
+DefinedOperatorBinaryExpr::Create(ASTContext &C, llvm::SMLoc loc, ExprResult lhs,
                                   ExprResult rhs, IdentifierInfo *ii) {
   return new (C) DefinedOperatorBinaryExpr(loc, lhs, rhs, ii);
 }
@@ -303,3 +304,5 @@ ImpliedShapeSpec *ImpliedShapeSpec::Create(ASTContext &C) {
 ImpliedShapeSpec *ImpliedShapeSpec::Create(ASTContext &C, ExprResult LB) {
   return new (C) ImpliedShapeSpec(LB);
 }
+
+} //namespace flang

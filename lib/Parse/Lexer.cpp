@@ -18,7 +18,8 @@
 #include "llvm/Support/SMLoc.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/ADT/Twine.h"
-using namespace flang;
+
+namespace flang {
 
 static void InitCharacterInfo();
 static bool isWhitespace(unsigned char c);
@@ -1104,3 +1105,5 @@ LexIdentifier:
   Char = getNextChar();
   FormTokenWithChars(Result, Kind);
 }
+
+} //namespace flang

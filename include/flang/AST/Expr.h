@@ -56,10 +56,10 @@ protected:
 private:
   QualType Ty;
   ExprType ExprID;
-  SMLoc Loc;
+  llvm::SMLoc Loc;
   friend class ASTContext;
 protected:
-  Expr(ExprType ET, QualType T, SMLoc L) : ExprID(ET), Loc(L) {
+  Expr(ExprType ET, QualType T, llvm::SMLoc L) : ExprID(ET), Loc(L) {
     setType(T);
   }
 public:
@@ -67,7 +67,7 @@ public:
   void setType(QualType T) { Ty = T; }
 
   ExprType getExpressionID() const { return ExprID; }
-  SMLoc getLocation() const { return Loc; }
+  llvm::SMLoc getLocation() const { return Loc; }
 
   virtual void print(raw_ostream&);
   void dump();
@@ -79,7 +79,7 @@ public:
 class ConstantExpr : public Expr {
   Expr *Kind;                   // Optional Kind Selector
 protected:
-  ConstantExpr(ExprType Ty, QualType T, SMLoc Loc)
+  ConstantExpr(ExprType Ty, QualType T, llvm::SMLoc Loc)
     : Expr(Ty, T, Loc), Kind(0) {}
 public:
   Expr *getKindSelector() const { return Kind; }
@@ -161,10 +161,10 @@ public:
 
 class IntegerConstantExpr : public ConstantExpr {
   APIntStorage Num;
-  IntegerConstantExpr(ASTContext &C, SMLoc Loc, StringRef Data);
+  IntegerConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
 public:
-  static IntegerConstantExpr *Create(ASTContext &C, SMLoc Loc,
-                                     StringRef Data);
+  static IntegerConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+                                     llvm::StringRef Data);
 
   APInt getValue() const { return Num.getValue(); }
 
@@ -178,9 +178,9 @@ public:
 
 class RealConstantExpr : public ConstantExpr {
   APFloatStorage Num;
-  RealConstantExpr(ASTContext &C, SMLoc Loc, StringRef Data);
+  RealConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
 public:
-  static RealConstantExpr *Create(ASTContext &C, SMLoc Loc, StringRef Data);
+  static RealConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
 
   APFloat getValue() const { return Num.getValue(); }
 
@@ -192,10 +192,10 @@ public:
 
 class CharacterConstantExpr : public ConstantExpr {
   char *Data;
-  CharacterConstantExpr(ASTContext &C, SMLoc Loc, StringRef Data);
+  CharacterConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
 public:
-  static CharacterConstantExpr *Create(ASTContext &C, SMLoc Loc,
-                                       StringRef Data);
+  static CharacterConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+                                       llvm::StringRef Data);
 
   const char *getValue() const { return Data; }
 
@@ -211,10 +211,10 @@ public:
 private:
   APIntStorage Num;
   BOZKind Kind;
-  BOZConstantExpr(ASTContext &C, SMLoc Loc, StringRef Data);
+  BOZConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
 public:
-  static BOZConstantExpr *Create(ASTContext &C, SMLoc Loc,
-                                 StringRef Data);
+  static BOZConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+                                 llvm::StringRef Data);
 
   APInt getValue() const { return Num.getValue(); }
 
@@ -232,10 +232,10 @@ public:
 
 class LogicalConstantExpr : public ConstantExpr {
   bool Val;
-  LogicalConstantExpr(ASTContext &C, SMLoc Loc, StringRef Data);
+  LogicalConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
 public:
-  static LogicalConstantExpr *Create(ASTContext &C, SMLoc Loc,
-                                     StringRef Data);
+  static LogicalConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+                                     llvm::StringRef Data);
 
   bool isTrue() const { return Val; }
   bool isFalse() const { return !Val; }
@@ -262,7 +262,7 @@ public:
 private:
   DesignatorTy Ty;
 protected:
-  DesignatorExpr(SMLoc loc, QualType T, DesignatorTy ty)
+  DesignatorExpr(llvm::SMLoc loc, QualType T, DesignatorTy ty)
     : Expr(Expr::Designator, T, loc), Ty(ty) {}
 public:
   DesignatorTy getDesignatorType() const { return Ty; }
@@ -404,7 +404,7 @@ class VarExpr : public DesignatorExpr {
   const VarDecl *Variable;
   VarExpr(llvm::SMLoc Loc, const VarDecl *Var);
 public:
-  static VarExpr *Create(ASTContext &C, SMLoc L, const VarDecl *V);
+  static VarExpr *Create(ASTContext &C, llvm::SMLoc L, const VarDecl *V);
 
   const VarDecl *getVarDecl() const { return Variable; }
 
@@ -439,10 +439,10 @@ public:
 protected:
   Operator Op;
   ExprResult E;
-  UnaryExpr(ExprType ET, QualType T, SMLoc loc, Operator op, ExprResult e)
+  UnaryExpr(ExprType ET, QualType T, llvm::SMLoc loc, Operator op, ExprResult e)
     : Expr(ET, T, loc), Op(op), E(e) {}
 public:
-  static UnaryExpr *Create(ASTContext &C, SMLoc loc, Operator op, ExprResult e);
+  static UnaryExpr *Create(ASTContext &C, llvm::SMLoc loc, Operator op, ExprResult e);
 
   Operator getOperator() const { return Op; }
 
@@ -460,9 +460,9 @@ public:
 /// DefinedOperatorUnaryExpr -
 class DefinedOperatorUnaryExpr : public UnaryExpr {
   IdentifierInfo *II;
-  DefinedOperatorUnaryExpr(SMLoc loc, ExprResult e, IdentifierInfo *ii);
+  DefinedOperatorUnaryExpr(llvm::SMLoc loc, ExprResult e, IdentifierInfo *ii);
 public:
-  static DefinedOperatorUnaryExpr *Create(ASTContext &C, SMLoc loc,
+  static DefinedOperatorUnaryExpr *Create(ASTContext &C, llvm::SMLoc loc,
                                           ExprResult e, IdentifierInfo *ii);
 
   const IdentifierInfo *getIdentifierInfo() const { return II; }
@@ -511,11 +511,11 @@ protected:
   Operator Op;
   ExprResult LHS;
   ExprResult RHS;
-  BinaryExpr(ExprType ET, QualType T, SMLoc loc, Operator op,
+  BinaryExpr(ExprType ET, QualType T, llvm::SMLoc loc, Operator op,
              ExprResult lhs, ExprResult rhs)
     : Expr(ET, T, loc), Op(op), LHS(lhs), RHS(rhs) {}
 public:
-  static BinaryExpr *Create(ASTContext &C, SMLoc loc, Operator op,
+  static BinaryExpr *Create(ASTContext &C, llvm::SMLoc loc, Operator op,
                             ExprResult lhs, ExprResult rhs);
 
   Operator getOperator() const { return Op; }
@@ -536,13 +536,13 @@ public:
 /// DefinedOperatorBinaryExpr -
 class DefinedOperatorBinaryExpr : public BinaryExpr {
   IdentifierInfo *II;
-  DefinedOperatorBinaryExpr(SMLoc loc, ExprResult lhs, ExprResult rhs,
+  DefinedOperatorBinaryExpr(llvm::SMLoc loc, ExprResult lhs, ExprResult rhs,
                             IdentifierInfo *ii)
     // FIXME: The type here needs to be calculated.
     : BinaryExpr(Expr::DefinedBinaryOperator, QualType(), loc, Defined,
                  lhs, rhs), II(ii) {}
 public:
-  static DefinedOperatorBinaryExpr *Create(ASTContext &C, SMLoc loc,
+  static DefinedOperatorBinaryExpr *Create(ASTContext &C, llvm::SMLoc loc,
                                            ExprResult lhs, ExprResult rhs,
                                            IdentifierInfo *ii);
 

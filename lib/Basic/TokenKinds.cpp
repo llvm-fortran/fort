@@ -14,7 +14,7 @@
 #include "flang/Basic/TokenKinds.h"
 #include <cassert>
 
-using namespace flang;
+namespace flang {
 
 static char const * const TokNames[] = {
 #define TOK(X)       #X,
@@ -71,3 +71,5 @@ const char *tok::getTokenSimpleSpelling(enum TokenKind Kind) {
 
   return 0;
 }
+
+} //namespace flang

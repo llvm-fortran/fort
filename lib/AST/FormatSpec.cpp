@@ -9,7 +9,8 @@
 
 #include "flang/AST/FormatSpec.h"
 #include "flang/AST/ASTContext.h"
-using namespace flang;
+
+namespace flang {
 
 StarFormatSpec::StarFormatSpec(SMLoc Loc)
   : FormatSpec(FormatSpec::FS_Star, Loc) {}
@@ -33,3 +34,5 @@ LabelFormatSpec *LabelFormatSpec::Create(ASTContext &C, SMLoc Loc,
                                          ExprResult Label) {
   return new (C) LabelFormatSpec(Loc, Label);
 }
+
+} //namespace flang

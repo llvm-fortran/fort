@@ -3,3 +3,7 @@ add_flang_library(flangSema
   Scope.cpp
   Sema.cpp
   )
+
+target_link_libraries(flangSema
+  flangAST
+  )
