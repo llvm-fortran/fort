@@ -268,9 +268,7 @@ add_subdirectory(utils/TableGen)
 add_subdirectory(include)
 add_subdirectory(lib)
 add_subdirectory(tools)
-
-# TODO: docs.
-#add_subdirectory(test)
+add_subdirectory(test)
 
 if( LLVM_INCLUDE_TESTS )
   if( NOT FLANG_BUILT_STANDALONE )

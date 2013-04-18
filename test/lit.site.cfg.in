@@ -17,4 +17,6 @@ except KeyError,e:
     lit.fatal("unable to find %r parameter, use '--param=%s=VALUE'" % (key,key))
 
 # Let the main config do the real work.
+config.flang = "@FLANG_BINARY_DIR@/bin/flang"
 lit.load_config(config, "@FLANG_SOURCE_DIR@/test/lit.cfg")
+
