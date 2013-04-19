@@ -257,12 +257,13 @@ bool Parser::ParseInclude() {
   }
   std::string LiteralString;
   CleanLiteral(NextTok,LiteralString);
+  //FIXME: need a proper way to get unquoted unescaped string from the character literal.
   LiteralString = std::string(LiteralString,1,LiteralString.length()-2);
   if(EnterIncludeFile(LiteralString) == true){
-    llvm::Twine error = "Couldn't file the file '";
+    llvm::Twine error = "Couldn't find the file '";
     error = error + llvm::Twine(LiteralString) +
       llvm::Twine("'");
-    Diag.ReportError(Tok.getLocation(),error);
+    Diag.ReportError(NextTok.getLocation(),error);
     return true;
   }
   return false;
