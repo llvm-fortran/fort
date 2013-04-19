@@ -71,7 +71,17 @@ bool Parser::EnterIncludeFile(const std::string &Filename) {
     return true;
 
   CurBuffer = NewBuf;
+  LexerBufferContext.push_back(getLexer().getBufferPtr());
   getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBuffer));
+  return false;
+}
+
+bool Parser::LeaveIncludeFile() {
+  if(CurBuffer == 0) return true;//No files included.
+  --CurBuffer;
+  getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBuffer),
+                       LexerBufferContext.back());
+  LexerBufferContext.pop_back();
   return false;
 }
 
@@ -84,7 +94,13 @@ void Parser::Lex() {
     ClassifyToken(Tok);
   }
 
-  if (Tok.is(tok::eof)) return;
+  if (Tok.is(tok::eof)){
+    if(!LeaveIncludeFile()){
+      NextTok.setKind(tok::unknown);
+      Lex();
+    }
+    return;
+  }
 
   TheLexer.Lex(NextTok);
   ClassifyToken(NextTok);
@@ -98,6 +114,15 @@ void Parser::Lex() {
   // [3.3.1]p4
   switch (Tok.getKind()) {
   default: return;
+  case tok::kw_INCLUDE:{
+    bool hadErrors = ParseInclude();
+    Tok = NextTok;
+    NextTok.setKind(tok::unknown);
+    if(hadErrors)
+      LexToEndOfStatement();
+    else Lex();
+    return;
+  }
   case tok::kw_BLOCK:
     MERGE_TOKENS(BLOCK, DATA);
     return;
@@ -191,17 +216,17 @@ void Parser::ClassifyToken(Token &T) {
 /// CleanLiteral - Cleans up a literal if it needs cleaning. It removes the
 /// continuation contexts and comments. Cleaning a dirty literal is SLOW!
 void Parser::CleanLiteral(Token T, std::string &NameStr) {
-  assert(Tok.isLiteral() && "Trying to clean a non-literal!");
-  if (!Tok.needsCleaning()) {
+  assert(T.isLiteral() && "Trying to clean a non-literal!");
+  if (!T.needsCleaning()) {
     // This should be the common case.
-    NameStr = llvm::StringRef(Tok.getLiteralData(),
-                              Tok.getLength()).str();
+    NameStr = llvm::StringRef(T.getLiteralData(),
+                              T.getLength()).str();
     return;
   }
 
   llvm::SmallVector<llvm::StringRef, 2> Spelling;
-  TheLexer.getSpelling(Tok, Spelling);
-  NameStr = Tok.CleanLiteral(Spelling);
+  TheLexer.getSpelling(T, Spelling);
+  NameStr = T.CleanLiteral(Spelling);
 }
 
 /// EatIfPresent - Eat the token if it's present. Return 'true' if it was
@@ -221,6 +246,26 @@ void Parser::LexToEndOfStatement() {
   // Eat the rest of the statment.
   while (!Tok.isAtStartOfStatement())
     Lex();
+}
+
+/// ParseInclude - parses the include statement and loads the included file.
+bool Parser::ParseInclude() {
+  if(!NextTok.is(tok::char_literal_constant)){
+    Diag.ReportError(Tok.getLocation(),
+                     "expected a character literal after INCLUDE");
+    return true;
+  }
+  std::string LiteralString;
+  CleanLiteral(NextTok,LiteralString);
+  LiteralString = std::string(LiteralString,1,LiteralString.length()-2);
+  if(EnterIncludeFile(LiteralString) == true){
+    llvm::Twine error = "Couldn't file the file '";
+    error = error + llvm::Twine(LiteralString) +
+      llvm::Twine("'");
+    Diag.ReportError(Tok.getLocation(),error);
+    return true;
+  }
+  return false;
 }
 
 /// ParseStatementLabel - Parse the statement label token. If the current token

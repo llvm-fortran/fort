@@ -65,6 +65,8 @@ private:
   LangOptions Features;
   PrettyStackTraceParserEntry CrashInfo;
   llvm::SourceMgr &SrcMgr;
+  /// This is a stack of lexing contexts for files lower in the include stack
+  std::vector<const char*> LexerBufferContext;
 
   /// This is the current buffer index we're lexing from as managed by the
   /// SourceMgr object.
@@ -122,6 +124,7 @@ private:
   void CleanLiteral(Token T, std::string &NameStr);
 
   bool EnterIncludeFile(const std::string &Filename);
+  bool LeaveIncludeFile();
 
   const Token &PeekAhead() const {
     return NextTok;
@@ -158,6 +161,7 @@ public:
 
 private:
   // High-level parsing methods.
+  bool ParseInclude();
   bool ParseProgramUnit();
   bool ParseMainProgram(std::vector<StmtResult> &Body);
   bool ParseExternalSubprogram();

@@ -121,6 +121,9 @@ class Lexer {
         return Atoms[CurAtom + 1].data();
       return &Atoms[CurAtom].data()[CurPtr];
     }
+    const char* GetBufferPtr() const {
+      return BufPtr;
+    }
 
     void dump() const;
     void dump(raw_ostream &OS) const;
@@ -239,6 +242,9 @@ public:
   const llvm::SourceMgr &getSourceManager() const { return SrcMgr; }
 
   llvm::SMLoc getLoc() const;
+
+  /// getBufferPtr - Get a pointer to the next line to be lexed.
+  const char* getBufferPtr() const { return Text.GetBufferPtr(); }
 
   void setBuffer(const llvm::MemoryBuffer *buf, const char *ptr = 0);
 

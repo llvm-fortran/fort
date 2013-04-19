@@ -14,9 +14,9 @@ Flang is a Fortran front-end.
 Short term:
 
 * Fix lexing bugs
-  - Continuations in BOZ and character literals
+  - Continuations in BOZ literals
   - Others
-* Support 'INCLUDE' statement
+* 'INCLUDE' which search for files in the directory of the current file first.
 * Full parsing of statements
 * Clang-style diagnostics
   - Warnings and notes
