@@ -427,15 +427,16 @@ Parser::ExprResult Parser::ParsePrimaryExpr() {
     Lex();
     break;
   }
-  case tok::char_literal_constant:
+  case tok::char_literal_constant: {
     if (NextTok.is(tok::l_paren))
       // Possible substring.
       goto parse_designator;
-    E = CharacterConstantExpr::Create(Context, Loc,
-                                      StringRef(Tok.getLiteralData(),
-                                                Tok.getLength()));
+    std::string NumStr;
+    CleanLiteral(Tok, NumStr);
+    E = CharacterConstantExpr::Create(Context, Loc,StringRef(NumStr));
     Lex();
     break;
+  }
   case tok::int_literal_constant: {
     std::string NumStr;
     CleanLiteral(Tok, NumStr);

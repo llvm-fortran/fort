@@ -109,8 +109,12 @@ void StmtVisitor::visit(const AsynchronousStmt *S) {
 void StmtVisitor::visit(const AssignmentStmt *S) {
   OS << "(assignment:\n  (";
   S->getLHS()->getType().print(OS);
+  OS << " ";
+  S->getLHS()->print(OS);
   OS << ")\n  (";
   S->getRHS()->getType().print(OS);
+  OS << " ";
+  S->getRHS()->print(OS);
   OS << "))\n";
 }
 void StmtVisitor::visit(const PrintStmt *S) {

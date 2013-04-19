@@ -211,6 +211,10 @@ void IntegerConstantExpr::print(llvm::raw_ostream &O) {
   O << Num.getValue();
 }
 
+void CharacterConstantExpr::print(llvm::raw_ostream &O) {
+  O<<getValue();
+}
+
 void VarExpr::print(llvm::raw_ostream &O) {
   O << *Variable;
 }

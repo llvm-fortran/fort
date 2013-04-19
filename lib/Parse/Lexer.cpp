@@ -100,47 +100,104 @@ GetCharacterLiteral(unsigned &I, const char *&LineBegin) {
   const char *AmpersandPos = 0;
   const char *QuoteStart = BufPtr;
   bool DoubleQuotes = (*BufPtr == '"');
+  //A flag which ignores the next quote after a double quote continuation is found:
+  // 'String'&\n&'' <-- the first ' on the second line needs this flag
+  bool skipNextQuoteChar = false;
   ++I, ++BufPtr;
-  while (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
-    if (*BufPtr == '"' || *BufPtr == '\'') {
-      ++I, ++BufPtr;
-      if (DoubleQuotes) {
-        if (I != 132 && *BufPtr == '"')
-          continue;
-      } else {
-        if (I != 132 && *BufPtr == '\'')
-          continue;
+  while(true){
+    while (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
+      if (*BufPtr == '"' || *BufPtr == '\'') {
+        if(!skipNextQuoteChar){
+          char quoteChar = *BufPtr;
+          ++I, ++BufPtr;
+
+          //Allow the "/' character inside '/" character literal
+          //Allow ''/"" character inside '/" character literal
+          if (DoubleQuotes) {
+            if (quoteChar == '\'')
+              continue;
+            if(I != 132 && *BufPtr == '"'){
+              ++I,++BufPtr;
+              continue;
+            }
+          } else {
+            if (quoteChar == '"')
+              continue;
+            if(I != 132 && *BufPtr == '\''){
+              ++I,++BufPtr;
+              continue;
+            }
+          }
+
+          //We need to verify that the next continued character is not ' or "
+          //  in order for the character literal to terminate
+          //  Example: 'String'&\n&'' should be (String') not (String) (')
+          if(*BufPtr == '&'){
+            unsigned currentI = I; const char* CurrentBufPtr = BufPtr,*CurrentLineBegin = LineBegin;
+
+            I++, ++BufPtr;
+            LineBegin = BufPtr;
+            I = 0;
+            SkipBlankLinesAndComments(I, LineBegin);
+            char next = *BufPtr;
+            bool endQuote = true;
+            if(DoubleQuotes){
+              if(next == '"'){
+                assert(quoteChar == '"');
+                endQuote = false;
+              }
+            } else {
+              if(next == '\''){
+                assert(quoteChar == '\'');
+                endQuote = false;
+              }
+            }
+            I = currentI;BufPtr = CurrentBufPtr; LineBegin = CurrentLineBegin;
+            if(!endQuote){
+              skipNextQuoteChar = true;
+              continue;
+            }
+          }
+
+
+          return;
+        } else
+          skipNextQuoteChar = false; //Reset the flag
       }
 
-      return;
+
+      if (*BufPtr != '&') goto next_char;
+
+      AmpersandPos = BufPtr;
+      ++I, ++BufPtr;
+      if (I == 132)
+        break;
+      while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
+        ++I, ++BufPtr;
+
+      if (I == 132 || isVerticalWhitespace(*BufPtr) || *BufPtr == '\0')
+        break;
+      AmpersandPos = 0;
+
+      next_char:
+      ++I, ++BufPtr;
     }
 
-    if (*BufPtr != '&') goto next_char;
-
-    AmpersandPos = BufPtr;
-    ++I, ++BufPtr;
-    if (I == 132)
+    if (AmpersandPos)
+      Atoms.push_back(StringRef(LineBegin, AmpersandPos - LineBegin));
+    else {
+      Diags.ReportError(SMLoc::getFromPointer(QuoteStart),
+                        "unterminated character literal");
       break;
-    while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
-      ++I, ++BufPtr;
+    }
 
-    if (I == 132 || isVerticalWhitespace(*BufPtr) || *BufPtr == '\0')
-      break;
+    LineBegin = BufPtr;
+    I = 0;
+    // Skip blank lines and lines with only comments.
+    SkipBlankLinesAndComments(I, LineBegin);
+
     AmpersandPos = 0;
-
-  next_char:
-    ++I, ++BufPtr;
   }
-
-  if (AmpersandPos)
-    Atoms.push_back(StringRef(LineBegin, AmpersandPos - LineBegin));
-  else
-    Diags.ReportError(SMLoc::getFromPointer(QuoteStart),
-                      "unterminated character literal");
-
-  LineBegin = BufPtr;
-  I = 0;
-  GetCharacterLiteral(I, LineBegin);
 }
 
 const char *Lexer::LineOfText::Padding = " ";

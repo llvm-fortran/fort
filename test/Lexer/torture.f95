@@ -23,4 +23,6 @@ P&
   ! An '&' is not allowed on a line by itself or with only a comment.
   D = '''&
 &"'
+  E = ''''
+  F = """"
 END PROGRAM TORTURE

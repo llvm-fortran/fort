@@ -199,6 +199,8 @@ public:
 
   const char *getValue() const { return Data; }
 
+  virtual void print(llvm::raw_ostream&);
+
   static bool classof(const Expr *E) {
     return E->getExpressionID() == Expr::CharacterConstant;
   }
