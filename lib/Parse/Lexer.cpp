@@ -622,9 +622,11 @@ void Lexer::FormDefinedOperatorTokenWithChars(Token &Result) {
   unsigned TokLen = getCurrentPtr() - TokStart;
   assert(TokLen >= 2 && "Malformed defined operator!");
 
-  if (TokLen - 2 > 63)
-    // TODO: Emit an error.
+  if (TokLen - 2 > 63){
+    Diags.ReportError(SMLoc::getFromPointer(TokStart),
+                      "invalid defined operator - it exceeds permitted length.");
     return FormTokenWithChars(Result, tok::unknown);
+  }
 
   llvm::StringRef FullOp(TokStart, TokLen);
   size_t Under = FullOp.find('_');
