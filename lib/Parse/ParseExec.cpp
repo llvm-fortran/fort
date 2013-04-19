@@ -97,6 +97,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
   StmtResult SR;
   switch (Tok.getKind()) {
   default: assert(false && "Unknown statement type!"); break;
+  case tok::kw_IF:
+    return ParseIfStmt();
   case tok::kw_PRINT:
     return ParsePrintStmt();
 
@@ -112,6 +114,60 @@ Parser::StmtResult Parser::ParseActionStmt() {
   }
 
   return SR;
+}
+
+
+/// ParseIfStmt
+///   [R802]:
+///     if-construct :=
+///       if-then-stmt
+///         block
+///       [else-if-stmt
+///          block
+///       ]
+///       ...
+///       [
+///       else-stmt
+///          block
+///       ]
+///       end-if-stmt
+///   [R803]:
+///     if-then-stmt :=
+///       [ if-construct-name : ]
+///       IF (scalar-logical-expr) THEN
+///   [R804]:
+///     else-if-stmt :=
+///       ELSE IF (scalar-logical-expr) THEN
+///       [ if-construct-name ]
+///   [R805]:
+///     else-stmt :=
+///       ELSE
+///       [ if-construct-name ]
+///   [R806]:
+///     end-if-stmt :=
+///       END IF
+///       [ if-construct-name ]
+///   [R807]:
+///     if-stmt :=
+///       IF(scalar-logic-expr) action-stmt
+Parser::StmtResult Parser::ParseIfStmt() {
+  SMLoc Loc = Tok.getLocation();
+
+  Lex();
+  if (!Expect(tok::l_paren,"expected '(' after IF")) return StmtResult(true);
+  ExprResult Condition = ParseExpression();
+  if (!Expect(tok::r_paren,"expected ')' after IF(condition")) return StmtResult(true);
+  if (!NextTok.is(tok::kw_THEN)){
+    // if-stmt
+    // FIXME: Constraint: The action-stmt in the if-stmt shall not be an
+    // if-stmt, end-program-stmt, end-function-stmt, or end-subroutine-stmt.
+    StmtResult Action = ParseActionStmt();
+
+    return Actions.ActOnIfStmt(Context, Loc, Condition, Action, StmtLabel);
+  }
+  // FIXME: if-construct
+
+  return StmtResult(true);
 }
 
 /// ParseAssignmentStmt

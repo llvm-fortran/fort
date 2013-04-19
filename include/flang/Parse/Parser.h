@@ -237,6 +237,7 @@ private:
   StmtResult ParseEND_FORALLStmt();
 
   //
+  StmtResult ParseIfStmt();
   StmtResult ParseAssignmentStmt();
   StmtResult ParsePrintStmt();
 
@@ -273,6 +274,7 @@ private:
 
   void LexToEndOfStatement();
   bool EatIfPresent(tok::TokenKind);
+  bool Expect(tok::TokenKind,const llvm::Twine&);
 };
 
 } // end flang namespace

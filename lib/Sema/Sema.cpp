@@ -282,6 +282,12 @@ LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SMLoc Loc,
   return LabelFormatSpec::Create(C, Loc, Label);
 }
 
+
+StmtResult Sema::ActOnIfStmt(ASTContext &C,SMLoc Loc,ExprResult Condition,
+                       StmtResult Action,Expr* StmtLabel){
+  return IfStmt::Create(C, Loc, Condition, Action, StmtLabel);
+}
+
 StmtResult Sema::ActOnPrintStmt(ASTContext &C, SMLoc Loc, FormatSpec *FS,
                                 ArrayRef<ExprResult> OutputItemList,
                                 Expr *StmtLabel) {

@@ -240,6 +240,16 @@ bool Parser::EatIfPresent(tok::TokenKind Kind) {
   return false;
 }
 
+/// Expect - Eat the token if it's present. Return 'true' if it was
+/// delicious. Reports error if it wasn't.
+bool Parser::Expect(tok::TokenKind Kind,const llvm::Twine &Msg){
+  if (!EatIfPresent(Kind)) {
+    Diag.ReportError(Tok.getLocation(),Msg);
+    return false;
+  }
+  return true;
+}
+
 /// LexToEndOfStatement - Lex to the end of a statement. Done in an
 /// unrecoverable error situation.
 void Parser::LexToEndOfStatement() {

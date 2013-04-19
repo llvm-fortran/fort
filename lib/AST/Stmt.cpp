@@ -180,6 +180,18 @@ ExternalStmt *ExternalStmt::Create(ASTContext &C, SMLoc Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// If Statement
+//===----------------------------------------------------------------------===//
+
+IfStmt::IfStmt(SMLoc L,ExprResult condition, StmtResult action, ExprResult StmtLabel)
+  : Stmt(If,L,StmtLabel), Condition(condition), Action(action) {
+}
+IfStmt* IfStmt::Create(ASTContext &C, SMLoc L,ExprResult condition,
+                       StmtResult action, ExprResult StmtLabel){
+  return new(C) IfStmt(L,condition,action,StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Assignment Statement
 //===----------------------------------------------------------------------===//
 

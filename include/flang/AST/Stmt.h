@@ -46,6 +46,8 @@ public:
     Asynchronous,
     External,
     EndProgram,
+
+    If,
     Assignment,
     Print
   };
@@ -360,6 +362,24 @@ public:
 //===----------------------------------------------------------------------===//
 // Executable Statements
 //===----------------------------------------------------------------------===//
+
+/// IfStmt
+class IfStmt : public Stmt {
+  ExprResult Condition;
+  StmtResult Action;
+
+  IfStmt(SMLoc L,ExprResult condition, StmtResult action, ExprResult StmtLabel);
+public:
+  static IfStmt* Create(ASTContext &C,SMLoc L,ExprResult condition,
+                        StmtResult action,ExprResult StmtLabel);
+  Expr* getCondition() const { return Condition.get(); }
+  Stmt* getAction() const { return Action.get(); }
+
+  static bool classof(const IfStmt*) { return true; }
+  static bool classof(const Stmt* S){
+    return S->getStatementID() == If;
+  }
+};
 
 /// AssignmentStmt
 class AssignmentStmt : public Stmt {

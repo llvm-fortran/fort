@@ -36,6 +36,7 @@ private:
   VISIT(ImportStmt);
   VISIT(ImplicitStmt);
   VISIT(AsynchronousStmt);
+  VISIT(IfStmt);
   VISIT(AssignmentStmt);
   VISIT(PrintStmt);
 #undef VISIT
@@ -55,6 +56,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(ImportStmt);
   HANDLE(ImplicitStmt);
   HANDLE(AsynchronousStmt);
+  HANDLE(IfStmt);
   HANDLE(AssignmentStmt);
   HANDLE(PrintStmt);
 #undef HANDLE
@@ -105,6 +107,13 @@ void StmtVisitor::visit(const ImplicitStmt *S) {
   OS << "  )\n)\n";
 }
 void StmtVisitor::visit(const AsynchronousStmt *S) {
+}
+void StmtVisitor::visit(const IfStmt* S) {
+  OS << "(if (";
+  S->getCondition()->print(OS);
+  OS << ") THEN\n (";
+  visit(S->getAction());
+  OS << "))\n";
 }
 void StmtVisitor::visit(const AssignmentStmt *S) {
   OS << "(assignment:\n  (";
