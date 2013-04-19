@@ -119,6 +119,8 @@ TOK(at)                  // @
 //   KEYF2003  - This is a keyword for Fortran 2003.
 //   KEYF2008  - This is a keyword for Fortran 2003/2008.
 //
+
+KEYWORD(INCLUDE                , KEYALL)
 KEYWORD(PROGRAM                , KEYALL)
 KEYWORD(END                    , KEYALL)
 KEYWORD(IF                     , KEYALL)
