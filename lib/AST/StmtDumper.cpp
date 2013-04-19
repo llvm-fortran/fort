@@ -110,9 +110,15 @@ void StmtVisitor::visit(const AsynchronousStmt *S) {
 }
 void StmtVisitor::visit(const IfStmt* S) {
   OS << "(if (";
-  S->getCondition()->print(OS);
-  OS << ") THEN\n (";
-  visit(S->getAction());
+  ArrayRef<std::pair<ExprResult, StmtResult> > Branches =
+      S->getIDList();
+  for(size_t i = 0;i<Branches.size();++i){
+    ExprResult Condition = Branches[i].first;
+    Condition.get()->print(OS);
+    OS << ") THEN\n (";
+    StmtResult Action = Branches[i].second;
+    visit(Action.get());
+  }
   OS << "))\n";
 }
 void StmtVisitor::visit(const AssignmentStmt *S) {

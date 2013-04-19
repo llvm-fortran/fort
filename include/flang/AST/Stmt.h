@@ -364,16 +364,15 @@ public:
 //===----------------------------------------------------------------------===//
 
 /// IfStmt
-class IfStmt : public Stmt {
-  ExprResult Condition;
-  StmtResult Action;
+class IfStmt : public ListStmt<std::pair<ExprResult, StmtResult> > {
 
-  IfStmt(SMLoc L,ExprResult condition, StmtResult action, ExprResult StmtLabel);
+  IfStmt(ASTContext &C, SMLoc Loc,
+         ArrayRef<std::pair<ExprResult, StmtResult> > Branches,
+         ExprResult StmtLabel);
 public:
-  static IfStmt* Create(ASTContext &C,SMLoc L,ExprResult condition,
-                        StmtResult action,ExprResult StmtLabel);
-  Expr* getCondition() const { return Condition.get(); }
-  Stmt* getAction() const { return Action.get(); }
+  static IfStmt* Create(ASTContext &C, SMLoc Loc,
+                        ArrayRef<std::pair<ExprResult, StmtResult> > Branches,
+                        ExprResult StmtLabel);
 
   static bool classof(const IfStmt*) { return true; }
   static bool classof(const Stmt* S){

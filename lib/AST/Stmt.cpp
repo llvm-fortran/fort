@@ -183,12 +183,16 @@ ExternalStmt *ExternalStmt::Create(ASTContext &C, SMLoc Loc,
 // If Statement
 //===----------------------------------------------------------------------===//
 
-IfStmt::IfStmt(SMLoc L,ExprResult condition, StmtResult action, ExprResult StmtLabel)
-  : Stmt(If,L,StmtLabel), Condition(condition), Action(action) {
+IfStmt::IfStmt(ASTContext &C, SMLoc Loc,
+               ArrayRef<std::pair<ExprResult, StmtResult> > Branches,
+               ExprResult StmtLabel)
+  : ListStmt(C, If, Loc, Branches, StmtLabel) {
 }
-IfStmt* IfStmt::Create(ASTContext &C, SMLoc L,ExprResult condition,
-                       StmtResult action, ExprResult StmtLabel){
-  return new(C) IfStmt(L,condition,action,StmtLabel);
+
+IfStmt* IfStmt::Create(ASTContext &C, SMLoc Loc,
+                      ArrayRef<std::pair<ExprResult, StmtResult> > Branches,
+                      ExprResult StmtLabel) {
+  return new(C) IfStmt(C,Loc,Branches,StmtLabel);
 }
 
 //===----------------------------------------------------------------------===//

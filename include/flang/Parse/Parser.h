@@ -237,6 +237,7 @@ private:
   StmtResult ParseEND_FORALLStmt();
 
   //
+  StmtResult ParseBlockStmt();
   StmtResult ParseIfStmt();
   StmtResult ParseAssignmentStmt();
   StmtResult ParsePrintStmt();

@@ -135,8 +135,11 @@ public:
   LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SMLoc Loc,
                                         ExprResult Label);
 
-  StmtResult ActOnIfStmt(ASTContext &C,SMLoc Loc,ExprResult Condition,
-                         StmtResult Action,Expr* StmtLabel);
+  StmtResult ActOnBlock(ASTContext& C,SMLoc Loc,ArrayRef<StmtResult> body);
+
+  StmtResult ActOnIfStmt(ASTContext& C, SMLoc Loc,
+                         ArrayRef<std::pair<ExprResult,StmtResult> > Branches,
+                         Expr* StmtLabel);
 
   StmtResult ActOnPrintStmt(ASTContext &C, SMLoc Loc, FormatSpec *FS,
                             ArrayRef<ExprResult> OutputItemList,
