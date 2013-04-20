@@ -236,9 +236,10 @@ private:
   StmtResult ParseFORALLStmt();
   StmtResult ParseEND_FORALLStmt();
 
-  //
+  // Executable statements
   StmtResult ParseBlockStmt();
   StmtResult ParseIfStmt();
+  StmtResult ParseStopStmt();
   StmtResult ParseAssignmentStmt();
   StmtResult ParsePrintStmt();
 

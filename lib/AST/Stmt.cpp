@@ -210,6 +210,17 @@ IfStmt* IfStmt::Create(ASTContext &C, SMLoc Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// Stop Statement
+//===----------------------------------------------------------------------===//
+
+StopStmt::StopStmt(SMLoc Loc, ExprResult stopCode, ExprResult StmtLabel)
+  : Stmt(Stop,Loc,StmtLabel), StopCode(stopCode) {
+}
+StopStmt* StopStmt::Create(ASTContext &C, SMLoc Loc, ExprResult stopCode, ExprResult StmtLabel) {
+  return new(C) StopStmt(Loc, stopCode, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Assignment Statement
 //===----------------------------------------------------------------------===//
 

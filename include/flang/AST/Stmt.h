@@ -49,6 +49,7 @@ public:
 
     Block,
     If,
+    Stop,
     Assignment,
     Print
   };
@@ -392,6 +393,22 @@ public:
   static bool classof(const IfStmt*) { return true; }
   static bool classof(const Stmt* S){
     return S->getStatementID() == If;
+  }
+};
+
+/// StopStmt
+class StopStmt : public Stmt {
+  ExprResult StopCode;
+
+  StopStmt(SMLoc Loc, ExprResult stopCode, ExprResult StmtLabel);
+public:
+  static StopStmt* Create(ASTContext &C, SMLoc Loc, ExprResult stopCode, ExprResult StmtLabel);
+
+  Expr *getStopCode() const { return StopCode.get(); }
+
+  static bool classof(const StopStmt*) { return true; }
+  static bool classof(const Stmt* S) {
+    return S->getStatementID() == Stop;
   }
 };
 

@@ -141,6 +141,8 @@ public:
                          ArrayRef<std::pair<ExprResult,StmtResult> > Branches,
                          Expr* StmtLabel);
 
+  StmtResult ActOnStopStmt(ASTContext &C, SMLoc Loc, ExprResult StopCode, Expr *StmtLabel);
+
   StmtResult ActOnPrintStmt(ASTContext &C, SMLoc Loc, FormatSpec *FS,
                             ArrayRef<ExprResult> OutputItemList,
                             Expr *StmtLabel);

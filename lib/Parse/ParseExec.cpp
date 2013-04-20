@@ -99,6 +99,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
   default: assert(false && "Unknown statement type!"); break;
   case tok::kw_IF:
     return ParseIfStmt();
+  case tok::kw_STOP:
+    return ParseStopStmt();
   case tok::kw_PRINT:
     return ParsePrintStmt();
 
@@ -180,6 +182,7 @@ Parser::StmtResult Parser::ParseIfStmt() {
                                StmtLabel);
   }
 
+  //FIXME: if-construct-name
   // if-then-stmt
   std::vector<std::pair<ExprResult,StmtResult> > Branches;
   if(!Tok.is(tok::kw_ENDIF) && !Tok.is(tok::kw_ELSE)
@@ -213,6 +216,22 @@ Parser::StmtResult Parser::ParseIfStmt() {
   return Actions.ActOnIfStmt(Context, Loc, Branches, StmtLabel);
 error:
   return StmtResult(true);
+}
+
+/// ParseStopStmt
+///   [R840]:
+///     stop-stmt :=
+///       STOP [ stop-code ]
+///   [R841]:
+///     stop-code :=
+///       scalar-char-constant or
+///       digit [ digit [ digit [ digit [ digit ] ] ] ]
+Parser::StmtResult Parser::ParseStopStmt() {
+  SMLoc Loc = Tok.getLocation();
+  Lex();
+
+  //FIXME: parse optional stop-code.
+  return Actions.ActOnStopStmt(Context, Loc, ExprResult(), StmtLabel);
 }
 
 /// ParseAssignmentStmt

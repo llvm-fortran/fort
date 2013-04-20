@@ -38,6 +38,7 @@ private:
   VISIT(AsynchronousStmt);
   VISIT(BlockStmt);
   VISIT(IfStmt);
+  VISIT(StopStmt);
   VISIT(AssignmentStmt);
   VISIT(PrintStmt);
 #undef VISIT
@@ -59,6 +60,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(AsynchronousStmt);
   HANDLE(BlockStmt);
   HANDLE(IfStmt);
+  HANDLE(StopStmt);
   HANDLE(AssignmentStmt);
   HANDLE(PrintStmt);
 #undef HANDLE
@@ -124,10 +126,10 @@ void StmtVisitor::visit(const IfStmt* S) {
   for(size_t i = 0; i < Branches.size(); ++i) {
     ExprResult Condition = Branches[i].first;
     if(i>0){
-      OS<<")\n else";
+      OS << ")\n else";
       if((Condition.isInvalid() && (i+1) < Branches.size())
-         || Condition.get()) OS<<"if(";
-      else OS<<"(";
+         || Condition.get()) OS << "if(";
+      else OS << "(";
     }
     if(Condition.isUsable())
       Condition.get()->print(OS);
@@ -137,6 +139,14 @@ void StmtVisitor::visit(const IfStmt* S) {
       visit(Action.get());
   }
   OS << "))\n";
+}
+void StmtVisitor::visit(const StopStmt *S) {
+  if(S->getStopCode()){
+    OS << "STOP ";
+    S->getStopCode()->print(OS);
+    OS << "\n";
+  } else
+    OS << "STOP\n";
 }
 void StmtVisitor::visit(const AssignmentStmt *S) {
   OS << "(assignment:\n  (";
