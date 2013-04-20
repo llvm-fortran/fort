@@ -188,7 +188,7 @@ BlockStmt::BlockStmt(ASTContext &C, SMLoc Loc,
   : ListStmt(C, Block, Loc, Body, ExprResult()) {
 }
 
-BlockStmt* BlockStmt::Create(ASTContext &C, SMLoc Loc,
+BlockStmt *BlockStmt::Create(ASTContext &C, SMLoc Loc,
                              ArrayRef<StmtResult> Body) {
   return new(C) BlockStmt(C, Loc, Body);
 }
@@ -203,10 +203,21 @@ IfStmt::IfStmt(ASTContext &C, SMLoc Loc,
   : ListStmt(C, If, Loc, Branches, StmtLabel) {
 }
 
-IfStmt* IfStmt::Create(ASTContext &C, SMLoc Loc,
+IfStmt *IfStmt::Create(ASTContext &C, SMLoc Loc,
                       ArrayRef<std::pair<ExprResult, StmtResult> > Branches,
                       ExprResult StmtLabel) {
   return new(C) IfStmt(C,Loc,Branches,StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
+// Continue Statement
+//===----------------------------------------------------------------------===//
+
+ContinueStmt::ContinueStmt(SMLoc Loc, ExprResult StmtLabel)
+  : Stmt(Continue, Loc, StmtLabel) {
+}
+ContinueStmt *ContinueStmt::Create(ASTContext &C, SMLoc Loc, ExprResult StmtLabel) {
+  return new(C) ContinueStmt(Loc, StmtLabel);
 }
 
 //===----------------------------------------------------------------------===//
@@ -214,9 +225,9 @@ IfStmt* IfStmt::Create(ASTContext &C, SMLoc Loc,
 //===----------------------------------------------------------------------===//
 
 StopStmt::StopStmt(SMLoc Loc, ExprResult stopCode, ExprResult StmtLabel)
-  : Stmt(Stop,Loc,StmtLabel), StopCode(stopCode) {
+  : Stmt(Stop, Loc, StmtLabel), StopCode(stopCode) {
 }
-StopStmt* StopStmt::Create(ASTContext &C, SMLoc Loc, ExprResult stopCode, ExprResult StmtLabel) {
+StopStmt *StopStmt::Create(ASTContext &C, SMLoc Loc, ExprResult stopCode, ExprResult StmtLabel) {
   return new(C) StopStmt(Loc, stopCode, StmtLabel);
 }
 

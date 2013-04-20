@@ -99,6 +99,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
   default: assert(false && "Unknown statement type!"); break;
   case tok::kw_IF:
     return ParseIfStmt();
+  case tok::kw_CONTINUE:
+    return ParseContinueStmt();
   case tok::kw_STOP:
     return ParseStopStmt();
   case tok::kw_PRINT:
@@ -216,6 +218,17 @@ Parser::StmtResult Parser::ParseIfStmt() {
   return Actions.ActOnIfStmt(Context, Loc, Branches, StmtLabel);
 error:
   return StmtResult(true);
+}
+
+/// ParseContinueStmt
+///   [R839]:
+///     continue-stmt :=
+///       CONTINUE
+Parser::StmtResult Parser::ParseContinueStmt() {
+  SMLoc Loc = Tok.getLocation();
+  Lex();
+
+  return Actions.ActOnContinueStmt(Context, Loc, StmtLabel);
 }
 
 /// ParseStopStmt

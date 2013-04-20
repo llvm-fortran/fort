@@ -239,6 +239,7 @@ private:
   // Executable statements
   StmtResult ParseBlockStmt();
   StmtResult ParseIfStmt();
+  StmtResult ParseContinueStmt();
   StmtResult ParseStopStmt();
   StmtResult ParseAssignmentStmt();
   StmtResult ParsePrintStmt();

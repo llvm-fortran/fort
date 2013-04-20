@@ -264,6 +264,8 @@ KEYWORD(ENDTYPE                , KEYNOTF77)
 KEYWORD(GOTO                   , KEYALL)
 // SELECT CASE:
 KEYWORD(SELECTCASE             , KEYALL)
+// CONTINUE
+KEYWORD(CONTINUE               , KEYALL)
 // STOP
 KEYWORD(STOP                   , KEYALL)
 

@@ -38,6 +38,7 @@ private:
   VISIT(AsynchronousStmt);
   VISIT(BlockStmt);
   VISIT(IfStmt);
+  VISIT(ContinueStmt);
   VISIT(StopStmt);
   VISIT(AssignmentStmt);
   VISIT(PrintStmt);
@@ -60,6 +61,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(AsynchronousStmt);
   HANDLE(BlockStmt);
   HANDLE(IfStmt);
+  HANDLE(ContinueStmt);
   HANDLE(StopStmt);
   HANDLE(AssignmentStmt);
   HANDLE(PrintStmt);
@@ -140,13 +142,16 @@ void StmtVisitor::visit(const IfStmt* S) {
   }
   OS << "))\n";
 }
+void StmtVisitor::visit(const ContinueStmt *S) {
+  OS << "continue\n";
+}
 void StmtVisitor::visit(const StopStmt *S) {
   if(S->getStopCode()){
-    OS << "STOP ";
+    OS << "stop ";
     S->getStopCode()->print(OS);
     OS << "\n";
   } else
-    OS << "STOP\n";
+    OS << "stop\n";
 }
 void StmtVisitor::visit(const AssignmentStmt *S) {
   OS << "(assignment:\n  (";

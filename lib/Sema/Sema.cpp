@@ -292,6 +292,10 @@ StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
   return IfStmt::Create(C, Loc, Branches, StmtLabel);
 }
 
+StmtResult Sema::ActOnContinueStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
+  return ContinueStmt::Create(C, Loc, StmtLabel);
+}
+
 StmtResult Sema::ActOnStopStmt(ASTContext &C, SMLoc Loc, ExprResult StopCode, Expr *StmtLabel) {
   return StopStmt::Create(C, Loc, StopCode, StmtLabel);
 }

@@ -49,6 +49,7 @@ public:
 
     Block,
     If,
+    Continue,
     Stop,
     Assignment,
     Print
@@ -370,11 +371,11 @@ class BlockStmt : public ListStmt<StmtResult> {
   BlockStmt(ASTContext &C, SMLoc Loc,
             ArrayRef<StmtResult> Body);
 public:
-  static BlockStmt* Create(ASTContext &C, SMLoc Loc,
+  static BlockStmt *Create(ASTContext &C, SMLoc Loc,
                            ArrayRef<StmtResult> Body);
 
   static bool classof(const BlockStmt*) { return true; }
-  static bool classof(const Stmt* S) {
+  static bool classof(const Stmt *S) {
     return S->getStatementID() == Block;
   }
 };
@@ -386,13 +387,25 @@ class IfStmt : public ListStmt<std::pair<ExprResult, StmtResult> > {
          ArrayRef<std::pair<ExprResult, StmtResult> > Branches,
          ExprResult StmtLabel);
 public:
-  static IfStmt* Create(ASTContext &C, SMLoc Loc,
+  static IfStmt *Create(ASTContext &C, SMLoc Loc,
                         ArrayRef<std::pair<ExprResult, StmtResult> > Branches,
                         ExprResult StmtLabel);
 
   static bool classof(const IfStmt*) { return true; }
-  static bool classof(const Stmt* S){
+  static bool classof(const Stmt *S){
     return S->getStatementID() == If;
+  }
+};
+
+/// ContinueStmt
+class ContinueStmt : public Stmt {
+  ContinueStmt(SMLoc Loc, ExprResult StmtLabel);
+public:
+  static ContinueStmt *Create(ASTContext &C, SMLoc Loc, ExprResult StmtLabel);
+
+  static bool classof(const ContinueStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == Continue;
   }
 };
 
@@ -402,12 +415,12 @@ class StopStmt : public Stmt {
 
   StopStmt(SMLoc Loc, ExprResult stopCode, ExprResult StmtLabel);
 public:
-  static StopStmt* Create(ASTContext &C, SMLoc Loc, ExprResult stopCode, ExprResult StmtLabel);
+  static StopStmt *Create(ASTContext &C, SMLoc Loc, ExprResult stopCode, ExprResult StmtLabel);
 
   Expr *getStopCode() const { return StopCode.get(); }
 
   static bool classof(const StopStmt*) { return true; }
-  static bool classof(const Stmt* S) {
+  static bool classof(const Stmt *S) {
     return S->getStatementID() == Stop;
   }
 };
