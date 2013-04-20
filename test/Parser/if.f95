@@ -24,4 +24,15 @@ PROGRAM iftest
     C = "NEVER"
   END IF
 
+  !Here comes nesting
+  IF(33 == 22) THEN
+    IF(22 == 33) THEN
+      IF(11 == 11) THEN
+        STOP
+      END IF
+    ELSE
+      PRINT *, C
+    ENDIF
+  END IF
+
 END PROGRAM iftest
