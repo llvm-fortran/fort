@@ -282,8 +282,8 @@ LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SMLoc Loc,
   return LabelFormatSpec::Create(C, Loc, Label);
 }
 
-StmtResult Sema::ActOnBlock(ASTContext& C,SMLoc Loc,ArrayRef<StmtResult> body) {
-  return StmtResult(); //FIXME: TODO Block AST
+StmtResult Sema::ActOnBlock(ASTContext& C,SMLoc Loc,ArrayRef<StmtResult> Body) {
+  return BlockStmt::Create(C, Loc, Body);
 }
 
 StmtResult Sema::ActOnIfStmt(ASTContext& C, SMLoc Loc,

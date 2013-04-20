@@ -170,7 +170,7 @@ Parser::StmtResult Parser::ParseIfStmt() {
   if (!Expect(tok::l_paren,"expected '(' after IF")) return StmtResult(true);
   ExprResult Condition = ParseExpression();
   if (!Expect(tok::r_paren,"expected ')' after IF(condition")) return StmtResult(true);
-  if (!NextTok.is(tok::kw_THEN)){
+  if (!EatIfPresent(tok::kw_THEN)){
     // if-stmt
     // FIXME: Constraint: The action-stmt in the if-stmt shall not be an
     // if-stmt, end-program-stmt, end-function-stmt, or end-subroutine-stmt.
@@ -179,46 +179,40 @@ Parser::StmtResult Parser::ParseIfStmt() {
     return Actions.ActOnIfStmt(Context, Loc, std::make_pair(Condition,Action),
                                StmtLabel);
   }
-  Lex();//consume THEN.
 
   // if-then-stmt
   std::vector<std::pair<ExprResult,StmtResult> > Branches;
-  if(!NextTok.is(tok::kw_ENDIF) && !NextTok.is(tok::kw_ELSE)
-     && !NextTok.is(tok::kw_ELSEIF))
+  if(!Tok.is(tok::kw_ENDIF) && !Tok.is(tok::kw_ELSE)
+     && !Tok.is(tok::kw_ELSEIF))
     Branches.push_back(std::make_pair(Condition,ParseBlockStmt()));
   else
     Branches.push_back(std::make_pair(Condition,StmtResult()));
 
   // else-if-stmt
-  while(NextTok.is(tok::kw_ELSEIF)){
-    Lex();//consume ELSE IF
-    if (!Expect(tok::l_paren,"expected '(' after ELSE IF"));
+  while(EatIfPresent(tok::kw_ELSEIF)) {
+    if (!Expect(tok::l_paren,"expected '(' after ELSE IF")) goto error;
     Condition = ParseExpression();
-    if (!Expect(tok::r_paren,"expected ')' after ELSE IF(condition"));
-    Lex();
-    if (!Expect(tok::kw_THEN,"expected THEN after ELSE IF(condition)"));
-    if(!NextTok.is(tok::kw_ENDIF) && !NextTok.is(tok::kw_ELSE)
-       && !NextTok.is(tok::kw_ELSEIF))
+    if (!Expect(tok::r_paren,"expected ')' after ELSE IF(condition")) goto error;
+    if (!Expect(tok::kw_THEN,"expected THEN after ELSE IF(condition)")) goto error;
+    if(!Tok.is(tok::kw_ENDIF) && !Tok.is(tok::kw_ELSE)
+       && !Tok.is(tok::kw_ELSEIF))
       Branches.push_back(std::make_pair(Condition,ParseBlockStmt()));
     else
       Branches.push_back(std::make_pair(Condition,StmtResult()));
   }
 
   // else-stmt
-  if(NextTok.is(tok::kw_ELSE)){
-    Lex();//consume ELSE
-    if(!NextTok.is(tok::kw_ENDIF))
+  if(EatIfPresent(tok::kw_ELSE)){
+    if(!Tok.is(tok::kw_ENDIF))
       Branches.push_back(std::make_pair(ExprResult(),ParseBlockStmt()));
-    else Lex();//Lex for expect ENDIF
-  } else
-    Lex(); //Lex for expect ENDIF
-
+  }
 
   // end-if-stmt
-  if(!Expect(tok::kw_ENDIF,"expected 'END IF' statement"))
-    return StmtResult(true);
+  if(!Expect(tok::kw_ENDIF,"expected 'END IF' statement")) goto error;
 
   return Actions.ActOnIfStmt(Context, Loc, Branches, StmtLabel);
+error:
+  return StmtResult(true);
 }
 
 /// ParseAssignmentStmt

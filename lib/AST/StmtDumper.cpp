@@ -36,6 +36,7 @@ private:
   VISIT(ImportStmt);
   VISIT(ImplicitStmt);
   VISIT(AsynchronousStmt);
+  VISIT(BlockStmt);
   VISIT(IfStmt);
   VISIT(AssignmentStmt);
   VISIT(PrintStmt);
@@ -56,6 +57,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(ImportStmt);
   HANDLE(ImplicitStmt);
   HANDLE(AsynchronousStmt);
+  HANDLE(BlockStmt);
   HANDLE(IfStmt);
   HANDLE(AssignmentStmt);
   HANDLE(PrintStmt);
@@ -108,16 +110,31 @@ void StmtVisitor::visit(const ImplicitStmt *S) {
 }
 void StmtVisitor::visit(const AsynchronousStmt *S) {
 }
+void StmtVisitor::visit(const BlockStmt *S) {
+  ArrayRef<StmtResult> Body = S->getIDList();
+  for(size_t i = 0; i < Body.size(); ++i) {
+    StmtResult stmt = Body[i];
+    visit(stmt.get());
+  }
+}
 void StmtVisitor::visit(const IfStmt* S) {
   OS << "(if (";
   ArrayRef<std::pair<ExprResult, StmtResult> > Branches =
       S->getIDList();
-  for(size_t i = 0;i<Branches.size();++i){
+  for(size_t i = 0; i < Branches.size(); ++i) {
     ExprResult Condition = Branches[i].first;
-    Condition.get()->print(OS);
-    OS << ") THEN\n (";
+    if(i>0){
+      OS<<")\n else";
+      if((Condition.isInvalid() && (i+1) < Branches.size())
+         || Condition.get()) OS<<"if(";
+      else OS<<"(";
+    }
+    if(Condition.isUsable())
+      Condition.get()->print(OS);
+    OS << ") then\n (";
     StmtResult Action = Branches[i].second;
-    visit(Action.get());
+    if(Action.isUsable())
+      visit(Action.get());
   }
   OS << "))\n";
 }

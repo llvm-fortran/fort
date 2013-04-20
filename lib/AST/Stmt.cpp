@@ -180,6 +180,20 @@ ExternalStmt *ExternalStmt::Create(ASTContext &C, SMLoc Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// Block Statement
+//===----------------------------------------------------------------------===//
+
+BlockStmt::BlockStmt(ASTContext &C, SMLoc Loc,
+                     ArrayRef<StmtResult> Body)
+  : ListStmt(C, Block, Loc, Body, ExprResult()) {
+}
+
+BlockStmt* BlockStmt::Create(ASTContext &C, SMLoc Loc,
+                             ArrayRef<StmtResult> Body) {
+  return new(C) BlockStmt(C, Loc, Body);
+}
+
+//===----------------------------------------------------------------------===//
 // If Statement
 //===----------------------------------------------------------------------===//
 

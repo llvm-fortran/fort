@@ -47,6 +47,7 @@ public:
     External,
     EndProgram,
 
+    Block,
     If,
     Assignment,
     Print
@@ -362,6 +363,20 @@ public:
 //===----------------------------------------------------------------------===//
 // Executable Statements
 //===----------------------------------------------------------------------===//
+
+/// BlockStmt
+class BlockStmt : public ListStmt<StmtResult> {
+  BlockStmt(ASTContext &C, SMLoc Loc,
+            ArrayRef<StmtResult> Body);
+public:
+  static BlockStmt* Create(ASTContext &C, SMLoc Loc,
+                           ArrayRef<StmtResult> Body);
+
+  static bool classof(const BlockStmt*) { return true; }
+  static bool classof(const Stmt* S) {
+    return S->getStatementID() == Block;
+  }
+};
 
 /// IfStmt
 class IfStmt : public ListStmt<std::pair<ExprResult, StmtResult> > {
