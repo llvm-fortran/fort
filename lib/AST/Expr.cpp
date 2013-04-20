@@ -34,8 +34,7 @@ void APNumericStorage::setIntValue(ASTContext &C, const APInt &Val) {
 IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, llvm::SMLoc Loc,
                                          llvm::StringRef Data)
   : ConstantExpr(IntegerConstant, C.IntegerTy,  Loc) {
-  llvm::APSInt Val(64);
-  Data.getAsInteger(10, Val);
+  llvm::APInt Val(64,Data,10);
   Num.setValue(C, Val);
 }
 
