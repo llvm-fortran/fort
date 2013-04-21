@@ -637,8 +637,11 @@ void Lexer::FormDefinedOperatorTokenWithChars(Token &Result) {
 
   tok::TokenKind Kind = tok::defined_operator;
 
-  if (Op.compare_lower(".TRUE.") == 0 || Op.compare_lower(".FALSE.") == 0)
-    Kind = tok::logical_literal_constant;
+  if (Op.compare_lower(".TRUE.") == 0 || Op.compare_lower(".FALSE.") == 0){
+    FormTokenWithChars(Result, tok::logical_literal_constant);
+    Result.setLiteralData(TokStart);
+    return;
+  }
   else if (Op.compare_lower(".EQ.") == 0)
     Kind = tok::kw_EQ;
   else if (Op.compare_lower(".NE.") == 0)

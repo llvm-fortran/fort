@@ -89,7 +89,7 @@ public:
       || is(tok::statement_label)       || is(tok::char_literal_constant)
       || is(tok::binary_boz_constant)   || is(tok::octal_boz_constant)
       || is(tok::hex_boz_constant)      || is(tok::defined_operator)
-      || is(tok::comment);
+      || is(tok::comment) || is(tok::logical_literal_constant);
   }
 
   /// getLocation - Return a source location identifier for the specified offset

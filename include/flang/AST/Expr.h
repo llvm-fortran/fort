@@ -184,6 +184,8 @@ public:
 
   APFloat getValue() const { return Num.getValue(); }
 
+  virtual void print(llvm::raw_ostream&);
+
   static bool classof(const Expr *E) {
     return E->getExpressionID() == Expr::RealConstant;
   }
@@ -241,6 +243,8 @@ public:
 
   bool isTrue() const { return Val; }
   bool isFalse() const { return !Val; }
+
+  virtual void print(llvm::raw_ostream&);
 
   static bool classof(const Expr *E) {
     return E->getExpressionID() == Expr::LogicalConstant;

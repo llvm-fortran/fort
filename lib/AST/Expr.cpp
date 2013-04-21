@@ -210,8 +210,19 @@ void IntegerConstantExpr::print(llvm::raw_ostream &O) {
   O << Num.getValue();
 }
 
+void RealConstantExpr::print(llvm::raw_ostream &O) {
+  llvm::SmallVector<char,32> Str;
+  Num.getValue().toString(Str);
+  Str.push_back('\0');
+  O << Str.begin();
+}
+
 void CharacterConstantExpr::print(llvm::raw_ostream &O) {
-  O<<getValue();
+  O << getValue();
+}
+
+void LogicalConstantExpr::print(llvm::raw_ostream &O) {
+  O << (isTrue()? "true" : "false");
 }
 
 void VarExpr::print(llvm::raw_ostream &O) {
