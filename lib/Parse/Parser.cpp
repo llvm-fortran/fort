@@ -631,14 +631,20 @@ bool Parser::ParseDeclarationConstruct() {
   switch (Tok.getKind()) {
   default:
     return true;
+  case tok::kw_TYPE:
+  case tok::kw_CLASS: {
+    if(!NextTok.is(tok::l_paren)){
+      //FIXME: error handling?
+      ParseDerivedTypeDefinitionStmt();
+      break;
+    }
+  }
   case tok::kw_INTEGER:
   case tok::kw_REAL:
   case tok::kw_COMPLEX:
   case tok::kw_CHARACTER:
   case tok::kw_LOGICAL:
-  case tok::kw_DOUBLEPRECISION:
-  case tok::kw_TYPE:
-  case tok::kw_CLASS: {
+  case tok::kw_DOUBLEPRECISION: {
     if (ParseTypeDeclarationStmt(Decls)) {
       LexToEndOfStatement();
       // FIXME:

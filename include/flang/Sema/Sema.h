@@ -75,6 +75,17 @@ public:
   Decl *ActOnImplicitEntityDecl(ASTContext &C, SMLoc IDLoc,
                                 const IdentifierInfo *IDInfo);
 
+  // FIXME: TODO more features.
+  RecordDecl *ActOnDerivedTypeDecl(ASTContext &C, SMLoc Loc,
+                                      SMLoc NameLoc, const IdentifierInfo* IDInfo);
+
+  FieldDecl *ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SMLoc IDLoc,
+                                       const IdentifierInfo *IDInfo,
+                                       ExprResult Init = ExprResult());
+
+  void ActOnEndDerivedTypeDecl();
+
+
   // PROGRAM statement:
   StmtResult ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,
                           SMLoc Loc, SMLoc NameLoc, Expr *StmtLabel);

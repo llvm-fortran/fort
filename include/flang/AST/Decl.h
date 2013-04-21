@@ -475,7 +475,7 @@ class TypeDecl : public NamedDecl {
   friend class RecordDecl;
   friend class TagType;
 protected:
-  TypeDecl(Kind DK, DeclContext *DC, llvm::SMLoc L, IdentifierInfo *Id,
+  TypeDecl(Kind DK, DeclContext *DC, llvm::SMLoc L, const IdentifierInfo *Id,
            llvm::SMLoc StartL = llvm::SMLoc())
     : NamedDecl(DK, DC, L, Id), TypeForDecl(0), LocStart(StartL) {}
 
@@ -513,7 +513,7 @@ class RecordDecl : public TypeDecl, public DeclContext {
   friend class DeclContext;
 protected:
   RecordDecl(Kind DK, DeclContext *DC, llvm::SMLoc StartLoc, llvm::SMLoc IdLoc,
-             IdentifierInfo *Id, RecordDecl *PrevDecl)
+             const IdentifierInfo *Id, RecordDecl *PrevDecl)
     : TypeDecl(DK, DC, IdLoc, Id), DeclContext(Record) {
     IsDefinition = false;
     IsBeingDefined = false;
@@ -521,7 +521,7 @@ protected:
 public:
   static RecordDecl *Create(const ASTContext &C, DeclContext *DC,
                             llvm::SMLoc StartLoc, llvm::SMLoc IdLoc,
-                            IdentifierInfo *Id, RecordDecl *PrevDecl = 0);
+                            const IdentifierInfo *Id, RecordDecl *PrevDecl = 0);
 
   /// getOuterLocStart - Return SMLoc representing start of source range taking
   /// into account any outer template declarations.
@@ -768,12 +768,12 @@ public:
 /// represent a member of a struct.
 class FieldDecl : public DeclaratorDecl {
 protected:
-  FieldDecl(Kind DK, DeclContext *DC, llvm::SMLoc IdLoc, IdentifierInfo *Id,
+  FieldDecl(Kind DK, DeclContext *DC, llvm::SMLoc IdLoc, const IdentifierInfo *Id,
             QualType T)
     : DeclaratorDecl(DK, DC, IdLoc, Id, T) {}
 public:
   static FieldDecl *Create(const ASTContext &C, DeclContext *DC,
-                           llvm::SMLoc IdLoc, IdentifierInfo *Id, QualType T);
+                           llvm::SMLoc IdLoc, const IdentifierInfo *Id, QualType T);
 
   /// getParent - Returns the parent of this field declaration, which is the
   /// struct in which this method is defined.

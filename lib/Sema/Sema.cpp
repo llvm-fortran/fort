@@ -319,4 +319,30 @@ StmtResult Sema::ActOnPrintStmt(ASTContext &C, SMLoc Loc, FormatSpec *FS,
   return PrintStmt::Create(C, Loc, FS, OutputItemList, StmtLabel);
 }
 
+RecordDecl *Sema::ActOnDerivedTypeDecl(ASTContext &C, SMLoc Loc,
+                                          SMLoc NameLoc,
+                                          const IdentifierInfo* IDInfo) {
+  RecordDecl* Record = RecordDecl::Create(C, CurContext, Loc, NameLoc, IDInfo);
+  CurContext->addDecl(Record);
+  PushDeclContext(Record);
+  return Record;
+}
+
+FieldDecl *Sema::ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SMLoc IDLoc,
+                                     const IdentifierInfo *IDInfo,
+                                     ExprResult Init) {
+  //FIXME: TODO same field name check
+  //FIXME: TODO init expression
+
+  QualType T = ActOnTypeName(C, DS);
+  FieldDecl* Field = FieldDecl::Create(C, CurContext, IDLoc, IDInfo, T);
+  CurContext->addDecl(Field);
+
+  return Field;
+}
+
+void Sema::ActOnEndDerivedTypeDecl() {
+  PopDeclContext();
+}
+
 } //namespace flang

@@ -261,6 +261,11 @@ private:
   void ParseStatementLabel();
 
   // Declaration construct functions
+  bool ParseDerivedTypeDefinitionStmt();
+  bool ParseDerivedTypeComponent();
+  bool ParseDerivedTypeComponentDeclarationList(DeclSpec &DS,
+                                SmallVectorImpl<DeclResult> &Decls);
+
   bool ParseDeclarationTypeSpec(DeclSpec &DS);
   bool ParseTypeOrClassDeclTypeSpec(DeclSpec &DS);
   ExprResult ParseSelector(bool IsKindSel);
@@ -274,6 +279,9 @@ private:
   bool AssignIntentSpec(DeclSpec &DS, DeclSpec::IS Val);
 
   void SetKindSelector(ConstantExpr *E, StringRef Kind);
+
+  // Declaration Helper functions
+  bool ParseOptionalMatchingIdentifier(const IdentifierInfo*);
 
   void LexToEndOfStatement();
   bool EatIfPresent(tok::TokenKind);

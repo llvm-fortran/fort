@@ -521,4 +521,155 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
   return false;
 }
 
+/// ParseOptionalMatchingIdentifier -
+/// Parses the optional definition name after END/END something keyword
+/// e.g. END TYPE Foo
+bool Parser::ParseOptionalMatchingIdentifier(const IdentifierInfo *OriginalId) {
+  if (Tok.is(tok::identifier) && !Tok.isAtStartOfStatement()) {
+    const IdentifierInfo * IDInfo = Tok.getIdentifierInfo();
+    llvm::SMLoc NameLoc = Tok.getLocation();
+    Lex(); // Eat the ending token.
+
+    //FIXME: is this case insensitive???
+    //Apply equality constraint
+    if(IDInfo->getName() != OriginalId->getName()) {
+      llvm::Twine Msg = llvm::Twine("The name '") +
+          IDInfo->getName() + "' doesn't match previously used name '" +
+          OriginalId->getName();
+      Diag.ReportError(NameLoc,Msg);
+      return true;
+    }
+  }
+  return false;
+}
+
+// FIXME: Fortran 2008 stuff.
+/// ParseDerivedTypeDefinitionStmt - Parse a type or a class definition.
+///
+/// [R422]:
+///   derived-type-def :=
+///     derived-type-stmt
+///     [ private-sequence-stmt ] ...
+///     component-def-stmt
+///     [ component-def-stmt ] ...
+///     end-type-stmt
+///
+/// [R423]:
+///   derived-type-stmt :=
+///     TYPE [ [ , access-spec ] :: ] type-name
+///
+/// [R424]:
+///   private-sequence-stmt :=
+///     PRIVATE or SEQUENCE
+///
+/// [R425]:
+///   component-def-stmt :=
+///     type-spec [ [ component-attr-spec-list ] :: ] component-decl-list
+///
+/// [R426]:
+///   component-attr-spec-list :=
+///     POINTER or
+///     DIMENSION( component-array-spec )
+///
+/// [R427]:
+///   component-array-spec :=
+///     explicit-shape-spec-list or
+///     deffered-shape-spec-list
+///
+/// [R428]:
+///   component-decl :=
+///     component-name [ ( component-array-spec ) ]
+///     [ * char-length ] [ component-initialization ]
+///
+/// [R429]:
+///   component-initialization :=
+///     = initialization-expr or
+///     => NULL()
+///
+/// [R430]:
+///   end-type-stmt :=
+///     END TYPE [ type-name ]
+bool Parser::ParseDerivedTypeDefinitionStmt() {
+  llvm::SMLoc Loc, IDLoc;
+  const IdentifierInfo *ID;
+
+  Loc = Tok.getLocation();
+  if (!EatIfPresent(tok::kw_TYPE)) {
+    bool result = EatIfPresent(tok::kw_CLASS);
+    assert(result);
+    //FIXME: TODO CLASS
+    goto error;
+  }
+
+  //FIXME: access-spec
+
+  EatIfPresent(tok::coloncolon);
+  IDLoc = Tok.getLocation();
+  ID = Tok.getIdentifierInfo();
+  if (Tok.isAtStartOfStatement() || !ID) {
+    Diag.ReportError(Tok.getLocation(),"expected an identifier after 'TYPE'");
+    goto error;
+  }
+  Lex();
+
+  Actions.ActOnDerivedTypeDecl(Context, Loc, IDLoc, ID);
+
+  //FIXME: private-sequence-stmt
+  //FIXME: components.
+  while(!EatIfPresent(tok::kw_ENDTYPE)){
+    ParseDerivedTypeComponent();
+  }
+
+  ParseOptionalMatchingIdentifier(ID); // type-name
+  Actions.ActOnEndDerivedTypeDecl();
+
+  return false;
+error:
+  return true;
+}
+
+bool Parser::ParseDerivedTypeComponent() {
+  DeclSpec DS;
+  llvm::SmallVector<DeclResult, 4> Decls;
+
+  ParseDeclarationTypeSpec(DS);
+  //FIXME: attributes.
+  bool HasColonColon = EatIfPresent(tok::coloncolon);
+
+  return ParseDerivedTypeComponentDeclarationList(DS, Decls);
+}
+
+bool Parser::ParseDerivedTypeComponentDeclarationList(DeclSpec &DS,
+                              SmallVectorImpl<DeclResult> &Decls) {
+  while (!Tok.isAtStartOfStatement()) {
+    llvm::SMLoc IDLoc = Tok.getLocation();
+    const IdentifierInfo *ID = Tok.getIdentifierInfo();
+    if (!ID)
+      return Diag.ReportError(IDLoc,
+                              "expected an identifier in TYPE list");
+    Lex();
+
+    // FIXME: If there's a '(' here, it might be parsing an array decl.
+
+    // FIXME: init expression
+
+    Decls.push_back(Actions.ActOnDerivedTypeFieldDecl(Context, DS, IDLoc, ID));
+
+    llvm::SMLoc CommaLoc = Tok.getLocation();
+    if (!EatIfPresent(tok::comma)) {
+      if (!Tok.is(tok::kw_ENDTYPE) && !Tok.isAtStartOfStatement())
+        return Diag.ReportError(Tok.getLocation(),
+                                "expected a ',' in Component declaration list");
+
+      break;
+    }
+
+    if (Tok.isAtStartOfStatement())
+      return Diag.ReportError(CommaLoc,
+                              "expected an identifier after ',' in Component declaration list");
+  }
+
+  return false;
+}
+
 } //namespace flang

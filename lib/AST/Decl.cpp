@@ -231,7 +231,7 @@ MainProgramDecl *MainProgramDecl::Create(ASTContext &C, DeclContext *DC,
 
 RecordDecl *RecordDecl::Create(const ASTContext &C, DeclContext *DC,
                                llvm::SMLoc StartLoc, llvm::SMLoc IdLoc,
-                               IdentifierInfo *Id, RecordDecl *PrevDecl) {
+                               const IdentifierInfo *Id, RecordDecl *PrevDecl) {
   RecordDecl* R = new (C) RecordDecl(Record, DC, StartLoc, IdLoc, Id, PrevDecl);
   C.getTypeDeclType(R, PrevDecl);
   return R;
@@ -261,7 +261,7 @@ SourceRange EnumConstantDecl::getSourceRange() const {
 
 FieldDecl *FieldDecl::Create(const ASTContext &C, DeclContext *DC,
                              /*llvm::SMLoc StartLoc,*/ llvm::SMLoc IdLoc,
-                             IdentifierInfo *Id, QualType T) {
+                             const IdentifierInfo *Id, QualType T) {
   return new (C) FieldDecl(Decl::Field, DC, IdLoc, Id, T);
 }
 
