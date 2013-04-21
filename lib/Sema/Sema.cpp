@@ -167,11 +167,24 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, llvm::SMLoc IDLoc,
   return VD;
 }
 
+///
 Decl *Sema::ActOnImplicitEntityDecl(ASTContext &C, SMLoc IDLoc,
                                     const IdentifierInfo *IDInfo) {
-  // FIXME: This needs to look at the IMPLICIT statements, if any.
   DeclSpec DS;
-  DS.SetTypeSpecType(DeclSpec::TST_real);
+  char letter = toupper(IDInfo->getNameStart()[0]);
+
+  // FIXME: This needs to look at the IMPLICIT statements, if any.
+
+  // IMPLICIT statement:
+  // `If a mapping is not specified for a letter, the default for a
+  //  program unit or an interface body is default integer if the
+  //  letter is I, K, ..., or N and default real otherwise`
+  if(letter >= 'I' && letter <= 'N')
+    DS.SetTypeSpecType(DeclSpec::TST_integer);
+  else DS.SetTypeSpecType(DeclSpec::TST_real);
+
+  // FIXME: default for an internal or module procedure is the mapping in
+  // the host scoping unit.
 
   return ActOnEntityDecl(C, DS, IDLoc, IDInfo);
 }
