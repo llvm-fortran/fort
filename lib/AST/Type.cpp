@@ -34,7 +34,7 @@ QualifierCollector::apply(const ASTContext &Context, const Type *T) const {
 //===----------------------------------------------------------------------===//
 
 ArrayType *ArrayType::Create(ASTContext &C, QualType ElemTy,
-                             ArrayRef<ExprResult> Dims) {
+                             ArrayRef<Dimension> Dims) {
   return new (C) ArrayType(Array, ElemTy, QualType(), Dims);
 }
 
@@ -147,10 +147,15 @@ void ArrayType::print(raw_ostream &OS) const {
   ElementType.print(OS);
   OS << ", DIMENSION(";
 
-  for (SmallVectorImpl<ExprResult>::const_iterator
+  for (SmallVectorImpl<Dimension>::const_iterator
          I = Dims.begin(), E = Dims.end(); I != E; ++I) {
     if (I != Dims.begin()) OS << ", ";
-    I->get()->print(OS);
+    Expr *LowerBound = I->first.get();
+    if(LowerBound){
+      LowerBound->print(OS);
+      OS << ": ";
+    }
+    I->second.get()->print(OS);
   }
 
   OS << ")";

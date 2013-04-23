@@ -137,7 +137,7 @@ public:
                                  ExprResult RHS, Expr *StmtLabel);
 
   QualType ActOnArraySpec(ASTContext &C, QualType ElemTy,
-                          ArrayRef<ExprResult> Dims);
+                          ArrayRef<std::pair<ExprResult,ExprResult> > Dims);
 
   StarFormatSpec *ActOnStarFormatSpec(ASTContext &C, SMLoc Loc);
   DefaultCharFormatSpec *ActOnDefaultCharFormatSpec(ASTContext &C,

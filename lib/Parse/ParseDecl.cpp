@@ -64,8 +64,19 @@ bool Parser::ParseTypeDeclarationList(DeclSpec &DS,
     Lex();
 
     // FIXME: If there's a '(' here, it might be parsing an array decl.
-
-    Decls.push_back(Actions.ActOnEntityDecl(Context, DS, IDLoc, ID));
+    if(Tok.is(tok::l_paren)){
+      llvm::SmallVector<std::pair<ExprResult,ExprResult>, 4> Dimensions;
+      if(ParseArraySpec(Dimensions)){
+        return true;
+      }
+      //Array declaration.
+      DeclSpec ADS(DS);
+      if(!ADS.hasAttributeSpec(DeclSpec::AS_dimension))
+        ADS.setAttributeSpec(DeclSpec::AS_dimension);
+      ADS.setDimensions(Dimensions);
+      Decls.push_back(Actions.ActOnEntityDecl(Context, ADS, IDLoc, ID));
+    }
+    else Decls.push_back(Actions.ActOnEntityDecl(Context, DS, IDLoc, ID));
 
     llvm::SMLoc CommaLoc = Tok.getLocation();
     if (!EatIfPresent(tok::comma)) {
@@ -94,7 +105,7 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
   if (ParseDeclarationTypeSpec(DS))
     return true;
 
-  llvm::SmallVector<ExprResult, 4> Dimensions;
+  llvm::SmallVector<std::pair<ExprResult,ExprResult>, 4> Dimensions;
   while (EatIfPresent(tok::comma)) {
     // [R502]:
     //   attr-spec :=

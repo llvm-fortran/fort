@@ -7,6 +7,8 @@ PROGRAM vartest
   INTEGER I2
   REAL R2
   LOGICAL L3,L4,L5
+  DOUBLE PRECISION :: X
+  DOUBLE PRECISION X2
 
   I = 22
   I = -13
@@ -22,4 +24,8 @@ PROGRAM vartest
   L3 = L
   L4 = .true.
   L5 = L3
+
+  X = 3.4
+  X2 = X
+
 END PROGRAM vartest

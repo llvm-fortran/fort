@@ -86,7 +86,7 @@ private:
   /// \brief The kind and length selectors.
   Expr *Kind;
   Expr *Len;
-  SmallVector<ExprResult, 4> Dimensions;
+  SmallVector<std::pair<ExprResult,ExprResult>, 4> Dimensions;
 
 public:
   explicit DeclSpec()
@@ -106,11 +106,11 @@ public:
   void setLengthSelector(Expr *L) { Len = L; }
 
   bool hasDimensions() const { return !Dimensions.empty(); }
-  void setDimensions(ArrayRef<ExprResult> Dims);
-  ArrayRef<ExprResult> getDimensions() const { return Dimensions; }
+  void setDimensions(ArrayRef<std::pair<ExprResult,ExprResult> > Dims);
+  ArrayRef<std::pair<ExprResult,ExprResult> > getDimensions() const { return Dimensions; }
 
-  typedef SmallVectorImpl<ExprResult>::iterator       dim_iterator;
-  typedef SmallVectorImpl<ExprResult>::const_iterator const_dim_iterator;
+  typedef SmallVectorImpl<std::pair<ExprResult,ExprResult> >::iterator       dim_iterator;
+  typedef SmallVectorImpl<std::pair<ExprResult,ExprResult> >::const_iterator const_dim_iterator;
   dim_iterator begin() { return Dimensions.begin(); }
   dim_iterator end()   { return Dimensions.end();   }
   const_dim_iterator begin() const { return Dimensions.begin(); }

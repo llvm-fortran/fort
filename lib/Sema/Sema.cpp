@@ -276,7 +276,7 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, ExprResult LHS,
 }
 
 QualType Sema::ActOnArraySpec(ASTContext &C, QualType ElemTy,
-                              ArrayRef<ExprResult> Dims) {
+                              ArrayRef<std::pair<ExprResult,ExprResult> > Dims) {
   return QualType(ArrayType::Create(C, ElemTy, Dims), 0);
 }
 

@@ -679,7 +679,7 @@ bool Parser::ParseForAllConstruct() {
 ///      or assumed-shape-spec-list
 ///      or deferred-shape-spec-list
 ///      or assumed-size-spec
-bool Parser::ParseArraySpec(SmallVectorImpl<ExprResult> &Dims) {
+bool Parser::ParseArraySpec(SmallVectorImpl<std::pair<ExprResult,ExprResult> > &Dims) {
   if (!EatIfPresent(tok::l_paren))
     return Diag.ReportError(Tok.getLocation(),
                             "expected '(' in array spec");
@@ -704,7 +704,12 @@ bool Parser::ParseArraySpec(SmallVectorImpl<ExprResult> &Dims) {
   do {
     ExprResult E = ParseExpression();
     if (E.isInvalid()) goto error;
-    Dims.push_back(E);
+    if(EatIfPresent(tok::colon)){
+      ExprResult E2 = ParseExpression();
+      if(E2.isInvalid()) goto error;
+      Dims.push_back(std::make_pair(E,E2));
+    }
+    else Dims.push_back(std::make_pair(ExprResult(),E));
   } while (EatIfPresent(tok::comma));
 
   if (!EatIfPresent(tok::r_paren)) {

@@ -270,7 +270,7 @@ private:
   bool ParseTypeOrClassDeclTypeSpec(DeclSpec &DS);
   ExprResult ParseSelector(bool IsKindSel);
   bool ParseDerivedTypeSpec(DeclSpec &DS);
-  bool ParseArraySpec(llvm::SmallVectorImpl<ExprResult> &Dims);
+  bool ParseArraySpec(llvm::SmallVectorImpl<std::pair<ExprResult,ExprResult> > &Dims);
   bool ParseTypeDeclarationList(DeclSpec &DS,
                                 SmallVectorImpl<DeclResult> &Decls);
 

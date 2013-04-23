@@ -113,7 +113,7 @@ PointerType *ASTContext::getPointerType(const Type *Ty, unsigned NumDims) {
 /// getArrayType - Return the unique reference to the type for an array of the
 /// specified element type.
 QualType ASTContext::getArrayType(QualType EltTy,
-                                  ArrayRef<ExprResult> Dims) const {
+                                  ArrayRef<ArrayType::Dimension> Dims) const {
   llvm::FoldingSetNodeID ID;
   ArrayType::Profile(ID, EltTy, Dims);
 
