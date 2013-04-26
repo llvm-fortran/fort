@@ -1,8 +1,12 @@
 ! RUN: %flang < %s
 PROGRAM arrtest
+  DIMENSION I_ARR2(1,2,3,4)
   INTEGER I_ARR(30)
   REAL MATRIX(4,4)
   LOGICAL SET(10:20)
+  INTEGER I_ARR2
+  REAL, DIMENSION(2,2) :: MATRIX2
+
 
   !I_ARR(1) = 2
   !I_ARR(2) = 3

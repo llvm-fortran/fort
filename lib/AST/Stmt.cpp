@@ -126,6 +126,24 @@ ParameterStmt *ParameterStmt::Create(ASTContext &C, SMLoc Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// Dimension Statement
+//===----------------------------------------------------------------------===//
+
+DimensionStmt::DimensionStmt(ASTContext &C, SMLoc Loc,
+                             const IdentifierInfo* IDInfo,
+                             ArrayRef<ArrayType::Dimension> Dims,
+                             ExprResult StmtLabel)
+  : ListStmt(C, Dimension, Loc, Dims, StmtLabel) , VarName(IDInfo) {
+}
+
+DimensionStmt *DimensionStmt::Create(ASTContext &C, SMLoc Loc,
+                                     const IdentifierInfo* IDInfo,
+                                     ArrayRef<ArrayType::Dimension> Dims,
+                                     ExprResult StmtLabel) {
+  return new (C) DimensionStmt(C, Loc, IDInfo, Dims, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Format Statement
 //===----------------------------------------------------------------------===//
 

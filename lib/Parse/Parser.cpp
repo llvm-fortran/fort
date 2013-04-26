@@ -396,6 +396,9 @@ bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
   if (Tok.isNot(tok::kw_END) && Tok.isNot(tok::kw_ENDPROGRAM))
     ParseSpecificationPart(Body);
 
+  // Apply specification statements.
+  Actions.ActOnSpecificationPart(Body);
+
   // FIXME: Check for the specific keywords and not just absence of END or
   //        ENDPROGRAM.
   ParseStatementLabel();
@@ -463,7 +466,8 @@ bool Parser::ParseSpecificationPart(std::vector<StmtResult> &Body) {
   if (ParseImplicitPartList(Body))
     HasErrors = true;
 
-  if (ParseDeclarationConstructList()) {
+
+  if (ParseDeclarationConstructList(Body)) {
     LexToEndOfStatement();
     HasErrors = true;
   }
@@ -602,8 +606,8 @@ bool Parser::ParseExecutionPart(std::vector<StmtResult> &Body) {
 
 /// ParseDeclarationConstructList - Parse a (possibly empty) list of declaration
 /// construct statements.
-bool Parser::ParseDeclarationConstructList() {
-  while (!ParseDeclarationConstruct()) // FIXME: Make into a list.
+bool Parser::ParseDeclarationConstructList(std::vector<StmtResult> &Body) {
+  while (!ParseDeclarationConstruct(Body))
     /* Parse them all */ ;
 
   return false;
@@ -623,14 +627,16 @@ bool Parser::ParseDeclarationConstructList() {
 ///      or specification-stmt
 ///      or type-declaration-stmt
 ///      or stmt-function-stmt
-bool Parser::ParseDeclarationConstruct() {
+bool Parser::ParseDeclarationConstruct(std::vector<StmtResult> &Body) {
   ParseStatementLabel();
 
   SmallVector<DeclResult, 4> Decls;
 
   switch (Tok.getKind()) {
   default:
-    return true;
+    // FIXME: error handling.
+    if(ParseSpecificationStmt(Body)) return true;
+    break;
   case tok::kw_TYPE:
   case tok::kw_CLASS: {
     if(!NextTok.is(tok::l_paren)){
@@ -653,9 +659,6 @@ bool Parser::ParseDeclarationConstruct() {
   }
     // FIXME: And the rest?
   }
-
-  if (ParseSpecificationStmt())
-    return true;
 
   return false;
 }
@@ -1072,70 +1075,73 @@ bool Parser::ParseProcedureDeclStmt() {
 ///      or target-stmt
 ///      or value-stmt
 ///      or volatile-stmt
-bool Parser::ParseSpecificationStmt() {
+bool Parser::ParseSpecificationStmt(std::vector<StmtResult> &Body) {
   StmtResult Result;
   switch (Tok.getKind()) {
-  default: break;
+  default: return true;
   case tok::kw_PUBLIC:
   case tok::kw_PRIVATE:
     Result = ParseACCESSStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_ALLOCATABLE:
     Result = ParseALLOCATABLEStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_ASYNCHRONOUS:
     Result = ParseASYNCHRONOUSStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_BIND:
     Result = ParseBINDStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_COMMON:
     Result = ParseCOMMONStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_DATA:
     Result = ParseDATAStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_DIMENSION:
-    Result = ParseDIMENSIONStmt();
-    return true;
+    ParseDIMENSIONStmt(Body);
+    break;
   case tok::kw_EQUIVALENCE:
     Result = ParseEQUIVALENCEStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_EXTERNAL:
     Result = ParseEXTERNALStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_INTENT:
     Result = ParseINTENTStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_INTRINSIC:
     Result = ParseINTRINSICStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_NAMELIST:
     Result = ParseNAMELISTStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_OPTIONAL:
     Result = ParseOPTIONALStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_POINTER:
     Result = ParsePOINTERStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_PROTECTED:
     Result = ParsePROTECTEDStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_SAVE:
     Result = ParseSAVEStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_TARGET:
     Result = ParseTARGETStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_VALUE:
     Result = ParseVALUEStmt();
-    return true;
+    goto notImplemented;
   case tok::kw_VOLATILE:
     Result = ParseVOLATILEStmt();
-    return true;
+    goto notImplemented;
   }
 
+  return false;
+notImplemented:
+  Diag.ReportError(Tok.getLocation(),"This specification statement isn't supported by Flang!");
   return false;
 }
 
@@ -1228,8 +1234,41 @@ Parser::StmtResult Parser::ParseDATAStmt() {
 ///     dimension-stmt :=
 ///         DIMENSION [::] array-name ( array-spec ) #
 ///         # [ , array-name ( array-spec ) ] ...
-Parser::StmtResult Parser::ParseDIMENSIONStmt() {
-  return StmtResult();
+bool Parser::ParseDIMENSIONStmt(std::vector<StmtResult> &Stmts) {
+  SMLoc Loc = Tok.getLocation();
+  Lex();
+
+  EatIfPresent(tok::coloncolon);
+  llvm::SmallVector<std::pair<ExprResult, ExprResult>, 4> Dimensions;
+  IdentifierInfo *ID;
+  while (!Tok.isAtStartOfStatement()) {
+    if (Tok.isNot(tok::identifier)){
+      Diag.ReportError(Tok.getLocation(),
+                       "expected an identifier in DIMENSION statement");
+      return true;
+    }
+    ID = Tok.getIdentifierInfo();
+    Lex();
+    if (Tok.isNot(tok::l_paren)){
+      Diag.ReportError(Tok.getLocation(),"expected '(' in DIMENSION statement");
+      return true;
+    }
+    if(ParseArraySpec(Dimensions)) return true;
+
+    // NB: attach statement label only to the first statement.
+    Stmts.push_back(Actions.ActOnDIMENSION(Context, Loc, ID, Dimensions, StmtLabel));
+    StmtLabel = 0;
+
+    if (!EatIfPresent(tok::comma)) {
+      if (!Tok.isAtStartOfStatement()) {
+        Diag.ReportError(Tok.getLocation(),
+                         "expected ',' in DIMENSION statement");
+        return true;
+      }
+      break;
+    }
+  }
+  return false;
 }
 
 /// ParseEQUIVALENCEStmt - Parse the EQUIVALENCE statement.

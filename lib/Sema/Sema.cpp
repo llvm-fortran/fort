@@ -257,6 +257,13 @@ StmtResult Sema::ActOnASYNCHRONOUS(ASTContext &C, SMLoc Loc,
   return AsynchronousStmt::Create(C, Loc, ObjNames, StmtLabel);
 }
 
+StmtResult Sema::ActOnDIMENSION(ASTContext &C, SMLoc Loc,
+                               const IdentifierInfo *IDInfo,
+                               ArrayRef<std::pair<ExprResult,ExprResult> > Dims,
+                               Expr *StmtLabel) {
+  return DimensionStmt::Create(C, Loc, IDInfo, Dims, StmtLabel);
+}
+
 StmtResult Sema::ActOnENDPROGRAM(ASTContext &C,
                                  const IdentifierInfo *ProgName,
                                  llvm::SMLoc Loc, llvm::SMLoc NameLoc,

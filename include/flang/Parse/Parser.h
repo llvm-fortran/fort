@@ -175,14 +175,14 @@ private:
   StmtResult ParseImplicitPart();
   bool ParseExecutionPart(std::vector<StmtResult> &Body);
 
-  bool ParseDeclarationConstructList();
-  bool ParseDeclarationConstruct();
+  bool ParseDeclarationConstructList(std::vector<StmtResult> &Body);
+  bool ParseDeclarationConstruct(std::vector<StmtResult> &Body);
   bool ParseForAllConstruct();
   StmtResult ParseExecutableConstruct();
 
   bool ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls);
   bool ParseProcedureDeclStmt();
-  bool ParseSpecificationStmt();
+  bool ParseSpecificationStmt(std::vector<StmtResult> &Body);
   StmtResult ParseActionStmt();
 
   // Designator parsing methods.
@@ -213,7 +213,7 @@ private:
   StmtResult ParseBINDStmt();
   StmtResult ParseCOMMONStmt();
   StmtResult ParseDATAStmt();
-  StmtResult ParseDIMENSIONStmt();
+  bool ParseDIMENSIONStmt(std::vector<StmtResult> &Stmts);
   StmtResult ParseEQUIVALENCEStmt();
   StmtResult ParseEXTERNALStmt();
   StmtResult ParseINTENTStmt();

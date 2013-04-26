@@ -36,17 +36,19 @@ public:
     // Specification Part
     Use,
     Import,
+    Dimension,
 
-      // Implicit Part
-      Implicit,
-      Parameter,
-      Format,
-      Entry,
+    // Implicit Part
+    Implicit,
+    Parameter,
+    Format,
+    Entry,
 
     Asynchronous,
     External,
     EndProgram,
 
+    // Action Statements
     Block,
     If,
     Continue,
@@ -295,6 +297,30 @@ public:
   static bool classof(const ParameterStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStatementID() == Parameter;
+  }
+};
+
+/// DimensionStmt - Specifies the DIMENSION attribute for a named constant.
+///
+class DimensionStmt : public ListStmt<ArrayType::Dimension> {
+  const IdentifierInfo *VarName;
+
+  DimensionStmt(ASTContext &C, SMLoc Loc, const IdentifierInfo* IDInfo,
+                 ArrayRef<ArrayType::Dimension> Dims,
+                 ExprResult StmtLabel);
+public:
+  static DimensionStmt *Create(ASTContext &C, SMLoc Loc,
+                               const IdentifierInfo* IDInfo,
+                               ArrayRef<ArrayType::Dimension> Dims,
+                               ExprResult StmtLabel);
+
+  const IdentifierInfo *getVariableName() const {
+    return VarName;
+  }
+
+  static bool classof(const DimensionStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == Dimension;
   }
 };
 

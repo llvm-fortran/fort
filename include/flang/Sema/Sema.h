@@ -66,6 +66,12 @@ public:
   void ActOnMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc);
   void ActOnEndMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc);
 
+  void ActOnSpecificationPart(ArrayRef<StmtResult> Body);
+  VarDecl *GetVariableForSpecification(const IdentifierInfo *IDInfo,
+                                       SMLoc ErrorLoc,
+                                       const llvm::Twine &ErrorMsg);
+  bool ApplySpecification(const DimensionStmt *Stmt);
+
   QualType ActOnTypeName(ASTContext &C, DeclSpec &DS);
   VarDecl *ActOnKindSelector(ASTContext &C, SMLoc IDLoc,
                              const IdentifierInfo *IDInfo);
@@ -108,6 +114,13 @@ public:
                            ArrayRef<ImplicitStmt::LetterSpec> LetterSpecs,
                            Expr *StmtLabel);
   StmtResult ActOnIMPLICIT(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
+
+  // DIMENSION statement
+  // The source code statement is split into multiple ones in the parsing stage.
+  StmtResult ActOnDIMENSION(ASTContext &C, SMLoc Loc,
+                            const IdentifierInfo *IDInfo,
+                            ArrayRef<std::pair<ExprResult,ExprResult> > Dims,
+                            Expr *StmtLabel);
 
   // PARAMETER statement:
   ParameterStmt::ParamPair ActOnPARAMETERPair(ASTContext &C, SMLoc Loc,
@@ -173,6 +186,7 @@ public:
   ExprResult ActOnDataReference(llvm::ArrayRef<ExprResult> Exprs) {
     return ExprResult();
   }
+
 };
 
 } // end flang namespace

@@ -35,6 +35,7 @@ private:
   VISIT(UseStmt);
   VISIT(ImportStmt);
   VISIT(ImplicitStmt);
+  VISIT(DimensionStmt);
   VISIT(AsynchronousStmt);
   VISIT(BlockStmt);
   VISIT(IfStmt);
@@ -58,6 +59,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(UseStmt);
   HANDLE(ImportStmt);
   HANDLE(ImplicitStmt);
+  HANDLE(DimensionStmt);
   HANDLE(AsynchronousStmt);
   HANDLE(BlockStmt);
   HANDLE(IfStmt);
@@ -112,6 +114,10 @@ void StmtVisitor::visit(const ImplicitStmt *S) {
 
   OS << "  )\n)\n";
 }
+void StmtVisitor::visit(const DimensionStmt *S) {
+  OS << "DIMENSION " << S->getVariableName()->getNameStart();
+}
+
 void StmtVisitor::visit(const AsynchronousStmt *S) {
 }
 void StmtVisitor::visit(const BlockStmt *S) {
