@@ -46,6 +46,7 @@ public:
 
     Asynchronous,
     External,
+    Intrinsic,
     EndProgram,
 
     // Action Statements
@@ -385,6 +386,24 @@ public:
   static bool classof(const ExternalStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStatementID() == External;
+  }
+};
+
+
+/// IntrinsicStmt - Lists the intrinsic functions declared in this program unit.
+///
+class IntrinsicStmt : public ListStmt<> {
+  IntrinsicStmt(ASTContext &C, SMLoc Loc,
+                ArrayRef<const IdentifierInfo *> IntrinsicNames,
+                ExprResult StmtLabel);
+public:
+  static IntrinsicStmt *Create(ASTContext &C, SMLoc Loc,
+                               ArrayRef<const IdentifierInfo*> IntrinsicNames,
+                               ExprResult StmtLabel);
+
+  static bool classof(const IntrinsicStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == Intrinsic;
   }
 };
 

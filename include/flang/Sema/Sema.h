@@ -146,6 +146,11 @@ public:
                            ArrayRef<const IdentifierInfo *> ExternalNames,
                            Expr *StmtLabel);
 
+  // INTRINSIC statement:
+  StmtResult ActOnINTRINSIC(ASTContext &C, SMLoc Loc,
+                            ArrayRef<const IdentifierInfo *> IntrinsicNames,
+                            Expr *StmtLabel);
+
   StmtResult ActOnAssignmentStmt(ASTContext &C, ExprResult LHS,
                                  ExprResult RHS, Expr *StmtLabel);
 

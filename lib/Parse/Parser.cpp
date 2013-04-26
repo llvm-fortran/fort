@@ -1100,19 +1100,19 @@ bool Parser::ParseSpecificationStmt(std::vector<StmtResult> &Body) {
     goto notImplemented;
   case tok::kw_DIMENSION:
     ParseDIMENSIONStmt(Body);
-    break;
+    return false;
   case tok::kw_EQUIVALENCE:
     Result = ParseEQUIVALENCEStmt();
     goto notImplemented;
   case tok::kw_EXTERNAL:
     Result = ParseEXTERNALStmt();
-    goto notImplemented;
+    break;
   case tok::kw_INTENT:
     Result = ParseINTENTStmt();
     goto notImplemented;
   case tok::kw_INTRINSIC:
     Result = ParseINTRINSICStmt();
-    goto notImplemented;
+    break;
   case tok::kw_NAMELIST:
     Result = ParseNAMELISTStmt();
     goto notImplemented;
@@ -1138,6 +1138,9 @@ bool Parser::ParseSpecificationStmt(std::vector<StmtResult> &Body) {
     Result = ParseVOLATILEStmt();
     goto notImplemented;
   }
+
+  if(Result.isUsable())
+    Body.push_back(Result);
 
   return false;
 notImplemented:
@@ -1329,7 +1332,32 @@ Parser::StmtResult Parser::ParseINTENTStmt() {
 ///     intrinsic-stmt :=
 ///         INTRINSIC [::] intrinsic-procedure-name-list
 Parser::StmtResult Parser::ParseINTRINSICStmt() {
-  return StmtResult();
+  SMLoc Loc = Tok.getLocation();
+  Lex();
+
+  EatIfPresent(tok::coloncolon);
+
+  SmallVector<const IdentifierInfo*, 8> IntrinsicNameList;
+  while (!Tok.isAtStartOfStatement()) {
+    if (Tok.isNot(tok::identifier)) {
+      Diag.ReportError(Tok.getLocation(),
+                       "expected an identifier in INTRINSIC statement");
+      return StmtResult(true);
+    }
+
+    IntrinsicNameList.push_back(Tok.getIdentifierInfo());
+    Lex();
+    if (!EatIfPresent(tok::comma)) {
+      if (!Tok.isAtStartOfStatement()) {
+        Diag.ReportError(Tok.getLocation(),
+                         "expected ',' in INTRINSIC statement");
+        return StmtResult(true);
+      }
+      break;
+    }
+  }
+
+  return Actions.ActOnINTRINSIC(Context, Loc, IntrinsicNameList, StmtLabel);
 }
 
 /// ParseNAMELISTStmt - Parse the NAMELIST statement.

@@ -277,6 +277,14 @@ StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SMLoc Loc,
   return ExternalStmt::Create(C, Loc, ExternalNames, StmtLabel);
 }
 
+StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SMLoc Loc,
+                                ArrayRef<const IdentifierInfo *> IntrinsicNames,
+                                Expr *StmtLabel) {
+  // FIXME: Name Constraints.
+  // FIXME: Function declaration.
+  return IntrinsicStmt::Create(C, Loc, IntrinsicNames, StmtLabel);
+}
+
 StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, ExprResult LHS,
                                      ExprResult RHS, Expr *StmtLabel) {
   return AssignmentStmt::Create(C, LHS, RHS, StmtLabel);

@@ -198,6 +198,21 @@ ExternalStmt *ExternalStmt::Create(ASTContext &C, SMLoc Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// Intrinsic Statement
+//===----------------------------------------------------------------------===//
+
+IntrinsicStmt::IntrinsicStmt(ASTContext &C, SMLoc Loc,
+                           ArrayRef<const IdentifierInfo *> IntrinsicNames,
+                           ExprResult StmtLabel)
+  : ListStmt(C, Intrinsic, Loc, IntrinsicNames, StmtLabel) {}
+
+IntrinsicStmt *IntrinsicStmt::Create(ASTContext &C, SMLoc Loc,
+                                   ArrayRef<const IdentifierInfo*> IntrinsicNames,
+                                   ExprResult StmtLabel) {
+  return new (C) IntrinsicStmt(C, Loc, IntrinsicNames, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Block Statement
 //===----------------------------------------------------------------------===//
 
