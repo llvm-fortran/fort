@@ -41,6 +41,7 @@ protected:
     Constant,
     IntegerConstant,
     RealConstant,
+    DoublePrecisionConstant,
     CharacterConstant,
     BOZConstant,
     LogicalConstant,
@@ -190,6 +191,22 @@ public:
     return E->getExpressionID() == Expr::RealConstant;
   }
   static bool classof(const RealConstantExpr *) { return true; }
+};
+
+class DoublePrecisionConstantExpr : public ConstantExpr {
+  APFloatStorage Num;
+  DoublePrecisionConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
+public:
+  static DoublePrecisionConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
+
+  APFloat getValue() const { return Num.getValue(); }
+
+  virtual void print(llvm::raw_ostream&);
+
+  static bool classof(const Expr *E) {
+    return E->getExpressionID() == Expr::DoublePrecisionConstant;
+  }
+  static bool classof(const DoublePrecisionConstantExpr *) { return true; }
 };
 
 class CharacterConstantExpr : public ConstantExpr {

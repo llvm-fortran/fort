@@ -461,6 +461,25 @@ Parser::ExprResult Parser::ParsePrimaryExpr() {
     Lex();
     break;
   }
+  case tok::double_precision_literal_constant: {
+    std::string NumStr;
+    CleanLiteral(Tok, NumStr);
+    // Replace the d/D exponent into e exponent
+    for(size_t I = 0, Len = NumStr.length(); I < Len; ++I) {
+      if(NumStr[I] == 'd' || NumStr[I] == 'D') {
+        NumStr[I] = 'e';
+        break;
+      } else if(NumStr[I] == '_') break;
+    }
+
+    StringRef Data(NumStr);
+    std::pair<StringRef, StringRef> StrPair = Data.split('_');
+    E = DoublePrecisionConstantExpr::Create(Context, Loc, NumStr);
+    SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
+
+    Lex();
+    break;
+  }
   case tok::identifier:
     possible_keyword_as_ident:
     parse_designator:
@@ -501,6 +520,7 @@ ExprResult Parser::ParseDesignator() {
     // Possibly something like: '0123456789'(N:N)
     return ParseSubstring();
 
+
   // [R504]:
   //   object-name :=
   //       name
@@ -518,6 +538,12 @@ ExprResult Parser::ParseDesignator() {
 
   ExprResult E = VarExpr::Create(Context, Tok.getLocation(), VD);
   Lex();
+
+  if(Tok.is(tok::l_paren)){
+    // Subscript expression.
+
+
+  }
 
   return E;
 }

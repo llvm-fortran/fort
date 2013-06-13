@@ -245,6 +245,10 @@ void Lexer::LineOfText::GetNextLine() {
 
       if (I == 132 || isVerticalWhitespace(*BufPtr))
         break;
+    } else if(*BufPtr == '!') {
+      while (!isVerticalWhitespace(*BufPtr) && *BufPtr != '\0')
+        ++BufPtr;
+      break;
     }
 
     ++I, ++BufPtr;
@@ -731,10 +735,10 @@ void Lexer::LexNumericConstant(Token &Result) {
   }
 
   bool IsReal = false;
+  bool IsDoublePrecision = false;
   char PrevChar = getCurrentChar();
   if (PrevChar == '.') {
     IsReal = true;
-    getNextChar();
     if (LexIntegerLiteralConstant())
       PrevChar = '\0';
   }
@@ -753,12 +757,13 @@ void Lexer::LexNumericConstant(Token &Result) {
 
   if (C == 'E' || C == 'e' || C == 'D' || C == 'd') {
     IsReal = true;
+    if(C == 'D' || C == 'd') IsDoublePrecision = true;
     C = getNextChar();
     if (C == '-' || C == '+')
       C = getNextChar();
     if (!isDecimalNumberBody(C)) {
       Diags.ReportError(SMLoc::getFromPointer(NumBegin),
-                        "invalid REAL literal");
+                        "exponent has no digits");
       FormTokenWithChars(Result, tok::error);
       return;
     }
@@ -775,7 +780,8 @@ void Lexer::LexNumericConstant(Token &Result) {
   if (!IsReal)
     FormTokenWithChars(Result, tok::int_literal_constant);
   else
-    FormTokenWithChars(Result, tok::real_literal_constant);
+    FormTokenWithChars(Result, IsDoublePrecision? tok::double_precision_literal_constant:
+                                                  tok::real_literal_constant);
   Result.setLiteralData(TokStart);
 }
 

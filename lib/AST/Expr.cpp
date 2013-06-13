@@ -44,7 +44,7 @@ IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
 }
 
 RealConstantExpr::RealConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data)
-  : ConstantExpr(RealConstant, C.RealTy /*FIXME: Double?*/, Loc) {
+  : ConstantExpr(RealConstant, C.RealTy, Loc) {
   // FIXME: IEEEdouble?
   APFloat Val(APFloat::IEEEsingle, Data);
   Num.setValue(C, Val);
@@ -53,6 +53,17 @@ RealConstantExpr::RealConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringR
 RealConstantExpr *RealConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
                                            llvm::StringRef Data) {
   return new (C) RealConstantExpr(C, Loc, Data);
+}
+
+DoublePrecisionConstantExpr::DoublePrecisionConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data)
+  : ConstantExpr(RealConstant, C.DoublePrecisionTy, Loc) {
+  APFloat Val(APFloat::IEEEdouble, Data);
+  Num.setValue(C, Val);
+}
+
+DoublePrecisionConstantExpr *DoublePrecisionConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+                                           llvm::StringRef Data) {
+  return new (C) DoublePrecisionConstantExpr(C, Loc, Data);
 }
 
 CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, llvm::SMLoc Loc,
@@ -211,6 +222,13 @@ void IntegerConstantExpr::print(llvm::raw_ostream &O) {
 }
 
 void RealConstantExpr::print(llvm::raw_ostream &O) {
+  llvm::SmallVector<char,32> Str;
+  Num.getValue().toString(Str);
+  Str.push_back('\0');
+  O << Str.begin();
+}
+
+void DoublePrecisionConstantExpr::print(llvm::raw_ostream &O) {
   llvm::SmallVector<char,32> Str;
   Num.getValue().toString(Str);
   Str.push_back('\0');

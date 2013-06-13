@@ -48,6 +48,7 @@ TOK(int_literal_constant)  // -927
 
 // [R412]: Signed Real Literal Constants
 TOK(real_literal_constant) // +37.927e42
+TOK(double_precision_literal_constant) // +42.96D3
 
 TOK(binary_boz_constant) // B"0100"
 TOK(octal_boz_constant)  // O"7231"
