@@ -68,7 +68,7 @@ DoublePrecisionConstantExpr *DoublePrecisionConstantExpr::Create(ASTContext &C, 
 
 ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, llvm::SMLoc Loc,
                                          const APFloat &Re, const APFloat &Im)
-  : ConstantExpr(RealConstant, C.ComplexTy, Loc) {
+  : ConstantExpr(ComplexConstant, C.ComplexTy, Loc) {
   this->Re.setValue(C, Re);
   this->Im.setValue(C, Im);
 }
