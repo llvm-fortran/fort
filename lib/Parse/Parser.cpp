@@ -130,7 +130,7 @@ void Parser::Lex() {
     MERGE_TOKENS(ELSE, IF);
     MERGE_TOKENS(ELSE, WHERE);
     return;
-  case tok::kw_END:
+  case tok::kw_END: {
     MERGE_TOKENS(END, IF);
     MERGE_TOKENS(END, DO);
     MERGE_TOKENS(END, FUNCTION);
@@ -162,6 +162,7 @@ void Parser::Lex() {
     }
 
     return;
+  }
   case tok::kw_ENDBLOCK:
     MERGE_TOKENS(ENDBLOCK, DATA);
     return;
@@ -260,6 +261,7 @@ void Parser::LexToEndOfStatement() {
 
 /// ParseInclude - parses the include statement and loads the included file.
 bool Parser::ParseInclude() {
+  const Token &NextTok = PeekAhead();
   if(!NextTok.is(tok::char_literal_constant)){
     Diag.ReportError(Tok.getLocation(),
                      "expected a character literal after INCLUDE");
@@ -332,7 +334,7 @@ bool Parser::ParseProgramUnit() {
   std::vector<StmtResult> Body;
 
   ParseStatementLabel();
-  if (NextTok.is(tok::equal))
+  if (PeekAhead().is(tok::equal))
     return ParseMainProgram(Body);
 
   // FIXME: These calls should return something proper.
@@ -639,7 +641,7 @@ bool Parser::ParseDeclarationConstruct(std::vector<StmtResult> &Body) {
     break;
   case tok::kw_TYPE:
   case tok::kw_CLASS: {
-    if(!NextTok.is(tok::l_paren)){
+    if(!PeekAhead().is(tok::l_paren)){
       //FIXME: error handling?
       ParseDerivedTypeDefinitionStmt();
       break;
@@ -762,7 +764,7 @@ Parser::StmtResult Parser::ParsePROGRAMStmt() {
 ///      or USE [ [ , module-nature ] :: ] module-name , ONLY : [ only-list ]
 Parser::StmtResult Parser::ParseUSEStmt() {
   // Check if this is an assignment.
-  if (NextTok.is(tok::equal))
+  if (PeekAhead().is(tok::equal))
     return StmtResult();
 
   Lex();
@@ -873,7 +875,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
 ///         IMPORT [ [ :: ] import-name-list ]
 Parser::StmtResult Parser::ParseIMPORTStmt() {
   // Check if this is an assignment.
-  if (NextTok.is(tok::equal))
+  if (PeekAhead().is(tok::equal))
     return StmtResult();
 
   SMLoc Loc = Tok.getLocation();
@@ -911,7 +913,7 @@ Parser::StmtResult Parser::ParseIMPORTStmt() {
 ///      or IMPLICIT NONE
 Parser::StmtResult Parser::ParseIMPLICITStmt() {
   // Check if this is an assignment.
-  if (NextTok.is(tok::equal))
+  if (PeekAhead().is(tok::equal))
     return StmtResult();
 
   SMLoc Loc = Tok.getLocation();
@@ -973,7 +975,7 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
 ///         PARAMETER ( named-constant-def-list )
 Parser::StmtResult Parser::ParsePARAMETERStmt() {
   // Check if this is an assignment.
-  if (NextTok.is(tok::equal))
+  if (PeekAhead().is(tok::equal))
     return StmtResult();
 
   SMLoc Loc = Tok.getLocation();

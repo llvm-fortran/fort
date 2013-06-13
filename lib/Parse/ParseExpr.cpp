@@ -368,6 +368,31 @@ void Parser::SetKindSelector(ConstantExpr *E, StringRef Kind) {
   E->setKindSelector(KindExpr);
 }
 
+static llvm::APFloat GetNumberConstant(ExprResult E) {
+  Expr *Expr = E.get();
+  if(RealConstantExpr::classof(Expr))
+    return static_cast<RealConstantExpr*>(Expr)->getValue();
+  else {
+    assert(IntegerConstantExpr::classof(Expr));
+    llvm::APInt Int = static_cast<IntegerConstantExpr*>(Expr)->getValue();
+    llvm::APFloat result(llvm::APFloat::IEEEsingle);
+    result.convertFromAPInt(Int,true,llvm::APFloat::rmNearestTiesToEven);
+    return result;
+  }
+}
+
+// Parses a complex constant
+//   := (X,X)
+//     X := integer-constant | real-constant
+Parser::ExprResult Parser::ParseComplexConstant() {
+  ExprResult X,Y;
+  X = ParsePrimaryExpr();
+  Expect(tok::comma,"Expected ',' after the real part");
+  Y = ParsePrimaryExpr();
+  APFloat Re = GetNumberConstant(X), Im = GetNumberConstant(Y);
+  return ComplexConstantExpr::Create(Context, X.get()->getLocation(), Re, Im);
+}
+
 // ParsePrimaryExpr - Parse a primary expression.
 //
 //   [R701]:
@@ -391,9 +416,17 @@ Parser::ExprResult Parser::ParsePrimaryExpr() {
       goto possible_keyword_as_ident;
     Diag.ReportError(Loc, "unknown unary expression");
     break;
-  case tok::l_paren:
+  case tok::l_paren: {
     Lex();
-    E = ParseExpression();
+
+    // Check for a complex constant
+    if((Tok.is(tok::int_literal_constant) ||
+       Tok.is(tok::real_literal_constant)) &&
+       PeekAhead().is(tok::comma)) {
+      //complex constant
+      E = ParseComplexConstant();
+    } else E = ParseExpression();
+
     if (Tok.isNot(tok::r_paren)) {
       Diag.ReportError(Tok.getLocation(),
                        "expected ')' in expression");
@@ -401,6 +434,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr() {
     }
     Lex();
     break;
+  }
   case tok::logical_literal_constant: {
     std::string NumStr;
     CleanLiteral(Tok, NumStr);
@@ -428,6 +462,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr() {
     break;
   }
   case tok::char_literal_constant: {
+    const Token &NextTok = PeekAhead();
     if (NextTok.is(tok::l_paren))
       // Possible substring.
       goto parse_designator;

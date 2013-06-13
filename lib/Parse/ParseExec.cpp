@@ -90,6 +90,7 @@ Parser::StmtResult Parser::ParseActionStmt() {
   ParseStatementLabel();
 
   // This is an assignment.
+  const Token &NextTok = PeekAhead();
   if (Tok.getIdentifierInfo() && !NextTok.isAtStartOfStatement() &&
       NextTok.is(tok::equal))
     return ParseAssignmentStmt();

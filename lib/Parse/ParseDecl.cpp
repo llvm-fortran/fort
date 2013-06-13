@@ -419,6 +419,7 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
     Lex();
 
     if (Tok.is(tok::l_paren)) {
+      const Token &NextTok = PeekAhead();
       if (NextTok.isNot(tok::kw_KIND) &&
           NextTok.isNot(tok::kw_LEN) &&
           NextTok.is(tok::identifier) &&

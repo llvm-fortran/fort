@@ -42,6 +42,7 @@ protected:
     IntegerConstant,
     RealConstant,
     DoublePrecisionConstant,
+    ComplexConstant,
     CharacterConstant,
     BOZConstant,
     LogicalConstant,
@@ -92,6 +93,7 @@ public:
     ExprType ETy = E->getExpressionID();
     return ETy == Expr::Constant || ETy == Expr::CharacterConstant ||
       ETy == Expr::IntegerConstant || ETy == Expr::RealConstant ||
+      ETy == Expr::DoublePrecisionConstant || ETy == Expr::ComplexConstant ||
       ETy == Expr::BOZConstant || ETy == Expr::LogicalConstant;
   }
   static bool classof(const ConstantExpr *) { return true; }
@@ -207,6 +209,23 @@ public:
     return E->getExpressionID() == Expr::DoublePrecisionConstant;
   }
   static bool classof(const DoublePrecisionConstantExpr *) { return true; }
+};
+
+class ComplexConstantExpr : public ConstantExpr {
+  APFloatStorage Re,Im;
+  ComplexConstantExpr(ASTContext &C, llvm::SMLoc Loc, const APFloat &Re, const APFloat &Im);
+public:
+  static ComplexConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc, const APFloat &Re, const APFloat &Im);
+
+  APFloat getRealValue() const { return Re.getValue(); }
+  APFloat getImaginaryValue() const { return Im.getValue(); }
+
+  virtual void print(llvm::raw_ostream&);
+
+  static bool classof(const Expr *E) {
+    return E->getExpressionID() == Expr::ComplexConstant;
+  }
+  static bool classof(const ComplexConstantExpr *) { return true; }
 };
 
 class CharacterConstantExpr : public ConstantExpr {

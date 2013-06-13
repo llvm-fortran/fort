@@ -257,6 +257,7 @@ private:
   ExprResult ParseLevel1Expr();
   ExprResult ParsePrimaryExpr();
   ExprResult ParseExpression();
+  ExprResult ParseComplexConstant();
 
   void ParseStatementLabel();
 

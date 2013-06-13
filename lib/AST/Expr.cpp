@@ -66,6 +66,18 @@ DoublePrecisionConstantExpr *DoublePrecisionConstantExpr::Create(ASTContext &C, 
   return new (C) DoublePrecisionConstantExpr(C, Loc, Data);
 }
 
+ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                                         const APFloat &Re, const APFloat &Im)
+  : ConstantExpr(RealConstant, C.ComplexTy, Loc) {
+  this->Re.setValue(C, Re);
+  this->Im.setValue(C, Im);
+}
+
+ComplexConstantExpr *ComplexConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+                                                         const APFloat &Re, const APFloat &Im) {
+  return new (C) ComplexConstantExpr(C, Loc, Re, Im);
+}
+
 CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, llvm::SMLoc Loc,
                                              llvm::StringRef data)
   : ConstantExpr(CharacterConstant, C.CharacterTy, Loc) {
@@ -233,6 +245,16 @@ void DoublePrecisionConstantExpr::print(llvm::raw_ostream &O) {
   Num.getValue().toString(Str);
   Str.push_back('\0');
   O << Str.begin();
+}
+
+void ComplexConstantExpr::print(llvm::raw_ostream &O) {
+  llvm::SmallVector<char,32> ReStr;
+  Re.getValue().toString(ReStr);
+  ReStr.push_back('\0');
+  llvm::SmallVector<char,32> ImStr;
+  Im.getValue().toString(ImStr);
+  ImStr.push_back('\0');
+  O << '(' << ReStr.begin() << ',' << ImStr.begin() << ')';
 }
 
 void CharacterConstantExpr::print(llvm::raw_ostream &O) {
