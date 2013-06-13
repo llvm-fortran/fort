@@ -37,6 +37,7 @@ class Lexer {
   /// continuation contexts are concatenated.
   class LineOfText {
     Diagnostic &Diags;
+    const LangOptions &LanguageOptions;
 
     /// Atoms - A vector of atoms which make up one continuation context free
     /// line in the program. E.g.
@@ -79,8 +80,8 @@ class Lexer {
 
     friend class Lexer;
   public:
-    explicit LineOfText(Diagnostic &D)
-      : Diags(D), BufPtr(0), CurAtom(0), CurPtr(0) {}
+    explicit LineOfText(Diagnostic &D, const LangOptions &L)
+      : Diags(D), LanguageOptions(L), BufPtr(0), CurAtom(0), CurPtr(0) {}
 
     void SetBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr);
 

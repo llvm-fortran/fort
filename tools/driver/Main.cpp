@@ -76,6 +76,11 @@ static bool ParseFile(const std::string &Filename,
 
   LangOptions Opts;
   Opts.ReturnComments = ReturnComments;
+  llvm::StringRef Ext = llvm::sys::path::extension(Filename);
+  if(Ext.equals(".f") || Ext.equals(".F")) {
+    Opts.FixedForm = 1;
+    Opts.FreeForm = 0;
+  }
   TextDiagnosticPrinter TDP(SrcMgr);
   Diagnostic Diag(&SrcMgr, &TDP, false);
 #if 0

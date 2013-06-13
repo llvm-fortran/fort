@@ -15,6 +15,7 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/ADT/None.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringExtras.h"
 #include <algorithm>
@@ -54,7 +55,8 @@ void TextDiagnosticPrinter::HandleDiagnostic(Diagnostic::Level Level,
   case Diagnostic::Fatal:   MsgTy = llvm::SourceMgr::DK_Error;   break;
   }
 
-  SrcMgr.PrintMessage(L, MsgTy, Msg);
+  SrcMgr.PrintMessage(L, MsgTy, Msg,
+                      llvm::ArrayRef<llvm::SMRange>(), llvm::ArrayRef<llvm::SMFixIt>(), true);
 }
 
 } //namespace flang

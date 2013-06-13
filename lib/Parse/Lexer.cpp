@@ -27,7 +27,7 @@ static bool isHorizontalWhitespace(unsigned char c);
 static bool isVerticalWhitespace(unsigned char c);
 
 Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, Diagnostic &D)
-  : Text(D), Diags(D), SrcMgr(SM), Features(features), TokStart(0),
+  : Text(D, features), Diags(D), SrcMgr(SM), Features(features), TokStart(0),
     LastTokenWasSemicolon(false) {
   InitCharacterInfo();
 }
@@ -61,7 +61,8 @@ SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
   while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
     ++I, ++BufPtr;
 
-  if (I != 132 && *BufPtr == '!') {
+  if ((LanguageOptions.FixedForm  && I == 0 && (*BufPtr == 'C' || *BufPtr == 'c' || *BufPtr == '*')) ||
+      (!LanguageOptions.FixedForm && (I != 132 && *BufPtr == '!'))) {
     do {
       ++BufPtr;
     } while (!isVerticalWhitespace(*BufPtr));
