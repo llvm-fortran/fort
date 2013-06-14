@@ -17,11 +17,11 @@
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 
 // FIXME: reenable error reporting with the diag.
-// FIXME: Line numbers after expected.
 
 namespace flang {
 
@@ -230,6 +230,25 @@ private:
 
 } // namespace anonymous
 
+/// \brief Get the source location in \arg BufferId for the given line.
+static llvm::SMLoc translateLine(const llvm::SourceMgr &SM,
+                                 int BufferId,
+                                 unsigned Line) {
+  const llvm::MemoryBuffer *Buffer = SM.getMemoryBuffer(BufferId);
+  const char *Buf = Buffer->getBufferStart();
+  size_t BufLength = Buffer->getBufferSize();
+  if (BufLength == 0)
+    return llvm::SMLoc::getFromPointer(Buf);
+
+  size_t i = 0;
+  unsigned LineNo = 1;
+
+  for (; i < BufLength && LineNo != Line; ++i)
+    if (Buf[i] == '\n') ++LineNo;
+
+  return llvm::SMLoc::getFromPointer(Buf + i);
+}
+
 /// ParseDirective - Go through the comment and see if it indicates expected
 /// diagnostics. If so, then put them in the appropriate directive list.
 ///
@@ -298,7 +317,7 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr 
     SMLoc ExpectedLoc;
     if (!PH.Next("@")) {
       ExpectedLoc = Pos;
-    } /*else {
+    } else {
       PH.Advance();
       unsigned Line = 0;
       bool FoundPlus = PH.Next("+");
@@ -306,25 +325,25 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr 
         // Relative to current line.
         PH.Advance();
         bool Invalid = false;
-        unsigned ExpectedLine = SM.getSpellingLineNumber(Pos, &Invalid);
+        unsigned ExpectedLine = SM.FindLineNumber(Pos);
         if (!Invalid && PH.Next(Line) && (FoundPlus || Line < ExpectedLine)) {
           if (FoundPlus) ExpectedLine += Line;
           else ExpectedLine -= Line;
-          ExpectedLoc = SM.translateLineCol(SM.getFileID(Pos), ExpectedLine, 1);
+          ExpectedLoc = translateLine(SM,SM.FindBufferContainingLoc(Pos), ExpectedLine);
         }
       } else if (PH.Next(Line)) {
         // Absolute line number.
         if (Line > 0)
-          ExpectedLoc = SM.translateLineCol(SM.getFileID(Pos), Line, 1);
+          ExpectedLoc = translateLine(SM,SM.FindBufferContainingLoc(Pos), Line);
       }
 
-      if (ExpectedLoc.isInvalid()) {
+      if (!ExpectedLoc.isValid()) {
         //Diags.Report(Pos.getLocWithOffset(PH.C-PH.Begin),
         //             diag::err_verify_missing_line) << KindStr;
         continue;
       }
       PH.Advance();
-    }*/
+    }
 
     // Skip optional whitespace.
     PH.SkipWhitespace();
