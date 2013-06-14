@@ -316,7 +316,7 @@ bool Parser::ParseProgramUnits() {
   while (!ParseProgramUnit())
     /* Parse them all */;
 
-  return Diag.hadErrors() || Diag.hadWarnings();
+  return false;
 }
 
 /// ParseProgramUnit - Parse a program unit.

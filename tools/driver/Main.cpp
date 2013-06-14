@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Frontend/TextDiagnosticPrinter.h"
+#include "flang/Frontend/VerifyDiagnosticConsumer.h"
 #include "flang/Parse/Parser.h"
 #include "flang/Sema/Sema.h"
 #include "llvm/Support/CommandLine.h"
@@ -54,6 +55,9 @@ namespace {
   cl::opt<bool>
   ReturnComments("C", cl::desc("Do not discard comments"), cl::init(false));
 
+  cl::opt<bool>
+  RunVerifier("verify", cl::desc("Run the verifier"), cl::init(false));
+
 } // end anonymous namespace
 
 static bool ParseFile(const std::string &Filename,
@@ -81,15 +85,23 @@ static bool ParseFile(const std::string &Filename,
     Opts.FixedForm = 1;
     Opts.FreeForm = 0;
   }
+
   TextDiagnosticPrinter TDP(SrcMgr);
   Diagnostic Diag(&SrcMgr, &TDP, false);
+  // Chain in -verify checker, if requested.
+  if(RunVerifier)
+    Diag.setClient(new VerifyDiagnosticConsumer(Diag));
+
 #if 0
   PrintAction PA(Diag);
 #endif
   ASTContext Context(SrcMgr);
   Sema SA(Context, Diag);
   Parser P(SrcMgr, Opts, Diag, SA);
-  return P.ParseProgramUnits();
+  Diag.getClient()->BeginSourceFile(Opts, &P.getLexer());
+  bool result = P.ParseProgramUnits();
+  Diag.getClient()->EndSourceFile();
+  return Diag.hadErrors() || Diag.hadWarnings();
 }
 
 int main(int argc, char **argv) {

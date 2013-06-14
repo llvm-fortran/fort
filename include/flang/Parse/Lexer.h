@@ -19,6 +19,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include <string>
+#include <vector>
 
 namespace llvm {
 
@@ -31,6 +32,7 @@ class SourceMgr;
 namespace flang {
 
 class Diagnostic;
+class CommentHandler;
 
 class Lexer {
   /// LineOfText - This represents a line of text in the program where
@@ -172,6 +174,10 @@ class Lexer {
   /// semicolon.
   bool LastTokenWasSemicolon;
 
+  /// \brief Tracks all of the comment handlers that the client registered
+  /// with this preprocessor.
+  std::vector<CommentHandler *> CommentHandlers;
+
   /// SkipWhitespace - Efficiently skip over a series of whitespace characters.
   /// Update CurPtr to point to the next non-whitespace character and return.
   bool SkipWhitespace(Token &Result, const char *CurPtr);
@@ -249,6 +255,14 @@ public:
 
   void setBuffer(const llvm::MemoryBuffer *buf, const char *ptr = 0);
 
+  /// \brief Add the specified comment handler to the preprocessor.
+  void addCommentHandler(CommentHandler *Handler);
+
+  /// \brief Remove the specified comment handler.
+  ///
+  /// It is an error to remove a handler that has not been registered.
+  void removeCommentHandler(CommentHandler *Handler);
+
   // FIXME: CurKind isn't set.
   bool isa(tok::TokenKind Kind) const { return CurKind == Kind; }
 
@@ -285,6 +299,17 @@ public:
 
   /// PrintError - Error printing methods.
   void PrintError(const char *Loc, const std::string &Msg) const;
+};
+
+/// \brief Abstract base class that describes a handler that will receive
+/// source ranges for each of the comments encountered in the source file.
+class CommentHandler {
+public:
+  virtual ~CommentHandler() {};
+
+  // The handler shall return true if it has pushed any tokens
+  // to be read using e.g. EnterToken or EnterTokenStream.
+  virtual bool HandleComment(Lexer &Lexer, const llvm::SMLoc& Loc, const llvm::StringRef &Comment) = 0;
 };
 
 } // end namespace flang

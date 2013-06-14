@@ -45,6 +45,16 @@ bool Diagnostic::ReportWarning(llvm::SMLoc L, const llvm::Twine &Msg) {
   return true;
 }
 
+/// ReportNote - Emit a warning at the location \arg L, with the message \arg
+/// Msg.
+///
+/// \return The return value is always true, as an idiomatic convenience to
+/// clients.
+bool Diagnostic::ReportNote(llvm::SMLoc L, const llvm::Twine &Msg) {
+  Client->HandleDiagnostic(Note, L, Msg);
+  return true;
+}
+
 DiagnosticClient::~DiagnosticClient() {}
 
 void DiagnosticClient::HandleDiagnostic(Diagnostic::Level DiagLevel,

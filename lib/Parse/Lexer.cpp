@@ -42,6 +42,20 @@ llvm::SMLoc Lexer::getLoc() const {
   return llvm::SMLoc::getFromPointer(TokStart);
 }
 
+void Lexer::addCommentHandler(CommentHandler *Handler) {
+  assert(Handler && "NULL comment handler");
+  assert(std::find(CommentHandlers.begin(), CommentHandlers.end(), Handler) ==
+         CommentHandlers.end() && "Comment handler already registered");
+  CommentHandlers.push_back(Handler);
+}
+
+void Lexer::removeCommentHandler(CommentHandler *Handler) {
+  std::vector<CommentHandler *>::iterator Pos
+  = std::find(CommentHandlers.begin(), CommentHandlers.end(), Handler);
+  assert(Pos != CommentHandlers.end() && "Comment handler not registered");
+  CommentHandlers.erase(Pos);
+}
+
 void Lexer::LineOfText::
 SetBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr) {
   BufPtr = (Ptr ? Ptr : Buf->getBufferStart());
@@ -827,6 +841,10 @@ void Lexer::LexComment(Token &Result) {
 
   FormTokenWithChars(Result, tok::comment);
   Result.setLiteralData(TokStart);
+  for(std::vector<CommentHandler*>::const_iterator I = CommentHandlers.begin();
+      I != CommentHandlers.end(); ++I) {
+    (*I)->HandleComment(*this, Result.getLocation(), Result.getLiteralData());
+  }
 }
 
 /// LexTokenInternal - This implements a simple Fortran family lexer. It is an

@@ -85,3 +85,4 @@ class FullExplanation<string brief, string full> {
 include "DiagnosticCommonKinds.td"
 include "DiagnosticLexKinds.td"
 include "DiagnosticParseKinds.td"
+include "DiagnosticFrontendKinds.td"

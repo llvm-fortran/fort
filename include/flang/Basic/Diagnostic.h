@@ -27,6 +27,7 @@ namespace flang {
 class DiagnosticClient;
 class DiagnosticErrorTrap;
 class LangOptions;
+class Lexer;
 
 /// Diagnostic - This concrete class is used by the front-end to report problems
 /// and issues. It manages the diagnostics and passes them off to the
@@ -68,6 +69,11 @@ public:
     return Client;
   }
 
+  /// \brief Return true if the current diagnostic client is owned by this class.
+  bool ownsClient() {
+    return OwnsDiagClient;
+  }
+
   bool hasSourceManager() const { return SrcMgr != 0; }
   llvm::SourceMgr &getSourceManager() const {
     assert(SrcMgr && "SourceManager not set!");
@@ -97,6 +103,13 @@ public:
   /// \return The return value is always true, as an idiomatic convenience to
   /// clients.
   bool ReportWarning(llvm::SMLoc L, const llvm::Twine &Msg);
+
+  /// ReportNote - Emit a note at the location \arg L, with the message
+  /// \arg Msg.
+  ///
+  /// \return The return value is always true, as an idiomatic convenience to
+  /// clients
+  bool ReportNote(llvm::SMLoc L, const llvm::Twine &Msg);
 
 private:
   // This is private state used by DiagnosticBuilder. We put it here instead of
@@ -160,7 +173,7 @@ public:
   /// in between BeginSourceFile() and EndSourceFile().
   ///
   /// \arg LO - The language options for the source file being processed.
-  virtual void BeginSourceFile(const LangOptions &) {}
+  virtual void BeginSourceFile(const LangOptions &, const Lexer *PP) {}
 
   /// EndSourceFile - Callback to inform the diagnostic client that processing
   /// of a source file has ended. The diagnostic client should assume that any
