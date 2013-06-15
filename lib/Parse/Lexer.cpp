@@ -26,7 +26,7 @@ static bool isWhitespace(unsigned char c);
 static bool isHorizontalWhitespace(unsigned char c);
 static bool isVerticalWhitespace(unsigned char c);
 
-Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, Diagnostic &D)
+Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine &D)
   : Text(D, features), Diags(D), SrcMgr(SM), Features(features), TokStart(0),
     LastTokenWasSemicolon(false) {
   InitCharacterInfo();

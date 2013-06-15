@@ -75,7 +75,7 @@ private:
   ASTContext &Context;
 
   /// Diag - Diagnostics for parsing errors.
-  Diagnostic &Diag;
+  DiagnosticsEngine &Diag;
 
   /// Actions - These are the callbacks we invoke as we parse various constructs
   /// in the file. 
@@ -149,7 +149,7 @@ public:
   }
 
   Parser(llvm::SourceMgr &SrcMgr, const LangOptions &Opts,
-         Diagnostic &D, Sema &actions);
+         DiagnosticsEngine &D, Sema &actions);
 
   llvm::SourceMgr &getSourceManager() { return SrcMgr; }
 

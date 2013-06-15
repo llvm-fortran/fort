@@ -23,7 +23,7 @@
 
 namespace flang {
 
-Sema::Sema(ASTContext &ctxt, Diagnostic &D)
+Sema::Sema(ASTContext &ctxt, DiagnosticsEngine &D)
   : Context(ctxt), Diags(D), CurContext(0) {}
 
 Sema::~Sema() {}
@@ -146,7 +146,7 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, llvm::SMLoc IDLoc,
       Diags.ReportError(IDLoc,
                         llvm::Twine("variable '") + IDInfo->getName() +
                         "' already declared");
-      Diags.getClient()->HandleDiagnostic(Diagnostic::Note, Prev->getLocation(),
+      Diags.getClient()->HandleDiagnostic(DiagnosticsEngine::Note, Prev->getLocation(),
                                           "previous declaration");
       return 0;
     }
@@ -231,7 +231,7 @@ Sema::ActOnPARAMETERPair(ASTContext &C, SMLoc Loc, const IdentifierInfo *IDInfo,
     Diags.ReportError(Loc,
                       llvm::Twine("variable '") + IDInfo->getName() +
                       "' already defined");
-    Diags.getClient()->HandleDiagnostic(Diagnostic::Note, Prev->getLocation(),
+    Diags.getClient()->HandleDiagnostic(DiagnosticsEngine::Note, Prev->getLocation(),
                                         "previous definition");
     return ParameterStmt::ParamPair(0, ExprResult());
   }

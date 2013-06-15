@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_CLANG_FRONTEND_TEXT_DIAGNOSTIC_BUFFER_H_
-#define LLVM_CLANG_FRONTEND_TEXT_DIAGNOSTIC_BUFFER_H_
+#ifndef LLVM_FLANG_FRONTEND_TEXT_DIAGNOSTIC_BUFFER_H_
+#define LLVM_FLANG_FRONTEND_TEXT_DIAGNOSTIC_BUFFER_H_
 
 #include "flang/Basic/Diagnostic.h"
 #include <vector>
@@ -39,12 +39,12 @@ public:
   const_iterator note_begin() const { return Notes.begin(); }
   const_iterator note_end() const   { return Notes.end(); }
 
-  virtual void HandleDiagnostic(Diagnostic::Level DiagLevel, llvm::SMLoc L,
+  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, llvm::SMLoc L,
                                 const llvm::Twine &Msg);
 
   /// FlushDiagnostics - Flush the buffered diagnostics to an given
   /// diagnostic engine.
-  void FlushDiagnostics(Diagnostic &Diags) const;
+  void FlushDiagnostics(DiagnosticsEngine &Diags) const;
 };
 
 } // end namspace flang

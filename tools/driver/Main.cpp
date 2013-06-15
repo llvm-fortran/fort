@@ -87,7 +87,7 @@ static bool ParseFile(const std::string &Filename,
   }
 
   TextDiagnosticPrinter TDP(SrcMgr);
-  Diagnostic Diag(&SrcMgr, &TDP, false);
+  DiagnosticsEngine Diag(new DiagnosticIDs,&SrcMgr, &TDP, false);
   // Chain in -verify checker, if requested.
   if(RunVerifier)
     Diag.setClient(new VerifyDiagnosticConsumer(Diag));

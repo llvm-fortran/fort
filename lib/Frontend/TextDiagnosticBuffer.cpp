@@ -15,12 +15,13 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/ADT/Twine.h"
-using namespace flang;
+
+namespace flang {
 
 /// HandleDiagnostic - Store the errors, warnings, and notes that are
 /// reported.
 ///
-void TextDiagnosticBuffer::HandleDiagnostic(Diagnostic::Level DiagLevel, llvm::SMLoc L,
+void TextDiagnosticBuffer::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, llvm::SMLoc L,
                                             const llvm::Twine &Msg) {
   // Default implementation (Warnings/errors count).
   DiagnosticClient::HandleDiagnostic(DiagLevel, L, Msg);
@@ -28,20 +29,20 @@ void TextDiagnosticBuffer::HandleDiagnostic(Diagnostic::Level DiagLevel, llvm::S
   switch (DiagLevel) {
   default: llvm_unreachable(
                          "Diagnostic not handled during diagnostic buffering!");
-  case Diagnostic::Note:
+  case DiagnosticsEngine::Note:
     Notes.push_back(std::make_pair(L, Msg.str()));
     break;
-  case Diagnostic::Warning:
+  case DiagnosticsEngine::Warning:
     Warnings.push_back(std::make_pair(L, Msg.str()));
     break;
-  case Diagnostic::Error:
-  case Diagnostic::Fatal:
+  case DiagnosticsEngine::Error:
+  case DiagnosticsEngine::Fatal:
     Errors.push_back(std::make_pair(L, Msg.str()));
     break;
   }
 }
 
-void TextDiagnosticBuffer::FlushDiagnostics(Diagnostic &Diags) const {
+void TextDiagnosticBuffer::FlushDiagnostics(DiagnosticsEngine &Diags) const {
   // FIXME: Flush the diagnostics in order.
   for (const_iterator it = err_begin(), ie = err_end(); it != ie; ++it)
     Diags.ReportError(it->first,it->second);
@@ -51,3 +52,4 @@ void TextDiagnosticBuffer::FlushDiagnostics(Diagnostic &Diags) const {
     Diags.ReportNote(it->first,it->second);
 }
 
+} // end namespace flang

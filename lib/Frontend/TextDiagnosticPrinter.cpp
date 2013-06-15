@@ -41,18 +41,18 @@ const unsigned WordWrapIndentation = 6;
 
 TextDiagnosticPrinter::~TextDiagnosticPrinter() {}
 
-void TextDiagnosticPrinter::HandleDiagnostic(Diagnostic::Level Level,
+void TextDiagnosticPrinter::HandleDiagnostic(DiagnosticsEngine::Level Level,
                                              llvm::SMLoc L,
                                              const llvm::Twine &Msg) {
   // Default implementation (Warnings/errors count).
   DiagnosticClient::HandleDiagnostic(Level, L, Msg);
   llvm::SourceMgr::DiagKind MsgTy;
   switch (Level) {
-  case Diagnostic::Ignored: return;
-  case Diagnostic::Note:    MsgTy = llvm::SourceMgr::DK_Note;    break;
-  case Diagnostic::Warning: MsgTy = llvm::SourceMgr::DK_Warning; break;
-  case Diagnostic::Error:   MsgTy = llvm::SourceMgr::DK_Error;   break;
-  case Diagnostic::Fatal:   MsgTy = llvm::SourceMgr::DK_Error;   break;
+  case DiagnosticsEngine::Ignored: return;
+  case DiagnosticsEngine::Note:    MsgTy = llvm::SourceMgr::DK_Note;    break;
+  case DiagnosticsEngine::Warning: MsgTy = llvm::SourceMgr::DK_Warning; break;
+  case DiagnosticsEngine::Error:   MsgTy = llvm::SourceMgr::DK_Error;   break;
+  case DiagnosticsEngine::Fatal:   MsgTy = llvm::SourceMgr::DK_Error;   break;
   }
 
   SrcMgr.PrintMessage(L, MsgTy, Msg,

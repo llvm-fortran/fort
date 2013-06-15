@@ -167,8 +167,8 @@ public:
               StringRef Text, unsigned Min, unsigned Max)
       : DirectiveLoc(DirectiveLoc), DiagnosticLoc(DiagnosticLoc),
         Text(Text), Min(Min), Max(Max) {
-    assert(!DirectiveLoc.isInvalid() && "DirectiveLoc is invalid!");
-    assert(!DiagnosticLoc.isInvalid() && "DiagnosticLoc is invalid!");
+    assert(DirectiveLoc.isValid() && "DirectiveLoc is invalid!");
+    assert(DiagnosticLoc.isValid() && "DiagnosticLoc is invalid!");
     }
 
   private:
@@ -200,7 +200,7 @@ public:
   };
 
 private:
-  Diagnostic &Diags;
+  DiagnosticsEngine &Diags;
   DiagnosticClient *PrimaryClient;
   bool OwnsPrimaryClient;
   llvm::OwningPtr<TextDiagnosticBuffer> Buffer;
@@ -221,7 +221,7 @@ public:
   /// Create a new verifying diagnostic client, which will issue errors to
   /// the currently-attached diagnostic client when a diagnostic does not match 
   /// what is expected (as indicated in the source file).
-  VerifyDiagnosticConsumer(Diagnostic &Diags);
+  VerifyDiagnosticConsumer(DiagnosticsEngine &Diags);
   ~VerifyDiagnosticConsumer();
 
   virtual void BeginSourceFile(const LangOptions &LangOpts, const Lexer *PP);
@@ -230,7 +230,7 @@ public:
 
   virtual bool HandleComment(Lexer &Lexer, const llvm::SMLoc& Loc, const llvm::StringRef &Comment);
 
-  virtual void HandleDiagnostic(Diagnostic::Level DiagLevel, llvm::SMLoc L,
+  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, llvm::SMLoc L,
                                 const llvm::Twine &Msg);
 };
 

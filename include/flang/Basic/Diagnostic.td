@@ -42,6 +42,8 @@ class DiagGroup<string Name, list<DiagGroup> subgroups = []> {
 }
 class InGroup<DiagGroup G> { DiagGroup Group = G; }
 
+include "DiagnosticGroups.td"
+
 // All diagnostics emitted by the compiler are an indirect subclass of this.
 class Diagnostic<string text, DiagClass DC, DiagMapping defaultmapping> {
   /// Component is specified by the file with a big let directive.
@@ -50,11 +52,11 @@ class Diagnostic<string text, DiagClass DC, DiagMapping defaultmapping> {
   DiagClass   Class = DC;
   bit         SFINAE = 1;
   bit         AccessControl = 0;
+  bit         WarningNoWerror = 0;
+  bit         WarningShowInSystemHeader = 0;
   DiagMapping DefaultMapping = defaultmapping;
   DiagGroup   Group;
   string      CategoryName = "";
-  string      Brief = "";
-  string      Explanation = "";
 }
 
 class Error<string str>     : Diagnostic<str, CLASS_ERROR, MAP_ERROR>;

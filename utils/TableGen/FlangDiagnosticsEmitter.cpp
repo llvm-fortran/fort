@@ -505,7 +505,7 @@ void EmitFlangDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
 
   for (unsigned i = 0, e = Diags.size(); i != e; ++i) {
     const Record &R = *Diags[i];
-    
+
     // Check if this is an error that is accidentally in a warning
     // group.
     if (isError(R)) {
@@ -524,11 +524,11 @@ void EmitFlangDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
     OS << "DIAG(" << R.getName() << ", ";
     OS << R.getValueAsDef("Class")->getName();
     OS << ", diag::" << R.getValueAsDef("DefaultMapping")->getName();
-    
+
     // Description string.
     OS << ", \"";
     OS.write_escaped(R.getValueAsString("Text")) << '"';
-    
+
     // Warning associated with the diagnostic. This is stored as an index into
     // the alphabetically sorted warning table.
     if (DefInit *DI = dyn_cast<DefInit>(R.getValueInit("Group"))) {
@@ -565,14 +565,14 @@ void EmitFlangDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
         OS << ", true";
       else
         OS << ", false";
-  
+
       // Default warning show in system header bit.
       if (R.getValueAsBit("WarningShowInSystemHeader"))
         OS << ", true";
       else
         OS << ", false";
     }
-  
+
     // Category number.
     OS << ", " << CategoryIDs.getID(getDiagnosticCategory(&R, DGParentMap));
     OS << ")\n";
@@ -738,6 +738,7 @@ struct RecordIndexElementSorter :
 } // end anonymous namespace.
 
 namespace flang {
+
 void EmitFlangDiagsIndexName(RecordKeeper &Records, raw_ostream &OS) {
   const std::vector<Record*> &Diags =
     Records.getAllDerivedDefinitions("Diagnostic");

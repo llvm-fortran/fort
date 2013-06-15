@@ -13,6 +13,7 @@
 
 #include "flang/Frontend/VerifyDiagnosticConsumer.h"
 #include "flang/Frontend/TextDiagnosticBuffer.h"
+#include "flang/Frontend/FrontendDiagnostic.h"
 #include "flang/Parse/Lexer.h"
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/ADT/SmallString.h"
@@ -21,15 +22,13 @@
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 
-// FIXME: reenable error reporting with the diag.
-
 namespace flang {
 
 typedef VerifyDiagnosticConsumer::Directive Directive;
 typedef VerifyDiagnosticConsumer::DirectiveList DirectiveList;
 typedef VerifyDiagnosticConsumer::ExpectedData ExpectedData;
 
-VerifyDiagnosticConsumer::VerifyDiagnosticConsumer(Diagnostic &_Diags)
+VerifyDiagnosticConsumer::VerifyDiagnosticConsumer(DiagnosticsEngine &_Diags)
   : Diags(_Diags),
     PrimaryClient(Diags.getClient()), OwnsPrimaryClient(Diags.ownsClient()),
     Buffer(new TextDiagnosticBuffer()), CurrentPreprocessor(0),
@@ -83,7 +82,7 @@ void VerifyDiagnosticConsumer::EndSourceFile() {
   }
 }
 
-void VerifyDiagnosticConsumer::HandleDiagnostic(Diagnostic::Level DiagLevel,
+void VerifyDiagnosticConsumer::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
                                                 llvm::SMLoc L, const llvm::Twine &Msg) {
   // Send the diagnostic to the buffer, we will check it once we reach the end
   // of the source file (or are destructed).
@@ -249,6 +248,10 @@ static llvm::SMLoc translateLine(const llvm::SourceMgr &SM,
   return llvm::SMLoc::getFromPointer(Buf + i);
 }
 
+static llvm::SMLoc getLocWithOffset(llvm::SMLoc L, intptr_t offset) {
+  return llvm::SMLoc::getFromPointer(L.getPointer() + offset);
+}
+
 /// ParseDirective - Go through the comment and see if it indicates expected
 /// diagnostics. If so, then put them in the appropriate directive list.
 ///
@@ -256,7 +259,7 @@ static llvm::SMLoc translateLine(const llvm::SourceMgr &SM,
 static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr &SM,
                            Lexer *PP, const llvm::SMLoc& Pos,
                            VerifyDiagnosticConsumer::DirectiveStatus &Status) {
-  Diagnostic &Diags = PP->getDiagnostics();
+  DiagnosticsEngine &Diags = PP->getDiagnostics();
 
   // A single comment may contain multiple directives.
   bool FoundDirective = false;
@@ -280,9 +283,10 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr 
     else if (PH.Next("note"))
       DL = ED ? &ED->Notes : NULL;
     else if (PH.Next("no-diagnostics")) {
-      if (Status == VerifyDiagnosticConsumer::HasOtherExpectedDirectives) ;
-        //Diags.ReportError(Pos, diag::err_verify_invalid_no_diags)
-        //  << /*IsExpectedNoDiagnostics=*/true;
+      if (Status == VerifyDiagnosticConsumer::HasOtherExpectedDirectives) {
+        Diags.Report(Pos, diag::err_verify_invalid_no_diags)
+          << /*IsExpectedNoDiagnostics=*/true;
+      }
       else
         Status = VerifyDiagnosticConsumer::HasExpectedNoDiagnostics;
       continue;
@@ -291,8 +295,8 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr 
     PH.Advance();
 
     if (Status == VerifyDiagnosticConsumer::HasExpectedNoDiagnostics) {
-      //Diags.Report(Pos, diag::err_verify_invalid_no_diags)
-      //  << /*IsExpectedNoDiagnostics=*/false;
+      Diags.Report(Pos, diag::err_verify_invalid_no_diags)
+        << /*IsExpectedNoDiagnostics=*/false;
       continue;
     }
     Status = VerifyDiagnosticConsumer::HasOtherExpectedDirectives;
@@ -338,8 +342,8 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr 
       }
 
       if (!ExpectedLoc.isValid()) {
-        //Diags.Report(Pos.getLocWithOffset(PH.C-PH.Begin),
-        //             diag::err_verify_missing_line) << KindStr;
+        Diags.Report(getLocWithOffset(Pos,PH.C-PH.Begin),
+                     diag::err_verify_missing_line) << KindStr;
         continue;
       }
       PH.Advance();
@@ -361,8 +365,8 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr 
       } else if (PH.Next("-")) {
         PH.Advance();
         if (!PH.Next(Max) || Max < Min) {
-          //Diags.Report(Pos.getLocWithOffset(PH.C-PH.Begin),
-          //             diag::err_verify_invalid_range) << KindStr;
+          Diags.Report(getLocWithOffset(Pos,PH.C-PH.Begin),
+                       diag::err_verify_invalid_range) << KindStr;
           continue;
         }
         PH.Advance();
@@ -380,8 +384,8 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr 
 
     // Next token: {{
     if (!PH.Next("{{")) {
-      //Diags.Report(Pos.getLocWithOffset(PH.C-PH.Begin),
-      //             diag::err_verify_missing_start) << KindStr;
+      Diags.Report(getLocWithOffset(Pos,PH.C-PH.Begin),
+                   diag::err_verify_missing_start) << KindStr;
       continue;
     }
     PH.Advance();
@@ -389,8 +393,8 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr 
 
     // Search for token: }}
     if (!PH.Search("}}")) {
-      //Diags.Report(Pos.getLocWithOffset(PH.C-PH.Begin),
-      //             diag::err_verify_missing_end) << KindStr;
+      Diags.Report(getLocWithOffset(Pos,PH.C-PH.Begin),
+                   diag::err_verify_missing_end) << KindStr;
       continue;
     }
     const char* const ContentEnd = PH.P; // mark content end
@@ -418,9 +422,9 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr 
       DL->push_back(D);
       FoundDirective = true;
     } else {
-      //Diags.Report(Pos.getLocWithOffset(ContentBegin-PH.Begin),
-      //             diag::err_verify_invalid_content)
-      //  << KindStr << Error;
+      Diags.Report(getLocWithOffset(Pos,ContentBegin-PH.Begin),
+                   diag::err_verify_invalid_content)
+        << KindStr << Error;
     }
   }
 
@@ -478,17 +482,17 @@ bool VerifyDiagnosticConsumer::HandleComment(Lexer &PP, const llvm::SMLoc& Comme
 
 /// \brief Takes a list of diagnostics that have been generated but not matched
 /// by an expected-* directive and produces a diagnostic to the user from this.
-static unsigned PrintUnexpected(Diagnostic &Diags, const llvm::SourceMgr *SourceMgr,
+static unsigned PrintUnexpected(DiagnosticsEngine &Diags, const llvm::SourceMgr *SourceMgr,
                                 const_diag_iterator diag_begin,
                                 const_diag_iterator diag_end,
-                                Diagnostic::Level Kind) {
+                                DiagnosticsEngine::Level Kind) {
   if (diag_begin == diag_end) return 0;
 
   for (const_diag_iterator I = diag_begin, E = diag_end; I != E; ++I) {
     switch(Kind) {
-      case Diagnostic::Error: Diags.ReportError(I->first,I->second); break;
-      case Diagnostic::Warning: Diags.ReportWarning(I->first,I->second); break;
-      case Diagnostic::Note: Diags.ReportNote(I->first,I->second); break;
+      case DiagnosticsEngine::Error: Diags.ReportError(I->first,I->second); break;
+      case DiagnosticsEngine::Warning: Diags.ReportWarning(I->first,I->second); break;
+      case DiagnosticsEngine::Note: Diags.ReportNote(I->first,I->second); break;
     }
   }
   return std::distance(diag_begin, diag_end);
@@ -496,15 +500,17 @@ static unsigned PrintUnexpected(Diagnostic &Diags, const llvm::SourceMgr *Source
 
 /// \brief Takes a list of diagnostics that were expected to have been generated
 /// but were not and produces a diagnostic to the user from this.
-static unsigned PrintExpected(Diagnostic &Diags, const llvm::SourceMgr &SourceMgr,
-                              DirectiveList &DL, Diagnostic::Level Kind) {
+static unsigned PrintExpected(DiagnosticsEngine &Diags, const llvm::SourceMgr &SourceMgr,
+                              DirectiveList &DL, DiagnosticsEngine::Level Kind) {
   if (DL.empty())
     return 0;
 
   for (DirectiveList::iterator I = DL.begin(), E = DL.end(); I != E; ++I) {
     Directive &D = **I;
+
     Diags.ReportError(D.DirectiveLoc,llvm::Twine("Inconsistend verify directive: ")+D.Text);
   }
+
   return DL.size();
 }
 
@@ -519,8 +525,8 @@ static bool IsFromSameFile(const llvm::SourceMgr &SM, llvm::SMLoc DirectiveLoc,
 /// CheckLists - Compare expected to seen diagnostic lists and return the
 /// the difference between them.
 ///
-static unsigned CheckLists(Diagnostic &Diags, const llvm::SourceMgr &SourceMgr,
-                           Diagnostic::Level Label,
+static unsigned CheckLists(DiagnosticsEngine &Diags, const llvm::SourceMgr &SourceMgr,
+                           DiagnosticsEngine::Level Label,
                            DirectiveList &Left,
                            const_diag_iterator d2_begin,
                            const_diag_iterator d2_end) {
@@ -565,7 +571,7 @@ static unsigned CheckLists(Diagnostic &Diags, const llvm::SourceMgr &SourceMgr,
 /// were actually reported. It emits any discrepencies. Return "true" if there
 /// were problems. Return "false" otherwise.
 ///
-static unsigned CheckResults(Diagnostic &Diags, const llvm::SourceMgr &SourceMgr,
+static unsigned CheckResults(DiagnosticsEngine &Diags, const llvm::SourceMgr &SourceMgr,
                              const TextDiagnosticBuffer &Buffer,
                              ExpectedData &ED) {
   // We want to capture the delta between what was expected and what was
@@ -576,15 +582,15 @@ static unsigned CheckResults(Diagnostic &Diags, const llvm::SourceMgr &SourceMgr
   unsigned NumProblems = 0;
 
   // See if there are error mismatches.
-  NumProblems += CheckLists(Diags, SourceMgr, Diagnostic::Error, ED.Errors,
+  NumProblems += CheckLists(Diags, SourceMgr, DiagnosticsEngine::Error, ED.Errors,
                             Buffer.err_begin(), Buffer.err_end());
 
   // See if there are warning mismatches.
-  NumProblems += CheckLists(Diags, SourceMgr, Diagnostic::Warning, ED.Warnings,
+  NumProblems += CheckLists(Diags, SourceMgr, DiagnosticsEngine::Warning, ED.Warnings,
                             Buffer.warn_begin(), Buffer.warn_end());
 
   // See if there are note mismatches.
-  NumProblems += CheckLists(Diags, SourceMgr, Diagnostic::Note, ED.Notes,
+  NumProblems += CheckLists(Diags, SourceMgr, DiagnosticsEngine::Note, ED.Notes,
                             Buffer.note_begin(), Buffer.note_end());
 
   return NumProblems;
@@ -600,7 +606,7 @@ void VerifyDiagnosticConsumer::CheckDiagnostics() {
     // Produce an error if no expected-* directives could be found in the
     // source file(s) processed.
     if (Status == HasNoDirectives) {
-      //Diags.Report(diag::err_verify_no_directives).setForceEmit();
+      Diags.Report(diag::err_verify_no_directives).setForceEmit();
       ++NumErrors;
       Status = HasNoDirectivesReported;
     }
@@ -609,11 +615,11 @@ void VerifyDiagnosticConsumer::CheckDiagnostics() {
     NumErrors += CheckResults(Diags, *SrcManager, *Buffer, ED);
   } else {
     NumErrors += (PrintUnexpected(Diags, 0, Buffer->err_begin(),
-                                  Buffer->err_end(), Diagnostic::Error) +
+                                  Buffer->err_end(), DiagnosticsEngine::Error) +
                   PrintUnexpected(Diags, 0, Buffer->warn_begin(),
-                                  Buffer->warn_end(), Diagnostic::Warning) +
+                                  Buffer->warn_end(), DiagnosticsEngine::Warning) +
                   PrintUnexpected(Diags, 0, Buffer->note_begin(),
-                                  Buffer->note_end(), Diagnostic::Note));
+                                  Buffer->note_end(), DiagnosticsEngine::Note));
   }
 
   Diags.takeClient();

@@ -31,14 +31,14 @@ class SourceMgr;
 
 namespace flang {
 
-class Diagnostic;
+class DiagnosticsEngine;
 class CommentHandler;
 
 class Lexer {
   /// LineOfText - This represents a line of text in the program where
   /// continuation contexts are concatenated.
   class LineOfText {
-    Diagnostic &Diags;
+    DiagnosticsEngine &Diags;
     const LangOptions &LanguageOptions;
 
     /// Atoms - A vector of atoms which make up one continuation context free
@@ -82,7 +82,7 @@ class Lexer {
 
     friend class Lexer;
   public:
-    explicit LineOfText(Diagnostic &D, const LangOptions &L)
+    explicit LineOfText(DiagnosticsEngine &D, const LangOptions &L)
       : Diags(D), LanguageOptions(L), BufPtr(0), CurAtom(0), CurPtr(0) {}
 
     void SetBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr);
@@ -153,7 +153,7 @@ class Lexer {
   /// getCurrentPtr - Get a pointer to the current character.
   const char *getCurrentPtr() const { return Text.GetCurrentPtr(); }
 
-  Diagnostic &Diags;
+  DiagnosticsEngine &Diags;
   llvm::SourceMgr &SrcMgr;
   LangOptions Features;
 
@@ -242,9 +242,9 @@ class Lexer {
 public:
   /// Lexer constructor - Create a new lexer object. This lexer assumes that the
   /// text range will outlive it, so it doesn't take ownership of it.
-  Lexer(llvm::SourceMgr &SM, const LangOptions &Features, Diagnostic &D);
+  Lexer(llvm::SourceMgr &SM, const LangOptions &Features, DiagnosticsEngine &D);
 
-  Diagnostic &getDiagnostics() const { return Diags; }
+  DiagnosticsEngine &getDiagnostics() const { return Diags; }
 
   const llvm::SourceMgr &getSourceManager() const { return SrcMgr; }
 
@@ -283,10 +283,10 @@ public:
   /// Diag - Forwarding function for diagnostics. This emits a diagnostic at the
   /// specified Token's location, translating the token's start position in the
   /// current buffer into a SourcePosition object for rendering.
-  clang::DiagnosticBuilder Diag(clang::SourceLocation Loc, unsigned DiagID) {
+  flang::DiagnosticBuilder Diag(flang::SourceLocation Loc, unsigned DiagID) {
     return Diags->Report(FullSourceLoc(Loc, getSourceManager()), DiagID);
   }
-  clang::DiagnosticBuilder Diag(const Token &Tok, unsigned DiagID) {
+  flang::DiagnosticBuilder Diag(const Token &Tok, unsigned DiagID) {
     return Diags->Report(FullSourceLoc(Tok.getLocation(), getSourceManager()),
                          DiagID);
   }

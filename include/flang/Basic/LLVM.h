@@ -8,7 +8,7 @@
 //===----------------------------------------------------------------------===//
 //
 // This file forward declares and imports various common LLVM datatypes that
-// clang wants to use unqualified.
+// flang wants to use unqualified.
 //
 //===----------------------------------------------------------------------===//
 

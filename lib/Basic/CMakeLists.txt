@@ -2,6 +2,7 @@ set(LLVM_LINK_COMPONENTS mc)
 
 add_flang_library(flangBasic
   Diagnostic.cpp
+  DiagnosticIDs.cpp
   IdentifierTable.cpp
   Token.cpp
   TokenKinds.cpp
@@ -23,4 +24,6 @@ add_dependencies(flangBasic
   FlangDiagnosticCommon
   FlangDiagnosticLex
   FlangDiagnosticParse
+  FlangDiagnosticFrontend
+  FlangDiagnosticGroups
   )  

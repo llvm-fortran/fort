@@ -31,7 +31,7 @@ class ASTContext;
 class DeclContext;
 class DeclSpec;
 class DeclarationNameInfo;
-class Diagnostic;
+class DiagnosticsEngine;
 class Expr;
 class FormatSpec;
 class IdentifierInfo;
@@ -46,12 +46,12 @@ public:
   typedef Expr ExprTy;
 
   ASTContext &Context;
-  Diagnostic &Diags;
+  DiagnosticsEngine &Diags;
 
   /// CurContext - This is the current declaration context of parsing.
   DeclContext *CurContext;
 
-  Sema(ASTContext &ctxt, Diagnostic &Diags);
+  Sema(ASTContext &ctxt, DiagnosticsEngine &Diags);
   ~Sema();
 
   DeclContext *getContainingDC(DeclContext *DC);

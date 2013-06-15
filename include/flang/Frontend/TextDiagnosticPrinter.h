@@ -34,7 +34,7 @@ public:
   virtual ~TextDiagnosticPrinter();
 
   // TODO: Emit caret diagnostics and Highlight range.
-  virtual void HandleDiagnostic(Diagnostic::Level DiagLevel, llvm::SMLoc L,
+  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, llvm::SMLoc L,
                                 const llvm::Twine &Msg);
 };
 

@@ -53,7 +53,7 @@ void PrettyStackTraceParserEntry::print(llvm::raw_ostream &OS) const {
 //                            Fortran Parsing
 //===----------------------------------------------------------------------===//
 
-Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, Diagnostic  &D,
+Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  &D,
                Sema &actions)
   : TheLexer(SM, Opts, D), Features(Opts), CrashInfo(*this), SrcMgr(SM),
     CurBuffer(0), Context(actions.Context), Diag(D), Actions(actions),
