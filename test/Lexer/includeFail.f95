@@ -1,4 +1,6 @@
 ! RUN: %flang -verify < %s
 PROGRAM inc
-INCLUDE 'thisFileDoesntExist.f95' ! expected-error {{Couldn't find the file 'thisFileDoesntExist.f95'}}
+INCLUDE 22 ! expected-error {{expected 'FILENAME'}}
+INCLUDE '' ! expected-error {{empty filename}}
+INCLUDE 'thisFileDoesntExist.f95' ! expected-error {{'thisFileDoesntExist.f95' file not found}}
 END PROGRAM inc

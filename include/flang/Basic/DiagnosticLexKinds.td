@@ -77,4 +77,12 @@ def err_lexing_string : Error<"failure when lexing a string">;
 def err_defined_operator_too_long : Error<"defined operator is too long">;
 def err_defined_operator_missing_end : Error<"defined operator missing end '.'">;
 
+// Include
+def err_pp_file_not_found : Error<"'%0' file not found">, DefaultFatal;
+def err_pp_error_opening_file : Error<
+  "error opening file '%0': %1">, DefaultFatal;
+def err_pp_empty_filename : Error<"empty filename">;
+def err_pp_include_too_deep : Error<"INCLUDE nested too deeply">;
+def err_pp_expects_filename : Error<"expected 'FILENAME'">;
+
 }

@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Parse/Parser.h"
+#include "flang/Parse/LexDiagnostic.h"
 #include "flang/Parse/ParseDiagnostic.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
@@ -74,11 +75,13 @@ bool Parser::EnterIncludeFile(const std::string &Filename) {
   CurBuffer = NewBuf;
   LexerBufferContext.push_back(getLexer().getBufferPtr());
   getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBuffer));
+  Diag.getClient()->BeginSourceFile(Features, &TheLexer);
   return false;
 }
 
 bool Parser::LeaveIncludeFile() {
   if(CurBuffer == 0) return true;//No files included.
+  Diag.getClient()->EndSourceFile();
   --CurBuffer;
   getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBuffer),
                        LexerBufferContext.back());
@@ -264,19 +267,20 @@ void Parser::LexToEndOfStatement() {
 bool Parser::ParseInclude() {
   const Token &NextTok = PeekAhead();
   if(!NextTok.is(tok::char_literal_constant)){
-    Diag.ReportError(Tok.getLocation(),
-                     "expected a character literal after INCLUDE");
+    Diag.Report(NextTok.getLocation(),diag::err_pp_expects_filename);
     return true;
   }
   std::string LiteralString;
   CleanLiteral(NextTok,LiteralString);
   //FIXME: need a proper way to get unquoted unescaped string from the character literal.
   LiteralString = std::string(LiteralString,1,LiteralString.length()-2);
+  if(!LiteralString.length()) {
+    Diag.Report(NextTok.getLocation(),diag::err_pp_empty_filename);
+    return true;
+  }
   if(EnterIncludeFile(LiteralString) == true){
-    llvm::Twine error = "Couldn't find the file '";
-    error = error + llvm::Twine(LiteralString) +
-      llvm::Twine("'");
-    Diag.ReportError(NextTok.getLocation(),error);
+    Diag.Report(NextTok.getLocation(),diag::err_pp_file_not_found) <<
+                LiteralString;
     return true;
   }
   return false;
