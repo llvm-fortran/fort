@@ -1,4 +1,4 @@
-//===--- LexDiagnostic.h - Diagnostics for lexer --------*- C++ -*-===//
+//===--- ParseDiagnostic.h - Diagnostics for parser --------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_LEXDIAGNOSTIC_H
-#define LLVM_FLANG_LEXDIAGNOSTIC_H
+#ifndef LLVM_FLANG_PARSEDIAGNOSTIC_H
+#define LLVM_FLANG_PARSEDIAGNOSTIC_H
 
 #include "flang/Basic/Diagnostic.h"
 
@@ -17,10 +17,10 @@ namespace flang {
     enum {
 #define DIAG(ENUM,FLAGS,DEFAULT_MAPPING,DESC,GROUP,\
              SFINAE,ACCESS,NOWERROR,SHOWINSYSHEADER,CATEGORY) ENUM,
-#define LEXSTART
-#include "flang/Basic/DiagnosticLexKinds.inc"
+#define PARSESTART
+#include "flang/Basic/DiagnosticParseKinds.inc"
 #undef DIAG
-      NUM_BUILTIN_LEX_DIAGNOSTICS
+      NUM_BUILTIN_PARSE_DIAGNOSTICS
     };
   }  // end namespace diag
 }  // end namespace flang

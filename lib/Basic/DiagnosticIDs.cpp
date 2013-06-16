@@ -76,7 +76,7 @@ static const StaticDiagInfoRec StaticDiagInfo[] = {
 //#include "flang/Basic/DiagnosticCommonKinds.inc"
 #include "flang/Basic/DiagnosticFrontendKinds.inc"
 #include "flang/Basic/DiagnosticLexKinds.inc"
-//#include "flang/Basic/DiagnosticParseKinds.inc"
+#include "flang/Basic/DiagnosticParseKinds.inc"
 #undef DIAG
   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
@@ -134,7 +134,7 @@ static const StaticDiagInfoRec *GetDiagInfo(unsigned DiagID) {
 CATEGORY(FRONTEND, COMMON )
 //CATEGORY(SERIALIZATION, FRONTEND)
 CATEGORY(LEX, FRONTEND)
-//CATEGORY(PARSE, LEX)
+CATEGORY(PARSE, LEX)
 //CATEGORY(AST, PARSE)
 //CATEGORY(COMMENT, AST)
 //CATEGORY(SEMA, COMMENT)

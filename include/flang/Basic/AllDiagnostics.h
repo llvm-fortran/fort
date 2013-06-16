@@ -17,6 +17,7 @@
 
 #include "flang/Frontend/FrontendDiagnostic.h"
 #include "flang/Parse/LexDiagnostic.h"
+#include "flang/Parse/ParseDiagnostic.h"
 
 namespace flang {
 template <size_t SizeOfStr, typename FieldType>

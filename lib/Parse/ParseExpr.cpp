@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Parse/Parser.h"
+#include "flang/Parse/ParseDiagnostic.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/Sema/Ownership.h"
