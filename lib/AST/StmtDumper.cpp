@@ -182,7 +182,9 @@ void flang::dump(StmtResult S) {
 void flang::dump(ArrayRef<StmtResult> S) {
   StmtVisitor SV(llvm::errs());
 
-  for (ArrayRef<StmtResult>::iterator I = S.begin(), E = S.end(); I != E; ++I)
+  for (ArrayRef<StmtResult>::iterator I = S.begin(), E = S.end(); I != E; ++I){
+    if(!I->get()) continue;
     if (!isa<ProgramStmt>(I->get()))
       SV.visit(*I);
+  }
 }

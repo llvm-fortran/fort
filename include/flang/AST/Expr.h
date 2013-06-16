@@ -305,7 +305,7 @@ private:
   DesignatorTy Ty;
 protected:
   DesignatorExpr(llvm::SMLoc loc, QualType T, DesignatorTy ty)
-    : Expr(Expr::Designator, T, loc), Ty(ty) {}
+    : Expr(Designator, T, loc), Ty(ty) {}
 public:
   DesignatorTy getDesignatorType() const { return Ty; }
 
@@ -315,6 +315,35 @@ public:
     return E->getExpressionID() == Expr::Designator;
   }
   static bool classof(const DesignatorExpr *) { return true; }
+};
+
+//===----------------------------------------------------------------------===//
+/// SubstringExpr -
+class SubstringExpr : public DesignatorExpr {
+private:
+  ExprResult Target, StartingPoint, EndPoint;
+  SubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult E,
+                ExprResult Start, ExprResult End);
+public:
+  static SubstringExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+                               ExprResult Target, ExprResult StartingPoint,
+                               ExprResult EndPoint);
+
+  ExprResult getTarget() const { return Target; }
+  ExprResult getStartingPoint() const { return StartingPoint; }
+  ExprResult getEndPoint() const { return EndPoint; }
+
+  virtual void print(llvm::raw_ostream &);
+
+  static bool classof(const Expr *E) {
+    return E->getExpressionID() == Expr::Designator &&
+      llvm::cast<DesignatorExpr>(E)->getDesignatorType() ==
+      DesignatorExpr::Substring;
+  }
+  static bool classof(const DesignatorExpr *E) {
+    return E->getDesignatorType() == DesignatorExpr::Substring;
+  }
+  static bool classof(const SubstringExpr *) { return true; }
 };
 
 //===----------------------------------------------------------------------===//

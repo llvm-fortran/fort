@@ -134,6 +134,18 @@ LogicalConstantExpr *LogicalConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
   return new (C) LogicalConstantExpr(C, Loc, Data);
 }
 
+SubstringExpr::SubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult E,
+                             ExprResult Start, ExprResult End)
+  : DesignatorExpr(Loc,C.CharacterTy,DesignatorExpr::Substring),
+    Target(E), StartingPoint(Start), EndPoint(End) {
+}
+
+SubstringExpr *SubstringExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+                                     ExprResult Target, ExprResult StartingPoint,
+                                     ExprResult EndPoint) {
+  return new(C) SubstringExpr(C, Loc, Target, StartingPoint, EndPoint);
+}
+
 VarExpr::VarExpr(llvm::SMLoc Loc, const VarDecl *Var)
   : DesignatorExpr(Loc, Var->getType(), DesignatorExpr::ObjectName),
     Variable(Var) {}
@@ -202,6 +214,15 @@ void Expr::print(llvm::raw_ostream &O) {
 }
 
 void DesignatorExpr::print(llvm::raw_ostream &O) {
+}
+
+void SubstringExpr::print(llvm::raw_ostream &O) {
+  Target.get()->print(O);
+  O << '(';
+  if(StartingPoint.get()) StartingPoint.get()->print(O);
+  O << ':';
+  if(EndPoint.get()) EndPoint.get()->print(O);
+  O << ')';
 }
 
 void UnaryExpr::print(llvm::raw_ostream &O) {

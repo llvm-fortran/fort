@@ -195,7 +195,7 @@ private:
   ExprResult ParseCoindexedNamedObject();
   ExprResult ParseComplexPartDesignator();
   ExprResult ParseStructureComponent();
-  ExprResult ParseSubstring();
+  ExprResult ParseSubstring(ExprResult Target);
   ExprResult ParseDataReference();
   ExprResult ParsePartReference();
 

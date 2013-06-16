@@ -40,6 +40,7 @@ namespace flang {
 ///      or where-construct
 StmtResult Parser::ParseExecutableConstruct() {
   StmtResult SR = ParseActionStmt();
+  if (SR.isInvalid()) return StmtError();
   if (!SR.isUsable()) return StmtResult();
 
   return SR;
@@ -260,6 +261,7 @@ Parser::StmtResult Parser::ParseAssignmentStmt() {
   EatIfPresent(tok::equal);
 
   ExprResult RHS = ParseExpression();
+  if(RHS.isInvalid()) return StmtError();
   return Actions.ActOnAssignmentStmt(Context, LHS, RHS, StmtLabel);
 }
 

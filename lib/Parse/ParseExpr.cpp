@@ -35,7 +35,7 @@ namespace flang {
 //         . letter [ letter ] ... .
 Parser::ExprResult Parser::ParseExpression() {
   ExprResult LHS = ParseLevel5Expr();
-  if (LHS.isInvalid()) return ExprResult();
+  if (LHS.isInvalid()) return LHS;
 
   if (Tok.isNot(tok::defined_operator))
     return LHS;
@@ -45,7 +45,7 @@ Parser::ExprResult Parser::ParseExpression() {
   Lex();
 
   ExprResult RHS = ParseLevel5Expr();
-  if (RHS.isInvalid()) return ExprResult();
+  if (RHS.isInvalid()) return RHS;
 
   return DefinedOperatorBinaryExpr::Create(Context, OpLoc, LHS, RHS, II);
 }
@@ -84,7 +84,7 @@ Parser::ExprResult Parser::ParseAndOperand() {
   bool Negate = EatIfPresent(tok::kw_NOT);
 
   ExprResult E = ParseLevel4Expr();
-  if (E.isInvalid()) return ExprResult();
+  if (E.isInvalid()) return E;
 
   if (Negate)
     E = UnaryExpr::Create(Context, NotLoc, UnaryExpr::Not, E);
@@ -92,13 +92,13 @@ Parser::ExprResult Parser::ParseAndOperand() {
 }
 Parser::ExprResult Parser::ParseOrOperand() {
   ExprResult E = ParseAndOperand();
-  if (E.isInvalid()) return ExprResult();
+  if (E.isInvalid()) return E;
 
   while (Tok.getKind() == tok::kw_AND) {
     llvm::SMLoc OpLoc = Tok.getLocation();
     Lex();
     ExprResult AndOp = ParseAndOperand();
-    if (AndOp.isInvalid()) return ExprResult();
+    if (AndOp.isInvalid()) return AndOp;
     E = BinaryExpr::Create(Context, OpLoc, BinaryExpr::And, E, AndOp);
   }
 
@@ -106,13 +106,13 @@ Parser::ExprResult Parser::ParseOrOperand() {
 }
 Parser::ExprResult Parser::ParseEquivOperand() {
   ExprResult E = ParseOrOperand();
-  if (E.isInvalid()) return ExprResult();
+  if (E.isInvalid()) return E;
 
   while (Tok.getKind() == tok::kw_OR) {
     llvm::SMLoc OpLoc = Tok.getLocation();
     Lex();
     ExprResult OrOp = ParseOrOperand();
-    if (OrOp.isInvalid()) return ExprResult();
+    if (OrOp.isInvalid()) return OrOp;
     E = BinaryExpr::Create(Context, OpLoc, BinaryExpr::Or, E, OrOp);
   }
 
@@ -120,7 +120,7 @@ Parser::ExprResult Parser::ParseEquivOperand() {
 }
 Parser::ExprResult Parser::ParseLevel5Expr() {
   ExprResult E = ParseEquivOperand();
-  if (E.isInvalid()) return ExprResult();
+  if (E.isInvalid()) return E;
 
   while (true) {
     llvm::SMLoc OpLoc = Tok.getLocation();
@@ -163,7 +163,7 @@ Parser::ExprResult Parser::ParseLevel5Expr() {
 //      or >=
 Parser::ExprResult Parser::ParseLevel4Expr() {
   ExprResult E = ParseLevel3Expr();
-  if (E.isInvalid()) return ExprResult();
+  if (E.isInvalid()) return E;
 
   while (true) {
     llvm::SMLoc OpLoc = Tok.getLocation();
@@ -193,7 +193,7 @@ Parser::ExprResult Parser::ParseLevel4Expr() {
 
     Lex();
     ExprResult Lvl3Expr = ParseLevel3Expr();
-    if (Lvl3Expr.isInvalid()) return ExprResult();
+    if (Lvl3Expr.isInvalid()) return Lvl3Expr;
     E = BinaryExpr::Create(Context, OpLoc, Op, E, Lvl3Expr);
   }
 }
@@ -209,13 +209,13 @@ Parser::ExprResult Parser::ParseLevel4Expr() {
 //         //
 Parser::ExprResult Parser::ParseLevel3Expr() {
   ExprResult E = ParseLevel2Expr();
-  if (E.isInvalid()) return ExprResult();
+  if (E.isInvalid()) return E;
 
   while (Tok.getKind() == tok::slashslash) {
     llvm::SMLoc OpLoc = Tok.getLocation();
     Lex();
     ExprResult Lvl2Expr = ParseLevel2Expr();
-    if (Lvl2Expr.isInvalid()) return ExprResult();
+    if (Lvl2Expr.isInvalid()) return Lvl2Expr;
     E = BinaryExpr::Create(Context, OpLoc, BinaryExpr::Concat, E, Lvl2Expr);
   }
   
@@ -247,13 +247,13 @@ Parser::ExprResult Parser::ParseLevel3Expr() {
 //      or -
 Parser::ExprResult Parser::ParseMultOperand() {
   ExprResult E = ParseLevel1Expr();
-  if (E.isInvalid()) return ExprResult();
+  if (E.isInvalid()) return E;
 
   if (Tok.getKind() == tok::starstar) {
     llvm::SMLoc OpLoc = Tok.getLocation();
     Lex();
     ExprResult MulOp = ParseMultOperand();
-    if (MulOp.isInvalid()) return ExprResult();
+    if (MulOp.isInvalid()) return MulOp;
     E = BinaryExpr::Create(Context, OpLoc, BinaryExpr::Power, E, MulOp);
   }
 
@@ -261,7 +261,7 @@ Parser::ExprResult Parser::ParseMultOperand() {
 }
 Parser::ExprResult Parser::ParseAddOperand() {
   ExprResult E = ParseMultOperand();
-  if (E.isInvalid()) return ExprResult();
+  if (E.isInvalid()) return E;
 
   while (true) {
     llvm::SMLoc OpLoc = Tok.getLocation();
@@ -279,7 +279,7 @@ Parser::ExprResult Parser::ParseAddOperand() {
 
     Lex();
     ExprResult MulOp = ParseMultOperand();
-    if (MulOp.isInvalid()) return ExprResult();
+    if (MulOp.isInvalid()) return MulOp;
     E = BinaryExpr::Create(Context, OpLoc, Op, E, MulOp);
   }
 }
@@ -292,7 +292,7 @@ Parser::ExprResult Parser::ParseLevel2Expr() {
     Lex(); // Eat operand.
 
     E = ParseAddOperand();
-    if (E.isInvalid()) return ExprResult();
+    if (E.isInvalid()) return E;
 
     if (Kind == tok::minus)
       E = UnaryExpr::Create(Context, OpLoc, UnaryExpr::Minus, E);
@@ -300,7 +300,7 @@ Parser::ExprResult Parser::ParseLevel2Expr() {
       E = UnaryExpr::Create(Context, OpLoc, UnaryExpr::Plus, E);
   } else {
     E = ParseAddOperand();
-    if (E.isInvalid()) return ExprResult();
+    if (E.isInvalid()) return E;
   }
 
   while (true) {
@@ -319,7 +319,7 @@ Parser::ExprResult Parser::ParseLevel2Expr() {
 
     Lex();
     ExprResult AddOp = ParseAddOperand();
-    if (AddOp.isInvalid()) return ExprResult();
+    if (AddOp.isInvalid()) return AddOp;
     E = BinaryExpr::Create(Context, OpLoc, Op, E, AddOp);
   }
 }
@@ -342,7 +342,7 @@ Parser::ExprResult Parser::ParseLevel1Expr() {
   }
 
   ExprResult E = ParsePrimaryExpr();
-  if (E.isInvalid()) return ExprResult();
+  if (E.isInvalid()) return E;
 
   if (II)
     E = DefinedOperatorUnaryExpr::Create(Context, OpLoc, E, II);
@@ -432,9 +432,8 @@ Parser::ExprResult Parser::ParsePrimaryExpr() {
     } else E = ParseExpression();
 
     if (Tok.isNot(tok::r_paren)) {
-      Diag.ReportError(Tok.getLocation(),
-                       "expected ')' in expression");
-      return ExprResult();
+      Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+      return ExprError();
     }
     Lex();
     break;
@@ -523,18 +522,18 @@ Parser::ExprResult Parser::ParsePrimaryExpr() {
     possible_keyword_as_ident:
     parse_designator:
     E = Parser::ParseDesignator();
-    if (E.isInvalid()) return ExprResult();
+    if (E.isInvalid()) return E;
     break;
   case tok::minus:
     Lex();
     E = Parser::ParsePrimaryExpr();
-    if (E.isInvalid()) return ExprResult();
+    if (E.isInvalid()) return E;
     E = UnaryExpr::Create(Context, Loc, UnaryExpr::Minus, E);
     break;
   case tok::plus:
     Lex();
     E = Parser::ParsePrimaryExpr();
-    if (E.isInvalid()) return ExprResult();
+    if (E.isInvalid()) return E;
     E = UnaryExpr::Create(Context, Loc, UnaryExpr::Plus, E);
     break;
   }
@@ -555,10 +554,15 @@ Parser::ExprResult Parser::ParsePrimaryExpr() {
 ///      or structure-component
 ///      or substring
 ExprResult Parser::ParseDesignator() {
-  if (Tok.is(tok::char_literal_constant))
+  if (Tok.is(tok::char_literal_constant)) {
+    std::string NumStr;
+    CleanLiteral(Tok, NumStr);
+    ExprResult E = CharacterConstantExpr::Create(Context,
+                                                 Tok.getLocation(), StringRef(NumStr));
+    Lex();
     // Possibly something like: '0123456789'(N:N)
-    return ParseSubstring();
-
+    return ParseSubstring(E);
+  }
 
   // [R504]:
   //   object-name :=
@@ -580,7 +584,6 @@ ExprResult Parser::ParseDesignator() {
 
   if(Tok.is(tok::l_paren)){
     // Subscript expression.
-
 
   }
 
@@ -663,10 +666,27 @@ ExprResult Parser::ParseStructureComponent() {
 ///   R610:
 ///     substring-range :=
 ///         [ scalar-int-expr ] : [ scalar-int-expr ]
-ExprResult Parser::ParseSubstring() {
-  ExprResult E;
+ExprResult Parser::ParseSubstring(ExprResult Target) {
+  ExprResult StartingPoint, EndPoint;
   Lex();
-  return E;
+  if(!Tok.is(tok::colon)) {
+    StartingPoint = ParseExpression();
+    if(!Tok.is(tok::colon)) {
+      Diag.Report(Tok.getLocation(),diag::err_expected_colon);
+      return ExprError();
+    }
+  }
+  llvm::SMLoc Loc = Tok.getLocation();
+  Lex();
+  if(!Tok.is(tok::r_paren)) {
+    EndPoint = ParseExpression();
+    if(!Tok.is(tok::r_paren)) {
+      Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+      return ExprError();
+    }
+  }
+  Lex();
+  return SubstringExpr::Create(Context, Loc, Target, StartingPoint, EndPoint);
 }
 
 /// ParseDataReference - Parse a data reference.
@@ -679,7 +699,7 @@ ExprResult Parser::ParseDataReference() {
 
   do {
     ExprResult E = ParsePartReference();
-    if (E.isInvalid()) return ExprResult();
+    if (E.isInvalid()) return E;
     Exprs.push_back(E);
   } while (EatIfPresent(tok::percent));
 
