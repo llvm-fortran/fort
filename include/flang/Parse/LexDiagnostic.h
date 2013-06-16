@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_FRONTENDDIAGNOSTIC_H
-#define LLVM_FLANG_FRONTENDDIAGNOSTIC_H
+#ifndef LLVM_FLANG_LEXERDIAGNOSTIC_H
+#define LLVM_FLANG_LEXERDIAGNOSTIC_H
 
 #include "flang/Basic/Diagnostic.h"
 
@@ -17,10 +17,10 @@ namespace flang {
     enum {
 #define DIAG(ENUM,FLAGS,DEFAULT_MAPPING,DESC,GROUP,\
              SFINAE,ACCESS,NOWERROR,SHOWINSYSHEADER,CATEGORY) ENUM,
-#define FRONTENDSTART
-#include "flang/Basic/DiagnosticFrontendKinds.inc"
+#define LEXSTART
+#include "flang/Basic/DiagnosticLexKinds.inc"
 #undef DIAG
-      NUM_BUILTIN_FRONTEND_DIAGNOSTICS
+      NUM_BUILTIN_LEXER_DIAGNOSTICS
     };
   }  // end namespace diag
 }  // end namespace flang

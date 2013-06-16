@@ -416,6 +416,9 @@ Parser::ExprResult Parser::ParsePrimaryExpr() {
       goto possible_keyword_as_ident;
     Diag.ReportError(Loc, "unknown unary expression");
     break;
+  case tok::error:
+    Lex();
+    return ExprError();
   case tok::l_paren: {
     Lex();
 

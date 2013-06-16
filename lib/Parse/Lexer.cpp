@@ -12,12 +12,15 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Parse/Lexer.h"
+#include "flang/Parse/LexDiagnostic.h"
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/SMLoc.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/ADT/Twine.h"
+
+// FIXME: Errors from diag:: for BOZ literals
 
 namespace flang {
 
@@ -95,8 +98,8 @@ SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
   // the LineBegin.
   if (I != 132 && *BufPtr == '&') {
     if (Atoms.empty()) // FIXME: This isn't sufficient.
-      Diags.ReportError(SMLoc::getFromPointer(BufPtr),
-                        "continuation character used out of context");
+      Diags.Report(SMLoc::getFromPointer(BufPtr),
+                        diag::err_continuation_out_of_context);
     ++I, ++BufPtr;
     LineBegin = BufPtr;
     return true;
@@ -201,8 +204,7 @@ GetCharacterLiteral(unsigned &I, const char *&LineBegin) {
     if (AmpersandPos)
       Atoms.push_back(StringRef(LineBegin, AmpersandPos - LineBegin));
     else {
-      Diags.ReportError(SMLoc::getFromPointer(QuoteStart),
-                        "unterminated character literal");
+      Diags.Report(SMLoc::getFromPointer(QuoteStart),diag::err_unterminated_string);
       break;
     }
 
@@ -642,8 +644,8 @@ void Lexer::FormDefinedOperatorTokenWithChars(Token &Result) {
   assert(TokLen >= 2 && "Malformed defined operator!");
 
   if (TokLen - 2 > 63){
-    Diags.ReportError(SMLoc::getFromPointer(TokStart),
-                      "invalid defined operator - it exceeds permitted length.");
+    Diags.Report(SMLoc::getFromPointer(TokStart),
+                 diag::err_defined_operator_too_long);
     return FormTokenWithChars(Result, tok::unknown);
   }
 
@@ -777,8 +779,8 @@ void Lexer::LexNumericConstant(Token &Result) {
     if (C == '-' || C == '+')
       C = getNextChar();
     if (!isDecimalNumberBody(C)) {
-      Diags.ReportError(SMLoc::getFromPointer(NumBegin),
-                        "exponent has no digits");
+      Diags.Report(SMLoc::getFromPointer(NumBegin),
+                   diag::err_exponent_has_no_digits);
       FormTokenWithChars(Result, tok::error);
       return;
     }
@@ -906,9 +908,7 @@ void Lexer::LexTokenInternal(Token &Result) {
         Char = getNextChar();
 
       if (Char != '.') {
-        // [TODO]: error.
-        Diags.ReportError(SMLoc::getFromPointer(TokStart),
-                          "invalid defined operator missing end '.'");
+        Diags.Report(SMLoc::getFromPointer(TokStart),diag::err_defined_operator_missing_end);
         FormTokenWithChars(Result, tok::unknown);
         return;
       }

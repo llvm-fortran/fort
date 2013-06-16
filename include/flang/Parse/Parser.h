@@ -159,6 +159,9 @@ public:
 
   bool ParseProgramUnits();
 
+  ExprResult ExprError() { return ExprResult(true); }
+  StmtResult StmtError() { return StmtResult(true); }
+
 private:
   // High-level parsing methods.
   bool ParseInclude();

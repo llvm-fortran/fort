@@ -16,6 +16,7 @@
 #define LLVM_FLANG_ALL_DIAGNOSTICS_H
 
 #include "flang/Frontend/FrontendDiagnostic.h"
+#include "flang/Parse/LexDiagnostic.h"
 
 namespace flang {
 template <size_t SizeOfStr, typename FieldType>

@@ -75,14 +75,14 @@ static const StaticDiagInfoRec StaticDiagInfo[] = {
     STR_SIZE(DESC, uint16_t), DESC },
 //#include "flang/Basic/DiagnosticCommonKinds.inc"
 #include "flang/Basic/DiagnosticFrontendKinds.inc"
-//#include "flang/Basic/DiagnosticLexKinds.inc"
+#include "flang/Basic/DiagnosticLexKinds.inc"
 //#include "flang/Basic/DiagnosticParseKinds.inc"
 #undef DIAG
   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
 //FIXME:
-#define NUM_BUILTIN_DRIVER_DIAGNOSTICS 0
+#define NUM_BUILTIN_COMMON_DIAGNOSTICS 0
 
 static const unsigned StaticDiagInfoSize =
   sizeof(StaticDiagInfo)/sizeof(StaticDiagInfo[0])-1;
@@ -121,16 +121,19 @@ static const StaticDiagInfoRec *GetDiagInfo(unsigned DiagID) {
   // memory at all.
   unsigned Offset = 0;
   unsigned ID = DiagID;
+
+  int x,y;
 #define DIAG_START_COMMON 0 // Sentinel value.
 #define CATEGORY(NAME, PREV) \
+  x = NUM_BUILTIN_##PREV##_DIAGNOSTICS; y = DIAG_START_##PREV; \
   if (DiagID > DIAG_START_##NAME) { \
     Offset += NUM_BUILTIN_##PREV##_DIAGNOSTICS - DIAG_START_##PREV - 1; \
     ID -= DIAG_START_##NAME - DIAG_START_##PREV; \
   }
-CATEGORY(DRIVER, COMMON)
-CATEGORY(FRONTEND, DRIVER )
+//CATEGORY(DRIVER, COMMON)
+CATEGORY(FRONTEND, COMMON )
 //CATEGORY(SERIALIZATION, FRONTEND)
-//CATEGORY(LEX, SERIALIZATION)
+CATEGORY(LEX, FRONTEND)
 //CATEGORY(PARSE, LEX)
 //CATEGORY(AST, PARSE)
 //CATEGORY(COMMENT, AST)

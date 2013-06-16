@@ -1,4 +1,4 @@
-! RUN: %flang < %s
+! RUN: %flang -verify < %s
 PROGRAM constants
   REAL X
   DOUBLE PRECISION Y
@@ -17,4 +17,6 @@ PROGRAM constants
   Y = 0.4d4
   Y = -0.125D-2
   Y = 1.0d+2
+
+  X = 1e ! expected-error {{exponent has no digits}}
 END PROGRAM constants
