@@ -19,4 +19,5 @@ PROGRAM constants
   Y = 1.0d+2
 
   X = 1e ! expected-error {{exponent has no digits}}
+  Y = -2D- ! expected-error {{exponent has no digits}}
 END PROGRAM constants

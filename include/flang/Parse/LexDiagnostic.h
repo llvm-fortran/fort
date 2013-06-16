@@ -1,4 +1,4 @@
-//===--- DiagnosticFrontend.h - Diagnostics for frontend --------*- C++ -*-===//
+//===--- LexDiagnostic.h - Diagnostics for lexer --------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_LEXERDIAGNOSTIC_H
-#define LLVM_FLANG_LEXERDIAGNOSTIC_H
+#ifndef LLVM_FLANG_LEXDIAGNOSTIC_H
+#define LLVM_FLANG_LEXDIAGNOSTIC_H
 
 #include "flang/Basic/Diagnostic.h"
 

@@ -99,7 +99,7 @@ SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
   if (I != 132 && *BufPtr == '&') {
     if (Atoms.empty()) // FIXME: This isn't sufficient.
       Diags.Report(SMLoc::getFromPointer(BufPtr),
-                        diag::err_continuation_out_of_context);
+                   diag::err_continuation_out_of_context);
     ++I, ++BufPtr;
     LineBegin = BufPtr;
     return true;
@@ -845,7 +845,8 @@ void Lexer::LexComment(Token &Result) {
   Result.setLiteralData(TokStart);
   for(std::vector<CommentHandler*>::const_iterator I = CommentHandlers.begin();
       I != CommentHandlers.end(); ++I) {
-    (*I)->HandleComment(*this, Result.getLocation(), Result.getLiteralData());
+    (*I)->HandleComment(*this, Result.getLocation(),
+                        llvm::StringRef(Result.getLiteralData(),Result.getLength()));
   }
 }
 
