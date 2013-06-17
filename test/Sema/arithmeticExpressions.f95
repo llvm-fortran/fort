@@ -12,7 +12,9 @@ PROGRAM arithexpressions
   I = I - I
   I = I * I
   I = I / I
+  I = I ** 3
 
+  I = I ** 'pow' ! expected-error {{invalid operands to binary expression ('INTEGER' and 'CHARACTER')}}
   I = I + .false. ! expected-error {{invalid operands to binary expression ('INTEGER' and 'LOGICAL')}}
-  I = 'true' + .true. ! expected-error {{invalid operands to binary expression ('CHARACTER' and 'LOGICAL')}}
+  I = 'true' * .true. ! expected-error {{invalid operands to binary expression ('CHARACTER' and 'LOGICAL')}}
 ENDPROGRAM arithexpressions

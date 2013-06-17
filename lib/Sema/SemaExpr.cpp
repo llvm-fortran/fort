@@ -19,25 +19,13 @@
 
 namespace flang {
 
-struct ArithmeticTypeSpec {
-private:
-  int Spec;
-public:
-  ArithmeticTypeSpec(const Type *T) {
-    if(T->isIntegerType()) Spec = 1<<TST_integer;
-    else if(T->isRealType()) Spec = 1<<TST_real;
-    else if(T->isDoublePrecisionType()) Spec = 1<<TST_doubleprecision;
-    else if(T->isComplexType()) Spec = 1<<TST_complex;
-    else Spec = 0;
-  }
-  inline bool isArithmetic() const {
-    return (Spec & ((1<<TST_integer) | (1<<TST_real) |
-                   (1<<TST_doubleprecision) | (1<<TST_complex))) != 0;
-  }
-  inline bool is(TypeSpecifierType T) const {
-    return Spec == (1<<int(T));
-  }
-};
+static TypeSpecifierType GetArithmeticTypeSpec(const Type *T) {
+  if(T->isIntegerType()) return TST_integer;
+  else if(T->isRealType()) return TST_real;
+  else if(T->isDoublePrecisionType()) return TST_doubleprecision;
+  else if(T->isComplexType()) return TST_complex;
+  else return TST_unspecified;
+}
 
 // FIXME: verify return type for binary expressions.
 ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
@@ -51,67 +39,106 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
   case BinaryExpr::Plus: case BinaryExpr::Minus:
   case BinaryExpr::Multiply: case BinaryExpr::Divide:
   case BinaryExpr::Power: {
-    ArithmeticTypeSpec LHSTypeSpec(LHSType),
-        RHSTypeSpec(RHSType);
-    if(!LHSTypeSpec.isArithmetic()) goto typecheckInvalidOperands;
-    if(!RHSTypeSpec.isArithmetic()) goto typecheckInvalidOperands;
-    if(Op != BinaryExpr::Power) {
-      // I2:
-      // I = I1 + I2
-      // R = R1 + REAL(I2)
-      // D = D1 + DBLE(I2)
-      // C = C1 + CMPLX(REAL(I2),0.0)
-      if(RHSTypeSpec.is(TST_integer)) {
-        if(LHSTypeSpec.is(TST_real))
-          RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
-                                       ConversionExpr::REAL,RHS);
-        else if(LHSTypeSpec.is(TST_doubleprecision))
-          RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
-                                       ConversionExpr::DBLE,RHS);
-        else if(LHSTypeSpec.is(TST_complex))
-          RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
-                                       ConversionExpr::CMPLX,RHS);
+    TypeSpecifierType LHSTypeSpec = GetArithmeticTypeSpec(LHSType);
+    TypeSpecifierType RHSTypeSpec = GetArithmeticTypeSpec(RHSType);
+
+    if(LHSTypeSpec == TST_unspecified || RHSTypeSpec == TST_unspecified)
+      goto typecheckInvalidOperands;
+
+    switch(RHSTypeSpec) {
+    // I2:
+    // I2: I/R/D/C = I1/R1/D1/C1 ** I2
+    // OR
+    // I = I1 <op> I2
+    // R = R1 <op> REAL(I2)
+    // D = D1 <op> DBLE(I2)
+    // C = C1 <op> CMPLX(REAL(I2),0.0)
+    case TST_integer:
+      if(Op == BinaryExpr::Power) break;
+      switch(LHSTypeSpec) {
+      case TST_integer: break;
+      case TST_real:
+        RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
+                                     ConversionExpr::REAL,RHS);
+        break;
+      case TST_doubleprecision:
+        RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
+                                     ConversionExpr::DBLE,RHS);
+        break;
+      case TST_complex:
+        RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
+                                     ConversionExpr::CMPLX,RHS);
+        break;
+      default:
+        llvm_unreachable("Unknown Arithmetic TST");
       }
-      // R2:
-      // R = REAL(I1) + R2
-      // R = R1 + R2
-      // D = D1 + DBLE(R2)
-      // C = C1 + CMPLX(R2,0.0)
-      else if(RHSTypeSpec.is(TST_real)) {
-        if(LHSTypeSpec.is(TST_integer))
-          LHS = ConversionExpr::Create(C, LHS.get()->getLocation(),
-                                       ConversionExpr::REAL,LHS);
-        else if(LHSTypeSpec.is(TST_doubleprecision))
-          RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
-                                       ConversionExpr::DBLE,RHS);
-        else if(LHSTypeSpec.is(TST_complex))
-          RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
-                                       ConversionExpr::CMPLX,RHS);
+      break;
+
+    // R2:
+    // R = REAL(I1) <op> R2
+    // R = R1 <op> R2
+    // D = D1 <op> DBLE(R2)
+    // C = C1 <op> CMPLX(R2,0.0)
+    case TST_real:
+      switch(LHSTypeSpec) {
+      case TST_integer:
+        LHS = ConversionExpr::Create(C, LHS.get()->getLocation(),
+                                     ConversionExpr::REAL,LHS);
+        break;
+      case TST_real: break;
+      case TST_doubleprecision:
+        RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
+                                     ConversionExpr::DBLE,RHS);
+        break;
+      case TST_complex:
+        RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
+                                     ConversionExpr::CMPLX,RHS);
+        break;
+      default:
+        llvm_unreachable("Unknown Arithmetic TST");
       }
-      // D2:
-      // D = DBLE(I1) + D2
-      // D = DBLE(R1) + D2
-      // D = D1 + D2
-      // C1 - prohibited
-      else if(RHSTypeSpec.is(TST_doubleprecision)) {
-        if(LHSTypeSpec.is(TST_integer) || LHSTypeSpec.is(TST_real))
-          LHS = ConversionExpr::Create(C, LHS.get()->getLocation(),
-                                       ConversionExpr::DBLE,LHS);
-        else if(LHSTypeSpec.is(TST_complex)) goto typecheckInvalidOperands;
+      break;
+
+    // D2:
+    // D = DBLE(I1) <op> D2
+    // D = DBLE(R1) <op> D2
+    // D = D1 <op> D2
+    // C1 - prohibited
+    case TST_doubleprecision:
+      switch(LHSTypeSpec) {
+      case TST_integer: case TST_real:
+        LHS = ConversionExpr::Create(C, LHS.get()->getLocation(),
+                                     ConversionExpr::DBLE,LHS);
+        break;
+      case TST_doubleprecision: break;
+      case TST_complex:
+        goto typecheckInvalidOperands;
+      default:
+        llvm_unreachable("Unknown Arithmetic TST");
       }
-      // C2:
-      // C = CMPLX(REAL(I1),0.0) + C2
-      // C = CMPLX(R1,0.0) + C2
-      // D1 - prohibited
-      // C = C1 + C2
-      else if(RHSTypeSpec.is(TST_complex)) {
-        if(LHSTypeSpec.is(TST_integer) || LHSTypeSpec.is(TST_real))
-          LHS = ConversionExpr::Create(C, LHS.get()->getLocation(),
-                                       ConversionExpr::CMPLX,LHS);
-        else if(LHSTypeSpec.is(TST_doubleprecision)) goto typecheckInvalidOperands;
+      break;
+
+    // C2:
+    // C = CMPLX(REAL(I1),0.0) <op> C2
+    // C = CMPLX(R1,0.0) <op> C2
+    // D1 - prohibited
+    // C = C1 <op> C2
+    case TST_complex:
+      switch(LHSTypeSpec) {
+      case TST_integer: case TST_real:
+        LHS = ConversionExpr::Create(C, LHS.get()->getLocation(),
+                                     ConversionExpr::CMPLX,LHS);
+        break;
+      case TST_doubleprecision:
+        goto typecheckInvalidOperands;
+      case TST_complex: break;
+      default:
+        llvm_unreachable("Unknown Arithmetic TST");
       }
-    } else {
-      //FIXME: TODO
+      break;
+
+    default:
+      llvm_unreachable("Unknown Arithmetic TST");
     }
     break;
   }
@@ -131,11 +158,34 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
     break;
   }
 
-  // realational binary expression
+  // relational binary expression
+  // FIXME: TEST
   case BinaryExpr::Equal: case BinaryExpr::NotEqual:
   case BinaryExpr::GreaterThan: case BinaryExpr::GreaterThanEqual:
   case BinaryExpr::LessThan: case BinaryExpr::LessThanEqual: {
-    // FIXME: TODO
+    // Character relational expression
+    if(LHSType->isCharacterType() && RHSType->isCharacterType()) break;
+
+    // Arithmetic relational expression
+    TypeSpecifierType LHSTypeSpec = GetArithmeticTypeSpec(LHSType);
+    TypeSpecifierType RHSTypeSpec = GetArithmeticTypeSpec(RHSType);
+
+    if(LHSTypeSpec == TST_unspecified || RHSTypeSpec == TST_unspecified)
+      goto typecheckInvalidOperands;
+
+    // A complex operand is permitted only when the relational operator is .EQ. or .NE.
+    if((LHSTypeSpec == TST_complex ||
+        RHSTypeSpec == TST_complex) &&
+       Op != BinaryExpr::Equal && Op != BinaryExpr::NotEqual) {
+      //FIXME: TODO error
+    }
+
+    // typeof(e1) != typeof(e1) =>
+    //   e1 <relop> e2 = ((e1) - (e2)) <relop> 0
+    if(LHSTypeSpec != RHSTypeSpec) {
+      LHS = ActOnBinaryExpr(C, Loc, BinaryExpr::Minus, LHS, RHS);
+      RHS = IntegerConstantExpr::Create(C, Loc, "0");
+    }
     break;
   }
 
