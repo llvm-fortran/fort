@@ -3,6 +3,13 @@ PROGRAM arrtest
   INTEGER I_ARR(30)
   INTEGER I_ARR2(30,20)
 
-  I_ARR(1) = I_ARR(1,1) ! expected-error{{array subscript must have 1 subscript value}}
-  I_ARR2(1) = I_ARR(1) ! expected-error{{array subscript must have 2 subscript values}}
+  I_ARR(1) = I_ARR(1,1) ! expected-error{{array subscript must have 1 subscript expression}}
+  I_ARR2(1) = I_ARR(1) ! expected-error{{array subscript must have 2 subscript expressions}}
+
+  !FIXME: I_ARR(1) = I_ARR(I_ARR(1))
+
+  I_ARR(1) = I_ARR('HELLO') ! expected-error{{expected an integer expression}}
+  I_ARR(1) = I_ARR(.TRUE.) ! expected-error{{expected an integer expression}}
+  I_ARR(1) = I_ARR2(1,3.0) ! expected-error{{expected an integer expression}}
+  I_ARR(1) = I_ARR((42.0,69.0)) ! expected-error{{expected an integer expression}}
 ENDPROGRAM arrtest
