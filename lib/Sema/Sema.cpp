@@ -336,6 +336,10 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, llvm::SMLoc Loc,
   else if(LHSType->isCharacterType()) {
     if(!RHSType->isCharacterType()) goto typeError;
   }
+
+  // Invalid assignment
+  else goto typeError;
+
   return AssignmentStmt::Create(C, LHS, RHS, StmtLabel);
 
 typeError:
@@ -346,7 +350,7 @@ typeError:
   RHS.get()->getType().print(StreamRHS);
   Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
       << StreamLHS.str() << StreamRHS.str();
-  return StmtResult(true);
+  return StmtError();
 }
 
 QualType Sema::ActOnArraySpec(ASTContext &C, QualType ElemTy,
@@ -417,49 +421,6 @@ FieldDecl *Sema::ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SMLoc ID
 
 void Sema::ActOnEndDerivedTypeDecl() {
   PopDeclContext();
-}
-
-static bool IsIntegerExpression(ExprResult E) {
-  return E.get()->getType().getTypePtr()->isIntegerType();
-}
-
-ExprResult Sema::ActOnSubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
-                              ExprResult StartingPoint, ExprResult EndPoint) {
-  if(StartingPoint.get() && !IsIntegerExpression(StartingPoint.get())) {
-    Diags.Report(StartingPoint.get()->getLocation(),
-                 diag::err_expected_integer_expr);
-    return ExprResult(true);
-  }
-  if(EndPoint.get() && !IsIntegerExpression(EndPoint.get())) {
-    Diags.Report(EndPoint.get()->getLocation(),
-                 diag::err_expected_integer_expr);
-    return ExprResult(true);
-  }
-
-  return SubstringExpr::Create(C, Loc, Target, StartingPoint, EndPoint);
-}
-
-ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
-                              llvm::ArrayRef<ExprResult> Subscripts) {
-  assert(Subscripts.size());
-  const ArrayType *AT = Target.get()->getType().getTypePtr()->asArrayType();
-  assert(AT);
-  if(AT->getDimensionCount() != Subscripts.size()) {
-    Diags.Report(Subscripts[0].get()->getLocation(),
-                 diag::err_array_subscript_dimension_count_mismatch) <<
-                 int(AT->getDimensionCount());
-    return ExprResult(true);
-  }
-  //FIXME constraint
-  //A subscript expression may contain array element references and function references.
-  for(size_t I = 0; I < Subscripts.size(); ++I) {
-    if(!IsIntegerExpression(Subscripts[I])) {
-      Diags.Report(Subscripts[I].get()->getLocation(),
-                   diag::err_expected_integer_expr);
-      return ExprResult(true);
-    }
-  }
-  return ArrayElementExpr::Create(C, Loc, Target, Subscripts);
 }
 
 } //namespace flang

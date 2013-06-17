@@ -227,6 +227,7 @@ static inline QualType ConversionType(ASTContext &C, ConversionExpr::IntrinsicFu
     case ConversionExpr::DBLE: return C.DoublePrecisionTy;
     case ConversionExpr::CMPLX: return C.ComplexTy;
   }
+  llvm_unreachable("Unknown conversion type!");
 }
 
 ConversionExpr::ConversionExpr(ASTContext &C, llvm::SMLoc L,

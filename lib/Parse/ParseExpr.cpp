@@ -99,7 +99,7 @@ Parser::ExprResult Parser::ParseOrOperand() {
     Lex();
     ExprResult AndOp = ParseAndOperand();
     if (AndOp.isInvalid()) return AndOp;
-    E = BinaryExpr::Create(Context, OpLoc, BinaryExpr::And, E, AndOp);
+    E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::And, E, AndOp);
   }
 
   return E;
@@ -113,7 +113,7 @@ Parser::ExprResult Parser::ParseEquivOperand() {
     Lex();
     ExprResult OrOp = ParseOrOperand();
     if (OrOp.isInvalid()) return OrOp;
-    E = BinaryExpr::Create(Context, OpLoc, BinaryExpr::Or, E, OrOp);
+    E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::Or, E, OrOp);
   }
 
   return E;
@@ -129,16 +129,17 @@ Parser::ExprResult Parser::ParseLevel5Expr() {
       return E;
     case tok::kw_EQV:
       Lex();
-      E = BinaryExpr::Create(Context, OpLoc, BinaryExpr::Eqv, E,
-                             ParseEquivOperand());
+      E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::Eqv, E,
+                               ParseEquivOperand());
       break;
     case tok::kw_NEQV:
       Lex();
-      E = BinaryExpr::Create(Context, OpLoc, BinaryExpr::Neqv, E,
-                             ParseEquivOperand());
+      E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::Neqv, E,
+                               ParseEquivOperand());
       break;
     }
   }
+  return E;
 }
 
 // ParseLevel4Expr - Level-4 expressions are level-3 expressions optionally
@@ -194,8 +195,9 @@ Parser::ExprResult Parser::ParseLevel4Expr() {
     Lex();
     ExprResult Lvl3Expr = ParseLevel3Expr();
     if (Lvl3Expr.isInvalid()) return Lvl3Expr;
-    E = BinaryExpr::Create(Context, OpLoc, Op, E, Lvl3Expr);
+    E = Actions.ActOnBinaryExpr(Context, OpLoc, Op, E, Lvl3Expr);
   }
+  return E;
 }
 
 // ParseLevel3Expr - Level-3 expressions are level-2 expressions optionally
@@ -216,7 +218,7 @@ Parser::ExprResult Parser::ParseLevel3Expr() {
     Lex();
     ExprResult Lvl2Expr = ParseLevel2Expr();
     if (Lvl2Expr.isInvalid()) return Lvl2Expr;
-    E = BinaryExpr::Create(Context, OpLoc, BinaryExpr::Concat, E, Lvl2Expr);
+    E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::Concat, E, Lvl2Expr);
   }
   
   return E;
@@ -254,7 +256,7 @@ Parser::ExprResult Parser::ParseMultOperand() {
     Lex();
     ExprResult MulOp = ParseMultOperand();
     if (MulOp.isInvalid()) return MulOp;
-    E = BinaryExpr::Create(Context, OpLoc, BinaryExpr::Power, E, MulOp);
+    E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::Power, E, MulOp);
   }
 
   return E;
@@ -280,8 +282,9 @@ Parser::ExprResult Parser::ParseAddOperand() {
     Lex();
     ExprResult MulOp = ParseMultOperand();
     if (MulOp.isInvalid()) return MulOp;
-    E = BinaryExpr::Create(Context, OpLoc, Op, E, MulOp);
+    E = Actions.ActOnBinaryExpr(Context, OpLoc, Op, E, MulOp);
   }
+  return E;
 }
 Parser::ExprResult Parser::ParseLevel2Expr() {
   ExprResult E;
@@ -320,8 +323,9 @@ Parser::ExprResult Parser::ParseLevel2Expr() {
     Lex();
     ExprResult AddOp = ParseAddOperand();
     if (AddOp.isInvalid()) return AddOp;
-    E = BinaryExpr::Create(Context, OpLoc, Op, E, AddOp);
+    E = Actions.ActOnBinaryExpr(Context, OpLoc, Op, E, AddOp);
   }
+  return E;
 }
 
 // ParseLevel1Expr - Level-1 expressions are primaries optionally operated on by

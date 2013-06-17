@@ -19,6 +19,7 @@
 #include "flang/AST/FormatSpec.h"
 #include "flang/AST/Stmt.h"
 #include "flang/AST/Type.h"
+#include "flang/AST/Expr.h"
 #include "flang/Sema/Ownership.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SourceMgr.h"
@@ -55,6 +56,9 @@ public:
   ~Sema();
 
   DeclContext *getContainingDC(DeclContext *DC);
+
+  inline ExprResult ExprError() const { return ExprResult(true); }
+  inline StmtResult StmtError() const { return StmtResult(true); }
 
   /// Set the current declaration context until it gets popped.
   void PushDeclContext(DeclContext *DC);
@@ -192,6 +196,11 @@ public:
   ExprResult ActOnDataReference(llvm::ArrayRef<ExprResult> Exprs) {
     return ExprResult();
   }
+
+  ExprResult ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
+                             BinaryExpr::Operator Op,
+                             ExprResult LHS,ExprResult RHS);
+
   ExprResult ActOnSubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
                                 ExprResult StartingPoint, ExprResult EndPoint);
   ExprResult ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
