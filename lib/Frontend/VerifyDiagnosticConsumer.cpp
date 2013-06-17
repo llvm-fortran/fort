@@ -83,7 +83,8 @@ void VerifyDiagnosticConsumer::EndSourceFile() {
 }
 
 void VerifyDiagnosticConsumer::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
-                                                llvm::SMLoc L, const llvm::Twine &Msg) {
+                                                llvm::SMLoc L, const llvm::Twine &Msg,
+                                                llvm::ArrayRef<llvm::SMRange> Ranges) {
   // Send the diagnostic to the buffer, we will check it once we reach the end
   // of the source file (or are destructed).
   Buffer->HandleDiagnostic(DiagLevel, L, Msg);

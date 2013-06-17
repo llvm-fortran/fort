@@ -665,7 +665,8 @@ void DiagnosticIDs::EmitDiag(DiagnosticsEngine &Diag, Level DiagLevel) const {
     case Error: Lvl = DiagnosticsEngine::Error; break;
     case Fatal: Lvl = DiagnosticsEngine::Fatal; break;
   }
-  Diag.Client->HandleDiagnostic(Lvl, Info.getLocation(), llvm::Twine(OutStr));
+  Diag.Client->HandleDiagnostic(Lvl, Info.getLocation(), llvm::Twine(OutStr),
+                                llvm::ArrayRef<llvm::SMRange>(Diag.DiagRanges,Diag.NumDiagRanges));
 
   Diag.CurDiagID = ~0U;
 }

@@ -221,7 +221,8 @@ DiagnosticClient::~DiagnosticClient() {}
 
 void DiagnosticClient::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
                                         llvm::SMLoc,
-                                        const llvm::Twine &) {
+                                        const llvm::Twine &,
+                                        llvm::ArrayRef<llvm::SMRange>) {
   if (!IncludeInDiagnosticCounts())
     return;
 

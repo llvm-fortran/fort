@@ -150,6 +150,11 @@ endif ()
 
 include(LLVMParseArguments)
 
+# Enable C++ 11
+if(NOT MSVC)
+  add_definitions(-std=c++11)
+endif()
+
 function(flang_tablegen)
   # Syntax:
   # flang_tablegen output-file [tablegen-arg ...] SOURCE source-file

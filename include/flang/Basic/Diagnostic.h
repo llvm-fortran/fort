@@ -825,7 +825,9 @@ public:
   /// Default implementation just keeps track of the total number of warnings
   /// and errors.
   virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, llvm::SMLoc L,
-                                const llvm::Twine &Msg);
+                                const llvm::Twine &Msg,
+                                llvm::ArrayRef<llvm::SMRange> Ranges =
+                                  llvm::ArrayRef<llvm::SMRange>());
 };
 
 } // end namespace flang

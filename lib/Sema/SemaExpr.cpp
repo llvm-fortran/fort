@@ -31,16 +31,16 @@ static TypeSpecifierType GetArithmeticTypeSpec(const Type *T) {
 ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
                                  BinaryExpr::Operator Op,
                                  ExprResult LHS,ExprResult RHS) {
-  const Type *LHSType = LHS.get()->getType().getTypePtr();
-  const Type *RHSType = RHS.get()->getType().getTypePtr();
+  auto LHSType = LHS.get()->getType().getTypePtr();
+  auto RHSType = RHS.get()->getType().getTypePtr();
 
   switch(Op) {
   // Arithmetic binary expression
   case BinaryExpr::Plus: case BinaryExpr::Minus:
   case BinaryExpr::Multiply: case BinaryExpr::Divide:
   case BinaryExpr::Power: {
-    TypeSpecifierType LHSTypeSpec = GetArithmeticTypeSpec(LHSType);
-    TypeSpecifierType RHSTypeSpec = GetArithmeticTypeSpec(RHSType);
+    auto LHSTypeSpec = GetArithmeticTypeSpec(LHSType);
+    auto RHSTypeSpec = GetArithmeticTypeSpec(RHSType);
 
     if(LHSTypeSpec == TST_unspecified || RHSTypeSpec == TST_unspecified)
       goto typecheckInvalidOperands;
@@ -167,8 +167,8 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
     if(LHSType->isCharacterType() && RHSType->isCharacterType()) break;
 
     // Arithmetic relational expression
-    TypeSpecifierType LHSTypeSpec = GetArithmeticTypeSpec(LHSType);
-    TypeSpecifierType RHSTypeSpec = GetArithmeticTypeSpec(RHSType);
+    auto LHSTypeSpec = GetArithmeticTypeSpec(LHSType);
+    auto RHSTypeSpec = GetArithmeticTypeSpec(RHSType);
 
     if(LHSTypeSpec == TST_unspecified || RHSTypeSpec == TST_unspecified)
       goto typecheckInvalidOperands;
@@ -201,8 +201,10 @@ typecheckInvalidOperands:
       StreamRHS(TypeStrings[1]);
   LHS.get()->getType().print(StreamLHS);
   RHS.get()->getType().print(StreamRHS);
-  Diags.Report(Loc,diag::err_typecheck_invalid_operands)
-      << StreamLHS.str() << StreamRHS.str();
+  (Diags.Report(Loc,diag::err_typecheck_invalid_operands)
+      << StreamLHS.str() << StreamRHS.str())
+      .AddSourceRange(llvm::SMRange(LHS.get()->getLocation(),
+                                    RHS.get()->getLocation()));
   return ExprError();
 }
 
@@ -229,7 +231,7 @@ ExprResult Sema::ActOnSubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult T
 ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
                                     llvm::ArrayRef<ExprResult> Subscripts) {
   assert(Subscripts.size());
-  const ArrayType *AT = Target.get()->getType().getTypePtr()->asArrayType();
+  auto AT = Target.get()->getType().getTypePtr()->asArrayType();
   assert(AT);
   if(AT->getDimensionCount() != Subscripts.size()) {
     Diags.Report(Subscripts[0].get()->getLocation(),

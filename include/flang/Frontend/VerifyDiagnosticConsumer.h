@@ -231,7 +231,8 @@ public:
   virtual bool HandleComment(Lexer &Lexer, const llvm::SMLoc& Loc, const llvm::StringRef &Comment);
 
   virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, llvm::SMLoc L,
-                                const llvm::Twine &Msg);
+                                const llvm::Twine &Msg,
+                                llvm::ArrayRef<llvm::SMRange> Ranges);
 };
 
 } // end namespace flang
