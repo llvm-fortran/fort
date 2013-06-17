@@ -151,7 +151,8 @@ public:
                             ArrayRef<const IdentifierInfo *> IntrinsicNames,
                             Expr *StmtLabel);
 
-  StmtResult ActOnAssignmentStmt(ASTContext &C, ExprResult LHS,
+  StmtResult ActOnAssignmentStmt(ASTContext &C, llvm::SMLoc Loc,
+                                 ExprResult LHS,
                                  ExprResult RHS, Expr *StmtLabel);
 
   QualType ActOnArraySpec(ASTContext &C, QualType ElemTy,

@@ -2,6 +2,7 @@
 PROGRAM arrtest
   INTEGER I_ARR(30)
   INTEGER I_ARR2(30,20)
+  LOGICAL L_ARR(16)
 
   I_ARR(1) = 1
 
@@ -15,4 +16,7 @@ PROGRAM arrtest
   I_ARR(1) = I_ARR(.TRUE.) ! expected-error{{expected an integer expression}}
   I_ARR(1) = I_ARR2(1,3.0) ! expected-error{{expected an integer expression}}
   I_ARR(1) = I_ARR((42.0,69.0)) ! expected-error{{expected an integer expression}}
+
+  L_ARR(1) = .false.
+  I_ARR(5) = I_ARR(L_ARR(1)) ! expected-error{{expected an integer expression}}
 ENDPROGRAM arrtest

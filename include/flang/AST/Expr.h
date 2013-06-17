@@ -46,6 +46,7 @@ protected:
     CharacterConstant,
     BOZConstant,
     LogicalConstant,
+    Conversion,
 
     Variable,
     Unary,
@@ -659,6 +660,31 @@ public:
     return E->getExpressionID() == Expr::DefinedBinaryOperator;
   }
   static bool classof(const DefinedOperatorBinaryExpr *) { return true; }
+};
+
+/// ConversionExpr -
+/// INT(x) | REAL(x) | DBLE(x) | CMPLX(x)
+class ConversionExpr : public Expr {
+public:
+  enum IntrinsicFunction {
+    INT, REAL, DBLE, CMPLX
+  };
+private:
+  IntrinsicFunction Op;
+  ExprResult E;
+  ConversionExpr(ASTContext &C, llvm::SMLoc L, IntrinsicFunction op, ExprResult e);
+public:
+  static ConversionExpr *Create(ASTContext &C, llvm::SMLoc L, IntrinsicFunction Op, ExprResult E);
+
+  IntrinsicFunction getIntrinsicFunction() const { return Op;  }
+  ExprResult getExpression() { return E; }
+
+  virtual void print(llvm::raw_ostream&);
+
+  static bool classof(const Expr *E) {
+    return E->getExpressionID() == Expr::Conversion;
+  }
+  static bool classof(const ConversionExpr *) { return true; }
 };
 
 } // end flang namespace

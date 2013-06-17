@@ -21,6 +21,7 @@
 #include "flang/AST/Stmt.h"
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
+#include <sstream>
 
 namespace flang {
 
@@ -286,9 +287,66 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SMLoc Loc,
   return IntrinsicStmt::Create(C, Loc, IntrinsicNames, StmtLabel);
 }
 
-StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, ExprResult LHS,
+StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, llvm::SMLoc Loc,
+                                     ExprResult LHS,
                                      ExprResult RHS, Expr *StmtLabel) {
+  const Type *LHSType = LHS.get()->getType().getTypePtr();
+  const Type *RHSType = RHS.get()->getType().getTypePtr();
+
+  // Arithmetic assigment
+  bool IsRHSInteger = RHSType->isIntegerType();
+  bool IsRHSReal = RHSType->isRealType();
+  bool IsRHSDblPrec = RHSType->isDoublePrecisionType();
+  bool IsRHSComplex = RHSType->isComplexType();
+  bool IsRHSArithmetic = IsRHSInteger || IsRHSReal ||
+                         IsRHSDblPrec || IsRHSComplex;
+
+  if(LHSType->isIntegerType()) {
+    if(IsRHSInteger) ;
+    else if(IsRHSArithmetic)
+      RHS = ConversionExpr::Create(Context, RHS.get()->getLocation(),
+                                   ConversionExpr::INT,RHS);
+    else goto typeError;
+  } else if(LHSType->isRealType()) {
+    if(IsRHSReal) ;
+    else if(IsRHSArithmetic)
+      RHS = ConversionExpr::Create(Context, RHS.get()->getLocation(),
+                                   ConversionExpr::REAL,RHS);
+    else goto typeError;
+  } else if(LHSType->isDoublePrecisionType()) {
+    if(IsRHSDblPrec) ;
+    else if(IsRHSArithmetic)
+      RHS = ConversionExpr::Create(Context, RHS.get()->getLocation(),
+                                   ConversionExpr::DBLE,RHS);
+    else goto typeError;
+  } else if(LHSType->isComplexType()) {
+    if(IsRHSComplex) ;
+    else if(IsRHSArithmetic)
+      RHS = ConversionExpr::Create(Context, RHS.get()->getLocation(),
+                                   ConversionExpr::CMPLX,RHS);
+    else goto typeError;
+  }
+
+  // Logical assignment
+  else if(LHSType->isLogicalType()) {
+    if(!RHSType->isLogicalType()) goto typeError;
+  }
+
+  // Character assignment
+  else if(LHSType->isCharacterType()) {
+    if(!RHSType->isCharacterType()) goto typeError;
+  }
   return AssignmentStmt::Create(C, LHS, RHS, StmtLabel);
+
+typeError:
+  std::string TypeStrings[2];
+  llvm::raw_string_ostream StreamLHS(TypeStrings[0]),
+      StreamRHS(TypeStrings[1]);
+  LHS.get()->getType().print(StreamLHS);
+  RHS.get()->getType().print(StreamRHS);
+  Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
+      << StreamLHS.str() << StreamRHS.str();
+  return StmtResult(true);
 }
 
 QualType Sema::ActOnArraySpec(ASTContext &C, QualType ElemTy,

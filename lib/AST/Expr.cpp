@@ -220,6 +220,25 @@ DefinedOperatorBinaryExpr::Create(ASTContext &C, llvm::SMLoc loc, ExprResult lhs
   return new (C) DefinedOperatorBinaryExpr(loc, lhs, rhs, ii);
 }
 
+static inline QualType ConversionType(ASTContext &C, ConversionExpr::IntrinsicFunction Op) {
+  switch(Op) {
+    case ConversionExpr::INT: return C.IntegerTy;
+    case ConversionExpr::REAL: return C.RealTy;
+    case ConversionExpr::DBLE: return C.DoublePrecisionTy;
+    case ConversionExpr::CMPLX: return C.ComplexTy;
+  }
+}
+
+ConversionExpr::ConversionExpr(ASTContext &C, llvm::SMLoc L,
+                               IntrinsicFunction op, ExprResult e)
+  : Expr(Conversion,ConversionType(C, op),L),Op(op),E(e) {
+}
+
+ConversionExpr *ConversionExpr::Create(ASTContext &C, llvm::SMLoc L,
+                                       IntrinsicFunction Op, ExprResult E) {
+  return new(C) ConversionExpr(C, L, Op, E);
+}
+
 //===----------------------------------------------------------------------===//
 // Expression Print Statements
 //===----------------------------------------------------------------------===//
@@ -270,6 +289,18 @@ void UnaryExpr::print(llvm::raw_ostream &O) {
 
 void DefinedOperatorUnaryExpr::print(llvm::raw_ostream &O) {
   O << '(' << II->getName();
+  E.get()->print(O);
+  O << ')';
+}
+
+void ConversionExpr::print(llvm::raw_ostream &O) {
+  switch(Op) {
+  case INT: O<<"INT("; break;
+  case REAL: O<<"REAL("; break;
+  case DBLE: O<<"DBLE("; break;
+  case CMPLX: O<<"CMPLX("; break;
+  }
+
   E.get()->print(O);
   O << ')';
 }

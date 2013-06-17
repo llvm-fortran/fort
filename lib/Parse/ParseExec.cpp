@@ -261,6 +261,7 @@ Parser::StmtResult Parser::ParseAssignmentStmt() {
   ExprResult LHS = ParseExpression();
   if(LHS.isInvalid()) return StmtError();
 
+  llvm::SMLoc Loc = Tok.getLocation();
   if(!Tok.is(tok::equal)) {
     Diag.ReportError(Tok.getLocation(),"expected '='");
     return StmtError();
@@ -269,7 +270,7 @@ Parser::StmtResult Parser::ParseAssignmentStmt() {
 
   ExprResult RHS = ParseExpression();
   if(RHS.isInvalid()) return StmtError();
-  return Actions.ActOnAssignmentStmt(Context, LHS, RHS, StmtLabel);
+  return Actions.ActOnAssignmentStmt(Context, Loc, LHS, RHS, StmtLabel);
 }
 
 /// ParsePrintStatement

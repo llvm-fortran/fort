@@ -17,9 +17,11 @@ let CategoryName = "Semantic Issue" in {
 def err_expected_integer_expr : Error<
   "expected an integer expression">;
 
+def err_typecheck_assign_incompatible : Error<
+  "assigning to '%0' from incompatible type '%1'">;
+
 def err_array_subscript_dimension_count_mismatch : Error<
   "array subscript must have %0 subscript %plural{1:expression|:expressions}0">;
-
 
 def warn_array_index_precedes_bounds : Warning<
   "array index %0 is before the beginning of the array">,
