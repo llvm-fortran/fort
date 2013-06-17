@@ -513,6 +513,8 @@ public:
   }
 };
 
+class ArrayType;
+
 /// Type - This is the base class for the type hierarchy.
 ///
 /// Types are immutable once created.
@@ -594,6 +596,7 @@ public:
 
   bool isArrayOfCharacterType() const;
   bool isArrayType() const;
+  const ArrayType *asArrayType() const;
   bool isConstantArrayType() const;
 
   static bool classof(const Type *) { return true; }
@@ -690,6 +693,7 @@ public:
   dim_iterator end()   { return Dims.end(); }
   const_dim_iterator begin() const { return Dims.begin(); }
   const_dim_iterator end() const   { return Dims.end(); }
+  size_t getDimensionCount() const { return Dims.size(); }
 
   void Profile(llvm::FoldingSetNodeID &ID) {
     Profile(ID, getElementType(), Dims);
@@ -830,6 +834,12 @@ inline bool Type::isArrayOfCharacterType() const {
     return AT->getElementType()->isCharacterType();
   }
   return false;
+}
+inline const ArrayType *Type::asArrayType() const {
+  if(const ArrayType *AT = dyn_cast<ArrayType>(CanonicalType)) {
+    return AT;
+  }
+  return 0;
 }
 
 } // end flang namespace

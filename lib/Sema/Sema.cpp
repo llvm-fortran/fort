@@ -14,6 +14,7 @@
 
 #include "flang/Sema/Sema.h"
 #include "flang/Sema/DeclSpec.h"
+#include "flang/Sema/SemaDiagnostic.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
@@ -370,6 +371,15 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult T
                               llvm::ArrayRef<ExprResult> Subscripts) {
   //FIXME constraint
   //A subscript expression is an integer expression. A subscript expression may contain array element references and function references.
+  assert(Subscripts.size());
+  const ArrayType *AT = Target.get()->getType().getTypePtr()->asArrayType();
+  assert(AT);
+  if(AT->getDimensionCount() != Subscripts.size()) {
+    Diags.Report(Subscripts[0].get()->getLocation(),
+                 diag::err_array_subscript_dimension_count_mismatch) <<
+                 int(AT->getDimensionCount());
+    return ExprResult(true);
+  }
   return ArrayElementExpr::Create(C, Loc, Target, Subscripts);
 }
 

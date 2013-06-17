@@ -26,4 +26,5 @@ add_dependencies(flangBasic
   FlangDiagnosticParse
   FlangDiagnosticFrontend
   FlangDiagnosticGroups
+  FlangDiagnosticSema
   )  

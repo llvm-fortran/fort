@@ -77,6 +77,7 @@ static const StaticDiagInfoRec StaticDiagInfo[] = {
 #include "flang/Basic/DiagnosticFrontendKinds.inc"
 #include "flang/Basic/DiagnosticLexKinds.inc"
 #include "flang/Basic/DiagnosticParseKinds.inc"
+#include "flang/Basic/DiagnosticSemaKinds.inc"
 #undef DIAG
   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
@@ -137,7 +138,7 @@ CATEGORY(LEX, FRONTEND)
 CATEGORY(PARSE, LEX)
 //CATEGORY(AST, PARSE)
 //CATEGORY(COMMENT, AST)
-//CATEGORY(SEMA, COMMENT)
+CATEGORY(SEMA, PARSE)
 //CATEGORY(ANALYSIS, SEMA)
 #undef CATEGORY
 #undef DIAG_START_COMMON
