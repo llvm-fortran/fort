@@ -146,10 +146,10 @@ SubstringExpr *SubstringExpr::Create(ASTContext &C, llvm::SMLoc Loc,
   return new(C) SubstringExpr(C, Loc, Target, StartingPoint, EndPoint);
 }
 
-// FIXME C.ProperType
 ArrayElementExpr::ArrayElementExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult E,
                                    llvm::ArrayRef<ExprResult> Subs)
-  : DesignatorExpr(Loc, C.RealTy, DesignatorExpr::ArrayElement),
+  : DesignatorExpr(Loc, E.get()->getType()->asArrayType()->getElementType(),
+                   DesignatorExpr::ArrayElement),
     Target(E) {
   NumSubscripts = Subs.size();
   SubscriptList = new (C) ExprResult [NumSubscripts];
