@@ -146,6 +146,24 @@ SubstringExpr *SubstringExpr::Create(ASTContext &C, llvm::SMLoc Loc,
   return new(C) SubstringExpr(C, Loc, Target, StartingPoint, EndPoint);
 }
 
+// FIXME C.ProperType
+ArrayElementExpr::ArrayElementExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult E,
+                                   llvm::ArrayRef<ExprResult> Subs)
+  : DesignatorExpr(Loc, C.RealTy, DesignatorExpr::ArrayElement),
+    Target(E) {
+  NumSubscripts = Subs.size();
+  SubscriptList = new (C) ExprResult [NumSubscripts];
+
+  for (unsigned I = 0; I != NumSubscripts; ++I)
+    SubscriptList[I] = Subs[I];
+}
+
+ArrayElementExpr *ArrayElementExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+                                           ExprResult Target,
+                                           llvm::ArrayRef<ExprResult> Subscripts) {
+  return new(C) ArrayElementExpr(C, Loc, Target, Subscripts);
+}
+
 VarExpr::VarExpr(llvm::SMLoc Loc, const VarDecl *Var)
   : DesignatorExpr(Loc, Var->getType(), DesignatorExpr::ObjectName),
     Variable(Var) {}
@@ -222,6 +240,17 @@ void SubstringExpr::print(llvm::raw_ostream &O) {
   if(StartingPoint.get()) StartingPoint.get()->print(O);
   O << ':';
   if(EndPoint.get()) EndPoint.get()->print(O);
+  O << ')';
+}
+
+void ArrayElementExpr::print(llvm::raw_ostream &O) {
+  Target.get()->print(O);
+  O << '(';
+  llvm::ArrayRef<ExprResult> Subscripts = getSubscriptList();
+  for(size_t I = 0; I < Subscripts.size(); ++I) {
+    if(I) O << ", ";
+    Subscripts[I].get()->print(O);
+  }
   O << ')';
 }
 

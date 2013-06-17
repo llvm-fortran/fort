@@ -360,4 +360,17 @@ void Sema::ActOnEndDerivedTypeDecl() {
   PopDeclContext();
 }
 
+ExprResult Sema::ActOnSubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
+                              ExprResult StartingPoint, ExprResult EndPoint) {
+  //FIXME constraint
+  return SubstringExpr::Create(C, Loc, Target, StartingPoint, EndPoint);
+}
+
+ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
+                              llvm::ArrayRef<ExprResult> Subscripts) {
+  //FIXME constraint
+  //A subscript expression is an integer expression. A subscript expression may contain array element references and function references.
+  return ArrayElementExpr::Create(C, Loc, Target, Subscripts);
+}
+
 } //namespace flang

@@ -568,14 +568,14 @@ ExprResult Parser::ParseDesignator() {
   //   object-name :=
   //       name
   const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
-  if (!IDInfo) return ExprResult(true);
+  if (!IDInfo) return ExprError();
   VarDecl *VD = IDInfo->getFETokenInfo<VarDecl>();
   if (!VD) {
     // This variable hasn't been specified before. We need to apply any IMPLICIT
     // rules to it.
     Decl *D = Actions.ActOnImplicitEntityDecl(Context, Tok.getLocation(),
                                               IDInfo);
-    if (!D) return ExprResult(true);
+    if (!D) return ExprError();
     VD = cast<VarDecl>(D);
   }
 
@@ -583,8 +583,23 @@ ExprResult Parser::ParseDesignator() {
   Lex();
 
   if(Tok.is(tok::l_paren)){
-    // Subscript expression.
-
+    if(VD->getType()->isArrayType()) {
+      E = ParseF77Subscript(E);
+      if(Tok.is(tok::l_paren)) {
+        if(VD->getType()->isArrayOfCharacterType())
+          return ParseSubstring(E);
+        else {
+          Diag.Report(Tok.getLocation(),diag::err_unexpected_lparen);
+          return ExprError();
+        }
+      }
+      return E;
+    } else if(VD->getType()->isCharacterType()) {
+      return ParseSubstring(E);
+    } else {
+      Diag.Report(Tok.getLocation(),diag::err_unexpected_lparen);
+      return ExprError();
+    }
   }
 
   return E;
@@ -686,7 +701,28 @@ ExprResult Parser::ParseSubstring(ExprResult Target) {
     }
   }
   Lex();
-  return SubstringExpr::Create(Context, Loc, Target, StartingPoint, EndPoint);
+  return Actions.ActOnSubstringExpr(Context, Loc, Target, StartingPoint, EndPoint);
+}
+
+/// ParseF77Subscript - Parse a Fortran 77 Array Subscript Expression
+///
+ExprResult Parser::ParseF77Subscript(ExprResult Target) {
+  std::vector<ExprResult> Exprs;
+  llvm::SMLoc Loc = Tok.getLocation();
+  Lex();
+
+  do {
+    ExprResult E = ParseExpression();
+    if(E.isInvalid()) return E;
+    Exprs.push_back(E);
+  } while(EatIfPresent(tok::comma));
+
+  if(!Tok.is(tok::r_paren)) {
+    Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+    return ExprError();
+  }
+  Lex();
+  return Actions.ActOnSubscriptExpr(Context, Loc, Target, Exprs);
 }
 
 /// ParseDataReference - Parse a data reference.

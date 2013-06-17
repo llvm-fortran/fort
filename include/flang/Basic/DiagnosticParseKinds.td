@@ -18,6 +18,7 @@ let CategoryName = "Parse Issue" in {
 // Generic errors
 def err_parse_error : Error<"parse error">;
 def err_duplicate_declspec : Error<"duplicate '%0' declaration specifier">;
+def err_unexpected_lparen : Error<"unexpected '('">;
 
 def err_expected_expression : Error<"expected expression">;
 def err_expected_type : Error<"expected a type">;

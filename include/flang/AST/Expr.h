@@ -318,7 +318,7 @@ public:
 };
 
 //===----------------------------------------------------------------------===//
-/// SubstringExpr -
+/// SubstringExpr - Returns a substring.
 class SubstringExpr : public DesignatorExpr {
 private:
   ExprResult Target, StartingPoint, EndPoint;
@@ -344,6 +344,39 @@ public:
     return E->getDesignatorType() == DesignatorExpr::Substring;
   }
   static bool classof(const SubstringExpr *) { return true; }
+};
+
+//===----------------------------------------------------------------------===//
+/// ArrayElementExpr - Returns an element of an array.
+class ArrayElementExpr : public DesignatorExpr {
+private:
+  ExprResult Target;
+  unsigned NumSubscripts;
+  ExprResult *SubscriptList;
+
+  ArrayElementExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult E,
+                   llvm::ArrayRef<ExprResult> Subs);
+public:
+  static ArrayElementExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+                                  ExprResult Target,
+                                  llvm::ArrayRef<ExprResult> Subscripts);
+
+  ExprResult getTarget() const { return Target; }
+  llvm::ArrayRef<ExprResult> getSubscriptList() const {
+    return ArrayRef<ExprResult>(SubscriptList, NumSubscripts);
+  }
+
+  virtual void print(llvm::raw_ostream &);
+
+  static bool classof(const Expr *E) {
+    return E->getExpressionID() == Expr::Designator &&
+      llvm::cast<DesignatorExpr>(E)->getDesignatorType() ==
+      DesignatorExpr::ArrayElement;
+  }
+  static bool classof(const DesignatorExpr *E) {
+    return E->getDesignatorType() == DesignatorExpr::ArrayElement;
+  }
+  static bool classof(const ArrayElementExpr *) { return true; }
 };
 
 //===----------------------------------------------------------------------===//

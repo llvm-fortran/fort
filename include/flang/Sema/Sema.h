@@ -191,6 +191,10 @@ public:
   ExprResult ActOnDataReference(llvm::ArrayRef<ExprResult> Exprs) {
     return ExprResult();
   }
+  ExprResult ActOnSubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
+                                ExprResult StartingPoint, ExprResult EndPoint);
+  ExprResult ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
+                                llvm::ArrayRef<ExprResult> Subscripts);
 
 };
 

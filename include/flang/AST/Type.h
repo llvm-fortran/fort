@@ -592,6 +592,7 @@ public:
   bool isComplexType() const;
   bool isLogicalType() const;
 
+  bool isArrayOfCharacterType() const;
   bool isArrayType() const;
   bool isConstantArrayType() const;
 
@@ -823,6 +824,12 @@ inline bool Type::isComplexType() const {
 }
 inline bool Type::isArrayType() const {
   return isa<ArrayType>(CanonicalType);
+}
+inline bool Type::isArrayOfCharacterType() const {
+  if(const ArrayType *AT = dyn_cast<ArrayType>(CanonicalType)) {
+    return AT->getElementType()->isCharacterType();
+  }
+  return false;
 }
 
 } // end flang namespace

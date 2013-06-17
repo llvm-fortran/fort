@@ -196,6 +196,7 @@ private:
   ExprResult ParseComplexPartDesignator();
   ExprResult ParseStructureComponent();
   ExprResult ParseSubstring(ExprResult Target);
+  ExprResult ParseF77Subscript(ExprResult Target);
   ExprResult ParseDataReference();
   ExprResult ParsePartReference();
 

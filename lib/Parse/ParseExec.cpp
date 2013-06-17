@@ -99,7 +99,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
       
   StmtResult SR;
   switch (Tok.getKind()) {
-  default: assert(false && "Unknown statement type!"); break;
+  default:
+    return ParseAssignmentStmt();
   case tok::kw_IF:
     return ParseIfStmt();
   case tok::kw_CONTINUE:
@@ -111,7 +112,9 @@ Parser::StmtResult Parser::ParseActionStmt() {
 
   case tok::kw_END:
     // TODO: All of the end-* stmts.
-    break;
+  case tok::kw_ELSE:
+  case tok::kw_ELSEIF:
+  case tok::kw_ENDIF:
   case tok::kw_ENDFUNCTION:
   case tok::kw_ENDPROGRAM:
   case tok::kw_ENDSUBPROGRAM:
@@ -256,9 +259,13 @@ Parser::StmtResult Parser::ParseStopStmt() {
 ///         variable = expr
 Parser::StmtResult Parser::ParseAssignmentStmt() {
   ExprResult LHS = ParseExpression();
+  if(LHS.isInvalid()) return StmtError();
 
-  assert(Tok.is(tok::equal) && "Not a valid assignment statement!");
-  EatIfPresent(tok::equal);
+  if(!Tok.is(tok::equal)) {
+    Diag.ReportError(Tok.getLocation(),"expected '='");
+    return StmtError();
+  }
+  Lex();
 
   ExprResult RHS = ParseExpression();
   if(RHS.isInvalid()) return StmtError();
