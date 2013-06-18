@@ -71,7 +71,7 @@ typecheckInvalidOperand:
 ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
                                  BinaryExpr::Operator Op,
                                  ExprResult LHS,ExprResult RHS) {
-  const char *DiagExpressionType = "";
+ int DiagType = 0;
 
   auto LHSType = LHS.get()->getType().getTypePtr();
   auto RHSType = RHS.get()->getType().getTypePtr();
@@ -81,7 +81,8 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
   case BinaryExpr::Plus: case BinaryExpr::Minus:
   case BinaryExpr::Multiply: case BinaryExpr::Divide:
   case BinaryExpr::Power: {
-    DiagExpressionType = "an arithmetic";
+    DiagType = diag::err_typecheck_arith_invalid_operands;
+
     auto LHSTypeSpec = GetArithmeticTypeSpec(LHSType);
     auto RHSTypeSpec = GetArithmeticTypeSpec(RHSType);
 
@@ -189,7 +190,7 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
   // Logical binary expression
   case BinaryExpr::And: case BinaryExpr::Or:
   case BinaryExpr::Eqv: case BinaryExpr::Neqv: {
-    DiagExpressionType = "a logical";
+    DiagType = diag::err_typecheck_logical_invalid_operands;
 
     if(!LHSType->isLogicalType()) goto typecheckInvalidOperands;
     if(!RHSType->isLogicalType()) goto typecheckInvalidOperands;
@@ -198,7 +199,7 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
 
   // Character binary expression
   case BinaryExpr::Concat: {
-    DiagExpressionType = "a character";
+    DiagType = diag::err_typecheck_char_invalid_operands;
 
     if(!LHSType->isCharacterType()) goto typecheckInvalidOperands;
     if(!RHSType->isCharacterType()) goto typecheckInvalidOperands;
@@ -209,7 +210,7 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
   case BinaryExpr::Equal: case BinaryExpr::NotEqual:
   case BinaryExpr::GreaterThan: case BinaryExpr::GreaterThanEqual:
   case BinaryExpr::LessThan: case BinaryExpr::LessThanEqual: {
-    DiagExpressionType = "a relational";
+    DiagType = diag::err_typecheck_relational_invalid_operands;
 
     // Character relational expression
     if(LHSType->isCharacterType() && RHSType->isCharacterType()) break;
@@ -222,10 +223,15 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
       goto typecheckInvalidOperands;
 
     // A complex operand is permitted only when the relational operator is .EQ. or .NE.
+    // The comparison of a double precision value and a complex value is not permitted.
     if((LHSTypeSpec == TST_complex ||
-        RHSTypeSpec == TST_complex) &&
-       Op != BinaryExpr::Equal && Op != BinaryExpr::NotEqual)
-      goto typecheckInvalidOperands;
+        RHSTypeSpec == TST_complex)) {
+      if(Op != BinaryExpr::Equal && Op != BinaryExpr::NotEqual)
+        goto typecheckInvalidOperands;
+      if(LHSTypeSpec == TST_doubleprecision ||
+         RHSTypeSpec == TST_doubleprecision)
+        goto typecheckInvalidOperands;
+    }
 
     // typeof(e1) != typeof(e1) =>
     //   e1 <relop> e2 = ((e1) - (e2)) <relop> 0
@@ -255,8 +261,8 @@ typecheckInvalidOperands:
       StreamRHS(TypeStrings[1]);
   LHS.get()->getType().print(StreamLHS);
   RHS.get()->getType().print(StreamRHS);
-  (Diags.Report(Loc,diag::err_typecheck_invalid_operands)
-      << DiagExpressionType << StreamLHS.str() << StreamRHS.str())
+  (Diags.Report(Loc,DiagType)
+      << StreamLHS.str() << StreamRHS.str())
       .AddSourceRange(llvm::SMRange(LHS.get()->getLocation(),
                                     RHS.get()->getLocation()));
   return ExprError();

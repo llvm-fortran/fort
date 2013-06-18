@@ -24,6 +24,8 @@ PROGRAM relexpressions
   L = C .NE. C
   L = C .NE. R
   L = C .LE. C ! expected-error {{invalid operands to a relational binary expression ('COMPLEX' and 'COMPLEX')}}
+  L = C .EQ. 2.0
+  L = C .EQ. 2.0d-1 ! expected-error {{invalid operands to a relational binary expression ('COMPLEX' and 'DOUBLE PRECISION')}}
 
   L = 'HELLO' .EQ. 'WORLD'
   L = 'HELLO' .NE. 'WORLD'

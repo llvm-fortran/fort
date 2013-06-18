@@ -20,8 +20,14 @@ def err_expected_integer_expr : Error<
 def err_typecheck_assign_incompatible : Error<
   "assigning to '%0' from incompatible type '%1'">;
 
-def err_typecheck_invalid_operands : Error<
-  "invalid operands to %0 binary expression ('%1' and '%2')">;
+def err_typecheck_arith_invalid_operands : Error<
+  "invalid operands to an arithmetic binary expression ('%0' and '%1')">;
+def err_typecheck_char_invalid_operands : Error<
+  "invalid operands to a character binary expression ('%0' and '%1')">;
+def err_typecheck_relational_invalid_operands : Error<
+  "invalid operands to a relational binary expression ('%0' and '%1')">;
+def err_typecheck_logical_invalid_operands : Error<
+  "invalid operands to a logical binary expression ('%0' and '%1')">;
 
 def err_typecheck_arith_unary_expr : Error<
   "invalid argument type '%0' to an arithmetic unary expression">;
