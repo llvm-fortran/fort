@@ -377,9 +377,44 @@ StmtResult Sema::ActOnBlock(ASTContext &C,SMLoc Loc,ArrayRef<StmtResult> Body) {
   return BlockStmt::Create(C, Loc, Body);
 }
 
+static inline bool IsLogicalExpression(ExprResult E) {
+  return E.get()->getType()->isLogicalType();
+}
+
+static void ReportExpectedLogical(DiagnosticsEngine &Diag, ExprResult E) {
+  std::string TypeString;
+  llvm::raw_string_ostream Stream(TypeString);
+  E.get()->getType().print(Stream);
+  Diag.Report(E.get()->getLocation(), diag::err_typecheck_expected_logical_expr)
+      << Stream.str();
+}
+
+StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
+                       ExprResult Condition, StmtResult Body,
+                       Expr *StmtLabel) {
+  // FIXME: Constraint: The action-stmt in the if-stmt shall not be an
+  // if-stmt, end-program-stmt, end-function-stmt, or end-subroutine-stmt.
+
+  if(!IsLogicalExpression(Condition)) {
+    ReportExpectedLogical(Diags, Condition);
+    return StmtError();
+  }
+  return IfStmt::Create(C, Loc, std::make_pair(Condition, Body), StmtLabel);
+}
+
 StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
                        ArrayRef<std::pair<ExprResult,StmtResult> > Branches,
                        Expr *StmtLabel) {
+  for(size_t I = 0; I < Branches.size(); ++I) {
+    if(!Branches[I].first.get()) {
+      assert(I == Branches.size() - 1);
+      break;
+    }
+    if(!IsLogicalExpression(Branches[I].first)) {
+      ReportExpectedLogical(Diags, Branches[I].first);
+      return StmtError();
+    }
+  }
   return IfStmt::Create(C, Loc, Branches, StmtLabel);
 }
 

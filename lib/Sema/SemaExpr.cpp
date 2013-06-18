@@ -29,7 +29,7 @@ static TypeSpecifierType GetArithmeticTypeSpec(const Type *T) {
 
 ExprResult Sema::ActOnUnaryExpr(ASTContext &C, llvm::SMLoc Loc,
                                 UnaryExpr::Operator Op, ExprResult E) {
-  int DiagType = 0;
+  unsigned DiagType = 0;
 
   auto EType = E.get()->getType().getTypePtr();
 
@@ -71,7 +71,7 @@ typecheckInvalidOperand:
 ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
                                  BinaryExpr::Operator Op,
                                  ExprResult LHS,ExprResult RHS) {
- int DiagType = 0;
+  unsigned DiagType = 0;
 
   auto LHSType = LHS.get()->getType().getTypePtr();
   auto RHSType = RHS.get()->getType().getTypePtr();

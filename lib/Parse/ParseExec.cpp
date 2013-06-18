@@ -177,16 +177,23 @@ Parser::StmtResult Parser::ParseIfStmt() {
   SMLoc Loc = Tok.getLocation();
 
   Lex();
-  if (!Expect(tok::l_paren,"expected '(' after IF")) return StmtResult(true);
+  if (!EatIfPresent(tok::l_paren)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_lparen_after)
+        << "IF";
+    return StmtError();
+  }
   ExprResult Condition = ParseExpression();
-  if (!Expect(tok::r_paren,"expected ')' after IF(condition")) return StmtResult(true);
+  if(Condition.isInvalid()) return StmtError();
+  if (!EatIfPresent(tok::r_paren)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
+    return StmtError();
+  }
   if (!EatIfPresent(tok::kw_THEN)){
     // if-stmt
-    // FIXME: Constraint: The action-stmt in the if-stmt shall not be an
-    // if-stmt, end-program-stmt, end-function-stmt, or end-subroutine-stmt.
-    StmtResult Action = ParseActionStmt();
+    auto Action = ParseActionStmt();
+    if(Action.isInvalid()) return Action;
 
-    return Actions.ActOnIfStmt(Context, Loc, std::make_pair(Condition,Action),
+    return Actions.ActOnIfStmt(Context, Loc, Condition, Action,
                                StmtLabel);
   }
 
@@ -194,32 +201,57 @@ Parser::StmtResult Parser::ParseIfStmt() {
   // if-then-stmt
   std::vector<std::pair<ExprResult,StmtResult> > Branches;
   if(!Tok.is(tok::kw_ENDIF) && !Tok.is(tok::kw_ELSE)
-     && !Tok.is(tok::kw_ELSEIF))
-    Branches.push_back(std::make_pair(Condition,ParseBlockStmt()));
+     && !Tok.is(tok::kw_ELSEIF)) {
+    auto Body = ParseBlockStmt();
+    if(Body.isInvalid()) return Body;
+    Branches.push_back(std::make_pair(Condition,Body));
+  }
   else
     Branches.push_back(std::make_pair(Condition,StmtResult()));
 
   // else-if-stmt
   while(EatIfPresent(tok::kw_ELSEIF)) {
-    if (!Expect(tok::l_paren,"expected '(' after ELSE IF")) goto error;
+    if (!EatIfPresent(tok::l_paren)) {
+      Diag.Report(Tok.getLocation(), diag::err_expected_lparen_after)
+          << "ELSE IF";
+      return StmtError();
+    }
     Condition = ParseExpression();
-    if (!Expect(tok::r_paren,"expected ')' after ELSE IF(condition")) goto error;
-    if (!Expect(tok::kw_THEN,"expected THEN after ELSE IF(condition)")) goto error;
+    if(Condition.isInvalid()) return StmtError();
+    if (!EatIfPresent(tok::r_paren)) {
+      Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
+      return StmtError();
+    }
+    if (!EatIfPresent(tok::kw_THEN)) {
+      Diag.Report(Tok.getLocation(), diag::err_expected_kw)
+          << "THEN";
+      return StmtError();
+    }
     if(!Tok.is(tok::kw_ENDIF) && !Tok.is(tok::kw_ELSE)
-       && !Tok.is(tok::kw_ELSEIF))
-      Branches.push_back(std::make_pair(Condition,ParseBlockStmt()));
+       && !Tok.is(tok::kw_ELSEIF)) {
+      auto Body = ParseBlockStmt();
+      if(Body.isInvalid()) return Body;
+      Branches.push_back(std::make_pair(Condition,Body));
+    }
     else
       Branches.push_back(std::make_pair(Condition,StmtResult()));
   }
 
   // else-stmt
-  if(EatIfPresent(tok::kw_ELSE)){
-    if(!Tok.is(tok::kw_ENDIF))
-      Branches.push_back(std::make_pair(ExprResult(),ParseBlockStmt()));
+  if(EatIfPresent(tok::kw_ELSE)) {
+    if(!Tok.is(tok::kw_ENDIF)) {
+      auto Body = ParseBlockStmt();
+      if(Body.isInvalid()) return Body;
+      Branches.push_back(std::make_pair(ExprResult(),Body));
+    }
   }
 
   // end-if-stmt
-  if(!Expect(tok::kw_ENDIF,"expected 'END IF' statement")) goto error;
+  if (!EatIfPresent(tok::kw_ENDIF)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_kw)
+        << "END IF";
+    return StmtError();
+  }
 
   return Actions.ActOnIfStmt(Context, Loc, Branches, StmtLabel);
 error:

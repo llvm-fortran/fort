@@ -29,12 +29,14 @@ def err_expected_ident_lparen : Error<"expected identifier or '('">;
 def err_expected_ident_lbrace : Error<"expected identifier or '{'">;
 def err_expected_lbrace : Error<"expected '{'">;
 def err_expected_lparen : Error<"expected '('">;
+def err_expected_lparen_after : Error<"expected '(' after '%0'">;
 def err_expected_lparen_or_lbrace : Error<"expected '('or '{'">;
 def err_expected_rparen : Error<"expected ')'">;
 def err_expected_lsquare : Error<"expected '['">;
 def err_expected_rsquare : Error<"expected ']'">;
 def err_expected_rbrace : Error<"expected '}'">;
 def err_expected_colon : Error<"expected ':'">;
+def err_expected_kw : Error<"expected '%0'">;
 def err_expected_semi_declaration : Error<
   "expected ';' at end of declaration">;
 def err_expected_semi_decl_list : Error<

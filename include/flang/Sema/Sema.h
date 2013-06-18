@@ -171,6 +171,12 @@ public:
 
   StmtResult ActOnBlock(ASTContext& C,SMLoc Loc,ArrayRef<StmtResult> Body);
 
+  // Logical if
+  StmtResult ActOnIfStmt(ASTContext& C, SMLoc Loc,
+                         ExprResult Condition, StmtResult Body,
+                         Expr* StmtLabel);
+
+  // Block if
   StmtResult ActOnIfStmt(ASTContext& C, SMLoc Loc,
                          ArrayRef<std::pair<ExprResult,StmtResult> > Branches,
                          Expr* StmtLabel);
