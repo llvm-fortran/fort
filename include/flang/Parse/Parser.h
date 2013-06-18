@@ -242,6 +242,7 @@ private:
 
   // Executable statements
   StmtResult ParseBlockStmt();
+  StmtResult ParseGotoStmt();
   StmtResult ParseIfStmt();
   StmtResult ParseContinueStmt();
   StmtResult ParseStopStmt();
@@ -264,6 +265,7 @@ private:
   ExprResult ParseComplexConstant();
 
   void ParseStatementLabel();
+  ExprResult ParseStatementLabelReference();
 
   // Declaration construct functions
   bool ParseDerivedTypeDefinitionStmt();

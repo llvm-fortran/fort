@@ -51,6 +51,7 @@ public:
 
     // Action Statements
     Block,
+    Goto,
     If,
     Continue,
     Stop,
@@ -422,6 +423,35 @@ public:
   static bool classof(const BlockStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStatementID() == Block;
+  }
+};
+
+/// StatementLabelReference - a reference to a statement label
+struct StatementLabelReference {
+  Stmt *Statement;
+
+  inline StatementLabelReference(Stmt *S)
+    : Statement(S) {
+    assert(S);
+  }
+};
+
+/// GotoStmt - an unconditional jump
+class GotoStmt : public Stmt {
+  StatementLabelReference Destination;
+  GotoStmt(SMLoc Loc, StatementLabelReference Dest, ExprResult StmtLabel);
+public:
+  static GotoStmt *Create(ASTContext &C, SMLoc Loc,
+                          StatementLabelReference Destination,
+                          ExprResult StmtLabel);
+
+  inline StatementLabelReference getDestination() const {
+    return Destination;
+  }
+
+  static bool classof(const GotoStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == Goto;
   }
 };
 

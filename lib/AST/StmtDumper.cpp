@@ -38,6 +38,7 @@ private:
   VISIT(DimensionStmt);
   VISIT(AsynchronousStmt);
   VISIT(BlockStmt);
+  VISIT(GotoStmt);
   VISIT(IfStmt);
   VISIT(ContinueStmt);
   VISIT(StopStmt);
@@ -62,6 +63,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(DimensionStmt);
   HANDLE(AsynchronousStmt);
   HANDLE(BlockStmt);
+  HANDLE(GotoStmt);
   HANDLE(IfStmt);
   HANDLE(ContinueStmt);
   HANDLE(StopStmt);
@@ -127,6 +129,13 @@ void StmtVisitor::visit(const BlockStmt *S) {
     visit(stmt.get());
   }
 }
+
+void StmtVisitor::visit(const GotoStmt *S) {
+  OS << "(goto ";
+  S->getDestination().Statement->getStmtLabel().get()->print(OS);
+  OS << ')';
+}
+
 void StmtVisitor::visit(const IfStmt* S) {
   OS << "(if (";
   ArrayRef<std::pair<ExprResult, StmtResult> > Branches =

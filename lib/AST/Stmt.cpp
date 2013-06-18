@@ -227,6 +227,20 @@ BlockStmt *BlockStmt::Create(ASTContext &C, SMLoc Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// Goto Statement
+//===----------------------------------------------------------------------===//
+
+GotoStmt::GotoStmt(SMLoc Loc, StatementLabelReference Dest, ExprResult StmtLabel)
+  : Stmt(Goto, Loc, StmtLabel), Destination(Dest) {
+}
+
+GotoStmt *GotoStmt::Create(ASTContext &C, SMLoc Loc,
+                           StatementLabelReference Destination,
+                           ExprResult StmtLabel) {
+  return new(C) GotoStmt(Loc, Destination, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // If Statement
 //===----------------------------------------------------------------------===//
 

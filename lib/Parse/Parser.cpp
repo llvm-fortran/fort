@@ -301,6 +301,19 @@ void Parser::ParseStatementLabel() {
   Lex();
 }
 
+/// ParseStatementLabelReference - Parses a statement label reference token.
+ExprResult Parser::ParseStatementLabelReference() {
+  if(Tok.isNot(tok::int_literal_constant)) {
+    return ExprError();
+  }
+
+  std::string NumStr;
+  CleanLiteral(Tok, NumStr);
+  auto Result = IntegerConstantExpr::Create(Context, Tok.getLocation(), NumStr);
+  Lex();
+  return Result;
+}
+
 // Assumed syntax rules
 //
 //   [R101] xyz-list        :=  xyz [, xyz] ...

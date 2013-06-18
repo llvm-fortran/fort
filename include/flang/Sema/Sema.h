@@ -169,17 +169,20 @@ public:
   LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SMLoc Loc,
                                         ExprResult Label);
 
-  StmtResult ActOnBlock(ASTContext& C,SMLoc Loc,ArrayRef<StmtResult> Body);
+  StmtResult ActOnBlock(ASTContext &C, SMLoc Loc, ArrayRef<StmtResult> Body);
+
+  StmtResult ActOnGoto(ASTContext &C, SMLoc Loc,
+                       ExprResult Destination, Expr *StmtLabel);
 
   // Logical if
-  StmtResult ActOnIfStmt(ASTContext& C, SMLoc Loc,
+  StmtResult ActOnIfStmt(ASTContext &C, SMLoc Loc,
                          ExprResult Condition, StmtResult Body,
-                         Expr* StmtLabel);
+                         Expr *StmtLabel);
 
   // Block if
-  StmtResult ActOnIfStmt(ASTContext& C, SMLoc Loc,
+  StmtResult ActOnIfStmt(ASTContext &C, SMLoc Loc,
                          ArrayRef<std::pair<ExprResult,StmtResult> > Branches,
-                         Expr* StmtLabel);
+                         Expr *StmtLabel);
 
   StmtResult ActOnContinueStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
 

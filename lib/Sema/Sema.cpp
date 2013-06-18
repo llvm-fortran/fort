@@ -373,8 +373,15 @@ LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SMLoc Loc,
   return LabelFormatSpec::Create(C, Loc, Label);
 }
 
-StmtResult Sema::ActOnBlock(ASTContext &C,SMLoc Loc,ArrayRef<StmtResult> Body) {
+StmtResult Sema::ActOnBlock(ASTContext &C, SMLoc Loc, ArrayRef<StmtResult> Body) {
   return BlockStmt::Create(C, Loc, Body);
+}
+
+
+StmtResult Sema::ActOnGoto(ASTContext &C, SMLoc Loc,
+                           ExprResult Destination, Expr *StmtLabel) {
+  //FIXME: TODO
+  return StmtResult(true);
 }
 
 static inline bool IsLogicalExpression(ExprResult E) {

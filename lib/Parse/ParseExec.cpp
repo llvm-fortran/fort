@@ -101,6 +101,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
   switch (Tok.getKind()) {
   default:
     return ParseAssignmentStmt();
+  case tok::kw_GOTO:
+    return ParseGotoStmt();
   case tok::kw_IF:
     return ParseIfStmt();
   case tok::kw_CONTINUE:
@@ -137,6 +139,18 @@ StmtResult Parser::ParseBlockStmt() {
   if(ParseExecutionPart(body))
     return StmtResult(true);
   return Actions.ActOnBlock(Context, Loc, body);
+}
+
+Parser::StmtResult Parser::ParseGotoStmt() {
+  SMLoc Loc = Tok.getLocation();
+  Lex();
+
+  auto Destination = ParseStatementLabelReference();
+  if(Destination.isInvalid()) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_stmt_label);
+    return StmtError();
+  }
+  return Actions.ActOnGoto(Context, Loc, Destination, StmtLabel);
 }
 
 /// ParseIfStmt
@@ -254,8 +268,6 @@ Parser::StmtResult Parser::ParseIfStmt() {
   }
 
   return Actions.ActOnIfStmt(Context, Loc, Branches, StmtLabel);
-error:
-  return StmtResult(true);
 }
 
 /// ParseContinueStmt
