@@ -31,6 +31,7 @@ static TypeSpecifierType GetArithmeticTypeSpec(const Type *T) {
 ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
                                  BinaryExpr::Operator Op,
                                  ExprResult LHS,ExprResult RHS) {
+  const char *DiagExpressionType = "";
   auto LHSType = LHS.get()->getType().getTypePtr();
   auto RHSType = RHS.get()->getType().getTypePtr();
 
@@ -39,6 +40,7 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
   case BinaryExpr::Plus: case BinaryExpr::Minus:
   case BinaryExpr::Multiply: case BinaryExpr::Divide:
   case BinaryExpr::Power: {
+    DiagExpressionType = "an arithmetic";
     auto LHSTypeSpec = GetArithmeticTypeSpec(LHSType);
     auto RHSTypeSpec = GetArithmeticTypeSpec(RHSType);
 
@@ -146,6 +148,8 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
   // Logical binary expression
   case BinaryExpr::And: case BinaryExpr::Or:
   case BinaryExpr::Eqv: case BinaryExpr::Neqv: {
+    DiagExpressionType = "a logical";
+
     if(!LHSType->isLogicalType()) goto typecheckInvalidOperands;
     if(!RHSType->isLogicalType()) goto typecheckInvalidOperands;
     break;
@@ -153,16 +157,19 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
 
   // Character binary expression
   case BinaryExpr::Concat: {
+    DiagExpressionType = "a character";
+
     if(!LHSType->isCharacterType()) goto typecheckInvalidOperands;
     if(!RHSType->isCharacterType()) goto typecheckInvalidOperands;
     break;
   }
 
   // relational binary expression
-  // FIXME: TEST
   case BinaryExpr::Equal: case BinaryExpr::NotEqual:
   case BinaryExpr::GreaterThan: case BinaryExpr::GreaterThanEqual:
   case BinaryExpr::LessThan: case BinaryExpr::LessThanEqual: {
+    DiagExpressionType = "a relational";
+
     // Character relational expression
     if(LHSType->isCharacterType() && RHSType->isCharacterType()) break;
 
@@ -176,15 +183,21 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
     // A complex operand is permitted only when the relational operator is .EQ. or .NE.
     if((LHSTypeSpec == TST_complex ||
         RHSTypeSpec == TST_complex) &&
-       Op != BinaryExpr::Equal && Op != BinaryExpr::NotEqual) {
-      //FIXME: TODO error
-    }
+       Op != BinaryExpr::Equal && Op != BinaryExpr::NotEqual)
+      goto typecheckInvalidOperands;
 
     // typeof(e1) != typeof(e1) =>
     //   e1 <relop> e2 = ((e1) - (e2)) <relop> 0
     if(LHSTypeSpec != RHSTypeSpec) {
       LHS = ActOnBinaryExpr(C, Loc, BinaryExpr::Minus, LHS, RHS);
-      RHS = IntegerConstantExpr::Create(C, Loc, "0");
+      switch(GetArithmeticTypeSpec(LHS.get()->getType().getTypePtr())) {
+      case TST_integer: RHS = IntegerConstantExpr::Create(C, Loc, "0"); break;
+      case TST_real: RHS = RealConstantExpr::Create(C, Loc, "0"); break;
+      case TST_doubleprecision: RHS = DoublePrecisionConstantExpr::Create(C, Loc, "0"); break;
+      case TST_complex: RHS = ComplexConstantExpr::Create(C, Loc, llvm::APFloat(0.0), llvm::APFloat(0.0)); break;
+      default:
+        llvm_unreachable("Unknown Arithmetic TST");
+      }
     }
     break;
   }
@@ -202,7 +215,7 @@ typecheckInvalidOperands:
   LHS.get()->getType().print(StreamLHS);
   RHS.get()->getType().print(StreamRHS);
   (Diags.Report(Loc,diag::err_typecheck_invalid_operands)
-      << StreamLHS.str() << StreamRHS.str())
+      << DiagExpressionType << StreamLHS.str() << StreamRHS.str())
       .AddSourceRange(llvm::SMRange(LHS.get()->getLocation(),
                                     RHS.get()->getLocation()));
   return ExprError();

@@ -21,7 +21,7 @@ def err_typecheck_assign_incompatible : Error<
   "assigning to '%0' from incompatible type '%1'">;
 
 def err_typecheck_invalid_operands : Error<
-  "invalid operands to binary expression ('%0' and '%1')">;
+  "invalid operands to %0 binary expression ('%1' and '%2')">;
 
 def err_array_subscript_dimension_count_mismatch : Error<
   "array subscript must have %0 subscript %plural{1:expression|:expressions}0">;
