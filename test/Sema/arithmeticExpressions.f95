@@ -46,4 +46,12 @@ PROGRAM arithexpressions
   C = C / C
   C = C ** R
 
+  I = +(I)
+  I = -R
+  C = -C
+
+  I = +.FALSE. ! expected-error {{invalid argument type 'LOGICAL' to an arithmetic unary expression}}
+  R = -'TRUE' ! expected-error {{invalid argument type 'CHARACTER' to an arithmetic unary expression}}
+
+
 ENDPROGRAM arithexpressions

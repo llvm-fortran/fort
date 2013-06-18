@@ -27,11 +27,52 @@ static TypeSpecifierType GetArithmeticTypeSpec(const Type *T) {
   else return TST_unspecified;
 }
 
+ExprResult Sema::ActOnUnaryExpr(ASTContext &C, llvm::SMLoc Loc,
+                                UnaryExpr::Operator Op, ExprResult E) {
+  int DiagType = 0;
+
+  auto EType = E.get()->getType().getTypePtr();
+
+  switch(Op) {
+  // Arithmetic unary expression
+  case UnaryExpr::Plus: case UnaryExpr::Minus:
+    if(GetArithmeticTypeSpec(EType) == TST_unspecified) {
+      DiagType = diag::err_typecheck_arith_unary_expr;
+      goto typecheckInvalidOperand;
+    }
+    break;
+
+  // Logical unary expression
+  case UnaryExpr::Not:
+    if(!EType->isLogicalType()) {
+      DiagType = diag::err_typecheck_logical_unary_expr;
+      goto typecheckInvalidOperand;
+    }
+    break;
+
+  default:
+    llvm_unreachable("Unknown unary expression");
+  }
+
+  return UnaryExpr::Create(C, Loc, Op, E);
+
+typecheckInvalidOperand:
+  std::string TypeString;
+  llvm::raw_string_ostream Stream(TypeString);
+  E.get()->getType().print(Stream);
+  (Diags.Report(Loc,DiagType)
+      << Stream.str())
+      .AddSourceRange(llvm::SMRange(Loc,
+                                    E.get()->getLocation()));
+  return ExprError();
+}
+
 // FIXME: verify return type for binary expressions.
 ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
                                  BinaryExpr::Operator Op,
                                  ExprResult LHS,ExprResult RHS) {
   const char *DiagExpressionType = "";
+
   auto LHSType = LHS.get()->getType().getTypePtr();
   auto RHSType = RHS.get()->getType().getTypePtr();
 

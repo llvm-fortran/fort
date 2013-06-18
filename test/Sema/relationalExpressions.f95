@@ -28,6 +28,9 @@ PROGRAM relexpressions
   L = 'HELLO' .EQ. 'WORLD'
   L = 'HELLO' .NE. 'WORLD'
 
+  I = 1 .NE. 2 ! expected-error {{assigning to 'INTEGER' from incompatible type 'LOGICAL'}}
+  R = 2.0 .LT. 1 ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
+
   L = L .EQ. L ! expected-error {{invalid operands to a relational binary expression ('LOGICAL' and 'LOGICAL')}}
   L = .TRUE. .NE. L ! expected-error {{invalid operands to a relational binary expression ('LOGICAL' and 'LOGICAL')}}
   L = L .LT. .FALSE. ! expected-error {{invalid operands to a relational binary expression ('LOGICAL' and 'LOGICAL')}}

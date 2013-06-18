@@ -87,7 +87,7 @@ Parser::ExprResult Parser::ParseAndOperand() {
   if (E.isInvalid()) return E;
 
   if (Negate)
-    E = UnaryExpr::Create(Context, NotLoc, UnaryExpr::Not, E);
+    E = Actions.ActOnUnaryExpr(Context, NotLoc, UnaryExpr::Not, E);
   return E;
 }
 Parser::ExprResult Parser::ParseOrOperand() {
@@ -298,9 +298,9 @@ Parser::ExprResult Parser::ParseLevel2Expr() {
     if (E.isInvalid()) return E;
 
     if (Kind == tok::minus)
-      E = UnaryExpr::Create(Context, OpLoc, UnaryExpr::Minus, E);
+      E = Actions.ActOnUnaryExpr(Context, OpLoc, UnaryExpr::Minus, E);
     else
-      E = UnaryExpr::Create(Context, OpLoc, UnaryExpr::Plus, E);
+      E = Actions.ActOnUnaryExpr(Context, OpLoc, UnaryExpr::Plus, E);
   } else {
     E = ParseAddOperand();
     if (E.isInvalid()) return E;
@@ -532,13 +532,13 @@ Parser::ExprResult Parser::ParsePrimaryExpr() {
     Lex();
     E = Parser::ParsePrimaryExpr();
     if (E.isInvalid()) return E;
-    E = UnaryExpr::Create(Context, Loc, UnaryExpr::Minus, E);
+    E = Actions.ActOnUnaryExpr(Context, Loc, UnaryExpr::Minus, E);
     break;
   case tok::plus:
     Lex();
     E = Parser::ParsePrimaryExpr();
     if (E.isInvalid()) return E;
-    E = UnaryExpr::Create(Context, Loc, UnaryExpr::Plus, E);
+    E = Actions.ActOnUnaryExpr(Context, Loc, UnaryExpr::Plus, E);
     break;
   }
 

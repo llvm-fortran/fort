@@ -197,6 +197,9 @@ public:
     return ExprResult();
   }
 
+  ExprResult ActOnUnaryExpr(ASTContext &C, llvm::SMLoc Loc,
+                            UnaryExpr::Operator Op, ExprResult E);
+
   ExprResult ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
                              BinaryExpr::Operator Op,
                              ExprResult LHS,ExprResult RHS);

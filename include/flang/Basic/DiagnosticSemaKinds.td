@@ -23,6 +23,11 @@ def err_typecheck_assign_incompatible : Error<
 def err_typecheck_invalid_operands : Error<
   "invalid operands to %0 binary expression ('%1' and '%2')">;
 
+def err_typecheck_arith_unary_expr : Error<
+  "invalid argument type '%0' to an arithmetic unary expression">;
+def err_typecheck_logical_unary_expr : Error<
+  "invalid argument type '%0' to a logical unary expression">;
+
 def err_array_subscript_dimension_count_mismatch : Error<
   "array subscript must have %0 subscript %plural{1:expression|:expressions}0">;
 
