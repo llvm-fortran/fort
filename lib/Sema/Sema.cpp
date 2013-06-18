@@ -60,7 +60,7 @@ void Sema::PopExecutableProgramUnit() {
   auto StmtLabelForwardDecls = CurStmtLabelScope.getForwardDecls();
   for(size_t I = 0; I < StmtLabelForwardDecls.size(); ++I) {
     if(auto Decl = CurStmtLabelScope.Resolve(StmtLabelForwardDecls[I].StmtLabel))
-      StmtLabelForwardDecls[I].ResolveCallback(StmtLabelForwardDecls[I].Statement, Decl);
+      StmtLabelForwardDecls[I].ResolveCallback(StmtLabelForwardDecls[I], Decl);
     else {
       std::string Str;
       llvm::raw_string_ostream Stream(Str);
@@ -443,9 +443,10 @@ StmtResult Sema::ActOnBlock(ASTContext &C, SMLoc Loc, ArrayRef<StmtResult> Body)
   return BlockStmt::Create(C, Loc, Body);
 }
 
-static void ResolveAssignStmtLabel(Stmt *Self, Stmt *Destination) {
-  assert(AssignStmt::classof(Self));
-  static_cast<AssignStmt*>(Self)->setAdress(StmtLabelReference(Destination));
+static void ResolveAssignStmtLabel(const StmtLabelScope::StmtLabelForwardDecl &Self,
+                                   Stmt *Destination) {
+  assert(AssignStmt::classof(Self.Statement));
+  static_cast<AssignStmt*>(Self.Statement)->setAddress(StmtLabelReference(Destination));
 }
 
 StmtResult Sema::ActOnAssignStmt(ASTContext &C, SMLoc Loc,
@@ -454,8 +455,7 @@ StmtResult Sema::ActOnAssignStmt(ASTContext &C, SMLoc Loc,
   Stmt *Result;
   auto Decl = getCurrentStmtLabelScope().Resolve(Value.get());
   if(!Decl) {
-    Result = AssignStmt::Create(C, Loc, StmtLabelReference(nullptr),
-                                VarRef, StmtLabel);
+    Result = AssignStmt::Create(C, Loc, StmtLabelReference(),VarRef, StmtLabel);
     getCurrentStmtLabelScope().DeclareForwardReference(
       StmtLabelScope::StmtLabelForwardDecl(Value.get(), Result,
                                            ResolveAssignStmtLabel));
@@ -467,17 +467,48 @@ StmtResult Sema::ActOnAssignStmt(ASTContext &C, SMLoc Loc,
   return Result;
 }
 
-static void ResolveGotoStmtLabel(Stmt *Self, Stmt *Destination) {
-  assert(GotoStmt::classof(Self));
-  static_cast<GotoStmt*>(Self)->setDestination(StmtLabelReference(Destination));
+static void ResolveAssignedGotoStmtLabel(const StmtLabelScope::StmtLabelForwardDecl &Self,
+                                         Stmt *Destination) {
+  assert(AssignedGotoStmt::classof(Self.Statement));
+  static_cast<AssignedGotoStmt*>(Self.Statement)->
+    setAllowedValue(Self.ResolveCallbackData,StmtLabelReference(Destination));
+}
+
+StmtResult Sema::ActOnAssignedGotoStmt(ASTContext &C, SMLoc Loc,
+                                       VarExpr* VarRef,
+                                       ArrayRef<ExprResult> AllowedValues,
+                                       Expr *StmtLabel) {
+  SmallVector<StmtLabelReference, 4> AllowedLabels(AllowedValues.size());
+  for(size_t I = 0; I < AllowedValues.size(); ++I) {
+    auto Decl = getCurrentStmtLabelScope().Resolve(AllowedValues[I].get());
+    AllowedLabels[I] = Decl? StmtLabelReference(Decl): StmtLabelReference();
+  }
+  auto Result = AssignedGotoStmt::Create(C, Loc, VarRef, AllowedLabels, StmtLabel);
+
+  for(size_t I = 0; I < AllowedValues.size(); ++I) {
+    if(!AllowedLabels[I].Statement) {
+      getCurrentStmtLabelScope().DeclareForwardReference(
+        StmtLabelScope::StmtLabelForwardDecl(AllowedValues[I].get(), Result,
+                                             ResolveAssignedGotoStmtLabel, I));
+    }
+  }
+
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
+}
+
+static void ResolveGotoStmtLabel(const StmtLabelScope::StmtLabelForwardDecl &Self,
+                                 Stmt *Destination) {
+  assert(GotoStmt::classof(Self.Statement));
+  static_cast<GotoStmt*>(Self.Statement)->setDestination(StmtLabelReference(Destination));
 }
 
 StmtResult Sema::ActOnGotoStmt(ASTContext &C, SMLoc Loc,
-                           ExprResult Destination, Expr *StmtLabel) {
+                               ExprResult Destination, Expr *StmtLabel) {
   Stmt *Result;
   auto Decl = getCurrentStmtLabelScope().Resolve(Destination.get());
   if(!Decl) {
-    Result = GotoStmt::Create(C, Loc, StmtLabelReference(nullptr), StmtLabel);
+    Result = GotoStmt::Create(C, Loc, StmtLabelReference(), StmtLabel);
     getCurrentStmtLabelScope().DeclareForwardReference(
       StmtLabelScope::StmtLabelForwardDecl(Destination.get(), Result,
                                            ResolveGotoStmtLabel));

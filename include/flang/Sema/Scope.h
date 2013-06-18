@@ -35,13 +35,17 @@ public:
   struct StmtLabelForwardDecl {
     Expr *StmtLabel;
     Stmt *Statement;
-    typedef void (*StmtLabelResolveFunctionTy)(Stmt *Self, Stmt *Decl);
+    typedef void (*StmtLabelResolveFunctionTy)(const StmtLabelForwardDecl &Self,
+                                               Stmt *Decl);
     /// This callback gets executed when the statement label is resolved.
     StmtLabelResolveFunctionTy ResolveCallback;
+    size_t ResolveCallbackData;
 
     StmtLabelForwardDecl(Expr *SLabel, Stmt *S,
-                         StmtLabelResolveFunctionTy Callback)
-      : StmtLabel(SLabel), Statement(S), ResolveCallback(Callback) {
+                         StmtLabelResolveFunctionTy Callback,
+                         size_t CallbackData = 0)
+      : StmtLabel(SLabel), Statement(S), ResolveCallback(Callback),
+        ResolveCallbackData(CallbackData) {
     }
   };
 

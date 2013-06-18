@@ -186,8 +186,12 @@ public:
                              ExprResult Value, VarExpr* VarRef,
                              Expr *StmtLabel);
 
+  StmtResult ActOnAssignedGotoStmt(ASTContext &C, SMLoc Loc,
+                                   VarExpr* VarRef, ArrayRef<ExprResult> AllowedValues,
+                                   Expr *StmtLabel);
+
   StmtResult ActOnGotoStmt(ASTContext &C, SMLoc Loc,
-                       ExprResult Destination, Expr *StmtLabel);
+                           ExprResult Destination, Expr *StmtLabel);
 
   // Logical if
   StmtResult ActOnIfStmt(ASTContext &C, SMLoc Loc,

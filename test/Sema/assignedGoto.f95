@@ -11,4 +11,9 @@ PROGRAM gototest
 
     ASSIGN 666 TO DEST ! expected-error {{use of undeclared statement label '666'}}
 
+    GO TO DEST (10, 20, 30)
+30  GOTO DEST
+
+    GO TO DEST (999) ! expected-error {{use of undeclared statement label '999'}}
+
 END PROGRAM

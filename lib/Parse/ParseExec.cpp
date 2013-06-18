@@ -173,10 +173,30 @@ Parser::StmtResult Parser::ParseGotoStmt() {
 
   auto Destination = ParseStatementLabelReference();
   if(Destination.isInvalid()) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_stmt_label_after)
-        << "GO TO";
-    return StmtError();
+    auto Var = ParseIntegerVariableReference();
+    if(!Var) {
+      Diag.Report(Tok.getLocation(), diag::err_expected_stmt_label_after)
+          << "GO TO";
+      return StmtError();
+    }
+
+    // Assigned goto
+    SmallVector<ExprResult, 4> AllowedValues;
+    if(EatIfPresent(tok::l_paren)) {
+      do {
+        auto E = ParseStatementLabelReference();
+        if(E.isInvalid()) {
+          Diag.Report(Tok.getLocation(), diag::err_expected_stmt_label);
+          return StmtError();
+        }
+        AllowedValues.append(1, E);
+      } while(EatIfPresent(tok::comma));
+      if(!EatIfPresent(tok::r_paren))
+        Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
+    }
+    return Actions.ActOnAssignedGotoStmt(Context, Loc, Var, AllowedValues, StmtLabel);
   }
+  // Uncoditional goto
   return Actions.ActOnGotoStmt(Context, Loc, Destination, StmtLabel);
 }
 

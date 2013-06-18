@@ -37,6 +37,7 @@ def err_expected_rsquare : Error<"expected ']'">;
 def err_expected_rbrace : Error<"expected '}'">;
 def err_expected_colon : Error<"expected ':'">;
 def err_expected_kw : Error<"expected '%0'">;
+def err_expected_stmt_label : Error<"expected statement label">;
 def err_expected_stmt_label_after : Error<"expected statement label after '%0'">;
 def err_expected_semi_declaration : Error<
   "expected ';' at end of declaration">;

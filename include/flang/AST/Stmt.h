@@ -52,6 +52,7 @@ public:
     // Action Statements
     Block,
     Assign,
+    AssignedGoto,
     Goto,
     If,
     Continue,
@@ -130,6 +131,9 @@ protected:
 
     for (unsigned I = 0; I != NumIDs; ++I)
       IDList[I] = IDs[I];
+  }
+  T *getMutableList() {
+    return IDList;
   }
 public:
   ArrayRef<T> getIDList() const {
@@ -435,6 +439,9 @@ typedef uint32_t StmtLabelInteger;
 struct StmtLabelReference {
   Stmt *Statement;
 
+  StmtLabelReference()
+    : Statement(nullptr) {
+  }
   inline StmtLabelReference(Stmt *S)
     : Statement(S) {
     assert(S);
@@ -456,7 +463,7 @@ public:
   inline StmtLabelReference getAddress() const {
     return Address;
   }
-  void setAdress(StmtLabelReference Address);
+  void setAddress(StmtLabelReference Address);
   inline ExprResult getDestination() const {
     return Destination;
   }
@@ -464,6 +471,33 @@ public:
   static bool classof(const AssignStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStatementID() == Assign;
+  }
+};
+
+/// AssignedGotoStmt - jump to a position determined by an integer
+/// variable.
+class AssignedGotoStmt : public ListStmt<StmtLabelReference> {
+  ExprResult Destination;
+  AssignedGotoStmt(ASTContext &C, SMLoc Loc, ExprResult Dest,
+                   ArrayRef<StmtLabelReference> Vals,
+                   ExprResult StmtLabel);
+public:
+  static AssignedGotoStmt *Create(ASTContext &C, SMLoc Loc,
+                                  ExprResult Destination,
+                                  ArrayRef<StmtLabelReference> AllowedValues,
+                                  ExprResult StmtLabel);
+
+  inline ExprResult getDestination() const {
+    return Destination;
+  }
+  inline ArrayRef<StmtLabelReference> getAllowedValues() const {
+    return getIDList();
+  }
+  void setAllowedValue(size_t I, StmtLabelReference Address);
+
+  static bool classof(const AssignedGotoStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == AssignedGoto;
   }
 };
 

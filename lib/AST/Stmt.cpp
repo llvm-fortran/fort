@@ -242,10 +242,34 @@ AssignStmt *AssignStmt::Create(ASTContext &C, SMLoc Loc,
   return new(C) AssignStmt(Loc, Address, Destination, StmtLabel);
 }
 
-void AssignStmt::setAdress(StmtLabelReference Address) {
+void AssignStmt::setAddress(StmtLabelReference Address) {
   assert(!this->Address.Statement);
   assert(Address.Statement);
   this->Address = Address;
+}
+
+//===----------------------------------------------------------------------===//
+// Assigned Goto Statement
+//===----------------------------------------------------------------------===//
+
+AssignedGotoStmt::AssignedGotoStmt(ASTContext &C, SMLoc Loc, ExprResult Dest,
+                                   ArrayRef<StmtLabelReference> Vals,
+                                   ExprResult StmtLabel)
+  : ListStmt(C, AssignedGoto, Loc, Vals, StmtLabel), Destination(Dest) {
+}
+
+AssignedGotoStmt *AssignedGotoStmt::Create(ASTContext &C, SMLoc Loc,
+                                           ExprResult Destination,
+                                           ArrayRef<StmtLabelReference> AllowedValues,
+                                           ExprResult StmtLabel) {
+  return new(C) AssignedGotoStmt(C, Loc, Destination, AllowedValues, StmtLabel);
+}
+
+void AssignedGotoStmt::setAllowedValue(size_t I, StmtLabelReference Address) {
+  assert(I < getAllowedValues().size());
+  assert(!getAllowedValues()[I].Statement);
+  assert(Address.Statement);
+  getMutableList()[I] = Address;
 }
 
 //===----------------------------------------------------------------------===//
