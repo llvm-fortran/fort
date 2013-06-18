@@ -38,6 +38,7 @@ private:
   VISIT(DimensionStmt);
   VISIT(AsynchronousStmt);
   VISIT(BlockStmt);
+  VISIT(AssignStmt);
   VISIT(GotoStmt);
   VISIT(IfStmt);
   VISIT(ContinueStmt);
@@ -63,6 +64,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(DimensionStmt);
   HANDLE(AsynchronousStmt);
   HANDLE(BlockStmt);
+  HANDLE(AssignStmt);
   HANDLE(GotoStmt);
   HANDLE(IfStmt);
   HANDLE(ContinueStmt);
@@ -130,11 +132,20 @@ void StmtVisitor::visit(const BlockStmt *S) {
   }
 }
 
+void StmtVisitor::visit(const AssignStmt *S) {
+  OS << "(assign ";
+  if(S->getAddress().Statement)
+    S->getAddress().Statement->getStmtLabel().get()->print(OS);
+  OS << " to ";
+  S->getDestination().get()->print(OS);
+  OS << ")\n";
+}
+
 void StmtVisitor::visit(const GotoStmt *S) {
   OS << "(goto ";
   if(S->getDestination().Statement)
     S->getDestination().Statement->getStmtLabel().get()->print(OS);
-  OS << ')';
+  OS << ")\n";
 }
 
 void StmtVisitor::visit(const IfStmt* S) {

@@ -182,7 +182,11 @@ public:
 
   StmtResult ActOnBlock(ASTContext &C, SMLoc Loc, ArrayRef<StmtResult> Body);
 
-  StmtResult ActOnGoto(ASTContext &C, SMLoc Loc,
+  StmtResult ActOnAssignStmt(ASTContext &C, SMLoc Loc,
+                             ExprResult Value, VarExpr* VarRef,
+                             Expr *StmtLabel);
+
+  StmtResult ActOnGotoStmt(ASTContext &C, SMLoc Loc,
                        ExprResult Destination, Expr *StmtLabel);
 
   // Logical if

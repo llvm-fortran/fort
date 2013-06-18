@@ -779,4 +779,18 @@ ExprResult Parser::ParsePartReference() {
   return E;
 }
 
+/// Parses an integer variable reference
+VarExpr *Parser::ParseIntegerVariableReference() {
+  if(!Tok.is(tok::identifier))
+    return nullptr;
+  const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
+  if (!IDInfo) return nullptr;
+  VarDecl *VD = IDInfo->getFETokenInfo<VarDecl>();
+  if(VD && VD->getType()->isIntegerType()) {
+    Lex();
+    return VarExpr::Create(Context, Tok.getLocation(), VD);
+  }
+  return nullptr;
+}
+
 } //namespace flang

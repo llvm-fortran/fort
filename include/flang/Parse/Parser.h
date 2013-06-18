@@ -34,6 +34,7 @@ namespace llvm {
 namespace flang {
 
 class Action;
+class VarExpr;
 class ConstantExpr;
 class DeclGroupRef;
 class Expr;
@@ -242,6 +243,7 @@ private:
 
   // Executable statements
   StmtResult ParseBlockStmt();
+  StmtResult ParseAssignStmt();
   StmtResult ParseGotoStmt();
   StmtResult ParseIfStmt();
   StmtResult ParseContinueStmt();
@@ -266,6 +268,8 @@ private:
 
   void ParseStatementLabel();
   ExprResult ParseStatementLabelReference();
+
+  VarExpr *ParseIntegerVariableReference();
 
   // Declaration construct functions
   bool ParseDerivedTypeDefinitionStmt();

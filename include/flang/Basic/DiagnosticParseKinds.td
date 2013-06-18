@@ -37,7 +37,7 @@ def err_expected_rsquare : Error<"expected ']'">;
 def err_expected_rbrace : Error<"expected '}'">;
 def err_expected_colon : Error<"expected ':'">;
 def err_expected_kw : Error<"expected '%0'">;
-def err_expected_stmt_label : Error<"expected statement label">;
+def err_expected_stmt_label_after : Error<"expected statement label after '%0'">;
 def err_expected_semi_declaration : Error<
   "expected ';' at end of declaration">;
 def err_expected_semi_decl_list : Error<
@@ -46,6 +46,9 @@ def ext_expected_semi_decl_list : ExtWarn<
   "expected ';' at end of declaration list">;
 def err_expected_member_name_or_semi : Error<
   "expected member name or ';' after declaration specifiers">;
+
+def err_expected_int_var : Error<
+  "expected an integer variable after '%0'">;
 
 def err_expected_fn_body : Error<
   "expected function body after function declarator">;

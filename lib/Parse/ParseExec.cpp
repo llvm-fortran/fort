@@ -101,6 +101,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
   switch (Tok.getKind()) {
   default:
     return ParseAssignmentStmt();
+  case tok::kw_ASSIGN:
+    return ParseAssignStmt();
   case tok::kw_GOTO:
     return ParseGotoStmt();
   case tok::kw_IF:
@@ -141,16 +143,41 @@ StmtResult Parser::ParseBlockStmt() {
   return Actions.ActOnBlock(Context, Loc, body);
 }
 
+Parser::StmtResult Parser::ParseAssignStmt() {
+  SMLoc Loc = Tok.getLocation();
+  Lex();
+
+  auto Value = ParseStatementLabelReference();
+  if(Value.isInvalid()) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_stmt_label_after)
+        << "ASSIGN";
+    return StmtError();
+  }
+  if(!EatIfPresent(tok::kw_TO)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_kw)
+        << "TO";
+    return StmtError();
+  }
+  auto Var = ParseIntegerVariableReference();
+  if(!Var) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_int_var)
+        << "TO";
+    return StmtError();
+  }
+  return Actions.ActOnAssignStmt(Context, Loc, Value, Var, StmtLabel);
+}
+
 Parser::StmtResult Parser::ParseGotoStmt() {
   SMLoc Loc = Tok.getLocation();
   Lex();
 
   auto Destination = ParseStatementLabelReference();
   if(Destination.isInvalid()) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_stmt_label);
+    Diag.Report(Tok.getLocation(), diag::err_expected_stmt_label_after)
+        << "GO TO";
     return StmtError();
   }
-  return Actions.ActOnGoto(Context, Loc, Destination, StmtLabel);
+  return Actions.ActOnGotoStmt(Context, Loc, Destination, StmtLabel);
 }
 
 /// ParseIfStmt

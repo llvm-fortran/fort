@@ -6,7 +6,7 @@ PROGRAM gototest
     GO TO 10
 
 10  I = 10 ! expected-error {{redefinition of statement label '10'}}
-    GO TO 20
+    GOTO 20
 
 20  I = 20
 

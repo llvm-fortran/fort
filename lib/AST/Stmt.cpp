@@ -227,6 +227,28 @@ BlockStmt *BlockStmt::Create(ASTContext &C, SMLoc Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// Assign Statement
+//===----------------------------------------------------------------------===//
+
+AssignStmt::AssignStmt(SMLoc Loc, StmtLabelReference Addr,
+                       ExprResult Dest, ExprResult StmtLabel)
+  : Stmt(Assign, Loc, StmtLabel), Address(Addr), Destination(Dest) {
+}
+
+AssignStmt *AssignStmt::Create(ASTContext &C, SMLoc Loc,
+                               StmtLabelReference Address,
+                               ExprResult Destination,
+                               ExprResult StmtLabel) {
+  return new(C) AssignStmt(Loc, Address, Destination, StmtLabel);
+}
+
+void AssignStmt::setAdress(StmtLabelReference Address) {
+  assert(!this->Address.Statement);
+  assert(Address.Statement);
+  this->Address = Address;
+}
+
+//===----------------------------------------------------------------------===//
 // Goto Statement
 //===----------------------------------------------------------------------===//
 

@@ -443,12 +443,36 @@ StmtResult Sema::ActOnBlock(ASTContext &C, SMLoc Loc, ArrayRef<StmtResult> Body)
   return BlockStmt::Create(C, Loc, Body);
 }
 
+static void ResolveAssignStmtLabel(Stmt *Self, Stmt *Destination) {
+  assert(AssignStmt::classof(Self));
+  static_cast<AssignStmt*>(Self)->setAdress(StmtLabelReference(Destination));
+}
+
+StmtResult Sema::ActOnAssignStmt(ASTContext &C, SMLoc Loc,
+                                 ExprResult Value, VarExpr* VarRef,
+                                 Expr *StmtLabel) {
+  Stmt *Result;
+  auto Decl = getCurrentStmtLabelScope().Resolve(Value.get());
+  if(!Decl) {
+    Result = AssignStmt::Create(C, Loc, StmtLabelReference(nullptr),
+                                VarRef, StmtLabel);
+    getCurrentStmtLabelScope().DeclareForwardReference(
+      StmtLabelScope::StmtLabelForwardDecl(Value.get(), Result,
+                                           ResolveAssignStmtLabel));
+  } else
+    Result = AssignStmt::Create(C, Loc, StmtLabelReference(Decl),
+                                VarRef, StmtLabel);
+
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
+}
+
 static void ResolveGotoStmtLabel(Stmt *Self, Stmt *Destination) {
   assert(GotoStmt::classof(Self));
   static_cast<GotoStmt*>(Self)->setDestination(StmtLabelReference(Destination));
 }
 
-StmtResult Sema::ActOnGoto(ASTContext &C, SMLoc Loc,
+StmtResult Sema::ActOnGotoStmt(ASTContext &C, SMLoc Loc,
                            ExprResult Destination, Expr *StmtLabel) {
   Stmt *Result;
   auto Decl = getCurrentStmtLabelScope().Resolve(Destination.get());
@@ -457,7 +481,9 @@ StmtResult Sema::ActOnGoto(ASTContext &C, SMLoc Loc,
     getCurrentStmtLabelScope().DeclareForwardReference(
       StmtLabelScope::StmtLabelForwardDecl(Destination.get(), Result,
                                            ResolveGotoStmtLabel));
-  } else Result = GotoStmt::Create(C, Loc, StmtLabelReference(Decl), StmtLabel);
+  } else
+    Result = GotoStmt::Create(C, Loc, StmtLabelReference(Decl), StmtLabel);
+
   if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
   return Result;
 }

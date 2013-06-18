@@ -51,6 +51,7 @@ public:
 
     // Action Statements
     Block,
+    Assign,
     Goto,
     If,
     Continue,
@@ -437,6 +438,32 @@ struct StmtLabelReference {
   inline StmtLabelReference(Stmt *S)
     : Statement(S) {
     assert(S);
+  }
+};
+
+/// AssignStmt - assigns a statement label to an integer variable.
+class AssignStmt : public Stmt {
+  StmtLabelReference Address;
+  ExprResult Destination;
+  AssignStmt(SMLoc Loc, StmtLabelReference Addr, ExprResult Dest,
+             ExprResult StmtLabel);
+public:
+  static AssignStmt *Create(ASTContext &C, SMLoc Loc,
+                            StmtLabelReference Address,
+                            ExprResult Destination,
+                            ExprResult StmtLabel);
+
+  inline StmtLabelReference getAddress() const {
+    return Address;
+  }
+  void setAdress(StmtLabelReference Address);
+  inline ExprResult getDestination() const {
+    return Destination;
+  }
+
+  static bool classof(const AssignStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == Assign;
   }
 };
 
