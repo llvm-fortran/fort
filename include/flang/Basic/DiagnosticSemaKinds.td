@@ -48,6 +48,12 @@ def warn_array_index_exceeds_bounds : Warning<
   "element%s2)">, InGroup<ArrayBounds>;
 def note_array_index_out_of_bounds : Note<
   "array %0 declared here">;
+
+def err_redefinition_of_stmt_label : Error<"redefinition of statement label '%0'">;
+def err_undeclared_stmt_label_use : Error<"use of undeclared statement label '%0'">;
+def warn_unused_stmt_label : Warning<"unused statement label '%0'">,
+  InGroup<UnusedLabel>, DefaultIgnore;
+
 }
 
 }

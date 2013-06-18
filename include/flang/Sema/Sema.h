@@ -21,6 +21,7 @@
 #include "flang/AST/Type.h"
 #include "flang/AST/Expr.h"
 #include "flang/Sema/Ownership.h"
+#include "flang/Sema/Scope.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/SMLoc.h"
@@ -43,6 +44,9 @@ class VarDecl;
 class Sema {
   Sema(const Sema&);           // DO NOT IMPLEMENT
   void operator=(const Sema&); // DO NOT IMPLEMENT
+
+  /// \brief A statement label scope for the current program unit.
+  StmtLabelScope CurStmtLabelScope;
 public:
   typedef Expr ExprTy;
 
@@ -57,12 +61,19 @@ public:
 
   DeclContext *getContainingDC(DeclContext *DC);
 
+  inline StmtLabelScope& getCurrentStmtLabelScope() {
+    return CurStmtLabelScope;
+  }
+
   inline ExprResult ExprError() const { return ExprResult(true); }
   inline StmtResult StmtError() const { return StmtResult(true); }
 
   /// Set the current declaration context until it gets popped.
   void PushDeclContext(DeclContext *DC);
   void PopDeclContext();
+
+  void PushExecutableProgramUnit();
+  void PopExecutableProgramUnit();
 
   void ActOnTranslationUnit();
   void ActOnEndProgramUnit();

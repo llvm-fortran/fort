@@ -230,14 +230,20 @@ BlockStmt *BlockStmt::Create(ASTContext &C, SMLoc Loc,
 // Goto Statement
 //===----------------------------------------------------------------------===//
 
-GotoStmt::GotoStmt(SMLoc Loc, StatementLabelReference Dest, ExprResult StmtLabel)
+GotoStmt::GotoStmt(SMLoc Loc, StmtLabelReference Dest, ExprResult StmtLabel)
   : Stmt(Goto, Loc, StmtLabel), Destination(Dest) {
 }
 
 GotoStmt *GotoStmt::Create(ASTContext &C, SMLoc Loc,
-                           StatementLabelReference Destination,
+                           StmtLabelReference Destination,
                            ExprResult StmtLabel) {
   return new(C) GotoStmt(Loc, Destination, StmtLabel);
+}
+
+void GotoStmt::setDestination(StmtLabelReference Destination) {
+  assert(!this->Destination.Statement);
+  assert(Destination.Statement);
+  this->Destination = Destination;
 }
 
 //===----------------------------------------------------------------------===//

@@ -426,11 +426,15 @@ public:
   }
 };
 
-/// StatementLabelReference - a reference to a statement label
-struct StatementLabelReference {
+/// StmtLabelInteger - an integer big enough to hold the value
+/// of a statement label.
+typedef uint32_t StmtLabelInteger;
+
+/// StmtLabelReference - a reference to a statement label
+struct StmtLabelReference {
   Stmt *Statement;
 
-  inline StatementLabelReference(Stmt *S)
+  inline StmtLabelReference(Stmt *S)
     : Statement(S) {
     assert(S);
   }
@@ -438,16 +442,17 @@ struct StatementLabelReference {
 
 /// GotoStmt - an unconditional jump
 class GotoStmt : public Stmt {
-  StatementLabelReference Destination;
-  GotoStmt(SMLoc Loc, StatementLabelReference Dest, ExprResult StmtLabel);
+  StmtLabelReference Destination;
+  GotoStmt(SMLoc Loc, StmtLabelReference Dest, ExprResult StmtLabel);
 public:
   static GotoStmt *Create(ASTContext &C, SMLoc Loc,
-                          StatementLabelReference Destination,
+                          StmtLabelReference Destination,
                           ExprResult StmtLabel);
 
-  inline StatementLabelReference getDestination() const {
+  inline StmtLabelReference getDestination() const {
     return Destination;
   }
+  void setDestination(StmtLabelReference Destination);
 
   static bool classof(const GotoStmt*) { return true; }
   static bool classof(const Stmt *S) {

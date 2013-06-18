@@ -15,13 +15,70 @@
 #define FLANG_SEMA_SCOPE_H__
 
 #include "flang/Basic/Diagnostic.h"
+#include "flang/AST/Stmt.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
+#include <map>
 
 namespace flang {
 
 class Decl;
 class UsingDirectiveDecl;
+
+/// StatementLabelScope - This is a component of a scope which assist with
+/// declaring and resolving statement labels.
+///
+class StmtLabelScope {
+public:
+  /// \brief Represents a usage of an undeclared statement label in
+  /// some statement.
+  struct StmtLabelForwardDecl {
+    Expr *StmtLabel;
+    Stmt *Statement;
+    typedef void (*StmtLabelResolveFunctionTy)(Stmt *Self, Stmt *Decl);
+    /// This callback gets executed when the statement label is resolved.
+    StmtLabelResolveFunctionTy ResolveCallback;
+
+    StmtLabelForwardDecl(Expr *SLabel, Stmt *S,
+                         StmtLabelResolveFunctionTy Callback)
+      : StmtLabel(SLabel), Statement(S), ResolveCallback(Callback) {
+    }
+  };
+
+private:
+  typedef std::map<StmtLabelInteger, Stmt*> StmtLabelMapTy;
+
+  /// StmtLabelDeclsInScope - This keeps track of all the declarations of
+  /// statement labels in this scope.
+  StmtLabelMapTy StmtLabelDeclsInScope;
+
+  /// ForwardStmtLabelDeclsInScope - This keeps track of all the forward
+  /// referenced statement labels in this scope.
+  llvm::SmallVector<StmtLabelForwardDecl, 16> ForwardStmtLabelDeclsInScope;
+public:
+
+  typedef StmtLabelMapTy::const_iterator decl_iterator;
+  decl_iterator decl_begin() const { return StmtLabelDeclsInScope.begin(); }
+  decl_iterator decl_end()   const { return StmtLabelDeclsInScope.end(); }
+  bool decl_empty()          const { return StmtLabelDeclsInScope.empty(); }
+
+  ArrayRef<StmtLabelForwardDecl> getForwardDecls() const {
+    return ForwardStmtLabelDeclsInScope;
+  }
+
+  /// \brief Declares a new statement label.
+  /// Returns true if such declaration already exits.
+  void Declare(Expr *StmtLabel, Stmt *Statement);
+
+  /// \brief Tries to resolve a statement label reference.
+  Stmt *Resolve(Expr *StmtLabel) const;
+
+  /// \brief Declares a forward reference of some statement label.
+  void DeclareForwardReference(StmtLabelForwardDecl Reference);
+
+  /// \bried Resets the scope.
+  void reset();
+};
 
 /// Scope - A scope is a transient data structure that is used while parsing the
 /// program.  It assists with resolving identifiers to the appropriate

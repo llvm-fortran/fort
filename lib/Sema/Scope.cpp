@@ -13,8 +13,46 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Sema/Scope.h"
+#include "flang/AST/Expr.h"
+#include <limits>
 
 namespace flang {
+
+static StmtLabelInteger GetStmtLabelValue(Expr *E) {
+  if(IntegerConstantExpr *IExpr =
+     dyn_cast<IntegerConstantExpr>(E)) {
+    return StmtLabelInteger(
+          IExpr->getValue().getLimitedValue(
+            std::numeric_limits<StmtLabelInteger>::max()));
+  } else {
+    llvm_unreachable("Invalid stmt label expression");
+    return 0;
+  }
+}
+
+/// \brief Declares a new statement label.
+void StmtLabelScope::Declare(Expr *StmtLabel, Stmt *Statement) {
+  auto Key = GetStmtLabelValue(StmtLabel);
+  StmtLabelDeclsInScope.insert(std::make_pair(Key,Statement));
+}
+
+/// \brief Tries to resolve a statement label reference.
+Stmt *StmtLabelScope::Resolve(Expr *StmtLabel) const {
+  auto Key = GetStmtLabelValue(StmtLabel);
+  auto Result = StmtLabelDeclsInScope.find(Key);
+  if(Result == StmtLabelDeclsInScope.end()) return 0;
+  else return Result->second;
+}
+
+/// \brief Declares a forward reference of some statement label.
+void StmtLabelScope::DeclareForwardReference(StmtLabelForwardDecl Reference) {
+  ForwardStmtLabelDeclsInScope.append(1,Reference);
+}
+
+void StmtLabelScope::reset() {
+  StmtLabelDeclsInScope.clear();
+  ForwardStmtLabelDeclsInScope.clear();
+}
 
 void Scope::Init(Scope *parent, unsigned flags) {
   AnyParent = parent;

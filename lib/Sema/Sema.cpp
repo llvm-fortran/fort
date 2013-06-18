@@ -49,6 +49,44 @@ void Sema::PopDeclContext() {
   assert(CurContext && "Popped translation unit!");
 }
 
+void Sema::PushExecutableProgramUnit() {
+  // Enter new statement label scope
+  assert(CurStmtLabelScope.decl_empty());
+  assert(CurStmtLabelScope.getForwardDecls().size() == 0);
+}
+
+void Sema::PopExecutableProgramUnit() {
+  // Fix the forward statement label references
+  auto StmtLabelForwardDecls = CurStmtLabelScope.getForwardDecls();
+  for(size_t I = 0; I < StmtLabelForwardDecls.size(); ++I) {
+    if(auto Decl = CurStmtLabelScope.Resolve(StmtLabelForwardDecls[I].StmtLabel))
+      StmtLabelForwardDecls[I].ResolveCallback(StmtLabelForwardDecls[I].Statement, Decl);
+    else {
+      std::string Str;
+      llvm::raw_string_ostream Stream(Str);
+      StmtLabelForwardDecls[I].StmtLabel->print(Stream);
+      Diags.Report(StmtLabelForwardDecls[I].StmtLabel->getLocation(),
+                   diag::err_undeclared_stmt_label_use)
+          << Stream.str();
+    }
+  }
+  // FIXME: TODO warning unused statement labels.
+  // Clear the statement labels scope
+  CurStmtLabelScope.reset();
+}
+
+static void DeclareStatementLabel(Sema *Self, Expr *StmtLabel, Stmt *S) {
+  if(auto Decl = Self->getCurrentStmtLabelScope().Resolve(StmtLabel)) {
+    std::string Str;
+    llvm::raw_string_ostream Stream(Str);
+    StmtLabel->print(Stream);
+    Self->Diags.Report(StmtLabel->getLocation(),
+                       diag::err_redefinition_of_stmt_label)
+        << Stream.str();
+  }
+  else Self->getCurrentStmtLabelScope().Declare(StmtLabel, S);
+}
+
 void Sema::ActOnTranslationUnit() {
   PushDeclContext(Context.getTranslationUnitDecl());
 }
@@ -63,6 +101,7 @@ void Sema::ActOnMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc) {
   PushDeclContext(MainProgramDecl::Create(Context,
                                           Context.getTranslationUnitDecl(),
                                           NameInfo));
+  PushExecutableProgramUnit();
 }
 
 void Sema::ActOnEndMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc) {
@@ -86,6 +125,7 @@ void Sema::ActOnEndMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc) {
                       ProgName + "' for END PROGRAM statement");
  exit:
   PopDeclContext();
+  PopExecutableProgramUnit();
 }
 
 /// \brief Convert the specified DeclSpec to the appropriate type object.
@@ -193,37 +233,49 @@ Decl *Sema::ActOnImplicitEntityDecl(ASTContext &C, SMLoc IDLoc,
 
 StmtResult Sema::ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,
                               SMLoc Loc, SMLoc NameLoc, Expr *StmtLabel) {
-  return ProgramStmt::Create(C, ProgName, Loc, NameLoc, StmtLabel);
+  auto Result = ProgramStmt::Create(C, ProgName, Loc, NameLoc, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
                           const IdentifierInfo *ModName, ExprResult StmtLabel) {
-  return UseStmt::Create(C, MN, ModName, StmtLabel);
+  auto Result = UseStmt::Create(C, MN, ModName, StmtLabel);
+  if(StmtLabel.get()) DeclareStatementLabel(this, StmtLabel.get(), Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
                           const IdentifierInfo *ModName, bool OnlyList,
                           ArrayRef<UseStmt::RenamePair> RenameNames,
                           ExprResult StmtLabel) {
-  return UseStmt::Create(C, MN, ModName, OnlyList, RenameNames, StmtLabel);
+  auto Result = UseStmt::Create(C, MN, ModName, OnlyList, RenameNames, StmtLabel);
+  if(StmtLabel.get()) DeclareStatementLabel(this, StmtLabel.get(), Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnIMPORT(ASTContext &C, SMLoc Loc,
                              ArrayRef<const IdentifierInfo*> ImportNamesList,
                              ExprResult StmtLabel) {
-  return ImportStmt::Create(C, Loc, ImportNamesList, StmtLabel);
+  auto Result = ImportStmt::Create(C, Loc, ImportNamesList, StmtLabel);
+  if(StmtLabel.get()) DeclareStatementLabel(this, StmtLabel.get(), Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SMLoc Loc, DeclSpec &DS,
                                ArrayRef<ImplicitStmt::LetterSpec> LetterSpecs,
                                Expr *StmtLabel) {
   QualType Ty = ActOnTypeName(C, DS);
-  return ImplicitStmt::Create(C, Loc, Ty, LetterSpecs, StmtLabel);
+  auto Result = ImplicitStmt::Create(C, Loc, Ty, LetterSpecs, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
   // IMPLICIT NONE
-  return ImplicitStmt::Create(C, Loc, StmtLabel);
+  auto Result = ImplicitStmt::Create(C, Loc, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 ParameterStmt::ParamPair
@@ -250,33 +302,43 @@ Sema::ActOnPARAMETERPair(ASTContext &C, SMLoc Loc, const IdentifierInfo *IDInfo,
 StmtResult Sema::ActOnPARAMETER(ASTContext &C, SMLoc Loc,
                                 ArrayRef<ParameterStmt::ParamPair> ParamList,
                                 Expr *StmtLabel) {
-  return ParameterStmt::Create(C, Loc, ParamList, StmtLabel);
+  auto Result = ParameterStmt::Create(C, Loc, ParamList, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnASYNCHRONOUS(ASTContext &C, SMLoc Loc,
                                    ArrayRef<const IdentifierInfo *>ObjNames,
                                    Expr *StmtLabel) {
-  return AsynchronousStmt::Create(C, Loc, ObjNames, StmtLabel);
+  auto Result = AsynchronousStmt::Create(C, Loc, ObjNames, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnDIMENSION(ASTContext &C, SMLoc Loc,
                                const IdentifierInfo *IDInfo,
                                ArrayRef<std::pair<ExprResult,ExprResult> > Dims,
                                Expr *StmtLabel) {
-  return DimensionStmt::Create(C, Loc, IDInfo, Dims, StmtLabel);
+  auto Result = DimensionStmt::Create(C, Loc, IDInfo, Dims, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnENDPROGRAM(ASTContext &C,
                                  const IdentifierInfo *ProgName,
                                  llvm::SMLoc Loc, llvm::SMLoc NameLoc,
                                  Expr *StmtLabel) {
-  return EndProgramStmt::Create(C, ProgName, Loc, NameLoc, StmtLabel);
+  auto Result = EndProgramStmt::Create(C, ProgName, Loc, NameLoc, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SMLoc Loc,
                                ArrayRef<const IdentifierInfo *> ExternalNames,
                                Expr *StmtLabel) {
-  return ExternalStmt::Create(C, Loc, ExternalNames, StmtLabel);
+  auto Result = ExternalStmt::Create(C, Loc, ExternalNames, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SMLoc Loc,
@@ -284,12 +346,15 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SMLoc Loc,
                                 Expr *StmtLabel) {
   // FIXME: Name Constraints.
   // FIXME: Function declaration.
-  return IntrinsicStmt::Create(C, Loc, IntrinsicNames, StmtLabel);
+  auto Result = IntrinsicStmt::Create(C, Loc, IntrinsicNames, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, llvm::SMLoc Loc,
                                      ExprResult LHS,
                                      ExprResult RHS, Expr *StmtLabel) {
+  Stmt *Result = 0;
   const Type *LHSType = LHS.get()->getType().getTypePtr();
   const Type *RHSType = RHS.get()->getType().getTypePtr();
 
@@ -340,8 +405,9 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, llvm::SMLoc Loc,
   // Invalid assignment
   else goto typeError;
 
-  return AssignmentStmt::Create(C, LHS, RHS, StmtLabel);
-
+  Result = AssignmentStmt::Create(C, LHS, RHS, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 typeError:
   std::string TypeStrings[2];
   llvm::raw_string_ostream StreamLHS(TypeStrings[0]),
@@ -377,11 +443,23 @@ StmtResult Sema::ActOnBlock(ASTContext &C, SMLoc Loc, ArrayRef<StmtResult> Body)
   return BlockStmt::Create(C, Loc, Body);
 }
 
+static void ResolveGotoStmtLabel(Stmt *Self, Stmt *Destination) {
+  assert(GotoStmt::classof(Self));
+  static_cast<GotoStmt*>(Self)->setDestination(StmtLabelReference(Destination));
+}
 
 StmtResult Sema::ActOnGoto(ASTContext &C, SMLoc Loc,
                            ExprResult Destination, Expr *StmtLabel) {
-  //FIXME: TODO
-  return StmtResult(true);
+  Stmt *Result;
+  auto Decl = getCurrentStmtLabelScope().Resolve(Destination.get());
+  if(!Decl) {
+    Result = GotoStmt::Create(C, Loc, StmtLabelReference(nullptr), StmtLabel);
+    getCurrentStmtLabelScope().DeclareForwardReference(
+      StmtLabelScope::StmtLabelForwardDecl(Destination.get(), Result,
+                                           ResolveGotoStmtLabel));
+  } else Result = GotoStmt::Create(C, Loc, StmtLabelReference(Decl), StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 static inline bool IsLogicalExpression(ExprResult E) {
@@ -406,7 +484,9 @@ StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
     ReportExpectedLogical(Diags, Condition);
     return StmtError();
   }
-  return IfStmt::Create(C, Loc, std::make_pair(Condition, Body), StmtLabel);
+  auto Result = IfStmt::Create(C, Loc, std::make_pair(Condition, Body), StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
@@ -422,21 +502,29 @@ StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
       return StmtError();
     }
   }
-  return IfStmt::Create(C, Loc, Branches, StmtLabel);
+  auto Result = IfStmt::Create(C, Loc, Branches, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnContinueStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
-  return ContinueStmt::Create(C, Loc, StmtLabel);
+  auto Result = ContinueStmt::Create(C, Loc, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnStopStmt(ASTContext &C, SMLoc Loc, ExprResult StopCode, Expr *StmtLabel) {
-  return StopStmt::Create(C, Loc, StopCode, StmtLabel);
+  auto Result = StopStmt::Create(C, Loc, StopCode, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnPrintStmt(ASTContext &C, SMLoc Loc, FormatSpec *FS,
                                 ArrayRef<ExprResult> OutputItemList,
                                 Expr *StmtLabel) {
-  return PrintStmt::Create(C, Loc, FS, OutputItemList, StmtLabel);
+  auto Result = PrintStmt::Create(C, Loc, FS, OutputItemList, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);
+  return Result;
 }
 
 RecordDecl *Sema::ActOnDerivedTypeDecl(ASTContext &C, SMLoc Loc,

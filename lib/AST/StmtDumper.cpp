@@ -132,7 +132,8 @@ void StmtVisitor::visit(const BlockStmt *S) {
 
 void StmtVisitor::visit(const GotoStmt *S) {
   OS << "(goto ";
-  S->getDestination().Statement->getStmtLabel().get()->print(OS);
+  if(S->getDestination().Statement)
+    S->getDestination().Statement->getStmtLabel().get()->print(OS);
   OS << ')';
 }
 
