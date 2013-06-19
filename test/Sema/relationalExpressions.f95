@@ -1,4 +1,4 @@
-! RUN: %flang -verify < %s
+! RUN: %flang -verify %s 2>&1 | %file_check %s
 PROGRAM relexpressions
   IMPLICIT NONE
   INTEGER I
@@ -10,21 +10,21 @@ PROGRAM relexpressions
   R = 2.0
   C = (1.0,1.0)
 
-  L = I .LT. I
-  L = I .EQ. 2
-  L = 3 .NE. I
-  L = I .GT. R
-  L = I .LE. R
-  L = I .GE. I
+  L = I .LT. I ! CHECK: (I<I)
+  L = I .EQ. 2 ! CHECK: (I==2)
+  L = 3 .NE. I ! CHECK: (3/=I)
+  L = I .GT. R ! CHECK: ((REAL(I)-R)>0)
+  L = I .LE. R ! CHECK: ((REAL(I)-R)<=0)
+  L = I .GE. I ! CHECK: (I>=I)
 
-  L = R .LT. R
-  L = R .GT. 2.0
+  L = R .LT. R ! CHECK: (R<R)
+  L = R .GT. 2.0 ! CHECK: (R>2)
 
-  L = C .EQ. C
-  L = C .NE. C
-  L = C .NE. R
+  L = C .EQ. C ! CHECK: (C==C)
+  L = C .NE. C ! CHECK: (C/=C)
+  L = C .NE. R ! CHECK: ((C-CMPLX(R))/=(0,0))
   L = C .LE. C ! expected-error {{invalid operands to a relational binary expression ('COMPLEX' and 'COMPLEX')}}
-  L = C .EQ. 2.0
+  L = C .EQ. 2.0 ! CHECK: ((C-CMPLX(2))==(0,0))
   L = C .EQ. 2.0d-1 ! expected-error {{invalid operands to a relational binary expression ('COMPLEX' and 'DOUBLE PRECISION')}}
 
   L = 'HELLO' .EQ. 'WORLD'

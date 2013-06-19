@@ -19,5 +19,6 @@ except KeyError,e:
 # Let the main config do the real work.
 config.flang = "@FLANG_BINARY_DIR@/bin/flang"
 config.test_dir = "@FLANG_SOURCE_DIR@/test"
+config.file_check = "@LLVM_BINARY_DIR@/bin/FileCheck"
 lit.load_config(config, "@FLANG_SOURCE_DIR@/test/lit.cfg")
 

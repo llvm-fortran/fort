@@ -1,4 +1,4 @@
-! RUN: %flang -verify < %s
+! RUN: %flang -verify %s 2>&1 | %file_check %s
 PROGRAM dotest
     INTEGER I
     REAL R
@@ -45,5 +45,8 @@ PROGRAM dotest
       IF(I == 0) THEN
         R = 1.0
 110   END IF ! expected-error {{invalid terminating statement for a DO loop}}
+
+    DO 120 I = 1.0, 8.0D1 ! CHECK: INT(1)
+120 CONTINUE ! CHECK: INT(80)
 
 END PROGRAM
