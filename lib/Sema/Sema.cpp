@@ -680,6 +680,19 @@ static bool IsValidDoTerminatingStatement(Stmt *S) {
   }
 }
 
+static ExprResult ApplyDoConversionIfNeeded(ASTContext &C, ExprResult E, QualType T) {
+  if(T->isIntegerType()) {
+    if(E.get()->getType()->isIntegerType()) return E;
+    else return ConversionExpr::Create(C, E.get()->getLocation(), ConversionExpr::INT, E);
+  } else if(T->isRealType()) {
+    if(E.get()->getType()->isRealType()) return E;
+    else return ConversionExpr::Create(C, E.get()->getLocation(), ConversionExpr::REAL, E);
+  } else {
+    if(E.get()->getType()->isDoublePrecisionType()) return E;
+    else return ConversionExpr::Create(C, E.get()->getLocation(), ConversionExpr::DBLE, E);
+  }
+}
+
 /// FIXME: TODO DO body.
 /// FIXME: TODO nested DO/IF constraints - nested inside DO, IF-block ELSE IF-block and ELSE-block
 /// FIXME: TODO Transfer of control into the range of a DO-loop from outside the range is not permitted.
@@ -694,6 +707,11 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStm
   if(E3.isUsable())
     HasErrors |= ExpectRealOrIntegerOrDoublePrec(Diags, E3.get());
   if(HasErrors) return StmtError();
+  E1 = ApplyDoConversionIfNeeded(C, E1, DoVar->getType());
+  E2 = ApplyDoConversionIfNeeded(C, E2, DoVar->getType());
+  if(E3.isUsable())
+    E3 = ApplyDoConversionIfNeeded(C, E3, DoVar->getType());
+
 
   // Make sure the statement label isn't already declared
   if(auto Decl = getCurrentStmtLabelScope().Resolve(TerminatingStmt.get())) {
