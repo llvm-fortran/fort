@@ -253,6 +253,8 @@ private:
   ExprResult ParseExpectedConditionExpression(const char *DiagAfter);
 
   StmtResult ParseDoStmt();
+  StmtResult ParseEndDoStmt();
+
   StmtResult ParseContinueStmt();
   StmtResult ParseStopStmt();
   StmtResult ParseAssignmentStmt();

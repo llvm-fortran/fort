@@ -51,8 +51,12 @@ class Sema {
   /// \brief A stack of if statements in this executable program unit.
   SmallVector<IfStmt* ,16> IfStmtStack;
 
-  /// \brief A list of do statements in this executable program unit.
-  SmallVector<DoStmt* ,16> DoStmtList;
+  /// \brief A list of do statements which don't need the end do statement
+  /// in this executable program unit.
+  SmallVector<DoStmt* ,16> DoStmtNoEndDoList;
+
+  /// \brief A Stack of do statements in this program unit.
+  SmallVector<DoStmt*, 16> DoStmtStack;
 public:
   typedef Expr ExprTy;
 
@@ -217,6 +221,7 @@ public:
   StmtResult ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStmt,
                          VarExpr *DoVar, ExprResult E1, ExprResult E2,
                          ExprResult E3, Expr *StmtLabel);
+  StmtResult ActOnEndDoStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
 
   StmtResult ActOnContinueStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
 

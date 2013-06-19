@@ -65,6 +65,8 @@ def err_invalid_do_terminating_stmt : Error<
 
 def err_stmt_not_in_if : Error<
   "'%0' statement must be a part of an if construct">;
+def err_end_do_without_do : Error<
+  "use of 'END DO' without the do statement">;
 
 }
 

@@ -80,6 +80,7 @@ void StmtVisitor::visit(StmtResult S) {
   switch(S.get()->getStatementID()) {
   case Stmt::Else: OS << "(else)\n"; break;
   case Stmt::EndIf: OS << "(end if)\n"; break;
+  case Stmt::EndDo: OS << "(end do)\n"; break;
   default: break;
   }
 }

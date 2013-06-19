@@ -49,4 +49,9 @@ PROGRAM dotest
     DO 120 I = 1.0, 8.0D1 ! CHECK: INT(1)
 120 CONTINUE ! CHECK: INT(80)
 
+    DO I = 1,10
+    END DO
+
+    END DO ! expected-error {{use of 'END DO' without the do statement}}
+
 END PROGRAM

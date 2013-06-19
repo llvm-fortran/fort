@@ -60,6 +60,7 @@ public:
     Else,
     EndIf,
     Do,
+    EndDo,
     Continue,
     Stop,
     Assignment,

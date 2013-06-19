@@ -12,10 +12,6 @@ PROGRAM dotest
     DO 20 I = 1,10,2
 20    R = R + I
 
-    DO x I = 1,10 ! expected-error {{expected statement label after 'DO'}}
-      R = R + I
-    CONTINUE
-
     DO 30 'V' = 1,100,5 ! expected-error {{expected a real or an integer variable}}
       R = R - I
 30  CONTINUE
@@ -45,4 +41,16 @@ PROGRAM dotest
       I ! expected-error@+1 {{expected '='}}
 100 CONTINUE
 
+    DO I = 1,10
+      R = 0
+    END DO
+
+    DO I = 1,10,2
+      R = R + I
+    ENDDO
+
+    DO x I = 1,2 ! expected-error {{expected '='}}
+    ! END DO
+
+    DO I = 1,5 ! expected-error@+1 {{expected 'END DO'}}
 END PROGRAM

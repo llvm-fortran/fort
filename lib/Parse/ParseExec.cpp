@@ -115,6 +115,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParseEndIfStmt();
   case tok::kw_DO:
     return ParseDoStmt();
+  case tok::kw_ENDDO:
+    return ParseEndDoStmt();
   case tok::kw_CONTINUE:
     return ParseContinueStmt();
   case tok::kw_STOP:
@@ -311,11 +313,10 @@ Parser::StmtResult Parser::ParseDoStmt() {
   auto Loc = Tok.getLocation();
   Lex();
 
-  auto TerminalStmt = ParseStatementLabelReference();
-  if(TerminalStmt.isInvalid()) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_stmt_label_after)
-        << "DO";
-    return StmtError();
+  ExprResult TerminalStmt;
+  if(Tok.is(tok::int_literal_constant)) {
+    TerminalStmt = ParseStatementLabelReference();
+    if(TerminalStmt.isInvalid()) return StmtError();
   }
   auto DoVar = ParseVariableReference();
   if(!DoVar) {
@@ -342,6 +343,12 @@ Parser::StmtResult Parser::ParseDoStmt() {
 
   return Actions.ActOnDoStmt(Context, Loc, TerminalStmt,
                              DoVar, E1, E2, E3, StmtLabel);
+}
+
+Parser::StmtResult Parser::ParseEndDoStmt() {
+  auto Loc = Tok.getLocation();
+  Lex();
+  return Actions.ActOnEndDoStmt(Context, Loc, StmtLabel);
 }
 
 /// ParseContinueStmt

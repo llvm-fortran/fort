@@ -56,7 +56,7 @@ void Sema::PushExecutableProgramUnit() {
   assert(CurStmtLabelScope.getForwardDecls().size() == 0);
 
   // Track the bodies of the executable statements like do and if
-  assert(DoStmtList.empty());
+  assert(DoStmtNoEndDoList.empty());
   assert(IfStmtStack.empty());
 }
 
@@ -90,7 +90,12 @@ void Sema::PopExecutableProgramUnit(SMLoc Loc) {
   IfStmtStack.clear();
 
   // Resolve the bodies of the do statements
-  for(auto I : DoStmtList) {
+  for(auto I : DoStmtStack) {
+    // Unterminated do statement
+    Diags.Report(Loc,diag::err_expected_kw) << "END DO";
+  }
+  DoStmtStack.clear();
+  for(auto I : DoStmtNoEndDoList) {
     if(I->getTerminatingStmt().Statement) {
       // Check the terminating statement constraint
       if(!IsValidDoTerminatingStatement(I->getTerminatingStmt().Statement)) {
@@ -102,7 +107,7 @@ void Sema::PopExecutableProgramUnit(SMLoc Loc) {
 
     } // else - error was already reported.
   }
-  DoStmtList.clear();
+  DoStmtNoEndDoList.clear();
 }
 
 void Sema::DeclareStatementLabel(Expr *StmtLabel, Stmt *S) {
@@ -713,22 +718,39 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStm
     E3 = ApplyDoConversionIfNeeded(C, E3, DoVar->getType());
 
   // Make sure the statement label isn't already declared
-  if(auto Decl = getCurrentStmtLabelScope().Resolve(TerminatingStmt.get())) {
-    std::string String;
-    llvm::raw_string_ostream Stream(String);
-    TerminatingStmt.get()->print(Stream);
-    Diags.Report(TerminatingStmt.get()->getLocation(),
-                 diag::err_stmt_label_must_decl_after)
-        << Stream.str() << "DO";
-    return StmtError();
+  if(TerminatingStmt.get()) {
+    if(auto Decl = getCurrentStmtLabelScope().Resolve(TerminatingStmt.get())) {
+      std::string String;
+      llvm::raw_string_ostream Stream(String);
+      TerminatingStmt.get()->print(Stream);
+      Diags.Report(TerminatingStmt.get()->getLocation(),
+                   diag::err_stmt_label_must_decl_after)
+          << Stream.str() << "DO";
+      return StmtError();
+    }
   }
   auto Result = DoStmt::Create(C, Loc, StmtLabelReference(),
                                DoVar, E1, E2, E3, StmtLabel);
-  getCurrentStmtLabelScope().DeclareForwardReference(
-    StmtLabelScope::StmtLabelForwardDecl(TerminatingStmt.get(), Result,
-                                         ResolveDoStmtLabel));
+  if(TerminatingStmt.get()) {
+    getCurrentStmtLabelScope().DeclareForwardReference(
+      StmtLabelScope::StmtLabelForwardDecl(TerminatingStmt.get(), Result,
+                                           ResolveDoStmtLabel));
+    DoStmtNoEndDoList.push_back(Result);
+  }
+  else
+    DoStmtStack.push_back(Result);
 
-  DoStmtList.push_back(Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
+  if(!DoStmtStack.size()) {
+    Diags.Report(Loc, diag::err_end_do_without_do);
+    return StmtError();
+  }
+  DoStmtStack.pop_back_val();
+  auto Result = Stmt::Create(C, Stmt::EndDo, Loc, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
