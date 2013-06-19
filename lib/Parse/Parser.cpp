@@ -434,14 +434,15 @@ bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
 
   IDInfo = 0;
   NameLoc = SMLoc();
-
+  auto Loc = SMLoc();
   if (EndProgStmt.isUsable()) {
     EndProgramStmt *EPS = EndProgStmt.takeAs<EndProgramStmt>();
+    Loc = EPS->getLocation();
     IDInfo = EPS->getProgramName();
     NameLoc = EPS->getNameLocation();
   }
 
-  Actions.ActOnEndMainProgram(IDInfo, NameLoc);
+  Actions.ActOnEndMainProgram(Loc, IDInfo, NameLoc);
   return EndProgStmt.isInvalid();
 }
 

@@ -204,15 +204,11 @@ void StmtVisitor::visit(const StopStmt *S) {
 }
 
 void StmtVisitor::visit(const AssignmentStmt *S) {
-  OS << "(assignment:\n  (";
-  if(S->getLHS()) S->getLHS()->getType().print(OS);
-  OS << " ";
+  OS << "(";
   if(S->getLHS()) S->getLHS()->print(OS);
-  OS << ")\n  (";
-  if(S->getRHS()) S->getRHS()->getType().print(OS);
-  OS << " ";
+  OS << " = ";
   if(S->getRHS()) S->getRHS()->print(OS);
-  OS << "))\n";
+  OS << ")\n";
 }
 void StmtVisitor::visit(const PrintStmt *S) {
   OS << "(print)\n";

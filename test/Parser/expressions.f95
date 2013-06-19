@@ -6,4 +6,5 @@ PROGRAM expressions
   X = X
   X = (X)
   X = (3 ! expected-error@+1 {{expected ')'}}
+  X = ! expected-error@+1 {{expected an expression after '='}}
 ENDPROGRAM expressions

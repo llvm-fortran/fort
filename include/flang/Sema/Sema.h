@@ -87,7 +87,7 @@ public:
   void ActOnEndProgramUnit();
 
   void ActOnMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc);
-  void ActOnEndMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc);
+  void ActOnEndMainProgram(SMLoc Loc, const IdentifierInfo *IDInfo, SMLoc NameLoc);
 
   void ActOnSpecificationPart(ArrayRef<StmtResult> Body);
   VarDecl *GetVariableForSpecification(const IdentifierInfo *IDInfo,

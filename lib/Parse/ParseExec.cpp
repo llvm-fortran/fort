@@ -122,6 +122,7 @@ Parser::StmtResult Parser::ParseActionStmt() {
   case tok::kw_PRINT:
     return ParsePrintStmt();
 
+  case tok::eof:
   case tok::kw_END:
     // TODO: All of the end-* stmts.
   case tok::kw_ENDFUNCTION:
@@ -385,7 +386,7 @@ Parser::StmtResult Parser::ParseAssignmentStmt() {
   }
   Lex();
 
-  ExprResult RHS = ParseExpression();
+  ExprResult RHS = ParseExpectedFollowupExpression("=");
   if(RHS.isInvalid()) return StmtError();
   return Actions.ActOnAssignmentStmt(Context, Loc, LHS, RHS, StmtLabel);
 }
@@ -435,9 +436,9 @@ Parser::StmtResult Parser::ParsePrintStmt() {
 Parser::StmtResult Parser::ParseEND_PROGRAMStmt() {
   llvm::SMLoc Loc = Tok.getLocation();
   if (Tok.isNot(tok::kw_END) && Tok.isNot(tok::kw_ENDPROGRAM)) {
-    Diag.ReportError(Tok.getLocation(),
-                     "expected 'END PROGRAM' statement");
-    return StmtResult();
+    Diag.Report(Tok.getLocation(),diag::err_expected_stmt)
+      << "END PROGRAM";
+    return StmtError();
   }
   Lex();
 

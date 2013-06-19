@@ -135,7 +135,7 @@ void Sema::ActOnMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc) {
   PushExecutableProgramUnit();
 }
 
-void Sema::ActOnEndMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc) {
+void Sema::ActOnEndMainProgram(SMLoc Loc, const IdentifierInfo *IDInfo, SMLoc NameLoc) {
   assert(CurContext && "DeclContext imbalance!");
 
   DeclarationName DN(IDInfo);
@@ -144,7 +144,7 @@ void Sema::ActOnEndMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc) {
   StringRef ProgName = cast<MainProgramDecl>(CurContext)->getName();
   if (ProgName.empty()) {
     PopDeclContext();
-    PopExecutableProgramUnit(NameLoc);
+    PopExecutableProgramUnit(Loc);
     return;
   }
 
@@ -157,7 +157,7 @@ void Sema::ActOnEndMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc) {
                       ProgName + "' for END PROGRAM statement");
  exit:
   PopDeclContext();
-  PopExecutableProgramUnit(NameLoc);
+  PopExecutableProgramUnit(Loc);
 }
 
 /// \brief Convert the specified DeclSpec to the appropriate type object.
@@ -711,7 +711,6 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStm
   E2 = ApplyDoConversionIfNeeded(C, E2, DoVar->getType());
   if(E3.isUsable())
     E3 = ApplyDoConversionIfNeeded(C, E3, DoVar->getType());
-
 
   // Make sure the statement label isn't already declared
   if(auto Decl = getCurrentStmtLabelScope().Resolve(TerminatingStmt.get())) {
