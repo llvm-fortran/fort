@@ -36,6 +36,8 @@ def err_typecheck_logical_unary_expr : Error<
 
 def err_typecheck_expected_logical_expr : Error<
   "expected a logical expression instead of an expression with type '%0'">;
+def err_typecheck_expected_do_var : Error<
+  "expected a real or an integer variable instead of variable with type '%0'">;
 
 def err_array_subscript_dimension_count_mismatch : Error<
   "array subscript must have %0 subscript %plural{1:expression|:expressions}0">;

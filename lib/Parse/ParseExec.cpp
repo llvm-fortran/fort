@@ -330,7 +330,7 @@ Parser::StmtResult Parser::ParseDoStmt() {
     return StmtError();
   }
   auto DoVar = ParseVariableReference();
-  if(DoVar.isInvalid()) {
+  if(!DoVar) {
     Diag.Report(Tok.getLocation(),diag::err_expected_do_var);
     return StmtError();
   }
@@ -353,7 +353,7 @@ Parser::StmtResult Parser::ParseDoStmt() {
   }
 
   return Actions.ActOnDoStmt(Context, Loc, TerminalStmt,
-                             DoVar, E1, E2, E2, StmtLabel);
+                             DoVar, E1, E2, E3, StmtLabel);
 }
 
 /// ParseContinueStmt

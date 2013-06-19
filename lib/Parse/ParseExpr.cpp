@@ -792,22 +792,22 @@ ExprResult Parser::ParsePartReference() {
 }
 
 /// Parser a variable reference
-ExprResult Parser::ParseVariableReference() {
+VarExpr *Parser::ParseVariableReference() {
   if(!Tok.is(tok::identifier))
-    return ExprError();
+    return nullptr;
   const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
-  if (!IDInfo) return ExprError();
+  if (!IDInfo) return nullptr;
   VarDecl *VD = IDInfo->getFETokenInfo<VarDecl>();
   if (!VD) {
     // This variable hasn't been specified before. We need to apply any IMPLICIT
     // rules to it.
     Decl *D = Actions.ActOnImplicitEntityDecl(Context, Tok.getLocation(),
                                               IDInfo);
-    if (!D) return ExprError();
+    if (!D) return nullptr;
     VD = cast<VarDecl>(D);
   }
 
-  ExprResult E = VarExpr::Create(Context, Tok.getLocation(), VD);
+  auto E = VarExpr::Create(Context, Tok.getLocation(), VD);
   Lex();
   return E;
 }

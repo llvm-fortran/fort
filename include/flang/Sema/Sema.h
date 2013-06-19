@@ -75,6 +75,8 @@ public:
   void PushExecutableProgramUnit();
   void PopExecutableProgramUnit();
 
+  void DeclareStatementLabel(Expr *StmtLabel, Stmt *S);
+
   void ActOnTranslationUnit();
   void ActOnEndProgramUnit();
 
@@ -204,7 +206,7 @@ public:
                          Expr *StmtLabel);
 
   StmtResult ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStmt,
-                         ExprResult DoVar, ExprResult E1, ExprResult E2,
+                         VarExpr *DoVar, ExprResult E1, ExprResult E2,
                          ExprResult E3, Expr *StmtLabel);
 
   StmtResult ActOnContinueStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel);

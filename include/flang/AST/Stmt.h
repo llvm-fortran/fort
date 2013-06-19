@@ -23,6 +23,8 @@
 
 namespace flang {
 
+class Expr;
+class VarExpr;
 class FormatSpec;
 class IdentifierInfo;
 
@@ -55,6 +57,7 @@ public:
     AssignedGoto,
     Goto,
     If,
+    Do,
     Continue,
     Stop,
     Assignment,
@@ -535,6 +538,36 @@ public:
   static bool classof(const IfStmt*) { return true; }
   static bool classof(const Stmt *S){
     return S->getStatementID() == If;
+  }
+};
+
+/// DoStmt
+class DoStmt : public Stmt {
+  StmtLabelReference TerminatingStmt;
+  ExprResult DoVar;
+  ExprResult Init, Terminate, Increment;
+  Stmt *Body;
+  DoStmt(SMLoc Loc, StmtLabelReference TermStmt, ExprResult DoVariable,
+         ExprResult InitialParam, ExprResult TerminalParam,
+         ExprResult IncrementationParam,ExprResult StmtLabel);
+public:
+  static DoStmt *Create(ASTContext &C,SMLoc Loc, StmtLabelReference TermStmt,
+                        ExprResult DoVariable, ExprResult InitialParam,
+                        ExprResult TerminalParam,ExprResult IncrementationParam,
+                        ExprResult StmtLabel);
+
+  StmtLabelReference getTerminatingStmt() const { return TerminatingStmt; }
+  void setTerminatingStmt(StmtLabelReference Stmt);
+  ExprResult getDoVar() const { return DoVar; }
+  ExprResult getInitialParameter() const { return Init; }
+  ExprResult getTerminalParameter() const { return Terminate; }
+  ExprResult getIncrementationParameter() const { return Increment; }
+  Stmt *getBody() const { return Body; }
+  void setBody(Stmt *Body);
+
+  static bool classof(const DoStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == Do;
   }
 };
 

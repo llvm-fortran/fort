@@ -275,7 +275,7 @@ private:
   void ParseStatementLabel();
   ExprResult ParseStatementLabelReference();
 
-  ExprResult ParseVariableReference();
+  VarExpr *ParseVariableReference();
   VarExpr *ParseIntegerVariableReference();
 
   // Declaration construct functions

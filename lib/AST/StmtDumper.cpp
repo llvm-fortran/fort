@@ -42,6 +42,7 @@ private:
   VISIT(AssignedGotoStmt);
   VISIT(GotoStmt);
   VISIT(IfStmt);
+  VISIT(DoStmt);
   VISIT(ContinueStmt);
   VISIT(StopStmt);
   VISIT(AssignmentStmt);
@@ -69,6 +70,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(AssignedGotoStmt);
   HANDLE(GotoStmt);
   HANDLE(IfStmt);
+  HANDLE(DoStmt);
   HANDLE(ContinueStmt);
   HANDLE(StopStmt);
   HANDLE(AssignmentStmt);
@@ -176,9 +178,28 @@ void StmtVisitor::visit(const IfStmt* S) {
   }
   OS << "))\n";
 }
+
+void StmtVisitor::visit(const DoStmt *S) {
+  OS<<"(do ";
+  if(S->getTerminatingStmt().Statement)
+    S->getTerminatingStmt().Statement->getStmtLabel().get()->print(OS);
+  OS << " ";
+  S->getDoVar().get()->print(OS);
+  OS << " = ";
+  S->getInitialParameter().get()->print(OS);
+  OS << ", ";
+  S->getTerminalParameter().get()->print(OS);
+  if(S->getIncrementationParameter().isUsable()) {
+    OS << ", ";
+    S->getIncrementationParameter().get()->print(OS);
+  }
+  OS << ")\n";
+}
+
 void StmtVisitor::visit(const ContinueStmt *S) {
   OS << "continue\n";
 }
+
 void StmtVisitor::visit(const StopStmt *S) {
   if(S->getStopCode()){
     OS << "stop ";
@@ -187,6 +208,7 @@ void StmtVisitor::visit(const StopStmt *S) {
   } else
     OS << "stop\n";
 }
+
 void StmtVisitor::visit(const AssignmentStmt *S) {
   OS << "(assignment:\n  (";
   if(S->getLHS()) S->getLHS()->getType().print(OS);

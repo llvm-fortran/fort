@@ -309,6 +309,39 @@ IfStmt *IfStmt::Create(ASTContext &C, SMLoc Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// Do Statement
+//===----------------------------------------------------------------------===//
+
+DoStmt::DoStmt(SMLoc Loc, StmtLabelReference TermStmt,
+               ExprResult DoVariable, ExprResult InitialParam,
+               ExprResult TerminalParam, ExprResult IncrementationParam,
+               ExprResult StmtLabel)
+  : Stmt(Do, Loc, StmtLabel), TerminatingStmt(TermStmt), DoVar(DoVariable),
+    Init(InitialParam), Terminate(TerminalParam), Increment(IncrementationParam),
+    Body(nullptr) {
+}
+
+DoStmt *DoStmt::Create(ASTContext &C, SMLoc Loc, StmtLabelReference TermStmt,
+                       ExprResult DoVariable, ExprResult InitialParam,
+                       ExprResult TerminalParam, ExprResult IncrementationParam,
+                       ExprResult StmtLabel) {
+  return new(C) DoStmt(Loc, TermStmt, DoVariable, InitialParam,TerminalParam,
+                       IncrementationParam, StmtLabel);
+}
+
+void DoStmt::setTerminatingStmt(StmtLabelReference Stmt) {
+  assert(!TerminatingStmt.Statement);
+  assert(Stmt.Statement);
+  TerminatingStmt = Stmt;
+}
+
+void DoStmt::setBody(Stmt *Body) {
+  assert(!this->Body);
+  assert(Body);
+  this->Body = Body;
+}
+
+//===----------------------------------------------------------------------===//
 // Continue Statement
 //===----------------------------------------------------------------------===//
 
