@@ -24,6 +24,10 @@ namespace flang {
 
 Stmt::~Stmt() {}
 
+Stmt *Stmt::Create(ASTContext &C, StmtTy StmtType, SMLoc Loc, ExprResult StmtLabel) {
+  return new(C) Stmt(StmtType, Loc, StmtLabel);
+}
+
 //===----------------------------------------------------------------------===//
 // Program Statement
 //===----------------------------------------------------------------------===//

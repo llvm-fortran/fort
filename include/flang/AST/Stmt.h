@@ -57,6 +57,8 @@ public:
     AssignedGoto,
     Goto,
     If,
+    Else,
+    EndIf,
     Do,
     Continue,
     Stop,
@@ -84,6 +86,10 @@ protected:
     : StmtID(ID), Loc(L), StmtLabel(SLT) {}
 public:
   virtual ~Stmt();
+
+  /// Creates a statement that does nothing
+  static Stmt *Create(ASTContext &C, StmtTy StmtType,
+                      SMLoc Loc, ExprResult StmtLabel);
 
   /// getStatementID - Get the ID of the statement.
   StmtTy getStatementID() const { return StmtID; }

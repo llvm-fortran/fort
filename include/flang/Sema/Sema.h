@@ -79,7 +79,7 @@ public:
   void PopDeclContext();
 
   void PushExecutableProgramUnit();
-  void PopExecutableProgramUnit();
+  void PopExecutableProgramUnit(SMLoc Loc);
 
   void DeclareStatementLabel(Expr *StmtLabel, Stmt *S);
 

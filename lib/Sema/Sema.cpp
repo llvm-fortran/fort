@@ -14,6 +14,7 @@
 
 #include "flang/Sema/Sema.h"
 #include "flang/Sema/DeclSpec.h"
+#include "flang/Parse/ParseDiagnostic.h"
 #include "flang/Sema/SemaDiagnostic.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
@@ -59,9 +60,9 @@ void Sema::PushExecutableProgramUnit() {
   assert(IfStmtStack.empty());
 }
 
-static bool isValidDoTerminatingStatement(Stmt *S);
+static bool IsValidDoTerminatingStatement(Stmt *S);
 
-void Sema::PopExecutableProgramUnit() {
+void Sema::PopExecutableProgramUnit(SMLoc Loc) {
   // Fix the forward statement label references
   auto StmtLabelForwardDecls = CurStmtLabelScope.getForwardDecls();
   for(size_t I = 0; I < StmtLabelForwardDecls.size(); ++I) {
@@ -81,18 +82,23 @@ void Sema::PopExecutableProgramUnit() {
   CurStmtLabelScope.reset();
 
   // Resolve the bodies of the if statements
+  // FIXME: TODO Create the body of the if statements.
+  for(auto I : IfStmtStack) {
+    // Unterminated if statement
+    Diags.Report(Loc,diag::err_expected_kw) << "END IF";
+  }
   IfStmtStack.clear();
 
   // Resolve the bodies of the do statements
   for(auto I : DoStmtList) {
     if(I->getTerminatingStmt().Statement) {
       // Check the terminating statement constraint
-      if(!isValidDoTerminatingStatement(I->getTerminatingStmt().Statement)) {
+      if(!IsValidDoTerminatingStatement(I->getTerminatingStmt().Statement)) {
         Diags.Report(I->getTerminatingStmt().Statement->getLocation(),
                      diag::err_invalid_do_terminating_stmt);
         continue;
       }
-      // Create the body of the do statement.
+      // TODO: Create the body of the do statement.
 
     } // else - error was already reported.
   }
@@ -138,6 +144,7 @@ void Sema::ActOnEndMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc) {
   StringRef ProgName = cast<MainProgramDecl>(CurContext)->getName();
   if (ProgName.empty()) {
     PopDeclContext();
+    PopExecutableProgramUnit(NameLoc);
     return;
   }
 
@@ -150,7 +157,7 @@ void Sema::ActOnEndMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc) {
                       ProgName + "' for END PROGRAM statement");
  exit:
   PopDeclContext();
-  PopExecutableProgramUnit();
+  PopExecutableProgramUnit(NameLoc);
 }
 
 /// \brief Convert the specified DeclSpec to the appropriate type object.
@@ -580,28 +587,47 @@ StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
   }
 
   auto Result = IfStmt::Create(C, Loc, Condition, StmtLabel);
-  IfStmtStack.append(1, Result);
+  IfStmtStack.push_back(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
-// FIXME: TODO
 StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SMLoc Loc,
                                  ExprResult Condition, Expr *StmtLabel) {
   if(!IsLogicalExpression(Condition)) {
     ReportExpectedLogical(Diags, Condition);
     return StmtError();
   }
-
-  return StmtError();
+  if(!IfStmtStack.size()) {
+    Diags.Report(Loc, diag::err_stmt_not_in_if) << "ELSE IF";
+    return StmtError();
+  }
+  auto Result = IfStmt::Create(C, Loc, Condition, StmtLabel);
+  IfStmtStack.pop_back_val()->setElseStmt(Result);
+  IfStmtStack.push_back(Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnElseStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
-  return StmtError();
+  if(!IfStmtStack.size()) {
+    Diags.Report(Loc, diag::err_stmt_not_in_if) << "ELSE";
+    return StmtError();
+  }
+  auto Result = Stmt::Create(C, Stmt::Else, Loc, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
-  return StmtError();
+  if(!IfStmtStack.size()) {
+    Diags.Report(Loc, diag::err_stmt_not_in_if) << "END IF";
+    return StmtError();
+  }
+  IfStmtStack.pop_back_val();
+  auto Result = Stmt::Create(C, Stmt::EndIf, Loc, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
 }
 
 static void ResolveDoStmtLabel(const StmtLabelScope::StmtLabelForwardDecl &Self,
@@ -629,11 +655,26 @@ static int ExpectRealOrIntegerOrDoublePrec(DiagnosticsEngine &Diags, const Expr 
 /// block IF, ELSE IF, ELSE, END IF, END, or another logical IF statement.
 ///
 /// FIXME: TODO full
-static bool isValidDoTerminatingStatement(Stmt *S) {
+static bool IsValidDoLogicalIfThenStatement(Stmt *S) {
+  switch(S->getStatementID()) {
+  case Stmt::Do: case Stmt::If:
+  case Stmt::Else: case Stmt::EndIf:
+    return false;
+  default:
+    return true;
+  }
+}
+
+static bool IsValidDoTerminatingStatement(Stmt *S) {
   switch(S->getStatementID()) {
   case Stmt::Goto: case Stmt::AssignedGoto:
   case Stmt::Stop: case Stmt::Do:
+  case Stmt::Else: case Stmt::EndIf:
     return false;
+  case Stmt::If: {
+    auto NextStmt = static_cast<IfStmt*>(S)->getThenStmt();
+    return NextStmt && IsValidDoLogicalIfThenStatement(NextStmt);
+  }
   default:
     return true;
   }
@@ -670,7 +711,7 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStm
     StmtLabelScope::StmtLabelForwardDecl(TerminatingStmt.get(), Result,
                                          ResolveDoStmtLabel));
 
-  DoStmtList.append(1, Result);
+  DoStmtList.push_back(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }

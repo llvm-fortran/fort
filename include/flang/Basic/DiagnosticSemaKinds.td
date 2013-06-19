@@ -63,6 +63,9 @@ def warn_unused_stmt_label : Warning<"unused statement label '%0'">,
 def err_invalid_do_terminating_stmt : Error<
   "invalid terminating statement for a DO loop">;
 
+def err_stmt_not_in_if : Error<
+  "'%0' statement must be a part of an if construct">;
+
 }
 
 }

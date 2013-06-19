@@ -76,6 +76,12 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(AssignmentStmt);
   HANDLE(PrintStmt);
 #undef HANDLE
+
+  switch(S.get()->getStatementID()) {
+  case Stmt::Else: OS << "(else)\n"; break;
+  case Stmt::EndIf: OS << "(end if)\n"; break;
+  default: break;
+  }
 }
 
 void StmtVisitor::visit(const ProgramStmt *S) {

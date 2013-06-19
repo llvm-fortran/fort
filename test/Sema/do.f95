@@ -34,4 +34,16 @@ PROGRAM dotest
 70  DO 80 ADDR = 0, 10 ! expected-error {{invalid terminating statement for a DO loop}}
 80  CONTINUE
 
+    DO 90 I = 0, 3
+90    IF(I == 0) R = 1.0
+
+    DO 100 I = 1, 2
+100   IF(I == 1) THEN ! expected-error {{invalid terminating statement for a DO loop}}
+      END IF
+
+    DO 110 I = 0, 1
+      IF(I == 0) THEN
+        R = 1.0
+110   END IF ! expected-error {{invalid terminating statement for a DO loop}}
+
 END PROGRAM

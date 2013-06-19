@@ -3,6 +3,9 @@ PROGRAM iftest
   CHARACTER (LEN=11) :: C
   IF(1 == 1) C = "YES"
 
+  IF(0 == 0) ! expected-error@+1 {{expected an executable statement}}
+    C = "NO"
+
   IF 1 == 2) C = "NO" ! expected-error {{expected '(' after 'IF'}}
   IF(1 == 2 C = "NO" ! expected-error {{expected ')'}}
 
