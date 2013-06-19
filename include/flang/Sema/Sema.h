@@ -47,6 +47,9 @@ class Sema {
 
   /// \brief A statement label scope for the current program unit.
   StmtLabelScope CurStmtLabelScope;
+
+  /// \brief A list of do statements in this executable program unit
+  SmallVector<DoStmt* ,16> DoStmtList;
 public:
   typedef Expr ExprTy;
 

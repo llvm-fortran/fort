@@ -53,7 +53,12 @@ void Sema::PushExecutableProgramUnit() {
   // Enter new statement label scope
   assert(CurStmtLabelScope.decl_empty());
   assert(CurStmtLabelScope.getForwardDecls().size() == 0);
+
+  // Track the bodies of the executable statements like do and if
+  assert(DoStmtList.empty());
 }
+
+static bool isValidDoTerminatingStatement(Stmt *S);
 
 void Sema::PopExecutableProgramUnit() {
   // Fix the forward statement label references
@@ -73,6 +78,21 @@ void Sema::PopExecutableProgramUnit() {
   // FIXME: TODO warning unused statement labels.
   // Clear the statement labels scope
   CurStmtLabelScope.reset();
+
+  // Resolve the bodies of the do statements
+  for(auto I : DoStmtList) {
+    if(I->getTerminatingStmt().Statement) {
+      // Check the terminating statement constraint
+      if(!isValidDoTerminatingStatement(I->getTerminatingStmt().Statement)) {
+        Diags.Report(I->getTerminatingStmt().Statement->getLocation(),
+                     diag::err_invalid_do_terminating_stmt);
+        continue;
+      }
+      // Create the body of the do statement.
+
+    } // else - error was already reported.
+  }
+  DoStmtList.clear();
 }
 
 void Sema::DeclareStatementLabel(Expr *StmtLabel, Stmt *S) {
@@ -84,7 +104,8 @@ void Sema::DeclareStatementLabel(Expr *StmtLabel, Stmt *S) {
                        diag::err_redefinition_of_stmt_label)
         << Stream.str();
   }
-  else getCurrentStmtLabelScope().Declare(StmtLabel, S);
+  else
+    getCurrentStmtLabelScope().Declare(StmtLabel, S);
 }
 
 void Sema::ActOnTranslationUnit() {
@@ -570,45 +591,65 @@ static void ResolveDoStmtLabel(const StmtLabelScope::StmtLabelForwardDecl &Self,
   static_cast<DoStmt*>(Self.Statement)->setTerminatingStmt(StmtLabelReference(Destination));
 }
 
-static int ExpectRealOrIntegerOrDoublePrec(DiagnosticsEngine &Diags, const Expr *E) {
+static int ExpectRealOrIntegerOrDoublePrec(DiagnosticsEngine &Diags, const Expr *E,
+                                           unsigned DiagType = diag::err_typecheck_expected_do_expr) {
   auto T = E->getType();
   if(T->isIntegerType() || T->isRealType() || T->isDoublePrecisionType()) return 0;
   std::string TypeString;
   llvm::raw_string_ostream Stream(TypeString);
   E->getType().print(Stream);
-  Diags.Report(E->getLocation(),diag::err_typecheck_expected_do_var)
+  Diags.Report(E->getLocation(),DiagType)
     << Stream.str();
   return 1;
 }
 
-/// FIXME: TODO DO body
-/// FIXME: The terminating statement must not be...
+/// The terminal statement of a DO-loop must not be an unconditional GO TO,
+/// assigned GO TO, arithmetic IF, block IF, ELSE IF, ELSE, END IF, RETURN, STOP, END, or DO statement.
+/// If the terminal statement of a DO-loop is a logical IF statement,
+/// it may contain any executable statement except a DO,
+/// block IF, ELSE IF, ELSE, END IF, END, or another logical IF statement.
+///
+/// FIXME: TODO full
+static bool isValidDoTerminatingStatement(Stmt *S) {
+  switch(S->getStatementID()) {
+  case Stmt::Goto: case Stmt::AssignedGoto:
+  case Stmt::Stop: case Stmt::Do:
+    return false;
+  default:
+    return true;
+  }
+}
+
+/// FIXME: TODO DO body.
 StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStmt,
                              VarExpr *DoVar, ExprResult E1, ExprResult E2,
                              ExprResult E3, Expr *StmtLabel) {
-  DoStmt *Result;
-
   // typecheck
   auto HasErrors = 0;
-  HasErrors |= ExpectRealOrIntegerOrDoublePrec(Diags, DoVar);
+  HasErrors |= ExpectRealOrIntegerOrDoublePrec(Diags, DoVar, diag::err_typecheck_expected_do_var);
   HasErrors |= ExpectRealOrIntegerOrDoublePrec(Diags, E1.get());
   HasErrors |= ExpectRealOrIntegerOrDoublePrec(Diags, E2.get());
   if(E3.isUsable())
     HasErrors |= ExpectRealOrIntegerOrDoublePrec(Diags, E3.get());
   if(HasErrors) return StmtError();
 
-  // Resolve the terminating label
-  auto Decl = getCurrentStmtLabelScope().Resolve(TerminatingStmt.get());
-  if(!Decl) {
-    Result = DoStmt::Create(C, Loc, StmtLabelReference(),
-                            DoVar, E1, E2, E3, StmtLabel);
-    getCurrentStmtLabelScope().DeclareForwardReference(
-      StmtLabelScope::StmtLabelForwardDecl(TerminatingStmt.get(), Result,
-                                           ResolveDoStmtLabel));
-  } else
-    Result = DoStmt::Create(C, Loc, StmtLabelReference(Decl),
-                            DoVar, E1, E2, E3, StmtLabel);
+  // Make sure the statement label isn't already declared
+  if(auto Decl = getCurrentStmtLabelScope().Resolve(TerminatingStmt.get())) {
+    std::string String;
+    llvm::raw_string_ostream Stream(String);
+    TerminatingStmt.get()->print(Stream);
+    Diags.Report(TerminatingStmt.get()->getLocation(),
+                 diag::err_stmt_label_must_decl_after)
+        << Stream.str() << "DO";
+    return StmtError();
+  }
+  auto Result = DoStmt::Create(C, Loc, StmtLabelReference(),
+                               DoVar, E1, E2, E3, StmtLabel);
+  getCurrentStmtLabelScope().DeclareForwardReference(
+    StmtLabelScope::StmtLabelForwardDecl(TerminatingStmt.get(), Result,
+                                         ResolveDoStmtLabel));
 
+  DoStmtList.append(1, Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }

@@ -38,6 +38,8 @@ def err_typecheck_expected_logical_expr : Error<
   "expected a logical expression instead of an expression with type '%0'">;
 def err_typecheck_expected_do_var : Error<
   "expected a real or an integer variable instead of variable with type '%0'">;
+def err_typecheck_expected_do_expr : Error<
+  "expected a real or an integer expression">;
 
 def err_array_subscript_dimension_count_mismatch : Error<
   "array subscript must have %0 subscript %plural{1:expression|:expressions}0">;
@@ -51,10 +53,15 @@ def warn_array_index_exceeds_bounds : Warning<
 def note_array_index_out_of_bounds : Note<
   "array %0 declared here">;
 
+def err_stmt_label_must_decl_after : Error<
+  "the statement label '%0' must be declared after the '%1' statement">;
 def err_redefinition_of_stmt_label : Error<"redefinition of statement label '%0'">;
 def err_undeclared_stmt_label_use : Error<"use of undeclared statement label '%0'">;
 def warn_unused_stmt_label : Warning<"unused statement label '%0'">,
   InGroup<UnusedLabel>, DefaultIgnore;
+
+def err_invalid_do_terminating_stmt : Error<
+  "invalid terminating statement for a DO loop">;
 
 }
 
