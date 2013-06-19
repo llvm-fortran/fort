@@ -6,6 +6,9 @@ PROGRAM iftest
   IF 1 == 2) C = "NO" ! expected-error {{expected '(' after 'IF'}}
   IF(1 == 2 C = "NO" ! expected-error {{expected ')'}}
 
+  IF( ! expected-error@+1 {{expected an expression after '('}}
+    C == "YES") C = "NO" ! expected-error {{expected '='}} FIXME proper error
+
   IF(1 == 2) THEN
     C = "NO"
   END IF

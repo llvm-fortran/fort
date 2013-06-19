@@ -203,6 +203,10 @@ public:
                          ArrayRef<std::pair<ExprResult,StmtResult> > Branches,
                          Expr *StmtLabel);
 
+  StmtResult ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStmt,
+                         ExprResult DoVar, ExprResult E1, ExprResult E2,
+                         ExprResult E3, Expr *StmtLabel);
+
   StmtResult ActOnContinueStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
 
   StmtResult ActOnStopStmt(ASTContext &C, SMLoc Loc, ExprResult StopCode, Expr *StmtLabel);

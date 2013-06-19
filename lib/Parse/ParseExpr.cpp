@@ -50,6 +50,18 @@ Parser::ExprResult Parser::ParseExpression() {
   return DefinedOperatorBinaryExpr::Create(Context, OpLoc, LHS, RHS, II);
 }
 
+/// \brief Looks at the next token to see if it's an expression
+/// and calls ParseExpression if it is, or reports an expected expression
+/// error.
+ExprResult Parser::ParseExpectedFollowupExpression(const char *DiagAfter) {
+  if(Tok.isAtStartOfStatement()) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_expression_after)
+      << DiagAfter;
+    return ExprError();
+  }
+  return ParseExpression();
+}
+
 // ParseLevel5Expr - Level-5 expressions are level-4 expressions optionally
 // involving the logical operators.
 //
@@ -776,6 +788,27 @@ ExprResult Parser::ParseDataReference() {
 ///         scalar-int-expr
 ExprResult Parser::ParsePartReference() {
   ExprResult E;
+  return E;
+}
+
+/// Parser a variable reference
+ExprResult Parser::ParseVariableReference() {
+  if(!Tok.is(tok::identifier))
+    return ExprError();
+  const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
+  if (!IDInfo) return ExprError();
+  VarDecl *VD = IDInfo->getFETokenInfo<VarDecl>();
+  if (!VD) {
+    // This variable hasn't been specified before. We need to apply any IMPLICIT
+    // rules to it.
+    Decl *D = Actions.ActOnImplicitEntityDecl(Context, Tok.getLocation(),
+                                              IDInfo);
+    if (!D) return ExprError();
+    VD = cast<VarDecl>(D);
+  }
+
+  ExprResult E = VarExpr::Create(Context, Tok.getLocation(), VD);
+  Lex();
   return E;
 }
 

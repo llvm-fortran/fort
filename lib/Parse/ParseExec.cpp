@@ -107,6 +107,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParseGotoStmt();
   case tok::kw_IF:
     return ParseIfStmt();
+  case tok::kw_DO:
+    return ParseDoStmt();
   case tok::kw_CONTINUE:
     return ParseContinueStmt();
   case tok::kw_STOP:
@@ -235,7 +237,7 @@ Parser::StmtResult Parser::ParseGotoStmt() {
 ///     if-stmt :=
 ///       IF(scalar-logic-expr) action-stmt
 Parser::StmtResult Parser::ParseIfStmt() {
-  SMLoc Loc = Tok.getLocation();
+  auto Loc = Tok.getLocation();
 
   Lex();
   if (!EatIfPresent(tok::l_paren)) {
@@ -243,7 +245,7 @@ Parser::StmtResult Parser::ParseIfStmt() {
         << "IF";
     return StmtError();
   }
-  ExprResult Condition = ParseExpression();
+  ExprResult Condition = ParseExpectedFollowupExpression("(");
   if(Condition.isInvalid()) return StmtError();
   if (!EatIfPresent(tok::r_paren)) {
     Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
@@ -277,7 +279,7 @@ Parser::StmtResult Parser::ParseIfStmt() {
           << "ELSE IF";
       return StmtError();
     }
-    Condition = ParseExpression();
+    Condition = ParseExpectedFollowupExpression("(");
     if(Condition.isInvalid()) return StmtError();
     if (!EatIfPresent(tok::r_paren)) {
       Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
@@ -317,12 +319,49 @@ Parser::StmtResult Parser::ParseIfStmt() {
   return Actions.ActOnIfStmt(Context, Loc, Branches, StmtLabel);
 }
 
+Parser::StmtResult Parser::ParseDoStmt() {
+  auto Loc = Tok.getLocation();
+  Lex();
+
+  auto TerminalStmt = ParseStatementLabelReference();
+  if(TerminalStmt.isInvalid()) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_stmt_label_after)
+        << "DO";
+    return StmtError();
+  }
+  auto DoVar = ParseVariableReference();
+  if(DoVar.isInvalid()) {
+    Diag.Report(Tok.getLocation(),diag::err_expected_do_var);
+    return StmtError();
+  }
+  if(!EatIfPresent(tok::equal)) {
+    Diag.Report(Tok.getLocation(),diag::err_expected_equal);
+    return StmtError();
+  }
+  auto E1 = ParseExpectedFollowupExpression("=");
+  if(E1.isInvalid()) return StmtError();
+  if(!EatIfPresent(tok::comma)) {
+    Diag.Report(Tok.getLocation(),diag::err_expected_comma);
+    return StmtError();
+  }
+  auto E2 = ParseExpectedFollowupExpression(",");
+  if(E2.isInvalid()) return StmtError();
+  ExprResult E3;
+  if(EatIfPresent(tok::comma)) {
+    E3 = ParseExpectedFollowupExpression(",");
+    if(E3.isInvalid()) return StmtError();
+  }
+
+  return Actions.ActOnDoStmt(Context, Loc, TerminalStmt,
+                             DoVar, E1, E2, E2, StmtLabel);
+}
+
 /// ParseContinueStmt
 ///   [R839]:
 ///     continue-stmt :=
 ///       CONTINUE
 Parser::StmtResult Parser::ParseContinueStmt() {
-  SMLoc Loc = Tok.getLocation();
+  auto Loc = Tok.getLocation();
   Lex();
 
   return Actions.ActOnContinueStmt(Context, Loc, StmtLabel);
@@ -337,7 +376,7 @@ Parser::StmtResult Parser::ParseContinueStmt() {
 ///       scalar-char-constant or
 ///       digit [ digit [ digit [ digit [ digit ] ] ] ]
 Parser::StmtResult Parser::ParseStopStmt() {
-  SMLoc Loc = Tok.getLocation();
+  auto Loc = Tok.getLocation();
   Lex();
 
   //FIXME: parse optional stop-code.

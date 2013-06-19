@@ -564,6 +564,13 @@ StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
   return Result;
 }
 
+StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStmt,
+                             ExprResult DoVar, ExprResult E1, ExprResult E2,
+                             ExprResult E3, Expr *StmtLabel) {
+
+  return StmtError();
+}
+
 StmtResult Sema::ActOnContinueStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
   auto Result = ContinueStmt::Create(C, Loc, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(this, StmtLabel, Result);

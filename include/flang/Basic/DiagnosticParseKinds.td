@@ -20,7 +20,9 @@ def err_parse_error : Error<"parse error">;
 def err_duplicate_declspec : Error<"duplicate '%0' declaration specifier">;
 def err_unexpected_lparen : Error<"unexpected '('">;
 
-def err_expected_expression : Error<"expected expression">;
+def err_expected_expression : Error<"expected an expression">;
+def err_expected_expression_after : Error<
+  "expected an expression after '%0'">;
 def err_expected_type : Error<"expected a type">;
 def err_expected_external_declaration : Error<"expected external declaration">;
 def err_extraneous_closing_brace : Error<"extraneous closing brace ('}')">;
@@ -36,6 +38,8 @@ def err_expected_lsquare : Error<"expected '['">;
 def err_expected_rsquare : Error<"expected ']'">;
 def err_expected_rbrace : Error<"expected '}'">;
 def err_expected_colon : Error<"expected ':'">;
+def err_expected_equal : Error<"expected '='">;
+def err_expected_comma : Error<"expected ','">;
 def err_expected_kw : Error<"expected '%0'">;
 def err_expected_stmt_label : Error<"expected statement label">;
 def err_expected_stmt_label_after : Error<"expected statement label after '%0'">;
@@ -48,6 +52,8 @@ def ext_expected_semi_decl_list : ExtWarn<
 def err_expected_member_name_or_semi : Error<
   "expected member name or ';' after declaration specifiers">;
 
+def err_expected_do_var : Error<
+  "expected a real or an integer variable">;
 def err_expected_int_var : Error<
   "expected an integer variable after '%0'">;
 

@@ -246,6 +246,7 @@ private:
   StmtResult ParseAssignStmt();
   StmtResult ParseGotoStmt();
   StmtResult ParseIfStmt();
+  StmtResult ParseDoStmt();
   StmtResult ParseContinueStmt();
   StmtResult ParseStopStmt();
   StmtResult ParseAssignmentStmt();
@@ -266,9 +267,15 @@ private:
   ExprResult ParseExpression();
   ExprResult ParseComplexConstant();
 
+  /// \brief Looks at the next token to see if it's an expression
+  /// and calls ParseExpression if it is, or reports an expected expression
+  /// error.
+  ExprResult ParseExpectedFollowupExpression(const char *DiagAfter = "");
+
   void ParseStatementLabel();
   ExprResult ParseStatementLabelReference();
 
+  ExprResult ParseVariableReference();
   VarExpr *ParseIntegerVariableReference();
 
   // Declaration construct functions
