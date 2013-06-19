@@ -48,7 +48,10 @@ class Sema {
   /// \brief A statement label scope for the current program unit.
   StmtLabelScope CurStmtLabelScope;
 
-  /// \brief A list of do statements in this executable program unit
+  /// \brief A stack of if statements in this executable program unit.
+  SmallVector<IfStmt* ,16> IfStmtStack;
+
+  /// \brief A list of do statements in this executable program unit.
   SmallVector<DoStmt* ,16> DoStmtList;
 public:
   typedef Expr ExprTy;
@@ -205,8 +208,11 @@ public:
 
   // Block if
   StmtResult ActOnIfStmt(ASTContext &C, SMLoc Loc,
-                         ArrayRef<std::pair<ExprResult,StmtResult> > Branches,
-                         Expr *StmtLabel);
+                         ExprResult Condition, Expr *StmtLabel);
+  StmtResult ActOnElseIfStmt(ASTContext &C, SMLoc Loc,
+                             ExprResult Condition, Expr *StmtLabel);
+  StmtResult ActOnElseStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
+  StmtResult ActOnEndIfStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
 
   StmtResult ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStmt,
                          VarExpr *DoVar, ExprResult E1, ExprResult E2,

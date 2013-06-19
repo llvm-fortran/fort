@@ -34,7 +34,13 @@ PROGRAM iftest
     C = "YES"
   ELSE IF 12 == 23) THEN ! expected-error {{expected '(' after 'ELSE IF'}}
     C = "NO"
-  ! FIXME: END IF
+  END IF
+
+  IF(1 == 0) THEN
+    C = "NO"
+  ELSE IF( ! expected-error@+1 {{expected an expression after '('}}
+    C = "NO"
+  END IF
 
   !Here comes nesting
   IF(33 == 22) THEN

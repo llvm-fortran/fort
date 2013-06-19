@@ -107,6 +107,12 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParseGotoStmt();
   case tok::kw_IF:
     return ParseIfStmt();
+  case tok::kw_ELSEIF:
+    return ParseElseIfStmt();
+  case tok::kw_ELSE:
+    return ParseElseStmt();
+  case tok::kw_ENDIF:
+    return ParseEndIfStmt();
   case tok::kw_DO:
     return ParseDoStmt();
   case tok::kw_CONTINUE:
@@ -118,9 +124,6 @@ Parser::StmtResult Parser::ParseActionStmt() {
 
   case tok::kw_END:
     // TODO: All of the end-* stmts.
-  case tok::kw_ELSE:
-  case tok::kw_ELSEIF:
-  case tok::kw_ENDIF:
   case tok::kw_ENDFUNCTION:
   case tok::kw_ENDPROGRAM:
   case tok::kw_ENDSUBPROGRAM:
@@ -236,87 +239,71 @@ Parser::StmtResult Parser::ParseGotoStmt() {
 ///   [R807]:
 ///     if-stmt :=
 ///       IF(scalar-logic-expr) action-stmt
-Parser::StmtResult Parser::ParseIfStmt() {
-  auto Loc = Tok.getLocation();
 
-  Lex();
+ExprResult Parser::ParseExpectedConditionExpression(const char *DiagAfter) {
   if (!EatIfPresent(tok::l_paren)) {
     Diag.Report(Tok.getLocation(), diag::err_expected_lparen_after)
-        << "IF";
-    return StmtError();
+        << DiagAfter;
+    return ExprError();
   }
   ExprResult Condition = ParseExpectedFollowupExpression("(");
-  if(Condition.isInvalid()) return StmtError();
+  if(Condition.isInvalid()) return Condition;
   if (!EatIfPresent(tok::r_paren)) {
     Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
-    return StmtError();
+    return ExprError();
   }
+  return Condition;
+}
+
+Parser::StmtResult Parser::ParseIfStmt() {
+  auto Loc = Tok.getLocation();
+  Lex();
+
+  ExprResult Condition = ParseExpectedConditionExpression("IF");
+  if(Condition.isInvalid()) return StmtError();
   if (!EatIfPresent(tok::kw_THEN)){
     // if-stmt
+    if(Tok.isAtStartOfStatement()) {
+      Diag.Report(Tok.getLocation(), diag::err_expected_executable_stmt);
+      return StmtError();
+    }
+    // NB: Don't give the action stmt my label
+    auto Label = StmtLabel;
+    StmtLabel = nullptr;
     auto Action = ParseActionStmt();
     if(Action.isInvalid()) return Action;
 
-    return Actions.ActOnIfStmt(Context, Loc, Condition, Action,
-                               StmtLabel);
+    return Actions.ActOnIfStmt(Context, Loc, Condition, Action, Label);
   }
 
-  //FIXME: if-construct-name
-  // if-then-stmt
-  std::vector<std::pair<ExprResult,StmtResult> > Branches;
-  if(!Tok.is(tok::kw_ENDIF) && !Tok.is(tok::kw_ELSE)
-     && !Tok.is(tok::kw_ELSEIF)) {
-    auto Body = ParseBlockStmt();
-    if(Body.isInvalid()) return Body;
-    Branches.push_back(std::make_pair(Condition,Body));
-  }
-  else
-    Branches.push_back(std::make_pair(Condition,StmtResult()));
+  // if-construct.
+  return Actions.ActOnIfStmt(Context, Loc, Condition, StmtLabel);
+}
 
-  // else-if-stmt
-  while(EatIfPresent(tok::kw_ELSEIF)) {
-    if (!EatIfPresent(tok::l_paren)) {
-      Diag.Report(Tok.getLocation(), diag::err_expected_lparen_after)
-          << "ELSE IF";
-      return StmtError();
-    }
-    Condition = ParseExpectedFollowupExpression("(");
-    if(Condition.isInvalid()) return StmtError();
-    if (!EatIfPresent(tok::r_paren)) {
-      Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
-      return StmtError();
-    }
-    if (!EatIfPresent(tok::kw_THEN)) {
-      Diag.Report(Tok.getLocation(), diag::err_expected_kw)
-          << "THEN";
-      return StmtError();
-    }
-    if(!Tok.is(tok::kw_ENDIF) && !Tok.is(tok::kw_ELSE)
-       && !Tok.is(tok::kw_ELSEIF)) {
-      auto Body = ParseBlockStmt();
-      if(Body.isInvalid()) return Body;
-      Branches.push_back(std::make_pair(Condition,Body));
-    }
-    else
-      Branches.push_back(std::make_pair(Condition,StmtResult()));
-  }
+Parser::StmtResult Parser::ParseElseIfStmt() {
+  auto Loc = Tok.getLocation();
+  Lex();
 
-  // else-stmt
-  if(EatIfPresent(tok::kw_ELSE)) {
-    if(!Tok.is(tok::kw_ENDIF)) {
-      auto Body = ParseBlockStmt();
-      if(Body.isInvalid()) return Body;
-      Branches.push_back(std::make_pair(ExprResult(),Body));
-    }
-  }
-
-  // end-if-stmt
-  if (!EatIfPresent(tok::kw_ENDIF)) {
+  ExprResult Condition = ParseExpectedConditionExpression("ELSE IF");
+  if(Condition.isInvalid()) return StmtError();
+  if (!EatIfPresent(tok::kw_THEN)) {
     Diag.Report(Tok.getLocation(), diag::err_expected_kw)
-        << "END IF";
+        << "THEN";
     return StmtError();
   }
+  return Actions.ActOnElseIfStmt(Context, Loc, Condition, StmtLabel);
+}
 
-  return Actions.ActOnIfStmt(Context, Loc, Branches, StmtLabel);
+Parser::StmtResult Parser::ParseElseStmt() {
+  auto Loc = Tok.getLocation();
+  Lex();
+  return Actions.ActOnElseStmt(Context, Loc, StmtLabel);
+}
+
+Parser::StmtResult Parser::ParseEndIfStmt() {
+  auto Loc = Tok.getLocation();
+  Lex();
+  return Actions.ActOnEndIfStmt(Context, Loc, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseDoStmt() {

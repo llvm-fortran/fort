@@ -525,15 +525,20 @@ public:
 };
 
 /// IfStmt
-class IfStmt : public ListStmt<std::pair<ExprResult, StmtResult> > {
+class IfStmt : public Stmt {
+  ExprResult Condition;
+  Stmt *ThenArm, *ElseArm;
 
-  IfStmt(ASTContext &C, SMLoc Loc,
-         ArrayRef<std::pair<ExprResult, StmtResult> > Branches,
-         ExprResult StmtLabel);
+  IfStmt(SMLoc Loc, ExprResult Cond, ExprResult StmtLabel);
 public:
   static IfStmt *Create(ASTContext &C, SMLoc Loc,
-                        ArrayRef<std::pair<ExprResult, StmtResult> > Branches,
-                        ExprResult StmtLabel);
+                        ExprResult Condition, ExprResult StmtLabel);
+
+  inline ExprResult getCondition() const { return Condition; }
+  inline Stmt *getThenStmt() const { return ThenArm; }
+  inline Stmt *getElseStmt() const { return ElseArm; }
+  void setThenStmt(Stmt *Body);
+  void setElseStmt(Stmt *Body);
 
   static bool classof(const IfStmt*) { return true; }
   static bool classof(const Stmt *S){

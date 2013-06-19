@@ -56,6 +56,7 @@ void Sema::PushExecutableProgramUnit() {
 
   // Track the bodies of the executable statements like do and if
   assert(DoStmtList.empty());
+  assert(IfStmtStack.empty());
 }
 
 static bool isValidDoTerminatingStatement(Stmt *S);
@@ -78,6 +79,9 @@ void Sema::PopExecutableProgramUnit() {
   // FIXME: TODO warning unused statement labels.
   // Clear the statement labels scope
   CurStmtLabelScope.reset();
+
+  // Resolve the bodies of the if statements
+  IfStmtStack.clear();
 
   // Resolve the bodies of the do statements
   for(auto I : DoStmtList) {
@@ -553,8 +557,8 @@ static void ReportExpectedLogical(DiagnosticsEngine &Diag, ExprResult E) {
 }
 
 StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
-                       ExprResult Condition, StmtResult Body,
-                       Expr *StmtLabel) {
+                             ExprResult Condition, StmtResult Body,
+                             Expr *StmtLabel) {
   // FIXME: Constraint: The action-stmt in the if-stmt shall not be an
   // if-stmt, end-program-stmt, end-function-stmt, or end-subroutine-stmt.
 
@@ -562,27 +566,42 @@ StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
     ReportExpectedLogical(Diags, Condition);
     return StmtError();
   }
-  auto Result = IfStmt::Create(C, Loc, std::make_pair(Condition, Body), StmtLabel);
+  auto Result = IfStmt::Create(C, Loc, Condition, StmtLabel);
+  Result->setThenStmt(Body.get());
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
 StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
-                       ArrayRef<std::pair<ExprResult,StmtResult> > Branches,
-                       Expr *StmtLabel) {
-  for(size_t I = 0; I < Branches.size(); ++I) {
-    if(!Branches[I].first.get()) {
-      assert(I == Branches.size() - 1);
-      break;
-    }
-    if(!IsLogicalExpression(Branches[I].first)) {
-      ReportExpectedLogical(Diags, Branches[I].first);
-      return StmtError();
-    }
+                             ExprResult Condition, Expr *StmtLabel) {
+  if(!IsLogicalExpression(Condition)) {
+    ReportExpectedLogical(Diags, Condition);
+    return StmtError();
   }
-  auto Result = IfStmt::Create(C, Loc, Branches, StmtLabel);
+
+  auto Result = IfStmt::Create(C, Loc, Condition, StmtLabel);
+  IfStmtStack.append(1, Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
+}
+
+// FIXME: TODO
+StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SMLoc Loc,
+                                 ExprResult Condition, Expr *StmtLabel) {
+  if(!IsLogicalExpression(Condition)) {
+    ReportExpectedLogical(Diags, Condition);
+    return StmtError();
+  }
+
+  return StmtError();
+}
+
+StmtResult Sema::ActOnElseStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
+  return StmtError();
+}
+
+StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
+  return StmtError();
 }
 
 static void ResolveDoStmtLabel(const StmtLabelScope::StmtLabelForwardDecl &Self,
@@ -621,6 +640,8 @@ static bool isValidDoTerminatingStatement(Stmt *S) {
 }
 
 /// FIXME: TODO DO body.
+/// FIXME: TODO nested DO/IF constraints - nested inside DO, IF-block ELSE IF-block and ELSE-block
+/// FIXME: TODO Transfer of control into the range of a DO-loop from outside the range is not permitted.
 StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStmt,
                              VarExpr *DoVar, ExprResult E1, ExprResult E2,
                              ExprResult E3, Expr *StmtLabel) {

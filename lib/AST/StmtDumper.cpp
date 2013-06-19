@@ -158,25 +158,13 @@ void StmtVisitor::visit(const GotoStmt *S) {
 }
 
 void StmtVisitor::visit(const IfStmt* S) {
-  OS << "(if (";
-  ArrayRef<std::pair<ExprResult, StmtResult> > Branches =
-      S->getIDList();
-  for(size_t i = 0; i < Branches.size(); ++i) {
-    ExprResult Condition = Branches[i].first;
-    if(i>0){
-      OS << ")\n else";
-      if((Condition.isInvalid() && (i+1) < Branches.size())
-         || Condition.get()) OS << "if(";
-      else OS << "(";
-    }
-    if(Condition.isUsable())
-      Condition.get()->print(OS);
-    OS << ") then\n (";
-    StmtResult Action = Branches[i].second;
-    if(Action.isUsable())
-      visit(Action.get());
+  OS << "(if ";
+  S->getCondition().get()->print(OS);
+  if(S->getThenStmt()) {
+    OS << ") ";
+    visit(S->getThenStmt());
   }
-  OS << "))\n";
+  OS << ")\n";
 }
 
 void StmtVisitor::visit(const DoStmt *S) {

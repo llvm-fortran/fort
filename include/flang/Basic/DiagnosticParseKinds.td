@@ -23,6 +23,8 @@ def err_unexpected_lparen : Error<"unexpected '('">;
 def err_expected_expression : Error<"expected an expression">;
 def err_expected_expression_after : Error<
   "expected an expression after '%0'">;
+def err_expected_executable_stmt : Error<
+  "expected an executable statement">;
 def err_expected_type : Error<"expected a type">;
 def err_expected_external_declaration : Error<"expected external declaration">;
 def err_extraneous_closing_brace : Error<"extraneous closing brace ('}')">;

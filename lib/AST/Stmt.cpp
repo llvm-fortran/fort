@@ -296,16 +296,26 @@ void GotoStmt::setDestination(StmtLabelReference Destination) {
 // If Statement
 //===----------------------------------------------------------------------===//
 
-IfStmt::IfStmt(ASTContext &C, SMLoc Loc,
-               ArrayRef<std::pair<ExprResult, StmtResult> > Branches,
-               ExprResult StmtLabel)
-  : ListStmt(C, If, Loc, Branches, StmtLabel) {
+IfStmt::IfStmt(SMLoc Loc, ExprResult Cond, ExprResult StmtLabel)
+  : Stmt(If, Loc, StmtLabel), Condition(Cond),
+    ThenArm(nullptr), ElseArm(nullptr)  {
 }
 
 IfStmt *IfStmt::Create(ASTContext &C, SMLoc Loc,
-                      ArrayRef<std::pair<ExprResult, StmtResult> > Branches,
-                      ExprResult StmtLabel) {
-  return new(C) IfStmt(C,Loc,Branches,StmtLabel);
+                       ExprResult Condition, ExprResult StmtLabel) {
+  return new(C) IfStmt(Loc, Condition, StmtLabel);
+}
+
+void IfStmt::setThenStmt(Stmt *Body) {
+  assert(!ThenArm);
+  assert(Body);
+  ThenArm = Body;
+}
+
+void IfStmt::setElseStmt(Stmt *Body) {
+  assert(!ElseArm);
+  assert(Body);
+  ElseArm = Body;
 }
 
 //===----------------------------------------------------------------------===//

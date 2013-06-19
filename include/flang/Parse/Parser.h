@@ -245,7 +245,13 @@ private:
   StmtResult ParseBlockStmt();
   StmtResult ParseAssignStmt();
   StmtResult ParseGotoStmt();
+
   StmtResult ParseIfStmt();
+  StmtResult ParseElseIfStmt();
+  StmtResult ParseElseStmt();
+  StmtResult ParseEndIfStmt();
+  ExprResult ParseExpectedConditionExpression(const char *DiagAfter);
+
   StmtResult ParseDoStmt();
   StmtResult ParseContinueStmt();
   StmtResult ParseStopStmt();
