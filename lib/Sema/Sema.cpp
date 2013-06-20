@@ -715,7 +715,7 @@ static bool IsValidDoLogicalIfThenStatement(Stmt *S) {
 static bool IsValidDoTerminatingStatement(Stmt *S) {
   switch(S->getStatementID()) {
   case Stmt::Goto: case Stmt::AssignedGoto:
-  case Stmt::Stop: case Stmt::Do:
+  case Stmt::Stop: case Stmt::Do: case Stmt::EndDo:
   case Stmt::Else: case Stmt::EndIf:
     return false;
   case Stmt::If: {
@@ -788,23 +788,33 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStm
 }
 
 /// FIXME: Better DIAGS.
+/// FIXME: Fortran 90+: make multiple do end at one label obsolete
 void Sema::CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S) {
   if(!CurExecutableStmts.HasEntered() ||
      !CurExecutableStmts.LastEntered().is(Stmt::Do))
     return;
-  auto ParentDo = static_cast<DoStmt*>(CurExecutableStmts.LastEntered().Statement);
-  auto ParentDoExpects = CurExecutableStmts.LastEntered().ExpectedEndDoLabel;
-  if(!ParentDoExpects) return;
-  if(getCurrentStmtLabelScope().IsSame(ParentDoExpects, StmtLabel)) {
-    // END DO
-    getCurrentStmtLabelScope().RemoveForwardReference(ParentDo);
-    if(!IsValidDoTerminatingStatement(S)) {
-      Diags.Report(S->getLocation(),
-                   diag::err_invalid_do_terminating_stmt);
+
+  auto I = CurExecutableStmts.ControlFlowStack.size();
+  do {
+    I--;
+    if(!CurExecutableStmts.ControlFlowStack[I].is(Stmt::Do))
+      break;
+    auto ParentDo = static_cast<DoStmt*>(CurExecutableStmts.ControlFlowStack[I].Statement);
+    auto ParentDoExpectedLabel = CurExecutableStmts.LastEntered().ExpectedEndDoLabel;
+    if(!ParentDoExpectedLabel)
+      break;
+
+    if(getCurrentStmtLabelScope().IsSame(ParentDoExpectedLabel, StmtLabel)) {
+      // END DO
+      getCurrentStmtLabelScope().RemoveForwardReference(ParentDo);
+      if(!IsValidDoTerminatingStatement(S)) {
+        Diags.Report(S->getLocation(),
+                     diag::err_invalid_do_terminating_stmt);
+      }
+      ParentDo->setTerminatingStmt(StmtLabelReference(S));
+      CurExecutableStmts.Leave(Context);
     }
-    ParentDo->setTerminatingStmt(StmtLabelReference(S));
-    CurExecutableStmts.Leave(Context);
-  }
+  } while(I>0);
 }
 
 StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {

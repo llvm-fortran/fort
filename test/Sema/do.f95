@@ -1,6 +1,6 @@
 ! RUN: %flang -verify %s 2>&1 | %file_check %s
 PROGRAM dotest
-    INTEGER I
+    INTEGER I, K
     REAL R
     COMPLEX C
     INTEGER ADDR
@@ -53,5 +53,12 @@ PROGRAM dotest
     END DO
 
     END DO ! expected-error {{use of 'END DO' without the do statement}}
+
+    ! allow multiple DOs to finish at the same statement
+    ! FIXME: make obsolete in Fortran 90+
+    DO 130 I = 1, 10
+    DO 130 K = 10, 1, -1
+      R = R + I + K
+130 CONTINUE
 
 END PROGRAM
