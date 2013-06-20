@@ -60,6 +60,9 @@ def err_undeclared_stmt_label_use : Error<"use of undeclared statement label '%0
 def warn_unused_stmt_label : Warning<"unused statement label '%0'">,
   InGroup<UnusedLabel>, DefaultIgnore;
 
+def err_expected_stmt_label_end_do : Error<
+  "expected a statement with a statement label '%0' to mark the end of a do loop">;
+
 def err_invalid_do_terminating_stmt : Error<
   "invalid terminating statement for a DO loop">;
 

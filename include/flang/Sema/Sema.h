@@ -55,10 +55,12 @@ public:
     Expr *ExpectedEndDoLabel;
 
     ControlFlowStmt()
-      : Statement(nullptr),BeginOffset(0) {
+      : Statement(nullptr),BeginOffset(0),
+        ExpectedEndDoLabel(nullptr){
     }
     ControlFlowStmt(CFBlockStmt *S)
-      : Statement(S), BeginOffset(0) {
+      : Statement(S), BeginOffset(0),
+        ExpectedEndDoLabel(nullptr) {
     }
     ControlFlowStmt(DoStmt *S, Expr *ExpectedEndDo)
       : Statement(S), BeginOffset(0),
@@ -80,14 +82,16 @@ public:
   void Reset();
 
   void Enter(ControlFlowStmt S);
+  void LeaveIfThen(ASTContext &C);
+  void Leave(ASTContext &C);
+
   inline const ControlFlowStmt &LastEntered() const {
     return ControlFlowStack.back();
   }
   inline bool HasEntered() const {
     return ControlFlowStack.size() != 0;
   }
-  void LeaveIfThen(ASTContext &C);
-  void Leave(ASTContext &C);
+  bool HasEntered(Stmt::StmtTy StmtType) const;
 
   void Append(Stmt *S);
 private:

@@ -26,4 +26,8 @@ PROGRAM iftest
     I = 3
   END IF
 
-END PROGRAM
+  IF(.true.) THEN
+    DO I = 1, 10
+  END IF ! expected-error {{expected 'END DO'}}
+
+END PROGRAM ! expected-error {{expected 'END DO'}}

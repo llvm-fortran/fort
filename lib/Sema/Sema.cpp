@@ -61,6 +61,39 @@ void Sema::PushExecutableProgramUnit() {
 
 static bool IsValidDoTerminatingStatement(Stmt *S);
 
+// Unterminated labeled do statement
+static void ReportUnterminatedLabeledDoStmt(DiagnosticsEngine &Diags,
+                                            const ExecutableProgramUnitStmts::ControlFlowStmt &S,
+                                            SMLoc Loc) {
+  std::string Str;
+  llvm::raw_string_ostream Stream(Str);
+  S.ExpectedEndDoLabel->print(Stream);
+  Diags.Report(Loc, diag::err_expected_stmt_label_end_do) << Stream.str();
+}
+
+// Unterminated if/do statement
+static void ReportUnterminatedStmt(DiagnosticsEngine &Diags,
+                                   const ExecutableProgramUnitStmts::ControlFlowStmt &S,
+                                   SMLoc Loc,
+                                   bool ReportUnterminatedLabeledDo = true) {
+  const char * Keyword;
+  switch(S.Statement->getStatementID()) {
+  case Stmt::If: Keyword = "END IF"; break;
+  case Stmt::Do: {
+    if(S.ExpectedEndDoLabel) {
+      if(ReportUnterminatedLabeledDo)
+        ReportUnterminatedLabeledDoStmt(Diags, S, Loc);
+      return;
+    }
+    else Keyword = "END DO";
+    break;
+  }
+  default:
+    llvm_unreachable("Invalid stmt");
+  }
+  Diags.Report(Loc, diag::err_expected_kw) << Keyword;
+}
+
 void Sema::PopExecutableProgramUnit(SMLoc Loc) {
   // Fix the forward statement label references
   auto StmtLabelForwardDecls = CurStmtLabelScope.getForwardDecls();
@@ -80,25 +113,12 @@ void Sema::PopExecutableProgramUnit(SMLoc Loc) {
   // Clear the statement labels scope
   CurStmtLabelScope.reset();
 
-  // Resolve the bodies of the if statements
-  // FIXME: TODO Create the body of the if statements.
-  for(auto I : CurExecutableStmts.ControlFlowStack) {
-    // Unterminated if/do statement
-    const char * Keyword = "";
-    switch(I.Statement->getStatementID()) {
-    case Stmt::If: Keyword = "END IF"; break;
-    case Stmt::Do: {
-      // If do ends with statement label, the error
-      // was already reported as undeclared label use.
-      if(I.ExpectedEndDoLabel) Keyword = nullptr;
-      Keyword = "END DO";
-      break;
-    }
-    }
-    if(Keyword)
-      Diags.Report(Loc,diag::err_expected_kw) << Keyword;
+  // Report unterminated statements.
+  if(CurExecutableStmts.HasEntered()) {
+    // If do ends with statement label, the error
+    // was already reported as undeclared label use.
+    ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc, false);
   }
-
   CurExecutableStmts.Reset();
 }
 
@@ -142,6 +162,13 @@ void ExecutableProgramUnitStmts::Leave(ASTContext &C) {
   } else
     static_cast<CFBlockStmt*>(Last.Statement)->setBody(Body);
   StmtList.erase(StmtList.begin() + Last.BeginOffset, StmtList.end());
+}
+
+bool ExecutableProgramUnitStmts::HasEntered(Stmt::StmtTy StmtType) const {
+  for(auto I : ControlFlowStack) {
+    if(I.is(StmtType)) return true;
+  }
+  return false;
 }
 
 void ExecutableProgramUnitStmts::Append(Stmt *S) {
@@ -623,8 +650,8 @@ StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
 
   auto Result = IfStmt::Create(C, Loc, Condition, StmtLabel);
   CurExecutableStmts.Append(Result);
-  CurExecutableStmts.Enter(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  CurExecutableStmts.Enter(Result);
   return Result;
 }
 
@@ -632,7 +659,10 @@ StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SMLoc Loc,
                                  ExprResult Condition, Expr *StmtLabel) {
   if(!CurExecutableStmts.HasEntered() ||
      !CurExecutableStmts.LastEntered().is(Stmt::If)) {
-    Diags.Report(Loc, diag::err_stmt_not_in_if) << "ELSE IF";
+    if(CurExecutableStmts.HasEntered(Stmt::If))
+      ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
+    else
+      Diags.Report(Loc, diag::err_stmt_not_in_if) << "ELSE IF";
     return StmtError();
   }
 
@@ -646,15 +676,18 @@ StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SMLoc Loc,
   auto ParentIf = static_cast<IfStmt*>(CurExecutableStmts.LastEntered().Statement);
   CurExecutableStmts.Leave(C);
   ParentIf->setElseStmt(Result);
-  CurExecutableStmts.Enter(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  CurExecutableStmts.Enter(Result);
   return Result;
 }
 
 StmtResult Sema::ActOnElseStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
   if(!CurExecutableStmts.HasEntered() ||
      !CurExecutableStmts.LastEntered().is(Stmt::If)) {
-    Diags.Report(Loc, diag::err_stmt_not_in_if) << "ELSE";
+    if(CurExecutableStmts.HasEntered(Stmt::If))
+      ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
+    else
+      Diags.Report(Loc, diag::err_stmt_not_in_if) << "ELSE";
     return StmtError();
   }
   auto Result = Stmt::Create(C, Stmt::Else, Loc, StmtLabel);
@@ -665,11 +698,16 @@ StmtResult Sema::ActOnElseStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
 }
 
 StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
+  // Report begin .. end mismatch
   if(!CurExecutableStmts.HasEntered() ||
      !CurExecutableStmts.LastEntered().is(Stmt::If)) {
-    Diags.Report(Loc, diag::err_stmt_not_in_if) << "END IF";
+    if(CurExecutableStmts.HasEntered(Stmt::If))
+      ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
+    else
+      Diags.Report(Loc, diag::err_stmt_not_in_if) << "END IF";
     return StmtError();
   }
+
   auto Result = Stmt::Create(C, Stmt::EndIf, Loc, StmtLabel);
   CurExecutableStmts.Append(Result);
   CurExecutableStmts.Leave(C);
@@ -740,8 +778,6 @@ static ExprResult ApplyDoConversionIfNeeded(ASTContext &C, ExprResult E, QualTyp
   }
 }
 
-/// FIXME: TODO DO body.
-/// FIXME: TODO nested DO/IF constraints - nested inside DO, IF-block ELSE IF-block and ELSE-block
 /// FIXME: TODO Transfer of control into the range of a DO-loop from outside the range is not permitted.
 StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStmt,
                              VarExpr *DoVar, ExprResult E1, ExprResult E2,
@@ -774,55 +810,78 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStm
   auto Result = DoStmt::Create(C, Loc, StmtLabelReference(),
                                DoVar, E1, E2, E3, StmtLabel);
   CurExecutableStmts.Append(Result);
-  if(TerminatingStmt.get()) {
+  if(TerminatingStmt.get())
     getCurrentStmtLabelScope().DeclareForwardReference(
       StmtLabelScope::StmtLabelForwardDecl(TerminatingStmt.get(), Result,
                                            ResolveDoStmtLabel));
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  if(TerminatingStmt.get())
     CurExecutableStmts.Enter(ExecutableProgramUnitStmts::ControlFlowStmt(
                              Result,TerminatingStmt.get()));
-  } else
-     CurExecutableStmts.Enter(Result);
-
-  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  else CurExecutableStmts.Enter(Result);
   return Result;
 }
 
-/// FIXME: Better DIAGS.
 /// FIXME: Fortran 90+: make multiple do end at one label obsolete
 void Sema::CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S) {
-  if(!CurExecutableStmts.HasEntered() ||
-     !CurExecutableStmts.LastEntered().is(Stmt::Do))
+  if(!CurExecutableStmts.HasEntered())
     return;
 
   auto I = CurExecutableStmts.ControlFlowStack.size();
+  size_t LastUnterminated = 0;
   do {
     I--;
-    if(!CurExecutableStmts.ControlFlowStack[I].is(Stmt::Do))
-      break;
-    auto ParentDo = static_cast<DoStmt*>(CurExecutableStmts.ControlFlowStack[I].Statement);
-    auto ParentDoExpectedLabel = CurExecutableStmts.LastEntered().ExpectedEndDoLabel;
-    if(!ParentDoExpectedLabel)
-      break;
-
-    if(getCurrentStmtLabelScope().IsSame(ParentDoExpectedLabel, StmtLabel)) {
-      // END DO
-      getCurrentStmtLabelScope().RemoveForwardReference(ParentDo);
-      if(!IsValidDoTerminatingStatement(S)) {
-        Diags.Report(S->getLocation(),
-                     diag::err_invalid_do_terminating_stmt);
+    if(!CurExecutableStmts.ControlFlowStack[I].is(Stmt::Do)) {
+      if(!LastUnterminated) LastUnterminated = I;
+    } else {
+      auto ParentDo = static_cast<DoStmt*>(CurExecutableStmts.ControlFlowStack[I].Statement);
+      auto ParentDoExpectedLabel = CurExecutableStmts.ControlFlowStack[I].ExpectedEndDoLabel;
+      if(!ParentDoExpectedLabel) {
+        if(!LastUnterminated) LastUnterminated = I;
+      } else {
+        if(getCurrentStmtLabelScope().IsSame(ParentDoExpectedLabel, StmtLabel)) {
+          // END DO
+          getCurrentStmtLabelScope().RemoveForwardReference(ParentDo);
+          if(!IsValidDoTerminatingStatement(S)) {
+            Diags.Report(S->getLocation(),
+                         diag::err_invalid_do_terminating_stmt);
+          }
+          ParentDo->setTerminatingStmt(StmtLabelReference(S));
+          if(!LastUnterminated)
+            CurExecutableStmts.Leave(Context);
+          else
+            ReportUnterminatedStmt(Diags,
+                                   CurExecutableStmts.ControlFlowStack[LastUnterminated],
+                                   S->getLocation());
+        } else if(!LastUnterminated) LastUnterminated = I;
       }
-      ParentDo->setTerminatingStmt(StmtLabelReference(S));
-      CurExecutableStmts.Leave(Context);
     }
   } while(I>0);
 }
 
 StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
+  // Report begin .. end mismatch
   if(!CurExecutableStmts.HasEntered() ||
      !CurExecutableStmts.LastEntered().is(Stmt::Do)) {
-    Diags.Report(Loc, diag::err_end_do_without_do);
+    bool HasMatchingDo = false;
+    for(auto I : CurExecutableStmts.ControlFlowStack) {
+      if(I.is(Stmt::Do) && !I.ExpectedEndDoLabel) {
+        HasMatchingDo = true;
+        break;
+      }
+    }
+    if(!HasMatchingDo)
+      Diags.Report(Loc, diag::err_end_do_without_do);
+    else ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
     return StmtError();
   }
+
+  // If last loop was a DO with terminating label, we expect it to finish before this loop
+  if(CurExecutableStmts.LastEntered().ExpectedEndDoLabel) {
+    ReportUnterminatedLabeledDoStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
+    return StmtError();
+  }
+
   auto Result = Stmt::Create(C, Stmt::EndDo, Loc, StmtLabel);
   CurExecutableStmts.Append(Result);
   CurExecutableStmts.Leave(C);

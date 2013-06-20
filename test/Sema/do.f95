@@ -11,11 +11,20 @@ PROGRAM dotest
       R = I * R
 10  CONTINUE
 
+    END DO ! expected-error {{use of 'END DO' without the do statement}}
+
     DO 10 I = 1, 5 ! expected-error {{the statement label '10' must be declared after the 'DO' statement}}
 20    R = R * R
 
+    DO 25 I = 1, 10
+      IF(.true.) THEN
+25      CONTINUE ! expected-error {{expected 'END IF'}}
+      END IF
+
     DO 666 I = 1, 10,2  ! expected-error {{use of undeclared statement label '666'}}
       R = I * R
+
+    END DO ! expected-error {{expected a statement with a statement label '666' to mark the end of a do loop}}
 
     DO 30 C = 1, 3 ! expected-error {{expected a real or an integer variable instead of variable with type 'COMPLEX'}}
 30  CONTINUE
@@ -35,7 +44,7 @@ PROGRAM dotest
 80  CONTINUE
 
     DO 90 I = 0, 3
-90    IF(I == 0) R = 1.0
+90    IF(I == 0) R = 1.0 ! expected-error {{invalid terminating statement for a DO loop}}
 
     DO 100 I = 1, 2
 100   IF(I == 1) THEN ! expected-error {{invalid terminating statement for a DO loop}}
@@ -51,8 +60,6 @@ PROGRAM dotest
 
     DO I = 1,10
     END DO
-
-    END DO ! expected-error {{use of 'END DO' without the do statement}}
 
     ! allow multiple DOs to finish at the same statement
     ! FIXME: make obsolete in Fortran 90+
