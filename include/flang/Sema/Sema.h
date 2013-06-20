@@ -26,6 +26,7 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/SMLoc.h"
 #include "flang/Basic/LLVM.h"
+#include <vector>
 
 namespace flang {
 
@@ -40,6 +41,59 @@ class IdentifierInfo;
 class Token;
 class VarDecl;
 
+class ExecutableProgramUnitStmts {
+public:
+  /// \brief A list of executable statements for all the blocks
+  std::vector<StmtResult> StmtList;
+
+  /// \brief Represents a statement with body(bodies) like DO or IF
+  struct ControlFlowStmt {
+    Stmt *Statement;
+    size_t BeginOffset;
+    /// \brief used only when a statement is a do which terminates
+    /// with a labeled statement.
+    Expr *ExpectedEndDoLabel;
+
+    ControlFlowStmt()
+      : Statement(nullptr),BeginOffset(0) {
+    }
+    ControlFlowStmt(CFBlockStmt *S)
+      : Statement(S), BeginOffset(0) {
+    }
+    ControlFlowStmt(DoStmt *S, Expr *ExpectedEndDo)
+      : Statement(S), BeginOffset(0),
+        ExpectedEndDoLabel(ExpectedEndDo) {
+    }
+    ControlFlowStmt(IfStmt *S)
+      : Statement(S), BeginOffset(0) {
+    }
+    inline bool is(Stmt::StmtTy StmtType) const {
+      return Statement->getStatementID() == StmtType;
+    }
+  };
+
+  /// \brief A stack of current block statements like IF and DO
+  SmallVector<ControlFlowStmt, 16> ControlFlowStack;
+
+  ExecutableProgramUnitStmts() {}
+
+  void Reset();
+
+  void Enter(ControlFlowStmt S);
+  inline const ControlFlowStmt &LastEntered() const {
+    return ControlFlowStack.back();
+  }
+  inline bool HasEntered() const {
+    return ControlFlowStack.size() != 0;
+  }
+  void LeaveIfThen(ASTContext &C);
+  void Leave(ASTContext &C);
+
+  void Append(Stmt *S);
+private:
+  Stmt *CreateBody(ASTContext &C, const ControlFlowStmt &Last);
+};
+
 /// Sema - This implements semantic analysis and AST buiding for Fortran.
 class Sema {
   Sema(const Sema&);           // DO NOT IMPLEMENT
@@ -48,15 +102,10 @@ class Sema {
   /// \brief A statement label scope for the current program unit.
   StmtLabelScope CurStmtLabelScope;
 
-  /// \brief A stack of if statements in this executable program unit.
-  SmallVector<IfStmt* ,16> IfStmtStack;
+  /// \brief A class which supports the executable statements in
+  /// the current scope.
+  ExecutableProgramUnitStmts CurExecutableStmts;
 
-  /// \brief A list of do statements which don't need the end do statement
-  /// in this executable program unit.
-  SmallVector<DoStmt* ,16> DoStmtNoEndDoList;
-
-  /// \brief A Stack of do statements in this program unit.
-  SmallVector<DoStmt*, 16> DoStmtStack;
 public:
   typedef Expr ExprTy;
 
@@ -86,6 +135,7 @@ public:
   void PopExecutableProgramUnit(SMLoc Loc);
 
   void DeclareStatementLabel(Expr *StmtLabel, Stmt *S);
+  void CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S);
 
   void ActOnTranslationUnit();
   void ActOnEndProgramUnit();
@@ -205,12 +255,6 @@ public:
   StmtResult ActOnGotoStmt(ASTContext &C, SMLoc Loc,
                            ExprResult Destination, Expr *StmtLabel);
 
-  // Logical if
-  StmtResult ActOnIfStmt(ASTContext &C, SMLoc Loc,
-                         ExprResult Condition, StmtResult Body,
-                         Expr *StmtLabel);
-
-  // Block if
   StmtResult ActOnIfStmt(ASTContext &C, SMLoc Loc,
                          ExprResult Condition, Expr *StmtLabel);
   StmtResult ActOnElseIfStmt(ASTContext &C, SMLoc Loc,

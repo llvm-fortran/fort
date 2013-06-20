@@ -80,6 +80,12 @@ public:
   /// \brief Declares a forward reference of some statement label.
   void DeclareForwardReference(StmtLabelForwardDecl Reference);
 
+  /// \brief Removes a forward reference of some statement label.
+  void RemoveForwardReference(const Stmt *User);
+
+  /// \brief Returns true is the two statement labels are identical.
+  bool IsSame(const Expr *StmtLabelA, const Expr *StmtLabelB) const;
+
   /// \bried Resets the scope.
   void reset();
 };

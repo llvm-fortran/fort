@@ -323,6 +323,19 @@ void IfStmt::setElseStmt(Stmt *Body) {
 }
 
 //===----------------------------------------------------------------------===//
+// Control flow block Statement
+//===----------------------------------------------------------------------===//
+
+CFBlockStmt::CFBlockStmt(StmtTy Type, SMLoc Loc, ExprResult StmtLabel)
+  : Stmt(Type, Loc, StmtLabel), Body(nullptr) {}
+
+void CFBlockStmt::setBody(Stmt *Body) {
+  assert(!this->Body);
+  assert(Body);
+  this->Body = Body;
+}
+
+//===----------------------------------------------------------------------===//
 // Do Statement
 //===----------------------------------------------------------------------===//
 
@@ -330,9 +343,8 @@ DoStmt::DoStmt(SMLoc Loc, StmtLabelReference TermStmt,
                ExprResult DoVariable, ExprResult InitialParam,
                ExprResult TerminalParam, ExprResult IncrementationParam,
                ExprResult StmtLabel)
-  : Stmt(Do, Loc, StmtLabel), TerminatingStmt(TermStmt), DoVar(DoVariable),
-    Init(InitialParam), Terminate(TerminalParam), Increment(IncrementationParam),
-    Body(nullptr) {
+  : CFBlockStmt(Do, Loc, StmtLabel), TerminatingStmt(TermStmt), DoVar(DoVariable),
+    Init(InitialParam), Terminate(TerminalParam), Increment(IncrementationParam) {
 }
 
 DoStmt *DoStmt::Create(ASTContext &C, SMLoc Loc, StmtLabelReference TermStmt,
@@ -347,12 +359,6 @@ void DoStmt::setTerminatingStmt(StmtLabelReference Stmt) {
   assert(!TerminatingStmt.Statement);
   assert(Stmt.Statement);
   TerminatingStmt = Stmt;
-}
-
-void DoStmt::setBody(Stmt *Body) {
-  assert(!this->Body);
-  assert(Body);
-  this->Body = Body;
 }
 
 //===----------------------------------------------------------------------===//

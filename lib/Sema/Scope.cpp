@@ -18,8 +18,8 @@
 
 namespace flang {
 
-static StmtLabelInteger GetStmtLabelValue(Expr *E) {
-  if(IntegerConstantExpr *IExpr =
+static StmtLabelInteger GetStmtLabelValue(const Expr *E) {
+  if(const IntegerConstantExpr *IExpr =
      dyn_cast<IntegerConstantExpr>(E)) {
     return StmtLabelInteger(
           IExpr->getValue().getLimitedValue(
@@ -47,6 +47,22 @@ Stmt *StmtLabelScope::Resolve(Expr *StmtLabel) const {
 /// \brief Declares a forward reference of some statement label.
 void StmtLabelScope::DeclareForwardReference(StmtLabelForwardDecl Reference) {
   ForwardStmtLabelDeclsInScope.append(1,Reference);
+}
+
+/// \brief Removes a forward reference of some statement label.
+void StmtLabelScope::RemoveForwardReference(const Stmt *User) {
+  for(size_t I = 0; I < ForwardStmtLabelDeclsInScope.size(); ++I) {
+    if(ForwardStmtLabelDeclsInScope[I].Statement == User) {
+      ForwardStmtLabelDeclsInScope.erase(ForwardStmtLabelDeclsInScope.begin() + I);
+      return;
+    }
+  }
+}
+
+/// \brief Returns true is the two statement labels are identical.
+bool StmtLabelScope::IsSame(const Expr *StmtLabelA,
+                            const Expr *StmtLabelB) const {
+  return GetStmtLabelValue(StmtLabelA) == GetStmtLabelValue(StmtLabelB);
 }
 
 void StmtLabelScope::reset() {

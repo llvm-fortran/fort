@@ -532,6 +532,7 @@ public:
 };
 
 /// IfStmt
+/// An if statement is also a control flow statement
 class IfStmt : public Stmt {
   ExprResult Condition;
   Stmt *ThenArm, *ElseArm;
@@ -553,12 +554,23 @@ public:
   }
 };
 
+/// A base class for statements with own body which
+/// the program will execute when entering this body.
+class CFBlockStmt : public Stmt {
+  Stmt *Body;
+protected:
+  CFBlockStmt(StmtTy Type, SMLoc Loc, ExprResult StmtLabel);
+public:
+  Stmt *getBody() const { return Body; }
+  void setBody(Stmt *Body);
+};
+
 /// DoStmt
-class DoStmt : public Stmt {
+class DoStmt : public CFBlockStmt {
   StmtLabelReference TerminatingStmt;
   ExprResult DoVar;
   ExprResult Init, Terminate, Increment;
-  Stmt *Body;
+
   DoStmt(SMLoc Loc, StmtLabelReference TermStmt, ExprResult DoVariable,
          ExprResult InitialParam, ExprResult TerminalParam,
          ExprResult IncrementationParam,ExprResult StmtLabel);
@@ -574,8 +586,6 @@ public:
   ExprResult getInitialParameter() const { return Init; }
   ExprResult getTerminalParameter() const { return Terminate; }
   ExprResult getIncrementationParameter() const { return Increment; }
-  Stmt *getBody() const { return Body; }
-  void setBody(Stmt *Body);
 
   static bool classof(const DoStmt*) { return true; }
   static bool classof(const Stmt *S) {

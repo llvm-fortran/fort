@@ -270,13 +270,13 @@ Parser::StmtResult Parser::ParseIfStmt() {
       Diag.Report(Tok.getLocation(), diag::err_expected_executable_stmt);
       return StmtError();
     }
+    auto Result = Actions.ActOnIfStmt(Context, Loc, Condition, StmtLabel);
+    if(Result.isInvalid()) return Result;
     // NB: Don't give the action stmt my label
-    auto Label = StmtLabel;
     StmtLabel = nullptr;
     auto Action = ParseActionStmt();
-    if(Action.isInvalid()) return Action;
-
-    return Actions.ActOnIfStmt(Context, Loc, Condition, Action, Label);
+    Actions.ActOnEndIfStmt(Context, Loc, nullptr);
+    return Action.isInvalid()? StmtError() : Result;
   }
 
   // if-construct.
