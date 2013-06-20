@@ -591,7 +591,10 @@ ExprResult Parser::ParseDesignator() {
     // rules to it.
     Decl *D = Actions.ActOnImplicitEntityDecl(Context, Tok.getLocation(),
                                               IDInfo);
-    if (!D) return ExprError();
+    if (!D) {
+      Lex();
+      return ExprError();
+    }
     VD = cast<VarDecl>(D);
   }
 

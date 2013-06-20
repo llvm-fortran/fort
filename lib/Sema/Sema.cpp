@@ -287,20 +287,20 @@ VarDecl *Sema::ActOnKindSelector(ASTContext &C, SMLoc IDLoc,
   return VD;
 }
 
-Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, llvm::SMLoc IDLoc,
+Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SMLoc IDLoc,
                             const IdentifierInfo *IDInfo) {
   if (const VarDecl *Prev = IDInfo->getFETokenInfo<VarDecl>()) {
     if (Prev->getDeclContext() == CurContext) {
+      /// FIXME: proper error.
       Diags.ReportError(IDLoc,
                         llvm::Twine("variable '") + IDInfo->getName() +
                         "' already declared");
       Diags.getClient()->HandleDiagnostic(DiagnosticsEngine::Note, Prev->getLocation(),
                                           "previous declaration");
-      return 0;
+      return nullptr;
     }
   }
 
-  QualType T = ActOnTypeName(C, DS);
   VarDecl *VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, T);
   CurContext->addDecl(VD);
 
@@ -315,26 +315,37 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, llvm::SMLoc IDLoc,
   return VD;
 }
 
-///
+Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, llvm::SMLoc IDLoc,
+                            const IdentifierInfo *IDInfo) {
+  QualType T = ActOnTypeName(C, DS);
+  return ActOnEntityDecl(C, T, IDLoc, IDInfo);
+}
+
 Decl *Sema::ActOnImplicitEntityDecl(ASTContext &C, SMLoc IDLoc,
                                     const IdentifierInfo *IDInfo) {
-  DeclSpec DS;
-  char letter = toupper(IDInfo->getNameStart()[0]);
+  auto Result = getCurrentImplicitTypingScope().Resolve(IDInfo);
+  if(Result.first == ImplicitTypingScope::NoneRule) {
+    Diags.Report(IDLoc, diag::err_undeclared_var_use)
+      << IDInfo;
+    return nullptr;
+  } else if(Result.first == ImplicitTypingScope::DefaultRule) {
+    DeclSpec DS;
+    char letter = toupper(IDInfo->getNameStart()[0]);
 
-  // FIXME: This needs to look at the IMPLICIT statements, if any.
+    // IMPLICIT statement:
+    // `If a mapping is not specified for a letter, the default for a
+    //  program unit or an interface body is default integer if the
+    //  letter is I, K, ..., or N and default real otherwise`
+    if(letter >= 'I' && letter <= 'N')
+      DS.SetTypeSpecType(DeclSpec::TST_integer);
+    else DS.SetTypeSpecType(DeclSpec::TST_real);
 
-  // IMPLICIT statement:
-  // `If a mapping is not specified for a letter, the default for a
-  //  program unit or an interface body is default integer if the
-  //  letter is I, K, ..., or N and default real otherwise`
-  if(letter >= 'I' && letter <= 'N')
-    DS.SetTypeSpecType(DeclSpec::TST_integer);
-  else DS.SetTypeSpecType(DeclSpec::TST_real);
-
-  // FIXME: default for an internal or module procedure is the mapping in
-  // the host scoping unit.
-
-  return ActOnEntityDecl(C, DS, IDLoc, IDInfo);
+    // FIXME: default for an internal or module procedure is the mapping in
+    // the host scoping unit.
+    return ActOnEntityDecl(C, DS, IDLoc, IDInfo);
+  } else {
+    return ActOnEntityDecl(C, Result.second, IDLoc, IDInfo);
+  }
 }
 
 StmtResult Sema::ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,
@@ -372,6 +383,30 @@ StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SMLoc Loc, DeclSpec &DS,
                                ArrayRef<ImplicitStmt::LetterSpec> LetterSpecs,
                                Expr *StmtLabel) {
   QualType Ty = ActOnTypeName(C, DS);
+  for(auto Spec : LetterSpecs) {
+    if(Spec.second) {
+      if(toupper((Spec.second->getNameStart())[0])
+         <
+         toupper((Spec.first->getNameStart())[0])){
+        Diags.Report(Loc, diag::err_implicit_invalid_range)
+          << Spec.first << Spec.second;
+        continue;
+      }
+    }
+    if(!getCurrentImplicitTypingScope().Apply(Spec,Ty)) {
+      if(getCurrentImplicitTypingScope().isNoneInThisScope())
+        Diags.Report(Loc, diag::err_use_implicit_stmt_after_none);
+      else {
+        if(Spec.second)
+          Diags.Report(Loc, diag::err_redefinition_of_implicit_stmt_rule_range)
+            << Spec.first << Spec.second;
+        else
+          Diags.Report(Loc,diag::err_redefinition_of_implicit_stmt_rule)
+            << Spec.first;
+      }
+    }
+  }
+
   auto Result = ImplicitStmt::Create(C, Loc, Ty, LetterSpecs, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
@@ -379,6 +414,8 @@ StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SMLoc Loc, DeclSpec &DS,
 
 StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
   // IMPLICIT NONE
+  if(!getCurrentImplicitTypingScope().ApplyNone())
+    Diags.Report(Loc, diag::err_use_implicit_none_stmt);
   auto Result = ImplicitStmt::Create(C, Loc, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;

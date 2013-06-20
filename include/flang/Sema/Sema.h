@@ -110,6 +110,9 @@ class Sema {
   /// the current scope.
   ExecutableProgramUnitStmts CurExecutableStmts;
 
+  /// \brief The implicit scope for the current program unit.
+  ImplicitTypingScope CurImplicitTypingScope;
+
 public:
   typedef Expr ExprTy;
 
@@ -126,6 +129,10 @@ public:
 
   inline StmtLabelScope& getCurrentStmtLabelScope() {
     return CurStmtLabelScope;
+  }
+
+  inline ImplicitTypingScope& getCurrentImplicitTypingScope() {
+    return CurImplicitTypingScope;
   }
 
   inline ExprResult ExprError() const { return ExprResult(true); }
@@ -156,6 +163,10 @@ public:
   QualType ActOnTypeName(ASTContext &C, DeclSpec &DS);
   VarDecl *ActOnKindSelector(ASTContext &C, SMLoc IDLoc,
                              const IdentifierInfo *IDInfo);
+
+  Decl *ActOnEntityDecl(ASTContext &C, const QualType &T, SMLoc IDLoc,
+                        const IdentifierInfo *IDInfo);
+
   Decl *ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SMLoc IDLoc,
                         const IdentifierInfo *IDInfo);
 

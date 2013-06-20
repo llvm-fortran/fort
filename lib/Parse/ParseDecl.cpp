@@ -420,11 +420,12 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
     Lex();
 
     if (Tok.is(tok::l_paren)) {
+      if(Tok.isAtStartOfStatement()) return false;
       const Token &NextTok = PeekAhead();
-      if (NextTok.isNot(tok::kw_KIND) &&
-          NextTok.isNot(tok::kw_LEN) &&
-          NextTok.is(tok::identifier) &&
-          !NextTok.getIdentifierInfo()->getFETokenInfo<VarDecl>())
+      if (NextTok.isNot(tok::kw_KIND) ||
+          NextTok.isNot(tok::kw_LEN) ||
+          !(NextTok.is(tok::identifier) &&
+            NextTok.getIdentifierInfo()->getFETokenInfo<VarDecl>()))
         return false;
     }
 
@@ -433,9 +434,10 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
       if (Kind.isInvalid())
         return true;
 
-      if (!EatIfPresent(tok::r_paren))
-        return Diag.ReportError(Tok.getLocation(),
-                                "expected ')' after kind selector");
+      if (Tok.isAtStartOfStatement() || !EatIfPresent(tok::r_paren)) {
+        Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+        return true;
+      }
     }
 
     break;

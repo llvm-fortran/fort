@@ -90,6 +90,39 @@ public:
   void reset();
 };
 
+/// ImplicitTypingScope - This is a component of a scope which assist with
+/// declaring and resolving typing rules using the IMPLICIT statement.
+///
+class ImplicitTypingScope {
+  ImplicitTypingScope *Parent;
+  llvm::StringMap<QualType> Rules;
+  bool None;
+public:
+  ImplicitTypingScope();
+
+  enum RuleType {
+    DefaultRule,
+    TypeRule,
+    NoneRule
+  };
+
+  /// \brief Associates a type rule with an identifier
+  /// returns true if associating is sucessfull.
+  bool Apply(const ImplicitStmt::LetterSpec& Spec, QualType T);
+
+  /// \brief Applies an IMPLICIT NONE rule.
+  /// returns true if the applicating is sucessfull.
+  bool ApplyNone();
+
+  /// \brief returns true if IMPLICIT NONE was used in this scope.
+  inline bool isNoneInThisScope() const {
+    return None;
+  }
+
+  /// \brief Returns a rule and possibly a type associated with this identifier.
+  std::pair<RuleType, QualType> Resolve(const IdentifierInfo *IdInfo);
+};
+
 /// Scope - A scope is a transient data structure that is used while parsing the
 /// program.  It assists with resolving identifiers to the appropriate
 /// declaration.

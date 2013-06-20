@@ -70,6 +70,50 @@ void StmtLabelScope::reset() {
   ForwardStmtLabelDeclsInScope.clear();
 }
 
+ImplicitTypingScope::ImplicitTypingScope()
+  : Parent(nullptr), None(false) {
+}
+
+bool ImplicitTypingScope::Apply(const ImplicitStmt::LetterSpec &Spec, QualType T) {
+  if(None) return false;
+  char Low = toupper((Spec.first->getNameStart())[0]);
+  if(Spec.second) {
+    char High = toupper((Spec.second->getNameStart())[0]);
+    for(; Low <= High; ++Low) {
+      llvm::StringRef Key(&Low, 1);
+      if(Rules.find(Key) != Rules.end())
+        return false;
+      Rules[Key] = T;
+    }
+  } else {
+    llvm::StringRef Key(&Low, 1);
+    if(Rules.find(Key) != Rules.end())
+      return false;
+    Rules[Key] = T;
+  }
+  return true;
+}
+
+bool ImplicitTypingScope::ApplyNone() {
+  if(Rules.size()) return false;
+  None = true;
+  return true;
+}
+
+std::pair<ImplicitTypingScope::RuleType, QualType>
+ImplicitTypingScope::Resolve(const IdentifierInfo *IdInfo) {
+  if(None)
+    return std::make_pair(NoneRule, QualType());
+  char C = toupper(IdInfo->getNameStart()[0]);
+  auto Result = Rules.find(llvm::StringRef(&C, 1));
+  if(Result != Rules.end())
+    return std::make_pair(TypeRule, Result->getValue());
+  else if(Parent)
+    return Parent->Resolve(IdInfo);
+  else return std::make_pair(DefaultRule, QualType());
+}
+
+
 void Scope::Init(Scope *parent, unsigned flags) {
   AnyParent = parent;
   Flags = flags;

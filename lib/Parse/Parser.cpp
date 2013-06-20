@@ -943,45 +943,44 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
 
   DeclSpec DS;
   if (ParseDeclarationTypeSpec(DS))
-    return StmtResult();
+    return StmtError();
 
-  if (!EatIfPresent(tok::l_paren)) {
-    Diag.ReportError(Tok.getLocation(),
-                     "expected '(' in IMPLICIT statement");
-    return StmtResult(true);
+  if (Tok.isAtStartOfStatement() || !EatIfPresent(tok::l_paren)) {
+    Diag.Report(Tok.getLocation(),diag::err_expected_lparen);
+    return StmtError();
   }
 
   SmallVector<std::pair<const IdentifierInfo*,
                         const IdentifierInfo*>, 4> LetterSpecs;
   do {
     const IdentifierInfo *First = Tok.getIdentifierInfo();
-    if (Tok.isNot(tok::identifier) || First->getName().size() > 1) {
-      Diag.ReportError(Tok.getLocation(),
-                       "expected a letter");
-      return StmtResult(true);
+    if (Tok.isAtStartOfStatement() ||
+        Tok.isNot(tok::identifier) ||
+        First->getName().size() > 1) {
+      Diag.Report(Tok.getLocation(),diag::err_expected_letter);
+      return StmtError();
     }
 
     Lex();
 
     const IdentifierInfo *Second = 0;
-    if (EatIfPresent(tok::minus)) {
+    if (!Tok.isAtStartOfStatement() &&
+        EatIfPresent(tok::minus)) {
       Second = Tok.getIdentifierInfo();
       if (Tok.isNot(tok::identifier) || Second->getName().size() > 1) {
-        Diag.ReportError(Tok.getLocation(),
-                         "expected a letter");
-        return StmtResult(true);
+        Diag.Report(Tok.getLocation(),diag::err_expected_letter);
+        return StmtError();
       }
 
       Lex();
     }
 
     LetterSpecs.push_back(std::make_pair(First, Second));
-  } while (EatIfPresent(tok::comma));
+  } while (!Tok.isAtStartOfStatement() && EatIfPresent(tok::comma));
 
-  if (!EatIfPresent(tok::r_paren)) {
-    Diag.ReportError(Tok.getLocation(),
-                     "expected ')' in IMPLICIT statement");
-    return StmtResult(true);
+  if (Tok.isAtStartOfStatement() || !EatIfPresent(tok::r_paren)) {
+    Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+    return StmtError();
   }
 
   return Actions.ActOnIMPLICIT(Context, Loc, DS, LetterSpecs, StmtLabel);

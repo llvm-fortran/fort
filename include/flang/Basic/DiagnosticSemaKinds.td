@@ -71,6 +71,19 @@ def err_stmt_not_in_if : Error<
 def err_end_do_without_do : Error<
   "use of 'END DO' without the do statement">;
 
+def err_use_implicit_none_stmt : Error<
+  "use of 'IMPLICIT NONE' after 'IMPLICIT'">;
+def err_use_implicit_stmt_after_none : Error<
+  "use of 'IMPLICIT' after 'IMPLICIT NONE'">;
+def err_redefinition_of_implicit_stmt_rule : Error<
+  "redefinition of implicit rule %0">;
+def err_redefinition_of_implicit_stmt_rule_range : Error<
+  "redefinition of implicit rule in the range %0 - %1">;
+def err_implicit_invalid_range : Error<
+  "the range %0 - %1 isn't alphabetically ordered">;
+
+def err_undeclared_var_use : Error<"use of undeclared identifier %0">;
+
 }
 
 }

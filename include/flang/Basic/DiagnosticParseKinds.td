@@ -56,6 +56,9 @@ def ext_expected_semi_decl_list : ExtWarn<
 def err_expected_member_name_or_semi : Error<
   "expected member name or ';' after declaration specifiers">;
 
+def err_expected_letter : Error<
+  "expected a letter">;
+
 def err_expected_do_var : Error<
   "expected a real or an integer variable">;
 def err_expected_int_var : Error<
