@@ -190,7 +190,7 @@ private:
   StmtResult ParseActionStmt();
 
   // Designator parsing methods.
-  ExprResult ParseDesignator();
+  ExprResult ParseDesignator(bool IsLvalue);
   ExprResult ParseArrayElement();
   ExprResult ParseArraySection();
   ExprResult ParseCoindexedNamedObject();
@@ -271,7 +271,7 @@ private:
   ExprResult ParseAddOperand();
   ExprResult ParseMultOperand();
   ExprResult ParseLevel1Expr();
-  ExprResult ParsePrimaryExpr();
+  ExprResult ParsePrimaryExpr(bool IsLvalue = false);
   ExprResult ParseExpression();
   ExprResult ParseComplexConstant();
 

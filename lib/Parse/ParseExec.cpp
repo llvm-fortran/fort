@@ -383,7 +383,7 @@ Parser::StmtResult Parser::ParseStopStmt() {
 ///     assignment-stmt :=
 ///         variable = expr
 Parser::StmtResult Parser::ParseAssignmentStmt() {
-  ExprResult LHS = ParseExpression();
+  ExprResult LHS = ParsePrimaryExpr(true);
   if(LHS.isInvalid()) return StmtError();
 
   llvm::SMLoc Loc = Tok.getLocation();

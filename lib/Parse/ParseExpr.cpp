@@ -13,6 +13,7 @@
 
 #include "flang/Parse/Parser.h"
 #include "flang/Parse/ParseDiagnostic.h"
+#include "flang/Sema/SemaDiagnostic.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/Sema/Ownership.h"
@@ -422,7 +423,7 @@ Parser::ExprResult Parser::ParseComplexConstant() {
 //      or type-param-inquiry
 //      or type-param-name
 //      or ( expr )
-Parser::ExprResult Parser::ParsePrimaryExpr() {
+Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
   ExprResult E;
   llvm::SMLoc Loc = Tok.getLocation();
 
@@ -537,7 +538,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr() {
   case tok::identifier:
     possible_keyword_as_ident:
     parse_designator:
-    E = Parser::ParseDesignator();
+    E = Parser::ParseDesignator(IsLvalue);
     if (E.isInvalid()) return E;
     break;
   case tok::minus:
@@ -569,7 +570,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr() {
 ///      or complex-part-designator
 ///      or structure-component
 ///      or substring
-ExprResult Parser::ParseDesignator() {
+ExprResult Parser::ParseDesignator(bool IsLvalue) {
   if (Tok.is(tok::char_literal_constant)) {
     std::string NumStr;
     CleanLiteral(Tok, NumStr);
@@ -587,6 +588,13 @@ ExprResult Parser::ParseDesignator() {
   if (!IDInfo) return ExprError();
   VarDecl *VD = IDInfo->getFETokenInfo<VarDecl>();
   if (!VD) {
+    /// Declare implicit declarations only if the expression is lvalue
+    if(!IsLvalue) {
+      Diag.Report(Tok.getLocation(), diag::err_undeclared_var_use)
+        << IDInfo;
+      Lex();
+      return ExprError();
+    }
     // This variable hasn't been specified before. We need to apply any IMPLICIT
     // rules to it.
     Decl *D = Actions.ActOnImplicitEntityDecl(Context, Tok.getLocation(),

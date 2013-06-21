@@ -1,3 +1,4 @@
+! RUN: %flang < %s
 ! RUN: %flang %s 2>&1 | %file_check %s
 PROGRAM imptest
   !Unless specified otherwise,

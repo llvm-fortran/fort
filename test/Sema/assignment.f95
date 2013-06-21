@@ -1,3 +1,4 @@
+! RUN: %flang -verify < %s
 ! RUN: %flang -verify %s 2>&1 | %file_check %s
 PROGRAM assignment
   IMPLICIT NONE
