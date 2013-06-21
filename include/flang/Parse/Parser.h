@@ -120,6 +120,12 @@ private:
     return PrevTokLocation;
   }
 
+  /// Returns the maximum location of the current token
+  llvm::SMLoc getMaxLocationOfCurrentToken() {
+    return llvm::SMLoc::getFromPointer(Tok.getLocation().getPointer() +
+                                       Tok.getLength());
+  }
+
   /// CleanLiteral - Cleans up a literal if it needs cleaning. It removes the
   /// continuation contexts and comments. Cleaning a dirty literal is SLOW!
   void CleanLiteral(Token T, std::string &NameStr);

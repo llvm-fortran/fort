@@ -72,6 +72,9 @@ public:
   ExprType getExpressionID() const { return ExprID; }
   llvm::SMLoc getLocation() const { return Loc; }
 
+  virtual SMLoc getMinLocation() const { return Loc; }
+  virtual SMLoc getMaxLocation() const { return Loc; }
+
   virtual void print(raw_ostream&);
   void dump();
 
@@ -81,12 +84,15 @@ public:
 /// ConstantExpr - The base class for all constant expressions.
 class ConstantExpr : public Expr {
   Expr *Kind;                   // Optional Kind Selector
+  llvm::SMLoc MaxLoc;
 protected:
-  ConstantExpr(ExprType Ty, QualType T, llvm::SMLoc Loc)
-    : Expr(Ty, T, Loc), Kind(0) {}
+  ConstantExpr(ExprType Ty, QualType T, llvm::SMLoc Loc, llvm::SMLoc MLoc)
+    : Expr(Ty, T, Loc), MaxLoc(MLoc), Kind(0) {}
 public:
   Expr *getKindSelector() const { return Kind; }
   void setKindSelector(Expr *K) { Kind = K; }
+
+  virtual SMLoc getMaxLocation() const;
 
   virtual void print(llvm::raw_ostream&);
 
@@ -165,10 +171,11 @@ public:
 
 class IntegerConstantExpr : public ConstantExpr {
   APIntStorage Num;
-  IntegerConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
+  IntegerConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                      llvm::SMLoc MaxLoc, llvm::StringRef Data);
 public:
   static IntegerConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                                     llvm::StringRef Data);
+                                     llvm::SMLoc MaxLoc, llvm::StringRef Data);
 
   APInt getValue() const { return Num.getValue(); }
 
@@ -182,9 +189,11 @@ public:
 
 class RealConstantExpr : public ConstantExpr {
   APFloatStorage Num;
-  RealConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
+  RealConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                   llvm::SMLoc MaxLoc, llvm::StringRef Data);
 public:
-  static RealConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
+  static RealConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+                                  llvm::SMLoc MaxLoc, llvm::StringRef Data);
 
   APFloat getValue() const { return Num.getValue(); }
 
@@ -198,9 +207,11 @@ public:
 
 class DoublePrecisionConstantExpr : public ConstantExpr {
   APFloatStorage Num;
-  DoublePrecisionConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
+  DoublePrecisionConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                              llvm::SMLoc MaxLoc, llvm::StringRef Data);
 public:
-  static DoublePrecisionConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
+  static DoublePrecisionConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+                                             llvm::SMLoc MaxLoc, llvm::StringRef Data);
 
   APFloat getValue() const { return Num.getValue(); }
 
@@ -214,9 +225,12 @@ public:
 
 class ComplexConstantExpr : public ConstantExpr {
   APFloatStorage Re,Im;
-  ComplexConstantExpr(ASTContext &C, llvm::SMLoc Loc, const APFloat &Re, const APFloat &Im);
+  ComplexConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::SMLoc MaxLoc,
+                      const APFloat &Re, const APFloat &Im);
 public:
-  static ComplexConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc, const APFloat &Re, const APFloat &Im);
+  static ComplexConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+                                     llvm::SMLoc MaxLoc,
+                                     const APFloat &Re, const APFloat &Im);
 
   APFloat getRealValue() const { return Re.getValue(); }
   APFloat getImaginaryValue() const { return Im.getValue(); }
@@ -231,10 +245,11 @@ public:
 
 class CharacterConstantExpr : public ConstantExpr {
   char *Data;
-  CharacterConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
+  CharacterConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                        llvm::SMLoc MaxLoc, llvm::StringRef Data);
 public:
   static CharacterConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                                       llvm::StringRef Data);
+                                       llvm::SMLoc MaxLoc, llvm::StringRef Data);
 
   const char *getValue() const { return Data; }
 
@@ -252,10 +267,11 @@ public:
 private:
   APIntStorage Num;
   BOZKind Kind;
-  BOZConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
+  BOZConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                  llvm::SMLoc MaxLoc, llvm::StringRef Data);
 public:
   static BOZConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                                 llvm::StringRef Data);
+                                 llvm::SMLoc MaxLoc, llvm::StringRef Data);
 
   APInt getValue() const { return Num.getValue(); }
 
@@ -273,10 +289,11 @@ public:
 
 class LogicalConstantExpr : public ConstantExpr {
   bool Val;
-  LogicalConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data);
+  LogicalConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                      llvm::SMLoc MaxLoc, llvm::StringRef Data);
 public:
   static LogicalConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                                     llvm::StringRef Data);
+                                     llvm::SMLoc MaxLoc, llvm::StringRef Data);
 
   bool isTrue() const { return Val; }
   bool isFalse() const { return !Val; }
@@ -513,6 +530,8 @@ public:
 
   const VarDecl *getVarDecl() const { return Variable; }
 
+  SMLoc getMaxLocation() const;
+
   virtual void print(llvm::raw_ostream&);
 
   static bool classof(const Expr *E) {
@@ -553,6 +572,8 @@ public:
 
   const ExprResult getExpression() const { return E; }
   ExprResult getExpression() { return E; }
+
+  SMLoc getMaxLocation() const;
 
   virtual void print(llvm::raw_ostream&);
 
@@ -629,6 +650,9 @@ public:
   ExprResult getLHS() { return LHS; }
   const ExprResult getRHS() const { return RHS; }
   ExprResult getRHS() { return RHS; }
+
+  SMLoc getMinLocation() const;
+  SMLoc getMaxLocation() const;
 
   virtual void print(llvm::raw_ostream&);
 

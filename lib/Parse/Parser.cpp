@@ -297,7 +297,9 @@ void Parser::ParseStatementLabel() {
 
   std::string NumStr;
   CleanLiteral(Tok, NumStr);
-  StmtLabel = IntegerConstantExpr::Create(Context, Tok.getLocation(), NumStr);
+  StmtLabel = IntegerConstantExpr::Create(Context, Tok.getLocation(),
+                                          getMaxLocationOfCurrentToken(),
+                                          NumStr);
   Lex();
 }
 
@@ -309,7 +311,9 @@ ExprResult Parser::ParseStatementLabelReference() {
 
   std::string NumStr;
   CleanLiteral(Tok, NumStr);
-  auto Result = IntegerConstantExpr::Create(Context, Tok.getLocation(), NumStr);
+  auto Result = IntegerConstantExpr::Create(Context, Tok.getLocation(),
+                                            getMaxLocationOfCurrentToken(),
+                                            NumStr);
   Lex();
   return Result;
 }

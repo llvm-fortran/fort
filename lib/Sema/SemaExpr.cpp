@@ -60,10 +60,10 @@ typecheckInvalidOperand:
   std::string TypeString;
   llvm::raw_string_ostream Stream(TypeString);
   E.get()->getType().print(Stream);
-  (Diags.Report(Loc,DiagType)
-      << Stream.str())
-      .AddSourceRange(llvm::SMRange(Loc,
-                                    E.get()->getLocation()));
+  Diags.Report(Loc,DiagType)
+      << Stream.str()
+      << llvm::SMRange(Loc,
+                       E.get()->getMaxLocation());
   return ExprError();
 }
 
@@ -238,10 +238,10 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
     if(LHSTypeSpec != RHSTypeSpec) {
       LHS = ActOnBinaryExpr(C, Loc, BinaryExpr::Minus, LHS, RHS);
       switch(GetArithmeticTypeSpec(LHS.get()->getType().getTypePtr())) {
-      case TST_integer: RHS = IntegerConstantExpr::Create(C, Loc, "0"); break;
-      case TST_real: RHS = RealConstantExpr::Create(C, Loc, "0"); break;
-      case TST_doubleprecision: RHS = DoublePrecisionConstantExpr::Create(C, Loc, "0"); break;
-      case TST_complex: RHS = ComplexConstantExpr::Create(C, Loc, llvm::APFloat(0.0), llvm::APFloat(0.0)); break;
+      case TST_integer: RHS = IntegerConstantExpr::Create(C, Loc, Loc, "0"); break;
+      case TST_real: RHS = RealConstantExpr::Create(C, Loc, Loc, "0"); break;
+      case TST_doubleprecision: RHS = DoublePrecisionConstantExpr::Create(C, Loc, Loc,"0"); break;
+      case TST_complex: RHS = ComplexConstantExpr::Create(C, Loc, Loc, llvm::APFloat(0.0), llvm::APFloat(0.0)); break;
       default:
         llvm_unreachable("Unknown Arithmetic TST");
       }
@@ -261,10 +261,10 @@ typecheckInvalidOperands:
       StreamRHS(TypeStrings[1]);
   LHS.get()->getType().print(StreamLHS);
   RHS.get()->getType().print(StreamRHS);
-  (Diags.Report(Loc,DiagType)
-      << StreamLHS.str() << StreamRHS.str())
-      .AddSourceRange(llvm::SMRange(LHS.get()->getLocation(),
-                                    RHS.get()->getLocation()));
+  Diags.Report(Loc,DiagType)
+      << StreamLHS.str() << StreamRHS.str()
+      << llvm::SMRange(LHS.get()->getMinLocation(),
+                       RHS.get()->getMaxLocation());
   return ExprError();
 }
 

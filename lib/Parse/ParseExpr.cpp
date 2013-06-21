@@ -375,7 +375,9 @@ void Parser::SetKindSelector(ConstantExpr *E, StringRef Kind) {
   Expr *KindExpr = 0;
 
   if (::isdigit(Kind[0])) {
-    KindExpr = IntegerConstantExpr::Create(Context, Loc, Kind);
+    KindExpr = IntegerConstantExpr::Create(Context, Loc,
+                                           Loc,
+                                           Kind);
   } else {
     std::string KindStr(Kind);
     const IdentifierInfo *IDInfo = getIdentifierInfo(KindStr);
@@ -408,7 +410,8 @@ Parser::ExprResult Parser::ParseComplexConstant() {
   Expect(tok::comma,"Expected ',' after the real part");
   Y = ParsePrimaryExpr();
   APFloat Re = GetNumberConstant(X), Im = GetNumberConstant(Y);
-  return ComplexConstantExpr::Create(Context, X.get()->getLocation(), Re, Im);
+  return ComplexConstantExpr::Create(Context, X.get()->getLocation(),
+                                     getMaxLocationOfCurrentToken(), Re, Im);
 }
 
 // ParsePrimaryExpr - Parse a primary expression.
@@ -461,7 +464,9 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = LogicalConstantExpr::Create(Context, Loc, StrPair.first);
+    E = LogicalConstantExpr::Create(Context, Loc,
+                                    getMaxLocationOfCurrentToken(),
+                                    StrPair.first);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
 
     Lex();
@@ -475,7 +480,9 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = BOZConstantExpr::Create(Context, Loc, StrPair.first);
+    E = BOZConstantExpr::Create(Context, Loc,
+                                getMaxLocationOfCurrentToken(),
+                                StrPair.first);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
 
     Lex();
@@ -488,7 +495,9 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
       goto parse_designator;
     std::string NumStr;
     CleanLiteral(Tok, NumStr);
-    E = CharacterConstantExpr::Create(Context, Loc,StringRef(NumStr));
+    E = CharacterConstantExpr::Create(Context, Loc,
+                                      getMaxLocationOfCurrentToken(),
+                                      StringRef(NumStr));
     Lex();
     break;
   }
@@ -498,7 +507,9 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = IntegerConstantExpr::Create(Context, Loc, StrPair.first);
+    E = IntegerConstantExpr::Create(Context, Loc,
+                                    getMaxLocationOfCurrentToken(),
+                                    StrPair.first);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
 
     Lex();
@@ -510,7 +521,9 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = RealConstantExpr::Create(Context, Loc, NumStr);
+    E = RealConstantExpr::Create(Context, Loc,
+                                 getMaxLocationOfCurrentToken(),
+                                 NumStr);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
 
     Lex();
@@ -529,7 +542,9 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = DoublePrecisionConstantExpr::Create(Context, Loc, NumStr);
+    E = DoublePrecisionConstantExpr::Create(Context, Loc,
+                                            getMaxLocationOfCurrentToken(),
+                                            NumStr);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
 
     Lex();
@@ -575,7 +590,9 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
     std::string NumStr;
     CleanLiteral(Tok, NumStr);
     ExprResult E = CharacterConstantExpr::Create(Context,
-                                                 Tok.getLocation(), StringRef(NumStr));
+                                                 Tok.getLocation(),
+                                                 getMaxLocationOfCurrentToken(),
+                                                 StringRef(NumStr));
     Lex();
     // Possibly something like: '0123456789'(N:N)
     return ParseSubstring(E);

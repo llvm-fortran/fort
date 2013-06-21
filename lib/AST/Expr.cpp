@@ -31,56 +31,64 @@ void APNumericStorage::setIntValue(ASTContext &C, const APInt &Val) {
     VAL = 0;
 }
 
+SMLoc ConstantExpr::getMaxLocation() const {
+  return MaxLoc;
+}
+
 IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                                         llvm::StringRef Data)
-  : ConstantExpr(IntegerConstant, C.IntegerTy,  Loc) {
+                                         llvm::SMLoc MaxLoc, llvm::StringRef Data)
+  : ConstantExpr(IntegerConstant, C.IntegerTy,  Loc, MaxLoc) {
   llvm::APInt Val(64,Data,10);
   Num.setValue(C, Val);
 }
 
 IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                                 llvm::StringRef Data) {
-  return new (C) IntegerConstantExpr(C, Loc, Data);
+                                                 llvm::SMLoc MaxLoc, llvm::StringRef Data) {
+  return new (C) IntegerConstantExpr(C, Loc, MaxLoc, Data);
 }
 
-RealConstantExpr::RealConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data)
-  : ConstantExpr(RealConstant, C.RealTy, Loc) {
+RealConstantExpr::RealConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                                   llvm::SMLoc MaxLoc, llvm::StringRef Data)
+  : ConstantExpr(RealConstant, C.RealTy, Loc, MaxLoc) {
   // FIXME: IEEEdouble?
   APFloat Val(APFloat::IEEEsingle, Data);
   Num.setValue(C, Val);
 }
 
 RealConstantExpr *RealConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                           llvm::StringRef Data) {
-  return new (C) RealConstantExpr(C, Loc, Data);
+                                           llvm::SMLoc MaxLoc, llvm::StringRef Data) {
+  return new (C) RealConstantExpr(C, Loc, MaxLoc, Data);
 }
 
-DoublePrecisionConstantExpr::DoublePrecisionConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data)
-  : ConstantExpr(RealConstant, C.DoublePrecisionTy, Loc) {
+DoublePrecisionConstantExpr::DoublePrecisionConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                                                         llvm::SMLoc MaxLoc, llvm::StringRef Data)
+  : ConstantExpr(RealConstant, C.DoublePrecisionTy, Loc, MaxLoc) {
   APFloat Val(APFloat::IEEEdouble, Data);
   Num.setValue(C, Val);
 }
 
 DoublePrecisionConstantExpr *DoublePrecisionConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                           llvm::StringRef Data) {
-  return new (C) DoublePrecisionConstantExpr(C, Loc, Data);
+                                                                 llvm::SMLoc MaxLoc,
+                                                                 llvm::StringRef Data) {
+  return new (C) DoublePrecisionConstantExpr(C, Loc, MaxLoc, Data);
 }
 
-ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::SMLoc MaxLoc,
                                          const APFloat &Re, const APFloat &Im)
-  : ConstantExpr(ComplexConstant, C.ComplexTy, Loc) {
+  : ConstantExpr(ComplexConstant, C.ComplexTy, Loc, MaxLoc) {
   this->Re.setValue(C, Re);
   this->Im.setValue(C, Im);
 }
 
 ComplexConstantExpr *ComplexConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                                         const APFloat &Re, const APFloat &Im) {
-  return new (C) ComplexConstantExpr(C, Loc, Re, Im);
+                                                 llvm::SMLoc MaxLoc,
+                                                 const APFloat &Re, const APFloat &Im) {
+  return new (C) ComplexConstantExpr(C, Loc, MaxLoc, Re, Im);
 }
 
 CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                                             llvm::StringRef data)
-  : ConstantExpr(CharacterConstant, C.CharacterTy, Loc) {
+                                             llvm::SMLoc MaxLoc, llvm::StringRef data)
+  : ConstantExpr(CharacterConstant, C.CharacterTy, Loc, MaxLoc) {
   // TODO: A 'kind' on a character literal constant.
   Data = new (C) char[data.size() + 1];
   std::strncpy(Data, data.data(), data.size());
@@ -88,12 +96,14 @@ CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, llvm::SMLoc Loc,
 }
 
 CharacterConstantExpr *CharacterConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+                                                     llvm::SMLoc MaxLoc,
                                                      llvm::StringRef Data) {
-  return new (C) CharacterConstantExpr(C, Loc, Data);
+  return new (C) CharacterConstantExpr(C, Loc, MaxLoc, Data);
 }
 
-BOZConstantExpr::BOZConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef Data)
-  : ConstantExpr(BOZConstant, C.IntegerTy, Loc) {
+BOZConstantExpr::BOZConstantExpr(ASTContext &C, llvm::SMLoc Loc,
+                                 llvm::SMLoc MaxLoc, llvm::StringRef Data)
+  : ConstantExpr(BOZConstant, C.IntegerTy, Loc, MaxLoc) {
   unsigned Radix = 0;
   switch (Data[0]) {
   case 'B':
@@ -119,19 +129,19 @@ BOZConstantExpr::BOZConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::StringRef
 }
 
 BOZConstantExpr *BOZConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                         llvm::StringRef Data) {
-  return new (C) BOZConstantExpr(C, Loc, Data);
+                                         llvm::SMLoc MaxLoc, llvm::StringRef Data) {
+  return new (C) BOZConstantExpr(C, Loc, MaxLoc, Data);
 }
 
 LogicalConstantExpr::LogicalConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                                         llvm::StringRef Data)
-  : ConstantExpr(LogicalConstant, C.LogicalTy, Loc) {
+                                         llvm::SMLoc MaxLoc, llvm::StringRef Data)
+  : ConstantExpr(LogicalConstant, C.LogicalTy, Loc, MaxLoc) {
   Val = (Data.compare_lower(".TRUE.") == 0);
 }
 
 LogicalConstantExpr *LogicalConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                                 llvm::StringRef Data) {
-  return new (C) LogicalConstantExpr(C, Loc, Data);
+                                                 llvm::SMLoc MaxLoc, llvm::StringRef Data) {
+  return new (C) LogicalConstantExpr(C, Loc, MaxLoc, Data);
 }
 
 SubstringExpr::SubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult E,
@@ -172,11 +182,20 @@ VarExpr *VarExpr::Create(ASTContext &C, llvm::SMLoc Loc, const VarDecl *VD) {
   return new (C) VarExpr(Loc, VD);
 }
 
+SMLoc VarExpr::getMaxLocation() const {
+  return SMLoc::getFromPointer(getLocation().getPointer() +
+                               Variable->getIdentifier()->getLength());
+}
+
 UnaryExpr *UnaryExpr::Create(ASTContext &C, llvm::SMLoc loc, Operator op,
                              ExprResult e) {
   return new (C) UnaryExpr(Expr::Unary,
                            (op != Not) ? e.get()->getType() : C.LogicalTy,
                            loc, op, e);
+}
+
+SMLoc UnaryExpr::getMaxLocation() const {
+  return E.get()->getMaxLocation();
 }
 
 DefinedOperatorUnaryExpr::DefinedOperatorUnaryExpr(llvm::SMLoc loc, ExprResult e,
@@ -212,6 +231,14 @@ BinaryExpr *BinaryExpr::Create(ASTContext &C, llvm::SMLoc loc, Operator op,
   }
 
   return new (C) BinaryExpr(Expr::Binary, Ty, loc, op, lhs, rhs);
+}
+
+SMLoc BinaryExpr::getMinLocation() const {
+  return LHS.get()->getMinLocation();
+}
+
+SMLoc BinaryExpr::getMaxLocation() const {
+  return RHS.get()->getMaxLocation();
 }
 
 DefinedOperatorBinaryExpr *

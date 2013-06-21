@@ -278,20 +278,6 @@ public:
     LexTokenInternal(Result);
   }
 
-#if 0
-  //[TODO]:
-  /// Diag - Forwarding function for diagnostics. This emits a diagnostic at the
-  /// specified Token's location, translating the token's start position in the
-  /// current buffer into a SourcePosition object for rendering.
-  flang::DiagnosticBuilder Diag(flang::SourceLocation Loc, unsigned DiagID) {
-    return Diags->Report(FullSourceLoc(Loc, getSourceManager()), DiagID);
-  }
-  flang::DiagnosticBuilder Diag(const Token &Tok, unsigned DiagID) {
-    return Diags->Report(FullSourceLoc(Tok.getLocation(), getSourceManager()),
-                         DiagID);
-  }
-#endif
-
   /// getSpelling - Return the 'spelling' of the Tok token.  The spelling of a
   /// token is the characters used to represent the token in the source file.
   void getSpelling(const Token &Tok,
