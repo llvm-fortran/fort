@@ -761,15 +761,14 @@ Parser::StmtResult Parser::ParsePROGRAMStmt() {
   const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
   llvm::SMLoc ProgramLoc = Tok.getLocation();
   if (!isaKeyword(IDInfo->getName()) || Tok.isNot(tok::kw_PROGRAM))
-    return Actions.ActOnPROGRAM(Context, 0, ProgramLoc, llvm::SMLoc(),
+    return Actions.ActOnPROGRAM(Context, 0, ProgramLoc, ProgramLoc,
                                 StmtLabel);
 
   // Parse the program name.
   Lex();
   if (Tok.isNot(tok::identifier) || Tok.isAtStartOfStatement()) {
-    Diag.ReportError(ProgramLoc,
-                     "'PROGRAM' keyword expects an identifier");
-    return StmtResult(true);
+    Diag.Report(ProgramLoc, diag::err_expected_ident);
+    return StmtError();
   }
 
   llvm::SMLoc NameLoc = Tok.getLocation();
@@ -1168,7 +1167,10 @@ bool Parser::ParseSpecificationStmt(std::vector<StmtResult> &Body) {
 
   return false;
 notImplemented:
-  Diag.ReportError(Tok.getLocation(),"This specification statement isn't supported by Flang!");
+  Diag.Report(Tok.getLocation(),
+              diag::err_unsupported_stmt)
+      << llvm::SMRange(Tok.getLocation(),
+                       getMaxLocationOfCurrentToken());
   return false;
 }
 

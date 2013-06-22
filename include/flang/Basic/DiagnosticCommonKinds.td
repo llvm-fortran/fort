@@ -41,4 +41,7 @@ def err_cannot_open_file : Error<"cannot open file '%0': %1">, DefaultFatal;
 def err_file_modified : Error<
   "file '%0' modified since it was first processed">, DefaultFatal;
 
+// Unsupported statement
+def err_unsupported_stmt : Error<"unsupported statement">;
+
 }

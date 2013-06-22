@@ -388,7 +388,7 @@ Parser::StmtResult Parser::ParseAssignmentStmt() {
 
   llvm::SMLoc Loc = Tok.getLocation();
   if(!Tok.is(tok::equal)) {
-    Diag.ReportError(Tok.getLocation(),"expected '='");
+    Diag.Report(Tok.getLocation(),diag::err_expected_equal);
     return StmtError();
   }
   Lex();
