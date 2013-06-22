@@ -120,10 +120,8 @@ static const StaticDiagInfoRec *GetDiagInfo(unsigned DiagID) {
   unsigned Offset = 0;
   unsigned ID = DiagID;
 
-  int x,y;
 #define DIAG_START_COMMON 0 // Sentinel value.
 #define CATEGORY(NAME, PREV) \
-  x = NUM_BUILTIN_##PREV##_DIAGNOSTICS; y = DIAG_START_##PREV; \
   if (DiagID > DIAG_START_##NAME) { \
     Offset += NUM_BUILTIN_##PREV##_DIAGNOSTICS - DIAG_START_##PREV - 1; \
     ID -= DIAG_START_##NAME - DIAG_START_##PREV; \

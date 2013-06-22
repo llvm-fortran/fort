@@ -421,11 +421,8 @@ ParameterStmt::ParamPair
 Sema::ActOnPARAMETERPair(ASTContext &C, SMLoc Loc, const IdentifierInfo *IDInfo,
                          ExprResult CE) {
   if (const VarDecl *Prev = IDInfo->getFETokenInfo<VarDecl>()) {
-    Diags.ReportError(Loc,
-                      llvm::Twine("variable '") + IDInfo->getName() +
-                      "' already defined");
-    Diags.getClient()->HandleDiagnostic(DiagnosticsEngine::Note, Prev->getLocation(),
-                                        "previous definition");
+    Diags.Report(Loc, diag::err_redefinition) << IDInfo;
+    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
     return ParameterStmt::ParamPair(0, ExprResult());
   }
 
