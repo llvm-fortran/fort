@@ -2,7 +2,7 @@
 PROGRAM gototest
     INTEGER I
 
-10  I = 0
+10  I = 0 ! expected-note {{previous definition is here}}
     GO TO 10
 
 10  I = 10 ! expected-error {{redefinition of statement label '10'}}

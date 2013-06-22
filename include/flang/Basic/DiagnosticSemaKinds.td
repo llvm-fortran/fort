@@ -82,6 +82,9 @@ def err_redefinition_of_implicit_stmt_rule_range : Error<
 def err_implicit_invalid_range : Error<
   "the range %0 - %1 isn't alphabetically ordered">;
 
+def err_expect_stmt_name : Error<
+  "expected name %0 for '%1' statement">;
+
 def err_redefinition : Error<"redefinition of %0">;
 def err_undeclared_var_use : Error<"use of undeclared identifier %0">;
 

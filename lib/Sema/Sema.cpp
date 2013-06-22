@@ -184,6 +184,8 @@ void Sema::DeclareStatementLabel(Expr *StmtLabel, Stmt *S) {
     Diags.Report(StmtLabel->getLocation(),
                        diag::err_redefinition_of_stmt_label)
         << Stream.str();
+    Diags.Report(Decl->getStmtLabel().get()->getLocation(),
+                 diag::note_previous_definition);
   }
   else {
     getCurrentStmtLabelScope().Declare(StmtLabel, S);
@@ -223,12 +225,14 @@ void Sema::ActOnEndMainProgram(SMLoc Loc, const IdentifierInfo *IDInfo, SMLoc Na
   }
 
   const IdentifierInfo *ID = EndNameInfo.getName().getAsIdentifierInfo();
-  if (!ID) goto exit;
+  if (ID) {
+    if (ProgName != ID->getName()) {
+      Diags.Report(NameLoc, diag::err_expect_stmt_name)
+        << cast<MainProgramDecl>(CurContext)->getDeclName().getAsIdentifierInfo()
+        << "END PROGRAM";
+    }
+  }
 
-  if (ProgName != ID->getName())
-    Diags.ReportError(EndNameInfo.getLoc(),
-                      llvm::Twine("expected label '") +
-                      ProgName + "' for END PROGRAM statement");
  exit:
   PopDeclContext();
   PopExecutableProgramUnit(Loc);
