@@ -93,8 +93,6 @@ public:
   }
   bool HasEntered(Stmt::StmtTy StmtType) const;
 
-  Stmt *LastEnteredLoop() const;
-
   void Append(Stmt *S);
 private:
   Stmt *CreateBody(ASTContext &C, const ControlFlowStmt &Last);

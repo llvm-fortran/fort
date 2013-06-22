@@ -45,7 +45,7 @@ Stmt *StmtLabelScope::Resolve(Expr *StmtLabel) const {
 }
 
 /// \brief Declares a forward reference of some statement label.
-void StmtLabelScope::DeclareForwardReference(StmtLabelForwardDecl Reference) {
+void StmtLabelScope::DeclareForwardReference(ForwardDecl Reference) {
   ForwardStmtLabelDeclsInScope.append(1,Reference);
 }
 

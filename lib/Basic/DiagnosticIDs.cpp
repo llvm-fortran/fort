@@ -73,7 +73,7 @@ static const StaticDiagInfoRec StaticDiagInfo[] = {
   { diag::ENUM, DEFAULT_MAPPING, CLASS, SFINAE, ACCESS,           \
     NOWERROR, SHOWINSYSHEADER, CATEGORY, GROUP,                   \
     STR_SIZE(DESC, uint16_t), DESC },
-//#include "flang/Basic/DiagnosticCommonKinds.inc"
+#include "flang/Basic/DiagnosticCommonKinds.inc"
 #include "flang/Basic/DiagnosticFrontendKinds.inc"
 #include "flang/Basic/DiagnosticLexKinds.inc"
 #include "flang/Basic/DiagnosticParseKinds.inc"
@@ -81,9 +81,6 @@ static const StaticDiagInfoRec StaticDiagInfo[] = {
 #undef DIAG
   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
-
-//FIXME:
-#define NUM_BUILTIN_COMMON_DIAGNOSTICS 0
 
 static const unsigned StaticDiagInfoSize =
   sizeof(StaticDiagInfo)/sizeof(StaticDiagInfo[0])-1;
@@ -614,6 +611,8 @@ bool DiagnosticIDs::ProcessDiag(DiagnosticsEngine &Diag) const {
 
     return false;
   }
+
+  Diag.LastDiagLevel = DiagLevel;
 
   // If the client doesn't care about this message, don't issue it.  If this is
   // a note and the last real diagnostic was ignored, ignore it too.

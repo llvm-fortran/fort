@@ -171,13 +171,6 @@ bool ExecutableProgramUnitStmts::HasEntered(Stmt::StmtTy StmtType) const {
   return false;
 }
 
-Stmt *ExecutableProgramUnitStmts::LastEnteredLoop() const {
-  for(auto I : ControlFlowStack) {
-    if(I.is(Stmt::Do)) return I.Statement;
-  }
-  return nullptr;
-}
-
 void ExecutableProgramUnitStmts::Append(Stmt *S) {
   assert(S);
   StmtList.push_back(StmtResult(S));
@@ -298,12 +291,8 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SMLoc IDLoc,
                             const IdentifierInfo *IDInfo) {
   if (const VarDecl *Prev = IDInfo->getFETokenInfo<VarDecl>()) {
     if (Prev->getDeclContext() == CurContext) {
-      /// FIXME: proper error.
-      Diags.ReportError(IDLoc,
-                        llvm::Twine("variable '") + IDInfo->getName() +
-                        "' already declared");
-      Diags.getClient()->HandleDiagnostic(DiagnosticsEngine::Note, Prev->getLocation(),
-                                          "previous declaration");
+      Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+      Diags.Report(Prev->getLocation(), diag::note_previous_definition);
       return nullptr;
     }
   }
