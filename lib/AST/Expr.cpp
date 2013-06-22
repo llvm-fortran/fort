@@ -247,24 +247,24 @@ DefinedOperatorBinaryExpr::Create(ASTContext &C, llvm::SMLoc loc, ExprResult lhs
   return new (C) DefinedOperatorBinaryExpr(loc, lhs, rhs, ii);
 }
 
-static inline QualType ConversionType(ASTContext &C, ConversionExpr::IntrinsicFunction Op) {
+static inline QualType ConversionType(ASTContext &C, IntrinsicCallExpr::IntrinsicFunction Op) {
   switch(Op) {
-    case ConversionExpr::INT: return C.IntegerTy;
-    case ConversionExpr::REAL: return C.RealTy;
-    case ConversionExpr::DBLE: return C.DoublePrecisionTy;
-    case ConversionExpr::CMPLX: return C.ComplexTy;
+    case IntrinsicCallExpr::INT: return C.IntegerTy;
+    case IntrinsicCallExpr::REAL: return C.RealTy;
+    case IntrinsicCallExpr::DBLE: return C.DoublePrecisionTy;
+    case IntrinsicCallExpr::CMPLX: return C.ComplexTy;
   }
   llvm_unreachable("Unknown conversion type!");
 }
 
-ConversionExpr::ConversionExpr(ASTContext &C, llvm::SMLoc L,
+IntrinsicCallExpr::IntrinsicCallExpr(ASTContext &C, llvm::SMLoc L,
                                IntrinsicFunction op, ExprResult e)
   : Expr(Conversion,ConversionType(C, op),L),Op(op),E(e) {
 }
 
-ConversionExpr *ConversionExpr::Create(ASTContext &C, llvm::SMLoc L,
+IntrinsicCallExpr *IntrinsicCallExpr::Create(ASTContext &C, llvm::SMLoc L,
                                        IntrinsicFunction Op, ExprResult E) {
-  return new(C) ConversionExpr(C, L, Op, E);
+  return new(C) IntrinsicCallExpr(C, L, Op, E);
 }
 
 //===----------------------------------------------------------------------===//
@@ -321,14 +321,54 @@ void DefinedOperatorUnaryExpr::print(llvm::raw_ostream &O) {
   O << ')';
 }
 
-void ConversionExpr::print(llvm::raw_ostream &O) {
+void IntrinsicCallExpr::print(llvm::raw_ostream &O) {
   switch(Op) {
-  case INT: O<<"INT("; break;
-  case REAL: O<<"REAL("; break;
-  case DBLE: O<<"DBLE("; break;
-  case CMPLX: O<<"CMPLX("; break;
+#define HANDLE(WHAT) case WHAT: O << #WHAT; break
+  HANDLE(INT);
+  HANDLE(REAL);
+  HANDLE(DBLE);
+  HANDLE(CMPLX);
+  HANDLE(ICHAR);
+  HANDLE(CHAR);
+
+  HANDLE(AINT);
+  HANDLE(ANINT);
+  HANDLE(NINT);
+  HANDLE(ABS);
+  HANDLE(MOD);
+  HANDLE(SIGN);
+  HANDLE(DIM);
+  HANDLE(DPROD);
+  HANDLE(MAX);
+  HANDLE(MIN);
+  HANDLE(LEN);
+  HANDLE(INDEX);
+  HANDLE(AIMAG);
+  HANDLE(CONJG);
+
+  HANDLE(SQRT);
+  HANDLE(EXP);
+  HANDLE(LOG);
+  HANDLE(LOG10);
+  HANDLE(SIN);
+  HANDLE(COS);
+  HANDLE(TAN);
+  HANDLE(ASIN);
+  HANDLE(ACOS);
+  HANDLE(ATAN);
+  HANDLE(ATAN2);
+  HANDLE(SINH);
+  HANDLE(COSH);
+  HANDLE(TANH);
+
+  HANDLE(LGE);
+  HANDLE(LGT);
+  HANDLE(LLE);
+  HANDLE(LLT);
+#undef HANDLE
   }
 
+  O << '(';
   E.get()->print(O);
   O << ')';
 }

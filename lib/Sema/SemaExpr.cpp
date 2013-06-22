@@ -102,16 +102,16 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
       switch(LHSTypeSpec) {
       case TST_integer: break;
       case TST_real:
-        RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
-                                     ConversionExpr::REAL,RHS);
+        RHS = IntrinsicCallExpr::Create(C, RHS.get()->getLocation(),
+                                     IntrinsicCallExpr::REAL,RHS);
         break;
       case TST_doubleprecision:
-        RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
-                                     ConversionExpr::DBLE,RHS);
+        RHS = IntrinsicCallExpr::Create(C, RHS.get()->getLocation(),
+                                     IntrinsicCallExpr::DBLE,RHS);
         break;
       case TST_complex:
-        RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
-                                     ConversionExpr::CMPLX,RHS);
+        RHS = IntrinsicCallExpr::Create(C, RHS.get()->getLocation(),
+                                     IntrinsicCallExpr::CMPLX,RHS);
         break;
       default:
         llvm_unreachable("Unknown Arithmetic TST");
@@ -126,17 +126,17 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
     case TST_real:
       switch(LHSTypeSpec) {
       case TST_integer:
-        LHS = ConversionExpr::Create(C, LHS.get()->getLocation(),
-                                     ConversionExpr::REAL,LHS);
+        LHS = IntrinsicCallExpr::Create(C, LHS.get()->getLocation(),
+                                     IntrinsicCallExpr::REAL,LHS);
         break;
       case TST_real: break;
       case TST_doubleprecision:
-        RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
-                                     ConversionExpr::DBLE,RHS);
+        RHS = IntrinsicCallExpr::Create(C, RHS.get()->getLocation(),
+                                     IntrinsicCallExpr::DBLE,RHS);
         break;
       case TST_complex:
-        RHS = ConversionExpr::Create(C, RHS.get()->getLocation(),
-                                     ConversionExpr::CMPLX,RHS);
+        RHS = IntrinsicCallExpr::Create(C, RHS.get()->getLocation(),
+                                     IntrinsicCallExpr::CMPLX,RHS);
         break;
       default:
         llvm_unreachable("Unknown Arithmetic TST");
@@ -151,8 +151,8 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
     case TST_doubleprecision:
       switch(LHSTypeSpec) {
       case TST_integer: case TST_real:
-        LHS = ConversionExpr::Create(C, LHS.get()->getLocation(),
-                                     ConversionExpr::DBLE,LHS);
+        LHS = IntrinsicCallExpr::Create(C, LHS.get()->getLocation(),
+                                     IntrinsicCallExpr::DBLE,LHS);
         break;
       case TST_doubleprecision: break;
       case TST_complex:
@@ -170,8 +170,8 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
     case TST_complex:
       switch(LHSTypeSpec) {
       case TST_integer: case TST_real:
-        LHS = ConversionExpr::Create(C, LHS.get()->getLocation(),
-                                     ConversionExpr::CMPLX,LHS);
+        LHS = IntrinsicCallExpr::Create(C, LHS.get()->getLocation(),
+                                     IntrinsicCallExpr::CMPLX,LHS);
         break;
       case TST_doubleprecision:
         goto typecheckInvalidOperands;

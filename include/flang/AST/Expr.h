@@ -688,17 +688,62 @@ public:
 
 /// ConversionExpr -
 /// INT(x) | REAL(x) | DBLE(x) | CMPLX(x)
-class ConversionExpr : public Expr {
+class IntrinsicCallExpr : public Expr {
 public:
   enum IntrinsicFunction {
-    INT, REAL, DBLE, CMPLX
+    /// Fortran 77
+
+    // conversion functions
+    INT,
+    REAL,
+    DBLE,
+    CMPLX,
+    ICHAR,
+    CHAR,
+
+    AINT, // truncation of real
+    ANINT, // nearest whole number
+    NINT, // Nearest integer
+    ABS, // Absolute value
+    MOD, // Remainder
+    SIGN, // Sign
+    DIM, // Positive difference
+    DPROD, // real * real => double prec
+    MAX,
+    MIN,
+    LEN,
+    INDEX, // location of substring a in b
+    AIMAG, // imaginary part of complex
+    CONJG, // conjugate of complex
+
+    // math
+    SQRT,
+    EXP,
+    LOG,
+    LOG10,
+    SIN,
+    COS,
+    TAN,
+    ASIN,
+    ACOS,
+    ATAN,
+    ATAN2,
+    SINH,
+    COSH,
+    TANH,
+
+    // lexical comparison
+    LGE,
+    LGT,
+    LLE,
+    LLT
   };
 private:
   IntrinsicFunction Op;
   ExprResult E;
-  ConversionExpr(ASTContext &C, llvm::SMLoc L, IntrinsicFunction op, ExprResult e);
+  IntrinsicCallExpr(ASTContext &C, llvm::SMLoc L, IntrinsicFunction op, ExprResult e);
 public:
-  static ConversionExpr *Create(ASTContext &C, llvm::SMLoc L, IntrinsicFunction Op, ExprResult E);
+  static IntrinsicCallExpr *Create(ASTContext &C, llvm::SMLoc L, IntrinsicFunction Op, ExprResult E);
 
   IntrinsicFunction getIntrinsicFunction() const { return Op;  }
   ExprResult getExpression() { return E; }
@@ -708,7 +753,7 @@ public:
   static bool classof(const Expr *E) {
     return E->getExpressionID() == Expr::Conversion;
   }
-  static bool classof(const ConversionExpr *) { return true; }
+  static bool classof(const IntrinsicCallExpr *) { return true; }
 };
 
 } // end flang namespace

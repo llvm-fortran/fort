@@ -512,26 +512,26 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, llvm::SMLoc Loc,
   if(LHSType->isIntegerType()) {
     if(IsRHSInteger) ;
     else if(IsRHSArithmetic)
-      RHS = ConversionExpr::Create(Context, RHS.get()->getLocation(),
-                                   ConversionExpr::INT,RHS);
+      RHS = IntrinsicCallExpr::Create(Context, RHS.get()->getLocation(),
+                                   IntrinsicCallExpr::INT,RHS);
     else goto typeError;
   } else if(LHSType->isRealType()) {
     if(IsRHSReal) ;
     else if(IsRHSArithmetic)
-      RHS = ConversionExpr::Create(Context, RHS.get()->getLocation(),
-                                   ConversionExpr::REAL,RHS);
+      RHS = IntrinsicCallExpr::Create(Context, RHS.get()->getLocation(),
+                                   IntrinsicCallExpr::REAL,RHS);
     else goto typeError;
   } else if(LHSType->isDoublePrecisionType()) {
     if(IsRHSDblPrec) ;
     else if(IsRHSArithmetic)
-      RHS = ConversionExpr::Create(Context, RHS.get()->getLocation(),
-                                   ConversionExpr::DBLE,RHS);
+      RHS = IntrinsicCallExpr::Create(Context, RHS.get()->getLocation(),
+                                   IntrinsicCallExpr::DBLE,RHS);
     else goto typeError;
   } else if(LHSType->isComplexType()) {
     if(IsRHSComplex) ;
     else if(IsRHSArithmetic)
-      RHS = ConversionExpr::Create(Context, RHS.get()->getLocation(),
-                                   ConversionExpr::CMPLX,RHS);
+      RHS = IntrinsicCallExpr::Create(Context, RHS.get()->getLocation(),
+                                   IntrinsicCallExpr::CMPLX,RHS);
     else goto typeError;
   }
 
@@ -807,13 +807,13 @@ static bool IsValidDoTerminatingStatement(Stmt *S) {
 static ExprResult ApplyDoConversionIfNeeded(ASTContext &C, ExprResult E, QualType T) {
   if(T->isIntegerType()) {
     if(E.get()->getType()->isIntegerType()) return E;
-    else return ConversionExpr::Create(C, E.get()->getLocation(), ConversionExpr::INT, E);
+    else return IntrinsicCallExpr::Create(C, E.get()->getLocation(), IntrinsicCallExpr::INT, E);
   } else if(T->isRealType()) {
     if(E.get()->getType()->isRealType()) return E;
-    else return ConversionExpr::Create(C, E.get()->getLocation(), ConversionExpr::REAL, E);
+    else return IntrinsicCallExpr::Create(C, E.get()->getLocation(), IntrinsicCallExpr::REAL, E);
   } else {
     if(E.get()->getType()->isDoublePrecisionType()) return E;
-    else return ConversionExpr::Create(C, E.get()->getLocation(), ConversionExpr::DBLE, E);
+    else return IntrinsicCallExpr::Create(C, E.get()->getLocation(), IntrinsicCallExpr::DBLE, E);
   }
 }
 
