@@ -171,6 +171,13 @@ bool ExecutableProgramUnitStmts::HasEntered(Stmt::StmtTy StmtType) const {
   return false;
 }
 
+Stmt *ExecutableProgramUnitStmts::LastEnteredLoop() const {
+  for(auto I : ControlFlowStack) {
+    if(I.is(Stmt::Do)) return I.Statement;
+  }
+  return nullptr;
+}
+
 void ExecutableProgramUnitStmts::Append(Stmt *S) {
   assert(S);
   StmtList.push_back(StmtResult(S));
@@ -589,7 +596,7 @@ StmtResult Sema::ActOnBlock(ASTContext &C, SMLoc Loc, ArrayRef<StmtResult> Body)
   return BlockStmt::Create(C, Loc, Body);
 }
 
-static void ResolveAssignStmtLabel(const StmtLabelScope::StmtLabelForwardDecl &Self,
+static void ResolveAssignStmtLabel(const StmtLabelScope::ForwardDecl &Self,
                                    Stmt *Destination) {
   assert(AssignStmt::classof(Self.Statement));
   static_cast<AssignStmt*>(Self.Statement)->setAddress(StmtLabelReference(Destination));
@@ -603,7 +610,7 @@ StmtResult Sema::ActOnAssignStmt(ASTContext &C, SMLoc Loc,
   if(!Decl) {
     Result = AssignStmt::Create(C, Loc, StmtLabelReference(),VarRef, StmtLabel);
     getCurrentStmtLabelScope().DeclareForwardReference(
-      StmtLabelScope::StmtLabelForwardDecl(Value.get(), Result,
+      StmtLabelScope::ForwardDecl(Value.get(), Result,
                                            ResolveAssignStmtLabel));
   } else
     Result = AssignStmt::Create(C, Loc, StmtLabelReference(Decl),
@@ -614,7 +621,7 @@ StmtResult Sema::ActOnAssignStmt(ASTContext &C, SMLoc Loc,
   return Result;
 }
 
-static void ResolveAssignedGotoStmtLabel(const StmtLabelScope::StmtLabelForwardDecl &Self,
+static void ResolveAssignedGotoStmtLabel(const StmtLabelScope::ForwardDecl &Self,
                                          Stmt *Destination) {
   assert(AssignedGotoStmt::classof(Self.Statement));
   static_cast<AssignedGotoStmt*>(Self.Statement)->
@@ -635,7 +642,7 @@ StmtResult Sema::ActOnAssignedGotoStmt(ASTContext &C, SMLoc Loc,
   for(size_t I = 0; I < AllowedValues.size(); ++I) {
     if(!AllowedLabels[I].Statement) {
       getCurrentStmtLabelScope().DeclareForwardReference(
-        StmtLabelScope::StmtLabelForwardDecl(AllowedValues[I].get(), Result,
+        StmtLabelScope::ForwardDecl(AllowedValues[I].get(), Result,
                                              ResolveAssignedGotoStmtLabel, I));
     }
   }
@@ -645,7 +652,7 @@ StmtResult Sema::ActOnAssignedGotoStmt(ASTContext &C, SMLoc Loc,
   return Result;
 }
 
-static void ResolveGotoStmtLabel(const StmtLabelScope::StmtLabelForwardDecl &Self,
+static void ResolveGotoStmtLabel(const StmtLabelScope::ForwardDecl &Self,
                                  Stmt *Destination) {
   assert(GotoStmt::classof(Self.Statement));
   static_cast<GotoStmt*>(Self.Statement)->setDestination(StmtLabelReference(Destination));
@@ -658,7 +665,7 @@ StmtResult Sema::ActOnGotoStmt(ASTContext &C, SMLoc Loc,
   if(!Decl) {
     Result = GotoStmt::Create(C, Loc, StmtLabelReference(), StmtLabel);
     getCurrentStmtLabelScope().DeclareForwardReference(
-      StmtLabelScope::StmtLabelForwardDecl(Destination.get(), Result,
+      StmtLabelScope::ForwardDecl(Destination.get(), Result,
                                            ResolveGotoStmtLabel));
   } else
     Result = GotoStmt::Create(C, Loc, StmtLabelReference(Decl), StmtLabel);
@@ -754,7 +761,7 @@ StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
   return Result;
 }
 
-static void ResolveDoStmtLabel(const StmtLabelScope::StmtLabelForwardDecl &Self,
+static void ResolveDoStmtLabel(const StmtLabelScope::ForwardDecl &Self,
                                Stmt *Destination) {
   assert(DoStmt::classof(Self.Statement));
   static_cast<DoStmt*>(Self.Statement)->setTerminatingStmt(StmtLabelReference(Destination));
@@ -851,7 +858,7 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStm
   CurExecutableStmts.Append(Result);
   if(TerminatingStmt.get())
     getCurrentStmtLabelScope().DeclareForwardReference(
-      StmtLabelScope::StmtLabelForwardDecl(TerminatingStmt.get(), Result,
+      StmtLabelScope::ForwardDecl(TerminatingStmt.get(), Result,
                                            ResolveDoStmtLabel));
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   if(TerminatingStmt.get())

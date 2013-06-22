@@ -30,18 +30,19 @@ class UsingDirectiveDecl;
 ///
 class StmtLabelScope {
 public:
+
   /// \brief Represents a usage of an undeclared statement label in
   /// some statement.
-  struct StmtLabelForwardDecl {
+  struct ForwardDecl {
     Expr *StmtLabel;
     Stmt *Statement;
-    typedef void (*StmtLabelResolveFunctionTy)(const StmtLabelForwardDecl &Self,
+    typedef void (*StmtLabelResolveFunctionTy)(const ForwardDecl &Self,
                                                Stmt *Decl);
     /// This callback gets executed when the statement label is resolved.
     StmtLabelResolveFunctionTy ResolveCallback;
     size_t ResolveCallbackData;
 
-    StmtLabelForwardDecl(Expr *SLabel, Stmt *S,
+    ForwardDecl(Expr *SLabel, Stmt *S,
                          StmtLabelResolveFunctionTy Callback,
                          size_t CallbackData = 0)
       : StmtLabel(SLabel), Statement(S), ResolveCallback(Callback),
@@ -58,7 +59,7 @@ private:
 
   /// ForwardStmtLabelDeclsInScope - This keeps track of all the forward
   /// referenced statement labels in this scope.
-  llvm::SmallVector<StmtLabelForwardDecl, 16> ForwardStmtLabelDeclsInScope;
+  llvm::SmallVector<ForwardDecl, 16> ForwardStmtLabelDeclsInScope;
 public:
 
   typedef StmtLabelMapTy::const_iterator decl_iterator;
@@ -66,7 +67,7 @@ public:
   decl_iterator decl_end()   const { return StmtLabelDeclsInScope.end(); }
   bool decl_empty()          const { return StmtLabelDeclsInScope.empty(); }
 
-  ArrayRef<StmtLabelForwardDecl> getForwardDecls() const {
+  ArrayRef<ForwardDecl> getForwardDecls() const {
     return ForwardStmtLabelDeclsInScope;
   }
 
@@ -78,7 +79,7 @@ public:
   Stmt *Resolve(Expr *StmtLabel) const;
 
   /// \brief Declares a forward reference of some statement label.
-  void DeclareForwardReference(StmtLabelForwardDecl Reference);
+  void DeclareForwardReference(ForwardDecl Reference);
 
   /// \brief Removes a forward reference of some statement label.
   void RemoveForwardReference(const Stmt *User);
