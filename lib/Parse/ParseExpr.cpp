@@ -404,13 +404,13 @@ static llvm::APFloat GetNumberConstant(ExprResult E) {
 // Parses a complex constant
 //   := (X,X)
 //     X := integer-constant | real-constant
-Parser::ExprResult Parser::ParseComplexConstant() {
+Parser::ExprResult Parser::ParseComplexConstant(llvm::SMLoc Loc) {
   ExprResult X,Y;
   X = ParsePrimaryExpr();
   Expect(tok::comma,"Expected ',' after the real part");
   Y = ParsePrimaryExpr();
   APFloat Re = GetNumberConstant(X), Im = GetNumberConstant(Y);
-  return ComplexConstantExpr::Create(Context, X.get()->getLocation(),
+  return ComplexConstantExpr::Create(Context, Loc,
                                      getMaxLocationOfCurrentToken(), Re, Im);
 }
 
@@ -448,7 +448,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
        Tok.is(tok::real_literal_constant)) &&
        PeekAhead().is(tok::comma)) {
       //complex constant
-      E = ParseComplexConstant();
+      E = ParseComplexConstant(Loc);
     } else E = ParseExpression();
 
     if (Tok.isNot(tok::r_paren)) {

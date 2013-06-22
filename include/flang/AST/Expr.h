@@ -75,6 +75,10 @@ public:
   virtual SMLoc getMinLocation() const { return Loc; }
   virtual SMLoc getMaxLocation() const { return Loc; }
 
+  inline llvm::SMRange getSourceRange() const {
+    return llvm::SMRange(getMinLocation(), getMaxLocation());
+  }
+
   virtual void print(raw_ostream&);
   void dump();
 
@@ -351,6 +355,9 @@ public:
   ExprResult getStartingPoint() const { return StartingPoint; }
   ExprResult getEndPoint() const { return EndPoint; }
 
+  SMLoc getMinLocation() const;
+  SMLoc getMaxLocation() const;
+
   virtual void print(llvm::raw_ostream &);
 
   static bool classof(const Expr *E) {
@@ -383,6 +390,9 @@ public:
   llvm::ArrayRef<ExprResult> getSubscriptList() const {
     return ArrayRef<ExprResult>(SubscriptList, NumSubscripts);
   }
+
+  SMLoc getMinLocation() const;
+  SMLoc getMaxLocation() const;
 
   virtual void print(llvm::raw_ostream &);
 

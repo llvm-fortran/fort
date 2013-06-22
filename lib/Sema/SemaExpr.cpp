@@ -274,16 +274,20 @@ static bool IsIntegerExpression(ExprResult E) {
 
 ExprResult Sema::ActOnSubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
                                     ExprResult StartingPoint, ExprResult EndPoint) {
+  bool HasErrors = false;
   if(StartingPoint.get() && !IsIntegerExpression(StartingPoint.get())) {
     Diags.Report(StartingPoint.get()->getLocation(),
-                 diag::err_expected_integer_expr);
-    return ExprError();
+                 diag::err_expected_integer_expr)
+      << StartingPoint.get()->getSourceRange();
+    HasErrors = true;
   }
   if(EndPoint.get() && !IsIntegerExpression(EndPoint.get())) {
     Diags.Report(EndPoint.get()->getLocation(),
-                 diag::err_expected_integer_expr);
-    return ExprError();
+                 diag::err_expected_integer_expr)
+      << EndPoint.get()->getSourceRange();
+    HasErrors = true;
   }
+  if(HasErrors) return ExprError();
 
   return SubstringExpr::Create(C, Loc, Target, StartingPoint, EndPoint);
 }
@@ -294,9 +298,10 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult T
   auto AT = Target.get()->getType().getTypePtr()->asArrayType();
   assert(AT);
   if(AT->getDimensionCount() != Subscripts.size()) {
-    Diags.Report(Subscripts[0].get()->getLocation(),
-                 diag::err_array_subscript_dimension_count_mismatch) <<
-                 int(AT->getDimensionCount());
+    Diags.Report(Loc,
+                 diag::err_array_subscript_dimension_count_mismatch)
+      << int(AT->getDimensionCount())
+      << llvm::SMRange(Loc, Subscripts.back().get()->getMaxLocation());
     return ExprError();
   }
   //FIXME constraint
@@ -304,7 +309,8 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult T
   for(size_t I = 0; I < Subscripts.size(); ++I) {
     if(!IsIntegerExpression(Subscripts[I])) {
       Diags.Report(Subscripts[I].get()->getLocation(),
-                   diag::err_expected_integer_expr);
+                   diag::err_expected_integer_expr)
+        << Subscripts[I].get()->getSourceRange();
       return ExprError();
     }
   }

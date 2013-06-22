@@ -279,7 +279,7 @@ private:
   ExprResult ParseLevel1Expr();
   ExprResult ParsePrimaryExpr(bool IsLvalue = false);
   ExprResult ParseExpression();
-  ExprResult ParseComplexConstant();
+  ExprResult ParseComplexConstant(llvm::SMLoc Loc);
 
   /// \brief Looks at the next token to see if it's an expression
   /// and calls ParseExpression if it is, or reports an expected expression

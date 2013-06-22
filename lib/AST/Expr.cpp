@@ -156,6 +156,16 @@ SubstringExpr *SubstringExpr::Create(ASTContext &C, llvm::SMLoc Loc,
   return new(C) SubstringExpr(C, Loc, Target, StartingPoint, EndPoint);
 }
 
+SMLoc SubstringExpr::getMinLocation() const {
+  return Target.get()->getMinLocation();
+}
+
+SMLoc SubstringExpr::getMaxLocation() const {
+  if(EndPoint.isUsable()) return EndPoint.get()->getMaxLocation();
+  else if(StartingPoint.isUsable()) return StartingPoint.get()->getMaxLocation();
+  else return getLocation();
+}
+
 ArrayElementExpr::ArrayElementExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult E,
                                    llvm::ArrayRef<ExprResult> Subs)
   : DesignatorExpr(Loc, E.get()->getType()->asArrayType()->getElementType(),
@@ -172,6 +182,14 @@ ArrayElementExpr *ArrayElementExpr::Create(ASTContext &C, llvm::SMLoc Loc,
                                            ExprResult Target,
                                            llvm::ArrayRef<ExprResult> Subscripts) {
   return new(C) ArrayElementExpr(C, Loc, Target, Subscripts);
+}
+
+SMLoc ArrayElementExpr::getMinLocation() const {
+  return Target.get()->getMinLocation();
+}
+
+SMLoc ArrayElementExpr::getMaxLocation() const {
+  return SubscriptList[NumSubscripts - 1].get()->getMaxLocation();
 }
 
 VarExpr::VarExpr(llvm::SMLoc Loc, const VarDecl *Var)
