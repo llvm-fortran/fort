@@ -387,14 +387,14 @@ StopStmt *StopStmt::Create(ASTContext &C, SMLoc Loc, ExprResult stopCode, ExprRe
 // Assignment Statement
 //===----------------------------------------------------------------------===//
 
-AssignmentStmt::AssignmentStmt(ExprResult lhs, ExprResult rhs,
+AssignmentStmt::AssignmentStmt(llvm::SMLoc Loc, Expr *lhs, Expr *rhs,
                                ExprResult StmtLabel)
-  : Stmt(Assignment, llvm::SMLoc(), StmtLabel), LHS(lhs), RHS(rhs)
+  : Stmt(Assignment, Loc, StmtLabel), LHS(lhs), RHS(rhs)
 {}
 
-AssignmentStmt *AssignmentStmt::Create(ASTContext &C, ExprResult lhs,
-                                       ExprResult rhs, ExprResult StmtLabel) {
-  return new (C) AssignmentStmt(lhs, rhs, StmtLabel);
+AssignmentStmt *AssignmentStmt::Create(ASTContext &C, llvm::SMLoc Loc, Expr *LHS,
+                                       Expr *RHS, ExprResult StmtLabel) {
+  return new (C) AssignmentStmt(Loc, LHS, RHS, StmtLabel);
 }
 
 //===----------------------------------------------------------------------===//

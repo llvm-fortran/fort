@@ -510,25 +510,25 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, llvm::SMLoc Loc,
     if(IsRHSInteger) ;
     else if(IsRHSArithmetic)
       RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                     intrinsic::INT,RHS);
+                                     intrinsic::INT, RHS.take());
     else goto typeError;
   } else if(LHSType->isRealType()) {
     if(IsRHSReal) ;
     else if(IsRHSArithmetic)
       RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                     intrinsic::REAL,RHS);
+                                     intrinsic::REAL, RHS.take());
     else goto typeError;
   } else if(LHSType->isDoublePrecisionType()) {
     if(IsRHSDblPrec) ;
     else if(IsRHSArithmetic)
       RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                     intrinsic::DBLE,RHS);
+                                     intrinsic::DBLE, RHS.take());
     else goto typeError;
   } else if(LHSType->isComplexType()) {
     if(IsRHSComplex) ;
     else if(IsRHSArithmetic)
       RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                     intrinsic::CMPLX,RHS);
+                                     intrinsic::CMPLX, RHS.take());
     else goto typeError;
   }
 
@@ -545,7 +545,7 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, llvm::SMLoc Loc,
   // Invalid assignment
   else goto typeError;
 
-  Result = AssignmentStmt::Create(C, LHS, RHS, StmtLabel);
+  Result = AssignmentStmt::Create(C, Loc, LHS.take(), RHS.take(), StmtLabel);
   CurExecutableStmts.Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
@@ -804,13 +804,13 @@ static bool IsValidDoTerminatingStatement(Stmt *S) {
 static ExprResult ApplyDoConversionIfNeeded(ASTContext &C, ExprResult E, QualType T) {
   if(T->isIntegerType()) {
     if(E.get()->getType()->isIntegerType()) return E;
-    else return ImplicitCastExpr::Create(C, E.get()->getLocation(), intrinsic::INT, E);
+    else return ImplicitCastExpr::Create(C, E.get()->getLocation(), intrinsic::INT, E.take());
   } else if(T->isRealType()) {
     if(E.get()->getType()->isRealType()) return E;
-    else return ImplicitCastExpr::Create(C, E.get()->getLocation(), intrinsic::REAL, E);
+    else return ImplicitCastExpr::Create(C, E.get()->getLocation(), intrinsic::REAL, E.take());
   } else {
     if(E.get()->getType()->isDoublePrecisionType()) return E;
-    else return ImplicitCastExpr::Create(C, E.get()->getLocation(), intrinsic::DBLE, E);
+    else return ImplicitCastExpr::Create(C, E.get()->getLocation(), intrinsic::DBLE, E.take());
   }
 }
 

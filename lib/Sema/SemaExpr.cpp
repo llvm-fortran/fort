@@ -54,7 +54,7 @@ ExprResult Sema::ActOnUnaryExpr(ASTContext &C, llvm::SMLoc Loc,
     llvm_unreachable("Unknown unary expression");
   }
 
-  return UnaryExpr::Create(C, Loc, Op, E);
+  return UnaryExpr::Create(C, Loc, Op, E.take());
 
 typecheckInvalidOperand:
   std::string TypeString;
@@ -70,7 +70,7 @@ typecheckInvalidOperand:
 // FIXME: verify return type for binary expressions.
 ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
                                  BinaryExpr::Operator Op,
-                                 ExprResult LHS,ExprResult RHS) {
+                                 ExprResult LHS, ExprResult RHS) {
   unsigned DiagType = 0;
 
   auto LHSType = LHS.get()->getType().getTypePtr();
@@ -103,15 +103,15 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
       case TST_integer: break;
       case TST_real:
         RHS = ImplicitCastExpr::Create(C, RHS.get()->getLocation(),
-                                       intrinsic::REAL,RHS);
+                                       intrinsic::REAL, RHS.take());
         break;
       case TST_doubleprecision:
         RHS = ImplicitCastExpr::Create(C, RHS.get()->getLocation(),
-                                       intrinsic::DBLE,RHS);
+                                       intrinsic::DBLE, RHS.take());
         break;
       case TST_complex:
         RHS = ImplicitCastExpr::Create(C, RHS.get()->getLocation(),
-                                       intrinsic::CMPLX,RHS);
+                                       intrinsic::CMPLX, RHS.take());
         break;
       default:
         llvm_unreachable("Unknown Arithmetic TST");
@@ -127,16 +127,16 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
       switch(LHSTypeSpec) {
       case TST_integer:
         LHS = ImplicitCastExpr::Create(C, LHS.get()->getLocation(),
-                                       intrinsic::REAL,LHS);
+                                       intrinsic::REAL, LHS.take());
         break;
       case TST_real: break;
       case TST_doubleprecision:
         RHS = ImplicitCastExpr::Create(C, RHS.get()->getLocation(),
-                                       intrinsic::DBLE,RHS);
+                                       intrinsic::DBLE, RHS.take());
         break;
       case TST_complex:
         RHS = ImplicitCastExpr::Create(C, RHS.get()->getLocation(),
-                                       intrinsic::CMPLX,RHS);
+                                       intrinsic::CMPLX, RHS.take());
         break;
       default:
         llvm_unreachable("Unknown Arithmetic TST");
@@ -152,7 +152,7 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
       switch(LHSTypeSpec) {
       case TST_integer: case TST_real:
         LHS = ImplicitCastExpr::Create(C, LHS.get()->getLocation(),
-                                       intrinsic::DBLE,LHS);
+                                       intrinsic::DBLE, LHS.take());
         break;
       case TST_doubleprecision: break;
       case TST_complex:
@@ -171,7 +171,7 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
       switch(LHSTypeSpec) {
       case TST_integer: case TST_real:
         LHS = ImplicitCastExpr::Create(C, LHS.get()->getLocation(),
-                                       intrinsic::CMPLX,LHS);
+                                       intrinsic::CMPLX, LHS.take());
         break;
       case TST_doubleprecision:
         goto typecheckInvalidOperands;
@@ -238,10 +238,15 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
     if(LHSTypeSpec != RHSTypeSpec) {
       LHS = ActOnBinaryExpr(C, Loc, BinaryExpr::Minus, LHS, RHS);
       switch(GetArithmeticTypeSpec(LHS.get()->getType().getTypePtr())) {
-      case TST_integer: RHS = IntegerConstantExpr::Create(C, Loc, Loc, "0"); break;
-      case TST_real: RHS = RealConstantExpr::Create(C, Loc, Loc, "0"); break;
-      case TST_doubleprecision: RHS = DoublePrecisionConstantExpr::Create(C, Loc, Loc,"0"); break;
-      case TST_complex: RHS = ComplexConstantExpr::Create(C, Loc, Loc, llvm::APFloat(0.0), llvm::APFloat(0.0)); break;
+      case TST_integer:
+        RHS = IntegerConstantExpr::Create(C, Loc, Loc, "0"); break;
+      case TST_real:
+        RHS = RealConstantExpr::Create(C, Loc, Loc, "0"); break;
+      case TST_doubleprecision:
+        RHS = DoublePrecisionConstantExpr::Create(C, Loc, Loc,"0"); break;
+      case TST_complex:
+        RHS = ComplexConstantExpr::Create(C, Loc, Loc, llvm::APFloat(0.0), llvm::APFloat(0.0));
+        break;
       default:
         llvm_unreachable("Unknown Arithmetic TST");
       }
@@ -253,7 +258,7 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
     llvm_unreachable("Unknown binary expression");
   }
 
-  return BinaryExpr::Create(C, Loc, Op, LHS, RHS);
+  return BinaryExpr::Create(C, Loc, Op, LHS.take(), RHS.take());
 
 typecheckInvalidOperands:
   std::string TypeStrings[2];
@@ -289,7 +294,8 @@ ExprResult Sema::ActOnSubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult T
   }
   if(HasErrors) return ExprError();
 
-  return SubstringExpr::Create(C, Loc, Target, StartingPoint, EndPoint);
+  return SubstringExpr::Create(C, Loc, Target.take(),
+                               StartingPoint.take(), EndPoint.take());
 }
 
 ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
@@ -304,17 +310,20 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult T
       << llvm::SMRange(Loc, Subscripts.back().get()->getLocEnd());
     return ExprError();
   }
+  llvm::SmallVector<Expr*, 8> Subs(Subscripts.size());
   //FIXME constraint
   //A subscript expression may contain array element references and function references.
   for(size_t I = 0; I < Subscripts.size(); ++I) {
-    if(!IsIntegerExpression(Subscripts[I])) {
+    if(IsIntegerExpression(Subscripts[I]))
+      Subs[I] = Subscripts[I].take();
+    else {
       Diags.Report(Subscripts[I].get()->getLocation(),
                    diag::err_expected_integer_expr)
         << Subscripts[I].get()->getSourceRange();
       return ExprError();
     }
   }
-  return ArrayElementExpr::Create(C, Loc, Target, Subscripts);
+  return ArrayElementExpr::Create(C, Loc, Target.take(), Subs);
 }
 
 } // namespace flang

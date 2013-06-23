@@ -623,16 +623,16 @@ public:
 
 /// AssignmentStmt
 class AssignmentStmt : public Stmt {
-  ExprResult LHS;
-  ExprResult RHS;
+  Expr *LHS;
+  Expr *RHS;
 
-  AssignmentStmt(ExprResult LHS, ExprResult RHS, ExprResult StmtLabel);
+  AssignmentStmt(llvm::SMLoc Loc, Expr *lhs, Expr *rhs, ExprResult StmtLabel);
 public:
-  static AssignmentStmt *Create(ASTContext &C, ExprResult LHS,
-                                ExprResult RHS, ExprResult StmtLabel);
+  static AssignmentStmt *Create(ASTContext &C, llvm::SMLoc Loc, Expr *LHS,
+                                Expr *RHS, ExprResult StmtLabel);
 
-  Expr *getLHS() const { return LHS.get(); }
-  Expr *getRHS() const { return RHS.get(); }
+  Expr *getLHS() const { return LHS; }
+  Expr *getRHS() const { return RHS; }
 
   static bool classof(const AssignmentStmt*) { return true; }
   static bool classof(const Stmt *S) {

@@ -144,52 +144,59 @@ LogicalConstantExpr *LogicalConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
   return new (C) LogicalConstantExpr(C, Loc, MaxLoc, Data);
 }
 
-SubstringExpr::SubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult E,
-                             ExprResult Start, ExprResult End)
+MultiArgumentExpr::MultiArgumentExpr(ASTContext &C, ArrayRef<Expr*> Args) {
+  assert(Args.size() > 0);
+  NumArguments = Args.size();
+  if(NumArguments == 1)
+    Argument = Args[0];
+  else {
+    Arguments = new (C) Expr *[NumArguments];
+    for (unsigned I = 0; I != NumArguments; ++I)
+      Arguments[I] = Args[I];
+  }
+}
+
+SubstringExpr::SubstringExpr(ASTContext &C, llvm::SMLoc Loc, Expr *E,
+                             Expr *Start, Expr *End)
   : DesignatorExpr(Loc,C.CharacterTy,DesignatorExpr::Substring),
     Target(E), StartingPoint(Start), EndPoint(End) {
 }
 
 SubstringExpr *SubstringExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                     ExprResult Target, ExprResult StartingPoint,
-                                     ExprResult EndPoint) {
+                                     Expr *Target, Expr *StartingPoint,
+                                     Expr *EndPoint) {
   return new(C) SubstringExpr(C, Loc, Target, StartingPoint, EndPoint);
 }
 
 SMLoc SubstringExpr::getLocStart() const {
-  return Target.get()->getLocStart();
+  return Target->getLocStart();
 }
 
 SMLoc SubstringExpr::getLocEnd() const {
-  if(EndPoint.isUsable()) return EndPoint.get()->getLocEnd();
-  else if(StartingPoint.isUsable()) return StartingPoint.get()->getLocEnd();
+  if(EndPoint) return EndPoint->getLocEnd();
+  else if(StartingPoint) return StartingPoint->getLocEnd();
   else return getLocation();
 }
 
-ArrayElementExpr::ArrayElementExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult E,
-                                   llvm::ArrayRef<ExprResult> Subs)
-  : DesignatorExpr(Loc, E.get()->getType()->asArrayType()->getElementType(),
+ArrayElementExpr::ArrayElementExpr(ASTContext &C, llvm::SMLoc Loc, Expr *E,
+                                   llvm::ArrayRef<Expr *> Subs)
+  : DesignatorExpr(Loc, E->getType()->asArrayType()->getElementType(),
                    DesignatorExpr::ArrayElement),
-    Target(E) {
-  NumSubscripts = Subs.size();
-  SubscriptList = new (C) ExprResult [NumSubscripts];
-
-  for (unsigned I = 0; I != NumSubscripts; ++I)
-    SubscriptList[I] = Subs[I];
+    MultiArgumentExpr(C, Subs), Target(E) {
 }
 
 ArrayElementExpr *ArrayElementExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                           ExprResult Target,
-                                           llvm::ArrayRef<ExprResult> Subscripts) {
+                                           Expr *Target,
+                                           llvm::ArrayRef<Expr *> Subscripts) {
   return new(C) ArrayElementExpr(C, Loc, Target, Subscripts);
 }
 
 SMLoc ArrayElementExpr::getLocStart() const {
-  return Target.get()->getLocStart();
+  return Target->getLocStart();
 }
 
 SMLoc ArrayElementExpr::getLocEnd() const {
-  return SubscriptList[NumSubscripts - 1].get()->getLocEnd();
+  return getArguments().back()->getLocEnd();
 }
 
 VarExpr::VarExpr(llvm::SMLoc Loc, const VarDecl *Var)
@@ -205,37 +212,37 @@ SMLoc VarExpr::getLocEnd() const {
                                Variable->getIdentifier()->getLength());
 }
 
-UnaryExpr *UnaryExpr::Create(ASTContext &C, llvm::SMLoc loc, Operator op,
-                             ExprResult e) {
+UnaryExpr *UnaryExpr::Create(ASTContext &C, llvm::SMLoc Loc, Operator Op,
+                             Expr *E) {
   return new (C) UnaryExpr(Expr::Unary,
-                           (op != Not) ? e.get()->getType() : C.LogicalTy,
-                           loc, op, e);
+                           (Op != Not) ? E->getType() : C.LogicalTy,
+                           Loc, Op, E);
 }
 
 SMLoc UnaryExpr::getLocEnd() const {
-  return E.get()->getLocEnd();
+  return E->getLocEnd();
 }
 
-DefinedOperatorUnaryExpr::DefinedOperatorUnaryExpr(llvm::SMLoc loc, ExprResult e,
-                                                   IdentifierInfo *ii)
-  : UnaryExpr(Expr::DefinedUnaryOperator, e.get()->getType(), loc, Defined, e),
-    II(ii) {}
+DefinedOperatorUnaryExpr::DefinedOperatorUnaryExpr(llvm::SMLoc Loc, Expr *E,
+                                                   IdentifierInfo *IDInfo)
+  : UnaryExpr(Expr::DefinedUnaryOperator, E->getType(), Loc, Defined, E),
+    II(IDInfo) {}
 
 DefinedOperatorUnaryExpr *DefinedOperatorUnaryExpr::Create(ASTContext &C,
-                                                           llvm::SMLoc loc,
-                                                           ExprResult e,
-                                                           IdentifierInfo *ii) {
-  return new (C) DefinedOperatorUnaryExpr(loc, e, ii);
+                                                           llvm::SMLoc Loc,
+                                                           Expr *E,
+                                                           IdentifierInfo *IDInfo) {
+  return new (C) DefinedOperatorUnaryExpr(Loc, E, IDInfo);
 }
 
-BinaryExpr *BinaryExpr::Create(ASTContext &C, llvm::SMLoc loc, Operator op,
-                               ExprResult lhs, ExprResult rhs) {
+BinaryExpr *BinaryExpr::Create(ASTContext &C, llvm::SMLoc Loc, Operator Op,
+                               Expr *LHS, Expr *RHS) {
   QualType Ty;
 
-  switch (op) {
+  switch (Op) {
   default: {
     // FIXME: Combine two types.
-    Ty = lhs.get()->getType();
+    Ty = LHS->getType();
     break;
   }
   case Eqv: case Neqv: case Or: case And:
@@ -248,21 +255,21 @@ BinaryExpr *BinaryExpr::Create(ASTContext &C, llvm::SMLoc loc, Operator op,
     break;
   }
 
-  return new (C) BinaryExpr(Expr::Binary, Ty, loc, op, lhs, rhs);
+  return new (C) BinaryExpr(Expr::Binary, Ty, Loc, Op, LHS, RHS);
 }
 
 SMLoc BinaryExpr::getLocStart() const {
-  return LHS.get()->getLocStart();
+  return LHS->getLocStart();
 }
 
 SMLoc BinaryExpr::getLocEnd() const {
-  return RHS.get()->getLocEnd();
+  return RHS->getLocEnd();
 }
 
 DefinedOperatorBinaryExpr *
-DefinedOperatorBinaryExpr::Create(ASTContext &C, llvm::SMLoc loc, ExprResult lhs,
-                                  ExprResult rhs, IdentifierInfo *ii) {
-  return new (C) DefinedOperatorBinaryExpr(loc, lhs, rhs, ii);
+DefinedOperatorBinaryExpr::Create(ASTContext &C, llvm::SMLoc Loc, Expr *LHS,
+                                  Expr *RHS, IdentifierInfo *IDInfo) {
+  return new (C) DefinedOperatorBinaryExpr(Loc, LHS, RHS, IDInfo);
 }
 
 static inline QualType ConversionType(ASTContext &C, intrinsic::FunctionKind Op) {
@@ -276,14 +283,14 @@ static inline QualType ConversionType(ASTContext &C, intrinsic::FunctionKind Op)
   }
 }
 
-ImplicitCastExpr::ImplicitCastExpr(ASTContext &C, llvm::SMLoc L,
-                                   intrinsic::FunctionKind op, ExprResult e)
-  : Expr(ImplicitCast,ConversionType(C, op),L),Op(op),E(e) {
+ImplicitCastExpr::ImplicitCastExpr(ASTContext &C, llvm::SMLoc Loc,
+                                   intrinsic::FunctionKind op, Expr *e)
+  : Expr(ImplicitCast,ConversionType(C, op),Loc),Op(op),E(e) {
 }
 
-ImplicitCastExpr *ImplicitCastExpr::Create(ASTContext &C, llvm::SMLoc L,
-                                           intrinsic::FunctionKind Op, ExprResult E) {
-  return new(C) ImplicitCastExpr(C, L, Op, E);
+ImplicitCastExpr *ImplicitCastExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+                                           intrinsic::FunctionKind Op, Expr *E) {
+  return new(C) ImplicitCastExpr(C, Loc, Op, E);
 }
 
 //===----------------------------------------------------------------------===//
@@ -301,28 +308,28 @@ void DesignatorExpr::print(llvm::raw_ostream &O) {
 }
 
 void SubstringExpr::print(llvm::raw_ostream &O) {
-  Target.get()->print(O);
+  Target->print(O);
   O << '(';
-  if(StartingPoint.get()) StartingPoint.get()->print(O);
+  if(StartingPoint) StartingPoint->print(O);
   O << ':';
-  if(EndPoint.get()) EndPoint.get()->print(O);
+  if(EndPoint) EndPoint->print(O);
   O << ')';
 }
 
 void ArrayElementExpr::print(llvm::raw_ostream &O) {
-  Target.get()->print(O);
+  Target->print(O);
   O << '(';
-  llvm::ArrayRef<ExprResult> Subscripts = getSubscriptList();
+  auto Subscripts = getArguments();
   for(size_t I = 0; I < Subscripts.size(); ++I) {
     if(I) O << ", ";
-    Subscripts[I].get()->print(O);
+    Subscripts[I]->print(O);
   }
   O << ')';
 }
 
 void UnaryExpr::print(llvm::raw_ostream &O) {
   O << '(';
-  const char *op = 0;
+  const char *op = "";
   switch (Op) {
   default: break;
   case Not:   op = ".NOT."; break;
@@ -330,19 +337,19 @@ void UnaryExpr::print(llvm::raw_ostream &O) {
   case Minus: op = "-";     break;
   }
   O << op;
-  E.get()->print(O);
+  E->print(O);
   O << ')';
 }
 
 void DefinedOperatorUnaryExpr::print(llvm::raw_ostream &O) {
   O << '(' << II->getName();
-  E.get()->print(O);
+  E->print(O);
   O << ')';
 }
 
 void ImplicitCastExpr::print(llvm::raw_ostream &O) {
   O << intrinsic::getFunctionName(Op) << '(';
-  E.get()->print(O);
+  E->print(O);
   O << ')';
 }
 
@@ -393,7 +400,7 @@ void VarExpr::print(llvm::raw_ostream &O) {
 
 void BinaryExpr::print(llvm::raw_ostream &O) {
   O << '(';
-  LHS.get()->print(O);
+  LHS->print(O);
   const char *op = 0;
   switch (Op) {
   default: break;
@@ -415,15 +422,15 @@ void BinaryExpr::print(llvm::raw_ostream &O) {
   case Power:            op = "**";     break;
   }
   O << op;
-  RHS.get()->print(O);
+  RHS->print(O);
   O << ')';
 }
 
 void DefinedOperatorBinaryExpr::print(llvm::raw_ostream &O) {
   O << '(';
-  LHS.get()->print(O);
+  LHS->print(O);
   II->getName();
-  RHS.get()->print(O);
+  RHS->print(O);
   O << ')';
 }
 

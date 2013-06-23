@@ -16,7 +16,6 @@
 
 #include "flang/AST/Type.h"
 #include "flang/AST/IntrinsicFunctions.h"
-#include "flang/Sema/Ownership.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/SourceMgr.h"
@@ -229,7 +228,7 @@ public:
 };
 
 class ComplexConstantExpr : public ConstantExpr {
-  APFloatStorage Re,Im;
+  APFloatStorage Re, Im;
   ComplexConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::SMLoc MaxLoc,
                       const APFloat &Re, const APFloat &Im);
 public:
@@ -311,6 +310,24 @@ public:
   static bool classof(const LogicalConstantExpr *) { return true; }
 };
 
+/// An expression with multiple arguments.
+class MultiArgumentExpr {
+private:
+  unsigned NumArguments;
+  union {
+    Expr **Arguments;
+    Expr *Argument;
+  };
+protected:
+  MultiArgumentExpr(ASTContext &C, ArrayRef<Expr*> Args);
+public:
+
+  ArrayRef<Expr*> getArguments() const {
+    return NumArguments == 1? ArrayRef<Expr*>(Argument) :
+                              ArrayRef<Expr*>(Arguments,NumArguments);
+  }
+};
+
 //===----------------------------------------------------------------------===//
 /// DesignatorExpr -
 class DesignatorExpr : public Expr {
@@ -344,17 +361,17 @@ public:
 /// SubstringExpr - Returns a substring.
 class SubstringExpr : public DesignatorExpr {
 private:
-  ExprResult Target, StartingPoint, EndPoint;
-  SubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult E,
-                ExprResult Start, ExprResult End);
+  Expr *Target, *StartingPoint, *EndPoint;
+  SubstringExpr(ASTContext &C, llvm::SMLoc Loc, Expr *E,
+                Expr *Start, Expr *End);
 public:
   static SubstringExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                               ExprResult Target, ExprResult StartingPoint,
-                               ExprResult EndPoint);
+                               Expr *Target, Expr *StartingPoint,
+                               Expr *EndPoint);
 
-  ExprResult getTarget() const { return Target; }
-  ExprResult getStartingPoint() const { return StartingPoint; }
-  ExprResult getEndPoint() const { return EndPoint; }
+  Expr *getTarget() const { return Target; }
+  Expr *getStartingPoint() const { return StartingPoint; }
+  Expr *getEndPoint() const { return EndPoint; }
 
   SMLoc getLocStart() const;
   SMLoc getLocEnd() const;
@@ -374,22 +391,20 @@ public:
 
 //===----------------------------------------------------------------------===//
 /// ArrayElementExpr - Returns an element of an array.
-class ArrayElementExpr : public DesignatorExpr {
+class ArrayElementExpr : public DesignatorExpr, public MultiArgumentExpr {
 private:
-  ExprResult Target;
-  unsigned NumSubscripts;
-  ExprResult *SubscriptList;
+  Expr *Target;
 
-  ArrayElementExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult E,
-                   llvm::ArrayRef<ExprResult> Subs);
+  ArrayElementExpr(ASTContext &C, llvm::SMLoc Loc, Expr *E,
+                   llvm::ArrayRef<Expr*> Subs);
 public:
   static ArrayElementExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                                  ExprResult Target,
-                                  llvm::ArrayRef<ExprResult> Subscripts);
+                                  Expr *Target,
+                                  llvm::ArrayRef<Expr*> Subscripts);
 
-  ExprResult getTarget() const { return Target; }
-  llvm::ArrayRef<ExprResult> getSubscriptList() const {
-    return ArrayRef<ExprResult>(SubscriptList, NumSubscripts);
+  Expr *getTarget() const { return Target; }
+  llvm::ArrayRef<Expr*> getSubscriptList() const {
+    return getArguments();
   }
 
   SMLoc getLocStart() const;
@@ -573,11 +588,11 @@ public:
   };
 protected:
   Operator Op;
-  ExprResult E;
-  UnaryExpr(ExprType ET, QualType T, llvm::SMLoc loc, Operator op, ExprResult e)
-    : Expr(ET, T, loc), Op(op), E(e) {}
+  Expr *E;
+  UnaryExpr(ExprType ET, QualType T, llvm::SMLoc Loc, Operator op, Expr *e)
+    : Expr(ET, T, Loc), Op(op), E(e) {}
 public:
-  static UnaryExpr *Create(ASTContext &C, llvm::SMLoc loc, Operator op, ExprResult e);
+  static UnaryExpr *Create(ASTContext &C, llvm::SMLoc Loc, Operator Op, Expr *E);
 
   Operator getOperator() const { return Op; }
 
@@ -597,10 +612,10 @@ public:
 /// DefinedOperatorUnaryExpr -
 class DefinedOperatorUnaryExpr : public UnaryExpr {
   IdentifierInfo *II;
-  DefinedOperatorUnaryExpr(llvm::SMLoc loc, ExprResult e, IdentifierInfo *ii);
+  DefinedOperatorUnaryExpr(llvm::SMLoc Loc, Expr *E, IdentifierInfo *IDInfo);
 public:
-  static DefinedOperatorUnaryExpr *Create(ASTContext &C, llvm::SMLoc loc,
-                                          ExprResult e, IdentifierInfo *ii);
+  static DefinedOperatorUnaryExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+                                          Expr *E, IdentifierInfo *IDInfo);
 
   const IdentifierInfo *getIdentifierInfo() const { return II; }
   IdentifierInfo *getIdentifierInfo() { return II; }
@@ -646,21 +661,20 @@ public:
   };
 protected:
   Operator Op;
-  ExprResult LHS;
-  ExprResult RHS;
-  BinaryExpr(ExprType ET, QualType T, llvm::SMLoc loc, Operator op,
-             ExprResult lhs, ExprResult rhs)
-    : Expr(ET, T, loc), Op(op), LHS(lhs), RHS(rhs) {}
+  Expr *LHS, *RHS;
+  BinaryExpr(ExprType ET, QualType T, llvm::SMLoc Loc, Operator op,
+             Expr *lhs, Expr *rhs)
+    : Expr(ET, T, Loc), Op(op), LHS(lhs), RHS(rhs) {}
 public:
-  static BinaryExpr *Create(ASTContext &C, llvm::SMLoc loc, Operator op,
-                            ExprResult lhs, ExprResult rhs);
+  static BinaryExpr *Create(ASTContext &C, llvm::SMLoc Loc, Operator Op,
+                            Expr *LHS, Expr *RHS);
 
   Operator getOperator() const { return Op; }
 
-  const ExprResult getLHS() const { return LHS; }
-  ExprResult getLHS() { return LHS; }
-  const ExprResult getRHS() const { return RHS; }
-  ExprResult getRHS() { return RHS; }
+  const Expr *getLHS() const { return LHS; }
+  Expr *getLHS() { return LHS; }
+  const Expr *getRHS() const { return RHS; }
+  Expr *getRHS() { return RHS; }
 
   SMLoc getLocStart() const;
   SMLoc getLocEnd() const;
@@ -676,15 +690,15 @@ public:
 /// DefinedOperatorBinaryExpr -
 class DefinedOperatorBinaryExpr : public BinaryExpr {
   IdentifierInfo *II;
-  DefinedOperatorBinaryExpr(llvm::SMLoc loc, ExprResult lhs, ExprResult rhs,
-                            IdentifierInfo *ii)
+  DefinedOperatorBinaryExpr(llvm::SMLoc Loc, Expr *LHS, Expr *RHS,
+                            IdentifierInfo *IDInfo)
     // FIXME: The type here needs to be calculated.
-    : BinaryExpr(Expr::DefinedBinaryOperator, QualType(), loc, Defined,
-                 lhs, rhs), II(ii) {}
+    : BinaryExpr(Expr::DefinedBinaryOperator, QualType(), Loc, Defined,
+                 LHS, RHS), II(IDInfo) {}
 public:
-  static DefinedOperatorBinaryExpr *Create(ASTContext &C, llvm::SMLoc loc,
-                                           ExprResult lhs, ExprResult rhs,
-                                           IdentifierInfo *ii);
+  static DefinedOperatorBinaryExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+                                           Expr *LHS, Expr *RHS,
+                                           IdentifierInfo *IDInfo);
 
   const IdentifierInfo *getIdentifierInfo() const { return II; }
   IdentifierInfo *getIdentifierInfo() { return II; }
@@ -704,13 +718,14 @@ public:
 /// = INT(x) | REAL(x) | DBLE(x) | CMPLX(x)
 class ImplicitCastExpr : public Expr {
   intrinsic::FunctionKind Op;
-  ExprResult E;
-  ImplicitCastExpr(ASTContext &C, llvm::SMLoc L, intrinsic::FunctionKind op, ExprResult e);
+  Expr *E;
+  ImplicitCastExpr(ASTContext &C, llvm::SMLoc Loc, intrinsic::FunctionKind op, Expr *e);
 public:
-  static ImplicitCastExpr *Create(ASTContext &C, llvm::SMLoc L, intrinsic::FunctionKind Op, ExprResult E);
+  static ImplicitCastExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+                                  intrinsic::FunctionKind Op, Expr *E);
 
   intrinsic::FunctionKind getIntrinsicFunction() const { return Op;  }
-  ExprResult getExpression() { return E; }
+  Expr *getExpression() { return E; }
 
   virtual void print(llvm::raw_ostream&);
 

@@ -48,7 +48,7 @@ Parser::ExprResult Parser::ParseExpression() {
   ExprResult RHS = ParseLevel5Expr();
   if (RHS.isInvalid()) return RHS;
 
-  return DefinedOperatorBinaryExpr::Create(Context, OpLoc, LHS, RHS, II);
+  return DefinedOperatorBinaryExpr::Create(Context, OpLoc, LHS.take(), RHS.take(), II);
 }
 
 /// \brief Looks at the next token to see if it's an expression
@@ -362,7 +362,7 @@ Parser::ExprResult Parser::ParseLevel1Expr() {
   if (E.isInvalid()) return E;
 
   if (II)
-    E = DefinedOperatorUnaryExpr::Create(Context, OpLoc, E, II);
+    E = DefinedOperatorUnaryExpr::Create(Context, OpLoc, E.take(), II);
 
   return E;
 }
