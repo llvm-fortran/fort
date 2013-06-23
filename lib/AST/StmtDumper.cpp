@@ -146,27 +146,27 @@ void StmtVisitor::visit(const BlockStmt *S) {
 void StmtVisitor::visit(const AssignStmt *S) {
   OS << "(assign ";
   if(S->getAddress().Statement)
-    S->getAddress().Statement->getStmtLabel().get()->print(OS);
+    S->getAddress().Statement->getStmtLabel()->print(OS);
   OS << " to ";
-  S->getDestination().get()->print(OS);
+  S->getDestination()->print(OS);
   OS << ")\n";
 }
 void StmtVisitor::visit(const AssignedGotoStmt *S) {
   OS << "(goto ";
-  S->getDestination().get()->print(OS);
+  S->getDestination()->print(OS);
   OS << ")\n";
 }
 
 void StmtVisitor::visit(const GotoStmt *S) {
   OS << "(goto ";
   if(S->getDestination().Statement)
-    S->getDestination().Statement->getStmtLabel().get()->print(OS);
+    S->getDestination().Statement->getStmtLabel()->print(OS);
   OS << ")\n";
 }
 
 void StmtVisitor::visit(const IfStmt* S) {
   OS << "(if ";
-  S->getCondition().get()->print(OS);
+  S->getCondition()->print(OS);
   if(S->getThenStmt()) {
     OS << ") ";
     visit(S->getThenStmt());
@@ -177,16 +177,16 @@ void StmtVisitor::visit(const IfStmt* S) {
 void StmtVisitor::visit(const DoStmt *S) {
   OS<<"(do ";
   if(S->getTerminatingStmt().Statement)
-    S->getTerminatingStmt().Statement->getStmtLabel().get()->print(OS);
+    S->getTerminatingStmt().Statement->getStmtLabel()->print(OS);
   OS << " ";
-  S->getDoVar().get()->print(OS);
+  S->getDoVar()->print(OS);
   OS << " = ";
-  S->getInitialParameter().get()->print(OS);
+  S->getInitialParameter()->print(OS);
   OS << ", ";
-  S->getTerminalParameter().get()->print(OS);
-  if(S->getIncrementationParameter().isUsable()) {
+  S->getTerminalParameter()->print(OS);
+  if(S->getIncrementationParameter()) {
     OS << ", ";
-    S->getIncrementationParameter().get()->print(OS);
+    S->getIncrementationParameter()->print(OS);
   }
   OS << ")\n";
 }

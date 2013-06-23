@@ -182,9 +182,9 @@ void Sema::DeclareStatementLabel(Expr *StmtLabel, Stmt *S) {
     llvm::raw_string_ostream Stream(Str);
     StmtLabel->print(Stream);
     Diags.Report(StmtLabel->getLocation(),
-                       diag::err_redefinition_of_stmt_label)
+                 diag::err_redefinition_of_stmt_label)
         << Stream.str();
-    Diags.Report(Decl->getStmtLabel().get()->getLocation(),
+    Diags.Report(Decl->getStmtLabel()->getLocation(),
                  diag::note_previous_definition);
   }
   else {
@@ -356,26 +356,26 @@ StmtResult Sema::ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,
 }
 
 StmtResult Sema::ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
-                          const IdentifierInfo *ModName, ExprResult StmtLabel) {
+                          const IdentifierInfo *ModName, Expr *StmtLabel) {
   auto Result = UseStmt::Create(C, MN, ModName, StmtLabel);
-  if(StmtLabel.get()) DeclareStatementLabel(StmtLabel.get(), Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
 StmtResult Sema::ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
                           const IdentifierInfo *ModName, bool OnlyList,
                           ArrayRef<UseStmt::RenamePair> RenameNames,
-                          ExprResult StmtLabel) {
+                          Expr *StmtLabel) {
   auto Result = UseStmt::Create(C, MN, ModName, OnlyList, RenameNames, StmtLabel);
-  if(StmtLabel.get()) DeclareStatementLabel(StmtLabel.get(), Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
 StmtResult Sema::ActOnIMPORT(ASTContext &C, SMLoc Loc,
                              ArrayRef<const IdentifierInfo*> ImportNamesList,
-                             ExprResult StmtLabel) {
+                             Expr *StmtLabel) {
   auto Result = ImportStmt::Create(C, Loc, ImportNamesList, StmtLabel);
-  if(StmtLabel.get()) DeclareStatementLabel(StmtLabel.get(), Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
@@ -601,7 +601,7 @@ StmtResult Sema::ActOnAssignStmt(ASTContext &C, SMLoc Loc,
     Result = AssignStmt::Create(C, Loc, StmtLabelReference(),VarRef, StmtLabel);
     getCurrentStmtLabelScope().DeclareForwardReference(
       StmtLabelScope::ForwardDecl(Value.get(), Result,
-                                           ResolveAssignStmtLabel));
+                                  ResolveAssignStmtLabel));
   } else
     Result = AssignStmt::Create(C, Loc, StmtLabelReference(Decl),
                                 VarRef, StmtLabel);
@@ -656,7 +656,7 @@ StmtResult Sema::ActOnGotoStmt(ASTContext &C, SMLoc Loc,
     Result = GotoStmt::Create(C, Loc, StmtLabelReference(), StmtLabel);
     getCurrentStmtLabelScope().DeclareForwardReference(
       StmtLabelScope::ForwardDecl(Destination.get(), Result,
-                                           ResolveGotoStmtLabel));
+                                  ResolveGotoStmtLabel));
   } else
     Result = GotoStmt::Create(C, Loc, StmtLabelReference(Decl), StmtLabel);
 
@@ -684,7 +684,7 @@ StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
     return StmtError();
   }
 
-  auto Result = IfStmt::Create(C, Loc, Condition, StmtLabel);
+  auto Result = IfStmt::Create(C, Loc, Condition.take(), StmtLabel);
   CurExecutableStmts.Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   CurExecutableStmts.Enter(Result);
@@ -708,7 +708,7 @@ StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SMLoc Loc,
     return StmtError();
   }
 
-  auto Result = IfStmt::Create(C, Loc, Condition, StmtLabel);
+  auto Result = IfStmt::Create(C, Loc, Condition.take(), StmtLabel);
   auto ParentIf = static_cast<IfStmt*>(CurExecutableStmts.LastEntered().Statement);
   CurExecutableStmts.Leave(C);
   ParentIf->setElseStmt(Result);
@@ -844,7 +844,8 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStm
     }
   }
   auto Result = DoStmt::Create(C, Loc, StmtLabelReference(),
-                               DoVar, E1, E2, E3, StmtLabel);
+                               DoVar, E1.take(), E2.take(),
+                               E3.take(), StmtLabel);
   CurExecutableStmts.Append(Result);
   if(TerminatingStmt.get())
     getCurrentStmtLabelScope().DeclareForwardReference(
@@ -933,7 +934,7 @@ StmtResult Sema::ActOnContinueStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
 }
 
 StmtResult Sema::ActOnStopStmt(ASTContext &C, SMLoc Loc, ExprResult StopCode, Expr *StmtLabel) {
-  auto Result = StopStmt::Create(C, Loc, StopCode, StmtLabel);
+  auto Result = StopStmt::Create(C, Loc, StopCode.take(), StmtLabel);
   CurExecutableStmts.Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;

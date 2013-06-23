@@ -190,16 +190,16 @@ public:
 
   // USE statement:
   StmtResult ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
-                      const IdentifierInfo *ModName, ExprResult StmtLabel);
+                      const IdentifierInfo *ModName, Expr *StmtLabel);
   StmtResult ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
                       const IdentifierInfo *ModName, bool OnlyList,
                       ArrayRef<UseStmt::RenamePair> RenameNames,
-                      ExprResult StmtLabel);
+                      Expr *StmtLabel);
 
   // IMPORT statement:
   StmtResult ActOnIMPORT(ASTContext &C, SMLoc Loc,
                          ArrayRef<const IdentifierInfo*> ImportNamesList,
-                         ExprResult StmtLabel);
+                         Expr *StmtLabel);
 
   // IMPLICIT statement:
   StmtResult ActOnIMPLICIT(ASTContext &C, SMLoc Loc, DeclSpec &DS,

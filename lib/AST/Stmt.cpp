@@ -24,7 +24,7 @@ namespace flang {
 
 Stmt::~Stmt() {}
 
-Stmt *Stmt::Create(ASTContext &C, StmtTy StmtType, SMLoc Loc, ExprResult StmtLabel) {
+Stmt *Stmt::Create(ASTContext &C, StmtTy StmtType, SMLoc Loc, Expr *StmtLabel) {
   return new(C) Stmt(StmtType, Loc, StmtLabel);
 }
 
@@ -34,7 +34,7 @@ Stmt *Stmt::Create(ASTContext &C, StmtTy StmtType, SMLoc Loc, ExprResult StmtLab
 
 ProgramStmt *ProgramStmt::Create(ASTContext &C, const IdentifierInfo *ProgName,
                                  llvm::SMLoc Loc, llvm::SMLoc NameLoc,
-                                 ExprResult StmtLabel) {
+                                 Expr *StmtLabel) {
   return new (C) ProgramStmt(ProgName, Loc, NameLoc, StmtLabel);
 }
 
@@ -45,7 +45,7 @@ ProgramStmt *ProgramStmt::Create(ASTContext &C, const IdentifierInfo *ProgName,
 EndProgramStmt *EndProgramStmt::Create(ASTContext &C,
                                        const IdentifierInfo *ProgName,
                                        llvm::SMLoc Loc, llvm::SMLoc NameLoc,
-                                       ExprResult StmtLabel) {
+                                       Expr *StmtLabel) {
   return new (C) EndProgramStmt(ProgName, Loc, NameLoc, StmtLabel);
 }
 
@@ -54,20 +54,20 @@ EndProgramStmt *EndProgramStmt::Create(ASTContext &C,
 //===----------------------------------------------------------------------===//
 
 UseStmt::UseStmt(ASTContext &C, ModuleNature MN, const IdentifierInfo *modName,
-                 ArrayRef<RenamePair> RenameList, ExprResult StmtLabel)
+                 ArrayRef<RenamePair> RenameList, Expr *StmtLabel)
   : ListStmt(C, Use, SMLoc(), RenameList, StmtLabel),
     ModNature(MN), ModName(modName), Only(false) {}
 
 UseStmt *UseStmt::Create(ASTContext &C, ModuleNature MN,
                          const IdentifierInfo *modName,
-                         ExprResult StmtLabel) {
+                         Expr *StmtLabel) {
   return  new (C) UseStmt(C, MN, modName, ArrayRef<RenamePair>(), StmtLabel);
 }
 
 UseStmt *UseStmt::Create(ASTContext &C, ModuleNature MN,
                          const IdentifierInfo *modName, bool Only,
                          ArrayRef<RenamePair> RenameList,
-                         ExprResult StmtLabel) {
+                         Expr *StmtLabel) {
   UseStmt *US = new (C) UseStmt(C, MN, modName, RenameList, StmtLabel);
   US->Only = Only;
   return US;
@@ -83,12 +83,12 @@ llvm::StringRef UseStmt::getModuleName() const {
 
 ImportStmt::ImportStmt(ASTContext &C, SMLoc Loc,
                        ArrayRef<const IdentifierInfo*> Names,
-                       ExprResult StmtLabel)
+                       Expr *StmtLabel)
   : ListStmt(C, Import, Loc, Names, StmtLabel) {}
 
 ImportStmt *ImportStmt::Create(ASTContext &C, SMLoc Loc,
                                ArrayRef<const IdentifierInfo*> Names,
-                               ExprResult StmtLabel) {
+                               Expr *StmtLabel) {
   return new (C) ImportStmt(C, Loc, Names, StmtLabel);
 }
 
@@ -96,22 +96,22 @@ ImportStmt *ImportStmt::Create(ASTContext &C, SMLoc Loc,
 // Implicit Statement
 //===----------------------------------------------------------------------===//
 
-ImplicitStmt::ImplicitStmt(ASTContext &C, SMLoc L, ExprResult StmtLabel)
+ImplicitStmt::ImplicitStmt(ASTContext &C, SMLoc L, Expr *StmtLabel)
   : ListStmt(C, Implicit, L, ArrayRef<LetterSpec>(), StmtLabel), None(true) {}
 
 ImplicitStmt::ImplicitStmt(ASTContext &C, SMLoc L, QualType T,
                            ArrayRef<LetterSpec> SpecList,
-                           ExprResult StmtLabel)
+                           Expr *StmtLabel)
   : ListStmt(C, Implicit, L, SpecList, StmtLabel), Ty(T), None(false) {}
 
 ImplicitStmt *ImplicitStmt::Create(ASTContext &C, SMLoc L,
-                                   ExprResult StmtLabel) {
+                                   Expr *StmtLabel) {
   return new (C) ImplicitStmt(C, L, StmtLabel);
 }
 
 ImplicitStmt *ImplicitStmt::Create(ASTContext &C, SMLoc L, QualType T,
                                    ArrayRef<LetterSpec> SpecList,
-                                   ExprResult StmtLabel) {
+                                   Expr *StmtLabel) {
   return new (C) ImplicitStmt(C, L, T, SpecList, StmtLabel);
 }
 
@@ -120,12 +120,12 @@ ImplicitStmt *ImplicitStmt::Create(ASTContext &C, SMLoc L, QualType T,
 //===----------------------------------------------------------------------===//
 
 ParameterStmt::ParameterStmt(ASTContext &C, SMLoc Loc,
-                             ArrayRef<ParamPair> PList, ExprResult StmtLabel)
+                             ArrayRef<ParamPair> PList, Expr *StmtLabel)
   : ListStmt(C, Parameter, Loc, PList, StmtLabel) {}
 
 ParameterStmt *ParameterStmt::Create(ASTContext &C, SMLoc Loc,
                                      ArrayRef<ParamPair>ParamList,
-                                     ExprResult StmtLabel) {
+                                     Expr *StmtLabel) {
   return new (C) ParameterStmt(C, Loc, ParamList, StmtLabel);
 }
 
@@ -136,14 +136,14 @@ ParameterStmt *ParameterStmt::Create(ASTContext &C, SMLoc Loc,
 DimensionStmt::DimensionStmt(ASTContext &C, SMLoc Loc,
                              const IdentifierInfo* IDInfo,
                              ArrayRef<ArrayType::Dimension> Dims,
-                             ExprResult StmtLabel)
+                             Expr *StmtLabel)
   : ListStmt(C, Dimension, Loc, Dims, StmtLabel) , VarName(IDInfo) {
 }
 
 DimensionStmt *DimensionStmt::Create(ASTContext &C, SMLoc Loc,
                                      const IdentifierInfo* IDInfo,
                                      ArrayRef<ArrayType::Dimension> Dims,
-                                     ExprResult StmtLabel) {
+                                     Expr *StmtLabel) {
   return new (C) DimensionStmt(C, Loc, IDInfo, Dims, StmtLabel);
 }
 
@@ -151,11 +151,11 @@ DimensionStmt *DimensionStmt::Create(ASTContext &C, SMLoc Loc,
 // Format Statement
 //===----------------------------------------------------------------------===//
 
-FormatStmt::FormatStmt(SMLoc Loc, FormatSpec *fs, ExprResult StmtLabel)
+FormatStmt::FormatStmt(SMLoc Loc, FormatSpec *fs, Expr *StmtLabel)
   : Stmt(Format, Loc, StmtLabel), FS(fs) {}
 
 FormatStmt *FormatStmt::Create(ASTContext &C, SMLoc Loc, FormatSpec *fs,
-                               ExprResult StmtLabel) {
+                               Expr *StmtLabel) {
   return new (C) FormatStmt(Loc, fs, StmtLabel);
 }
 
@@ -163,10 +163,10 @@ FormatStmt *FormatStmt::Create(ASTContext &C, SMLoc Loc, FormatSpec *fs,
 // Entry Statement
 //===----------------------------------------------------------------------===//
 
-EntryStmt::EntryStmt(SMLoc Loc, ExprResult StmtLabel)
+EntryStmt::EntryStmt(SMLoc Loc, Expr *StmtLabel)
   : Stmt(Entry, Loc, StmtLabel) {}
 
-EntryStmt *EntryStmt::Create(ASTContext &C, SMLoc Loc, ExprResult StmtLabel) {
+EntryStmt *EntryStmt::Create(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
   return new (C) EntryStmt(Loc, StmtLabel);
 }
 
@@ -177,12 +177,12 @@ EntryStmt *EntryStmt::Create(ASTContext &C, SMLoc Loc, ExprResult StmtLabel) {
 AsynchronousStmt::
 AsynchronousStmt(ASTContext &C, SMLoc Loc,
                  ArrayRef<const IdentifierInfo*> objNames,
-                 ExprResult StmtLabel)
+                 Expr *StmtLabel)
   : ListStmt(C, Asynchronous, Loc, objNames, StmtLabel) {}
 
 AsynchronousStmt *AsynchronousStmt::
 Create(ASTContext &C, SMLoc Loc, ArrayRef<const IdentifierInfo*> objNames,
-       ExprResult StmtLabel) {
+       Expr *StmtLabel) {
   return new (C) AsynchronousStmt(C, Loc, objNames, StmtLabel);
 }
 
@@ -192,12 +192,12 @@ Create(ASTContext &C, SMLoc Loc, ArrayRef<const IdentifierInfo*> objNames,
 
 ExternalStmt::ExternalStmt(ASTContext &C, SMLoc Loc,
                            ArrayRef<const IdentifierInfo *> ExternalNames,
-                           ExprResult StmtLabel)
+                           Expr *StmtLabel)
   : ListStmt(C, External, Loc, ExternalNames, StmtLabel) {}
 
 ExternalStmt *ExternalStmt::Create(ASTContext &C, SMLoc Loc,
                                    ArrayRef<const IdentifierInfo*>ExternalNames,
-                                   ExprResult StmtLabel) {
+                                   Expr *StmtLabel) {
   return new (C) ExternalStmt(C, Loc, ExternalNames, StmtLabel);
 }
 
@@ -207,12 +207,12 @@ ExternalStmt *ExternalStmt::Create(ASTContext &C, SMLoc Loc,
 
 IntrinsicStmt::IntrinsicStmt(ASTContext &C, SMLoc Loc,
                            ArrayRef<const IdentifierInfo *> IntrinsicNames,
-                           ExprResult StmtLabel)
+                           Expr *StmtLabel)
   : ListStmt(C, Intrinsic, Loc, IntrinsicNames, StmtLabel) {}
 
 IntrinsicStmt *IntrinsicStmt::Create(ASTContext &C, SMLoc Loc,
                                    ArrayRef<const IdentifierInfo*> IntrinsicNames,
-                                   ExprResult StmtLabel) {
+                                   Expr *StmtLabel) {
   return new (C) IntrinsicStmt(C, Loc, IntrinsicNames, StmtLabel);
 }
 
@@ -222,7 +222,7 @@ IntrinsicStmt *IntrinsicStmt::Create(ASTContext &C, SMLoc Loc,
 
 BlockStmt::BlockStmt(ASTContext &C, SMLoc Loc,
                      ArrayRef<StmtResult> Body)
-  : ListStmt(C, Block, Loc, Body, ExprResult()) {
+  : ListStmt(C, Block, Loc, Body, nullptr) {
 }
 
 BlockStmt *BlockStmt::Create(ASTContext &C, SMLoc Loc,
@@ -235,14 +235,14 @@ BlockStmt *BlockStmt::Create(ASTContext &C, SMLoc Loc,
 //===----------------------------------------------------------------------===//
 
 AssignStmt::AssignStmt(SMLoc Loc, StmtLabelReference Addr,
-                       ExprResult Dest, ExprResult StmtLabel)
+                       Expr *Dest, Expr *StmtLabel)
   : Stmt(Assign, Loc, StmtLabel), Address(Addr), Destination(Dest) {
 }
 
 AssignStmt *AssignStmt::Create(ASTContext &C, SMLoc Loc,
                                StmtLabelReference Address,
-                               ExprResult Destination,
-                               ExprResult StmtLabel) {
+                               Expr *Destination,
+                               Expr *StmtLabel) {
   return new(C) AssignStmt(Loc, Address, Destination, StmtLabel);
 }
 
@@ -256,16 +256,16 @@ void AssignStmt::setAddress(StmtLabelReference Address) {
 // Assigned Goto Statement
 //===----------------------------------------------------------------------===//
 
-AssignedGotoStmt::AssignedGotoStmt(ASTContext &C, SMLoc Loc, ExprResult Dest,
+AssignedGotoStmt::AssignedGotoStmt(ASTContext &C, SMLoc Loc, Expr *Dest,
                                    ArrayRef<StmtLabelReference> Vals,
-                                   ExprResult StmtLabel)
+                                   Expr *StmtLabel)
   : ListStmt(C, AssignedGoto, Loc, Vals, StmtLabel), Destination(Dest) {
 }
 
 AssignedGotoStmt *AssignedGotoStmt::Create(ASTContext &C, SMLoc Loc,
-                                           ExprResult Destination,
+                                           Expr *Destination,
                                            ArrayRef<StmtLabelReference> AllowedValues,
-                                           ExprResult StmtLabel) {
+                                           Expr *StmtLabel) {
   return new(C) AssignedGotoStmt(C, Loc, Destination, AllowedValues, StmtLabel);
 }
 
@@ -280,13 +280,13 @@ void AssignedGotoStmt::setAllowedValue(size_t I, StmtLabelReference Address) {
 // Goto Statement
 //===----------------------------------------------------------------------===//
 
-GotoStmt::GotoStmt(SMLoc Loc, StmtLabelReference Dest, ExprResult StmtLabel)
+GotoStmt::GotoStmt(SMLoc Loc, StmtLabelReference Dest, Expr *StmtLabel)
   : Stmt(Goto, Loc, StmtLabel), Destination(Dest) {
 }
 
 GotoStmt *GotoStmt::Create(ASTContext &C, SMLoc Loc,
                            StmtLabelReference Destination,
-                           ExprResult StmtLabel) {
+                           Expr *StmtLabel) {
   return new(C) GotoStmt(Loc, Destination, StmtLabel);
 }
 
@@ -300,13 +300,13 @@ void GotoStmt::setDestination(StmtLabelReference Destination) {
 // If Statement
 //===----------------------------------------------------------------------===//
 
-IfStmt::IfStmt(SMLoc Loc, ExprResult Cond, ExprResult StmtLabel)
+IfStmt::IfStmt(SMLoc Loc, Expr *Cond, Expr *StmtLabel)
   : Stmt(If, Loc, StmtLabel), Condition(Cond),
     ThenArm(nullptr), ElseArm(nullptr)  {
 }
 
 IfStmt *IfStmt::Create(ASTContext &C, SMLoc Loc,
-                       ExprResult Condition, ExprResult StmtLabel) {
+                       Expr *Condition, Expr *StmtLabel) {
   return new(C) IfStmt(Loc, Condition, StmtLabel);
 }
 
@@ -326,7 +326,7 @@ void IfStmt::setElseStmt(Stmt *Body) {
 // Control flow block Statement
 //===----------------------------------------------------------------------===//
 
-CFBlockStmt::CFBlockStmt(StmtTy Type, SMLoc Loc, ExprResult StmtLabel)
+CFBlockStmt::CFBlockStmt(StmtTy Type, SMLoc Loc, Expr *StmtLabel)
   : Stmt(Type, Loc, StmtLabel), Body(nullptr) {}
 
 void CFBlockStmt::setBody(Stmt *Body) {
@@ -340,17 +340,17 @@ void CFBlockStmt::setBody(Stmt *Body) {
 //===----------------------------------------------------------------------===//
 
 DoStmt::DoStmt(SMLoc Loc, StmtLabelReference TermStmt,
-               ExprResult DoVariable, ExprResult InitialParam,
-               ExprResult TerminalParam, ExprResult IncrementationParam,
-               ExprResult StmtLabel)
+               Expr *DoVariable, Expr *InitialParam,
+               Expr *TerminalParam, Expr *IncrementationParam,
+               Expr *StmtLabel)
   : CFBlockStmt(Do, Loc, StmtLabel), TerminatingStmt(TermStmt), DoVar(DoVariable),
     Init(InitialParam), Terminate(TerminalParam), Increment(IncrementationParam) {
 }
 
 DoStmt *DoStmt::Create(ASTContext &C, SMLoc Loc, StmtLabelReference TermStmt,
-                       ExprResult DoVariable, ExprResult InitialParam,
-                       ExprResult TerminalParam, ExprResult IncrementationParam,
-                       ExprResult StmtLabel) {
+                       Expr *DoVariable, Expr *InitialParam,
+                       Expr *TerminalParam, Expr *IncrementationParam,
+                       Expr *StmtLabel) {
   return new(C) DoStmt(Loc, TermStmt, DoVariable, InitialParam,TerminalParam,
                        IncrementationParam, StmtLabel);
 }
@@ -365,10 +365,10 @@ void DoStmt::setTerminatingStmt(StmtLabelReference Stmt) {
 // Continue Statement
 //===----------------------------------------------------------------------===//
 
-ContinueStmt::ContinueStmt(SMLoc Loc, ExprResult StmtLabel)
+ContinueStmt::ContinueStmt(SMLoc Loc, Expr *StmtLabel)
   : Stmt(Continue, Loc, StmtLabel) {
 }
-ContinueStmt *ContinueStmt::Create(ASTContext &C, SMLoc Loc, ExprResult StmtLabel) {
+ContinueStmt *ContinueStmt::Create(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
   return new(C) ContinueStmt(Loc, StmtLabel);
 }
 
@@ -376,10 +376,10 @@ ContinueStmt *ContinueStmt::Create(ASTContext &C, SMLoc Loc, ExprResult StmtLabe
 // Stop Statement
 //===----------------------------------------------------------------------===//
 
-StopStmt::StopStmt(SMLoc Loc, ExprResult stopCode, ExprResult StmtLabel)
+StopStmt::StopStmt(SMLoc Loc, Expr *stopCode, Expr *StmtLabel)
   : Stmt(Stop, Loc, StmtLabel), StopCode(stopCode) {
 }
-StopStmt *StopStmt::Create(ASTContext &C, SMLoc Loc, ExprResult stopCode, ExprResult StmtLabel) {
+StopStmt *StopStmt::Create(ASTContext &C, SMLoc Loc, Expr *stopCode, Expr *StmtLabel) {
   return new(C) StopStmt(Loc, stopCode, StmtLabel);
 }
 
@@ -388,12 +388,12 @@ StopStmt *StopStmt::Create(ASTContext &C, SMLoc Loc, ExprResult stopCode, ExprRe
 //===----------------------------------------------------------------------===//
 
 AssignmentStmt::AssignmentStmt(llvm::SMLoc Loc, Expr *lhs, Expr *rhs,
-                               ExprResult StmtLabel)
+                               Expr *StmtLabel)
   : Stmt(Assignment, Loc, StmtLabel), LHS(lhs), RHS(rhs)
 {}
 
 AssignmentStmt *AssignmentStmt::Create(ASTContext &C, llvm::SMLoc Loc, Expr *LHS,
-                                       Expr *RHS, ExprResult StmtLabel) {
+                                       Expr *RHS, Expr *StmtLabel) {
   return new (C) AssignmentStmt(Loc, LHS, RHS, StmtLabel);
 }
 
@@ -402,12 +402,12 @@ AssignmentStmt *AssignmentStmt::Create(ASTContext &C, llvm::SMLoc Loc, Expr *LHS
 //===----------------------------------------------------------------------===//
 
 PrintStmt::PrintStmt(ASTContext &C, SMLoc L, FormatSpec *fs,
-                     ArrayRef<ExprResult> OutList, ExprResult StmtLabel)
+                     ArrayRef<ExprResult> OutList, Expr *StmtLabel)
   : ListStmt(C, Print, L, OutList, StmtLabel), FS(fs) {}
 
 PrintStmt *PrintStmt::Create(ASTContext &C, SMLoc L, FormatSpec *fs,
                              ArrayRef<ExprResult> OutList,
-                             ExprResult StmtLabel) {
+                             Expr *StmtLabel) {
   return new (C) PrintStmt(C, L, fs, OutList, StmtLabel);
 }
 
