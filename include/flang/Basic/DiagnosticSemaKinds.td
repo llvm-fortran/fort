@@ -82,6 +82,11 @@ def err_redefinition_of_implicit_stmt_rule_range : Error<
 def err_implicit_invalid_range : Error<
   "the range %0 - %1 isn't alphabetically ordered">;
 
+def err_parameter_requires_const_init : Error<
+  "parameter %0 must be initialized by a constant expression">;
+def note_parameter_value_invalid_expr : Note<
+  "this expression is not allowed in a constant expression">;
+
 def err_expect_stmt_name : Error<
   "expected name %0 for '%1' statement">;
 

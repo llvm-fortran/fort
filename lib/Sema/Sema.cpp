@@ -443,21 +443,68 @@ StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, Expr *StmtLabe
   return Result;
 }
 
+class NonConstantExprASTSearch {
+public:
+  SmallVector<Expr *,8> Results;
+
+  void visit(Expr *E) {
+    if(ConstantExpr::classof(E)) ;
+    else if(UnaryExpr *Unary = dyn_cast<UnaryExpr>(E)) {
+      visit(Unary->getExpression());
+    } else if(BinaryExpr *Binary = dyn_cast<BinaryExpr>(E)) {
+      visit(Binary->getLHS());
+      visit(Binary->getRHS());
+    } else if(ImplicitCastExpr *Cast = dyn_cast<ImplicitCastExpr>(E)) {
+      visit(Cast->getExpression());
+    } else if(VarExpr *Var = dyn_cast<VarExpr>(E)) {
+      if(!Var->getVarDecl()->isParameter())
+        Results.push_back(E);
+    }
+    else Results.push_back(E);
+  }
+};
+
 StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
                                 SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo, ExprResult Value,
                                 Expr *StmtLabel) {
-  if (const VarDecl *Prev = IDInfo->getFETokenInfo<VarDecl>()) {
-    Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
-    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+  VarDecl *VD = nullptr;
+
+  if (VarDecl *Prev = IDInfo->getFETokenInfo<VarDecl>()) {
+    if (Prev->getDeclContext() == CurContext) {
+      if(Prev->isParameter()) {
+        Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+        Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+        return StmtError();
+      } else VD = Prev; // The type was already specified.
+    }
+  }
+
+  // Make sure the value is a constant expression.
+  NonConstantExprASTSearch Visitor;
+  Visitor.visit(Value.get());
+  if(!Visitor.Results.empty()) {
+    Diags.Report(IDLoc, diag::err_parameter_requires_const_init)
+        << IDInfo << Value.get()->getSourceRange();
+    for(auto E : Visitor.Results) {
+      Diags.Report(E->getLocation(), diag::note_parameter_value_invalid_expr)
+          << E->getSourceRange();
+    }
     return StmtError();
   }
 
-  QualType T = Value.get()->getType();
-  VarDecl *VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, T);
-  CurContext->addDecl(VD);
-  // Store the Decl in the IdentifierInfo for easy access.
-  const_cast<IdentifierInfo*>(IDInfo)->setFETokenInfo(VD);
+  if(VD) {
+    auto MyT = VD->getType();
+    // FIXME: TODO Implicit cast.
+    VD->MutateIntoParameter(Value.take());
+  } else {
+    QualType T = Value.get()->getType();
+    VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, T);
+    VD->MutateIntoParameter(Value.take());
+    CurContext->addDecl(VD);
+    // Store the Decl in the IdentifierInfo for easy access.
+    const_cast<IdentifierInfo*>(IDInfo)->setFETokenInfo(VD);
+  }
 
   auto Result = DeclStmt::Create(C, Loc, VD, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);

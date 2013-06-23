@@ -597,8 +597,8 @@ public:
 
   Operator getOperator() const { return Op; }
 
-  const ExprResult getExpression() const { return E; }
-  ExprResult getExpression() { return E; }
+  const Expr *getExpression() const { return E; }
+  Expr *getExpression() { return E; }
 
   SourceLocation getLocEnd() const;
 

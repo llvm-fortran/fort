@@ -275,6 +275,13 @@ VarDecl *VarDecl::Create(ASTContext &C, DeclContext *DC,
   return new (C) VarDecl(Var, DC, IdLoc, Id, T);
 }
 
+void VarDecl::MutateIntoParameter(Expr *Value) {
+  assert(!isParameter());
+  assert(!Init);
+  Init = Value;
+  IsVarParameter = true;
+}
+
 //===----------------------------------------------------------------------===//
 // Creation and Destruction of StoredDeclsMaps
 //===----------------------------------------------------------------------===//

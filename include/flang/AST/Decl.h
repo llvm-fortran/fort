@@ -119,9 +119,14 @@ private:
 
 protected:
 
+  /// IsVarParameter - Is the variable declaration a parameter
+  /// (costant variable declared in PARAMETER statement)?
+  unsigned IsVarParameter : 1;
+
   Decl(Kind DK, DeclContext *DC, SourceLocation L)
     : NextDeclInContext(0), DeclCtx(DC), Loc(L), DeclKind(DK),
-      InvalidDecl(false), HasAttrs(false), Implicit(false) {}
+      InvalidDecl(false), HasAttrs(false), Implicit(false),
+      IsVarParameter(false) {}
 
   virtual ~Decl();
 
@@ -816,7 +821,7 @@ class VarDecl : public DeclaratorDecl {
 protected:
   VarDecl(Kind DK, DeclContext *DC, SourceLocation IdLoc, const IdentifierInfo *ID,
           QualType T)
-    : DeclaratorDecl(DK, DC, IdLoc, ID, T), Init(0) {}
+    : DeclaratorDecl(DK, DC, IdLoc, ID, T), Init(nullptr) {}
 
 public:
   static VarDecl *Create(ASTContext &C, DeclContext *DC,
@@ -829,6 +834,11 @@ public:
   static void Profile(llvm::FoldingSetNodeID &ID, const IdentifierInfo *Info) {
     ID.AddPointer(Info);
   }
+
+  inline Expr *getInit() const { return Init; }
+  inline bool isParameter() const { return IsVarParameter; }
+
+  void MutateIntoParameter(Expr *Value);
 
   virtual void print(raw_ostream &OS) const;
 
