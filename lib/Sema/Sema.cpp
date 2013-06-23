@@ -106,7 +106,8 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
       StmtLabelForwardDecls[I].StmtLabel->print(Stream);
       Diags.Report(StmtLabelForwardDecls[I].StmtLabel->getLocation(),
                    diag::err_undeclared_stmt_label_use)
-          << Stream.str();
+          << Stream.str()
+          << StmtLabelForwardDecls[I].StmtLabel->getSourceRange();
     }
   }
   // FIXME: TODO warning unused statement labels.
@@ -183,9 +184,10 @@ void Sema::DeclareStatementLabel(Expr *StmtLabel, Stmt *S) {
     StmtLabel->print(Stream);
     Diags.Report(StmtLabel->getLocation(),
                  diag::err_redefinition_of_stmt_label)
-        << Stream.str();
+        << Stream.str() << StmtLabel->getSourceRange();
     Diags.Report(Decl->getStmtLabel()->getLocation(),
-                 diag::note_previous_definition);
+                 diag::note_previous_definition)
+        << Decl->getStmtLabel()->getSourceRange();
   }
   else {
     getCurrentStmtLabelScope().Declare(StmtLabel, S);
@@ -674,7 +676,7 @@ static void ReportExpectedLogical(DiagnosticsEngine &Diag, ExprResult E) {
   llvm::raw_string_ostream Stream(TypeString);
   E.get()->getType().print(Stream);
   Diag.Report(E.get()->getLocation(), diag::err_typecheck_expected_logical_expr)
-      << Stream.str();
+      << Stream.str() << E.get()->getSourceRange();
 }
 
 StmtResult Sema::ActOnIfStmt(ASTContext &C, SourceLocation Loc,
@@ -765,7 +767,7 @@ static int ExpectRealOrIntegerOrDoublePrec(DiagnosticsEngine &Diags, const Expr 
   llvm::raw_string_ostream Stream(TypeString);
   E->getType().print(Stream);
   Diags.Report(E->getLocation(),DiagType)
-    << Stream.str();
+    << Stream.str() << E->getSourceRange();
   return 1;
 }
 
@@ -839,7 +841,8 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult Termi
       TerminatingStmt.get()->print(Stream);
       Diags.Report(TerminatingStmt.get()->getLocation(),
                    diag::err_stmt_label_must_decl_after)
-          << Stream.str() << "DO";
+          << Stream.str() << "DO"
+          << TerminatingStmt.get()->getSourceRange();
       return StmtError();
     }
   }
