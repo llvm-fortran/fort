@@ -557,8 +557,8 @@ typeError:
   RHS.get()->getType().print(StreamRHS);
   Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
       << StreamLHS.str() << StreamRHS.str()
-      << llvm::SMRange(LHS.get()->getMinLocation(),
-                       RHS.get()->getMaxLocation());
+      << llvm::SMRange(LHS.get()->getLocStart(),
+                       RHS.get()->getLocEnd());
   return StmtError();
 }
 

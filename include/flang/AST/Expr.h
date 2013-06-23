@@ -73,11 +73,11 @@ public:
   ExprType getExpressionID() const { return ExprID; }
   llvm::SMLoc getLocation() const { return Loc; }
 
-  virtual SMLoc getMinLocation() const { return Loc; }
-  virtual SMLoc getMaxLocation() const { return Loc; }
+  virtual SMLoc getLocStart() const { return Loc; }
+  virtual SMLoc getLocEnd() const { return Loc; }
 
   inline llvm::SMRange getSourceRange() const {
-    return llvm::SMRange(getMinLocation(), getMaxLocation());
+    return llvm::SMRange(getLocStart(), getLocEnd());
   }
 
   virtual void print(raw_ostream&);
@@ -97,7 +97,7 @@ public:
   Expr *getKindSelector() const { return Kind; }
   void setKindSelector(Expr *K) { Kind = K; }
 
-  virtual SMLoc getMaxLocation() const;
+  virtual SMLoc getLocEnd() const;
 
   virtual void print(llvm::raw_ostream&);
 
@@ -356,8 +356,8 @@ public:
   ExprResult getStartingPoint() const { return StartingPoint; }
   ExprResult getEndPoint() const { return EndPoint; }
 
-  SMLoc getMinLocation() const;
-  SMLoc getMaxLocation() const;
+  SMLoc getLocStart() const;
+  SMLoc getLocEnd() const;
 
   virtual void print(llvm::raw_ostream &);
 
@@ -392,8 +392,8 @@ public:
     return ArrayRef<ExprResult>(SubscriptList, NumSubscripts);
   }
 
-  SMLoc getMinLocation() const;
-  SMLoc getMaxLocation() const;
+  SMLoc getLocStart() const;
+  SMLoc getLocEnd() const;
 
   virtual void print(llvm::raw_ostream &);
 
@@ -541,7 +541,7 @@ public:
 
   const VarDecl *getVarDecl() const { return Variable; }
 
-  SMLoc getMaxLocation() const;
+  SMLoc getLocEnd() const;
 
   virtual void print(llvm::raw_ostream&);
 
@@ -584,7 +584,7 @@ public:
   const ExprResult getExpression() const { return E; }
   ExprResult getExpression() { return E; }
 
-  SMLoc getMaxLocation() const;
+  SMLoc getLocEnd() const;
 
   virtual void print(llvm::raw_ostream&);
 
@@ -662,8 +662,8 @@ public:
   const ExprResult getRHS() const { return RHS; }
   ExprResult getRHS() { return RHS; }
 
-  SMLoc getMinLocation() const;
-  SMLoc getMaxLocation() const;
+  SMLoc getLocStart() const;
+  SMLoc getLocEnd() const;
 
   virtual void print(llvm::raw_ostream&);
 

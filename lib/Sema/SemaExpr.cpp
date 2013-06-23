@@ -63,7 +63,7 @@ typecheckInvalidOperand:
   Diags.Report(Loc,DiagType)
       << Stream.str()
       << llvm::SMRange(Loc,
-                       E.get()->getMaxLocation());
+                       E.get()->getLocEnd());
   return ExprError();
 }
 
@@ -263,8 +263,8 @@ typecheckInvalidOperands:
   RHS.get()->getType().print(StreamRHS);
   Diags.Report(Loc,DiagType)
       << StreamLHS.str() << StreamRHS.str()
-      << llvm::SMRange(LHS.get()->getMinLocation(),
-                       RHS.get()->getMaxLocation());
+      << llvm::SMRange(LHS.get()->getLocStart(),
+                       RHS.get()->getLocEnd());
   return ExprError();
 }
 
@@ -301,7 +301,7 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult T
     Diags.Report(Loc,
                  diag::err_array_subscript_dimension_count_mismatch)
       << int(AT->getDimensionCount())
-      << llvm::SMRange(Loc, Subscripts.back().get()->getMaxLocation());
+      << llvm::SMRange(Loc, Subscripts.back().get()->getLocEnd());
     return ExprError();
   }
   //FIXME constraint

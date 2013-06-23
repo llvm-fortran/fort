@@ -31,7 +31,7 @@ void APNumericStorage::setIntValue(ASTContext &C, const APInt &Val) {
     VAL = 0;
 }
 
-SMLoc ConstantExpr::getMaxLocation() const {
+SMLoc ConstantExpr::getLocEnd() const {
   return MaxLoc;
 }
 
@@ -156,13 +156,13 @@ SubstringExpr *SubstringExpr::Create(ASTContext &C, llvm::SMLoc Loc,
   return new(C) SubstringExpr(C, Loc, Target, StartingPoint, EndPoint);
 }
 
-SMLoc SubstringExpr::getMinLocation() const {
-  return Target.get()->getMinLocation();
+SMLoc SubstringExpr::getLocStart() const {
+  return Target.get()->getLocStart();
 }
 
-SMLoc SubstringExpr::getMaxLocation() const {
-  if(EndPoint.isUsable()) return EndPoint.get()->getMaxLocation();
-  else if(StartingPoint.isUsable()) return StartingPoint.get()->getMaxLocation();
+SMLoc SubstringExpr::getLocEnd() const {
+  if(EndPoint.isUsable()) return EndPoint.get()->getLocEnd();
+  else if(StartingPoint.isUsable()) return StartingPoint.get()->getLocEnd();
   else return getLocation();
 }
 
@@ -184,12 +184,12 @@ ArrayElementExpr *ArrayElementExpr::Create(ASTContext &C, llvm::SMLoc Loc,
   return new(C) ArrayElementExpr(C, Loc, Target, Subscripts);
 }
 
-SMLoc ArrayElementExpr::getMinLocation() const {
-  return Target.get()->getMinLocation();
+SMLoc ArrayElementExpr::getLocStart() const {
+  return Target.get()->getLocStart();
 }
 
-SMLoc ArrayElementExpr::getMaxLocation() const {
-  return SubscriptList[NumSubscripts - 1].get()->getMaxLocation();
+SMLoc ArrayElementExpr::getLocEnd() const {
+  return SubscriptList[NumSubscripts - 1].get()->getLocEnd();
 }
 
 VarExpr::VarExpr(llvm::SMLoc Loc, const VarDecl *Var)
@@ -200,7 +200,7 @@ VarExpr *VarExpr::Create(ASTContext &C, llvm::SMLoc Loc, const VarDecl *VD) {
   return new (C) VarExpr(Loc, VD);
 }
 
-SMLoc VarExpr::getMaxLocation() const {
+SMLoc VarExpr::getLocEnd() const {
   return SMLoc::getFromPointer(getLocation().getPointer() +
                                Variable->getIdentifier()->getLength());
 }
@@ -212,8 +212,8 @@ UnaryExpr *UnaryExpr::Create(ASTContext &C, llvm::SMLoc loc, Operator op,
                            loc, op, e);
 }
 
-SMLoc UnaryExpr::getMaxLocation() const {
-  return E.get()->getMaxLocation();
+SMLoc UnaryExpr::getLocEnd() const {
+  return E.get()->getLocEnd();
 }
 
 DefinedOperatorUnaryExpr::DefinedOperatorUnaryExpr(llvm::SMLoc loc, ExprResult e,
@@ -251,12 +251,12 @@ BinaryExpr *BinaryExpr::Create(ASTContext &C, llvm::SMLoc loc, Operator op,
   return new (C) BinaryExpr(Expr::Binary, Ty, loc, op, lhs, rhs);
 }
 
-SMLoc BinaryExpr::getMinLocation() const {
-  return LHS.get()->getMinLocation();
+SMLoc BinaryExpr::getLocStart() const {
+  return LHS.get()->getLocStart();
 }
 
-SMLoc BinaryExpr::getMaxLocation() const {
-  return RHS.get()->getMaxLocation();
+SMLoc BinaryExpr::getLocEnd() const {
+  return RHS.get()->getLocEnd();
 }
 
 DefinedOperatorBinaryExpr *
