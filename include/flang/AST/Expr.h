@@ -15,6 +15,7 @@
 #define FLANG_AST_EXPR_H__
 
 #include "flang/AST/Type.h"
+#include "flang/AST/IntrinsicFunctions.h"
 #include "flang/Sema/Ownership.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
@@ -46,7 +47,7 @@ protected:
     CharacterConstant,
     BOZConstant,
     LogicalConstant,
-    Conversion,
+    ImplicitCast,
 
     Variable,
     Unary,
@@ -696,75 +697,29 @@ public:
   static bool classof(const DefinedOperatorBinaryExpr *) { return true; }
 };
 
-/// ConversionExpr -
-/// INT(x) | REAL(x) | DBLE(x) | CMPLX(x)
-class IntrinsicCallExpr : public Expr {
-public:
-  enum IntrinsicFunction {
-    /// Fortran 77
-
-    // conversion functions
-    INT,
-    REAL,
-    DBLE,
-    CMPLX,
-    ICHAR,
-    CHAR,
-
-    AINT, // truncation of real
-    ANINT, // nearest whole number
-    NINT, // Nearest integer
-    ABS, // Absolute value
-    MOD, // Remainder
-    SIGN, // Sign
-    DIM, // Positive difference
-    DPROD, // real * real => double prec
-    MAX,
-    MIN,
-    LEN,
-    INDEX, // location of substring a in b
-    AIMAG, // imaginary part of complex
-    CONJG, // conjugate of complex
-
-    // math
-    SQRT,
-    EXP,
-    LOG,
-    LOG10,
-    SIN,
-    COS,
-    TAN,
-    ASIN,
-    ACOS,
-    ATAN,
-    ATAN2,
-    SINH,
-    COSH,
-    TANH,
-
-    // lexical comparison
-    LGE,
-    LGT,
-    LLE,
-    LLT
-  };
-private:
-  IntrinsicFunction Op;
+/// ImplicitCastExpr - Allows us to explicitly represent implicit type
+/// conversions, which have no direct representation in the original
+/// source code.
+///
+/// = INT(x) | REAL(x) | DBLE(x) | CMPLX(x)
+class ImplicitCastExpr : public Expr {
+  intrinsic::FunctionKind Op;
   ExprResult E;
-  IntrinsicCallExpr(ASTContext &C, llvm::SMLoc L, IntrinsicFunction op, ExprResult e);
+  ImplicitCastExpr(ASTContext &C, llvm::SMLoc L, intrinsic::FunctionKind op, ExprResult e);
 public:
-  static IntrinsicCallExpr *Create(ASTContext &C, llvm::SMLoc L, IntrinsicFunction Op, ExprResult E);
+  static ImplicitCastExpr *Create(ASTContext &C, llvm::SMLoc L, intrinsic::FunctionKind Op, ExprResult E);
 
-  IntrinsicFunction getIntrinsicFunction() const { return Op;  }
+  intrinsic::FunctionKind getIntrinsicFunction() const { return Op;  }
   ExprResult getExpression() { return E; }
 
   virtual void print(llvm::raw_ostream&);
 
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::Conversion;
+    return E->getExpressionID() == Expr::ImplicitCast;
   }
-  static bool classof(const IntrinsicCallExpr *) { return true; }
+  static bool classof(const ImplicitCastExpr *) { return true; }
 };
+
 
 } // end flang namespace
 

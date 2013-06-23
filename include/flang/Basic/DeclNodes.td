@@ -32,6 +32,7 @@ def Named : Decl<1>;
     def Declarator : DDecl<Value, 1>;
       def MainProgram : Decl, DeclContext;
       def Function : DDecl<Declarator>, DeclContext;
+      def IntrinsicFunction : DDecl<Declarator>;
       def Subroutine : DDecl<Declarator>, DeclContext;
       def Module : DDecl<Declarator>, DeclContext;
       def Submodule : DDecl<Declarator>, DeclContext;

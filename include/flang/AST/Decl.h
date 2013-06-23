@@ -701,6 +701,18 @@ public:
   }
 };
 
+class IntrinsicFunctionDecl : public DeclaratorDecl {
+protected:
+  IntrinsicFunctionDecl(Kind DK, DeclContext *DC, const DeclarationNameInfo &NameInfo,
+                        QualType T)
+    : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T) {
+    }
+
+  static bool classof(const Decl *D) { return classofKind(D->getKind()); }
+  static bool classof(const IntrinsicFunctionDecl *D) { return true; }
+  static bool classofKind(Kind K) { return K == IntrinsicFunction; }
+};
+
 class SubroutineDecl : public DeclaratorDecl, public DeclContext {
 protected:
   SubroutineDecl(Kind DK, DeclContext *DC, const DeclarationNameInfo &NameInfo,

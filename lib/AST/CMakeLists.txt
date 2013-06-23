@@ -10,6 +10,7 @@ add_flang_library(flangAST
 	Stmt.cpp
 	StmtDumper.cpp
 	Type.cpp
+  IntrinsicFunctions.cpp
   )
 
 add_dependencies(flangAST
