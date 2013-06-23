@@ -33,6 +33,7 @@ class IdentifierInfo;
 class Stmt {
 public:
   enum StmtTy {
+    BundledCompound,
     Program,
 
     // Specification Part
@@ -151,6 +152,37 @@ public:
   }
 };
 
+/// BundledCompoundStmt - This represents a group of statements
+/// that are bundled together in the source code under one keyword.
+///
+/// For example, the code PARAMETER (x=1, y=2) will create an AST like:
+///   BundledCompoundStmt {
+///     ParameterStmt { x = 1 }
+///     ParameterStmt { y = 2 }
+///   }
+class BundledCompoundStmt : public ListStmt<Stmt*> {
+  BundledCompoundStmt(ASTContext &C, SourceLocation Loc,
+                      ArrayRef<Stmt*> Body, Expr *StmtLabel);
+public:
+  static BundledCompoundStmt *Create(ASTContext &C, SourceLocation Loc,
+                                     ArrayRef<Stmt*> Body, Expr *StmtLabel);
+
+  ArrayRef<Stmt*> getBody() const {
+    return getIDList();
+  }
+  Stmt *getFirst() const {
+    auto Body = getBody();
+    if(auto BC = dyn_cast<BundledCompoundStmt>(Body.front()))
+      return BC->getFirst();
+    return Body.front();
+  }
+
+  static bool classof(const BundledCompoundStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == BundledCompound;
+  }
+};
+
 /// ProgramStmt - The (optional) first statement of the 'main' program.
 ///
 class ProgramStmt : public Stmt {
@@ -204,6 +236,7 @@ public:
     return S->getStatementID() == EndProgram;
   }
 };
+
 
 //===----------------------------------------------------------------------===//
 // Specification Part Statements
@@ -269,26 +302,27 @@ public:
 /// implicitly typed data entries whose names begin with one of the letters
 /// specified in the statement.
 ///
-class ImplicitStmt : public ListStmt<std::pair<const IdentifierInfo *,
-                                               const IdentifierInfo *> > {
+class ImplicitStmt : public Stmt {
 public:
-  typedef std::pair<const IdentifierInfo *, const IdentifierInfo *> LetterSpec;
+  typedef std::pair<const IdentifierInfo *, const IdentifierInfo *> LetterSpecTy;
 private:
   QualType Ty;
+  LetterSpecTy LetterSpec;
   bool None;
 
-  ImplicitStmt(ASTContext &C, SourceLocation L, Expr *StmtLabel);
-  ImplicitStmt(ASTContext &C, SourceLocation L, QualType T,
-               ArrayRef<LetterSpec> SpecList, Expr *StmtLabel);
+  ImplicitStmt(SourceLocation Loc, Expr *StmtLabel);
+  ImplicitStmt(SourceLocation Loc, QualType T,
+               LetterSpecTy Spec, Expr *StmtLabel);
 public:
-  static ImplicitStmt *Create(ASTContext &C, SourceLocation L, Expr *StmtLabel);
-  static ImplicitStmt *Create(ASTContext &C, SourceLocation L, QualType T,
-                              ArrayRef<LetterSpec> SpecList,
+  static ImplicitStmt *Create(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
+  static ImplicitStmt *Create(ASTContext &C, SourceLocation Loc, QualType T,
+                              LetterSpecTy LetterSpec,
                               Expr *StmtLabel);
 
   bool isNone() const { return None; }
 
   QualType getType() const { return Ty; }
+  LetterSpecTy getLetterSpec() const { return LetterSpec; }
 
   static bool classof(const ImplicitStmt*) { return true; }
   static bool classof(const Stmt *S) {

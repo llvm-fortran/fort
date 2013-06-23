@@ -317,6 +317,7 @@ private:
 
   void LexToEndOfStatement();
   bool EatIfPresent(tok::TokenKind);
+  bool EatIfPresentInSameStmt(tok::TokenKind);
   bool Expect(tok::TokenKind,const llvm::Twine&);
 };
 

@@ -30,6 +30,7 @@ public:
 
 private:
 #define VISIT(STMT) void visit(const STMT *S)
+  VISIT(BundledCompoundStmt);
   VISIT(ProgramStmt);
   VISIT(EndProgramStmt);
   VISIT(UseStmt);
@@ -58,6 +59,7 @@ void StmtVisitor::visit(StmtResult S) {
     visit(stmt);                                        \
     return;                                             \
   }
+  HANDLE(BundledCompoundStmt);
   HANDLE(ProgramStmt);
   HANDLE(EndProgramStmt);
   HANDLE(UseStmt);
@@ -82,6 +84,14 @@ void StmtVisitor::visit(StmtResult S) {
   case Stmt::EndIf: OS << "(end if)\n"; break;
   case Stmt::EndDo: OS << "(end do)\n"; break;
   default: break;
+  }
+}
+
+void StmtVisitor::visit(const BundledCompoundStmt *S) {
+  auto Body = S->getBody();
+  for(size_t I = 0; I < Body.size(); ++I) {
+    if(I) OS<<"&";
+    visit(Body[I]);
   }
 }
 
@@ -110,24 +120,20 @@ void StmtVisitor::visit(const ImportStmt *S) {
   OS << ")\n";
 }
 void StmtVisitor::visit(const ImplicitStmt *S) {
-  ArrayRef<ImplicitStmt::LetterSpec> LS = S->getIDList();
   OS << "(implicit";
   if (S->isNone()) {
     OS << " none)\n";
     return;
   }
-  OS << ":\n  (";
+  OS << " ";
   S->getType().print(OS);
-  OS << " ::\n";
-  for (unsigned I = 0, E = LS.size(); I != E; ++I) {
-    ImplicitStmt::LetterSpec Spec = LS[I];
-    OS << "    (" << Spec.first->getName();
-    if (Spec.second)
-      OS << "-" << Spec.second->getName();
-    OS << ")\n";
-  }
+  OS << " :: ";
 
-  OS << "  )\n)\n";
+  auto Spec = S->getLetterSpec();
+  OS << " (" << Spec.first->getName();
+  if (Spec.second)
+    OS << "-" << Spec.second->getName();
+  OS << ") )\n";
 }
 void StmtVisitor::visit(const DimensionStmt *S) {
   OS << "DIMENSION " << S->getVariableName()->getNameStart();

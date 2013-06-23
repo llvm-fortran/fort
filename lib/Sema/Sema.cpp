@@ -350,6 +350,18 @@ Decl *Sema::ActOnImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
   }
 }
 
+StmtResult Sema::ActOnBundledCompoundStmt(ASTContext &C, SourceLocation Loc,
+                                          ArrayRef<Stmt*> Body, Expr *StmtLabel) {
+  if(Body.size() == 1) {
+    auto Result = Body[0];
+    if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+    return Result;
+  }
+  auto Result = BundledCompoundStmt::Create(C, Loc, Body, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
 StmtResult Sema::ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,
                               SourceLocation Loc, SourceLocation NameLoc, Expr *StmtLabel) {
   auto Result = ProgramStmt::Create(C, ProgName, Loc, NameLoc, StmtLabel);
@@ -382,34 +394,38 @@ StmtResult Sema::ActOnIMPORT(ASTContext &C, SourceLocation Loc,
 }
 
 StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, DeclSpec &DS,
-                               ArrayRef<ImplicitStmt::LetterSpec> LetterSpecs,
+                               ImplicitStmt::LetterSpecTy LetterSpec,
                                Expr *StmtLabel) {
   QualType Ty = ActOnTypeName(C, DS);
-  for(auto Spec : LetterSpecs) {
-    if(Spec.second) {
-      if(toupper((Spec.second->getNameStart())[0])
-         <
-         toupper((Spec.first->getNameStart())[0])){
-        Diags.Report(Loc, diag::err_implicit_invalid_range)
-          << Spec.first << Spec.second;
-        continue;
-      }
-    }
-    if(!getCurrentImplicitTypingScope().Apply(Spec,Ty)) {
-      if(getCurrentImplicitTypingScope().isNoneInThisScope())
-        Diags.Report(Loc, diag::err_use_implicit_stmt_after_none);
-      else {
-        if(Spec.second)
-          Diags.Report(Loc, diag::err_redefinition_of_implicit_stmt_rule_range)
-            << Spec.first << Spec.second;
-        else
-          Diags.Report(Loc,diag::err_redefinition_of_implicit_stmt_rule)
-            << Spec.first;
-      }
+
+  // check a <= b
+  if(LetterSpec.second) {
+    if(toupper((LetterSpec.second->getNameStart())[0])
+       <
+       toupper((LetterSpec.first->getNameStart())[0])) {
+      Diags.Report(Loc, diag::err_implicit_invalid_range)
+        << LetterSpec.first << LetterSpec.second;
+      return StmtError();
     }
   }
 
-  auto Result = ImplicitStmt::Create(C, Loc, Ty, LetterSpecs, StmtLabel);
+  // apply the rule
+  if(!getCurrentImplicitTypingScope().Apply(LetterSpec,Ty)) {
+    if(getCurrentImplicitTypingScope().isNoneInThisScope())
+      Diags.Report(Loc, diag::err_use_implicit_stmt_after_none);
+    else {
+      if(LetterSpec.second)
+        Diags.Report(Loc, diag::err_redefinition_of_implicit_stmt_rule_range)
+          << LetterSpec.first << LetterSpec.second;
+      else
+        Diags.Report(Loc,diag::err_redefinition_of_implicit_stmt_rule)
+          << LetterSpec.first;
+
+    }
+    return StmtError();
+  }
+
+  auto Result = ImplicitStmt::Create(C, Loc, Ty, LetterSpec, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -418,6 +434,7 @@ StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, Expr *StmtLabe
   // IMPLICIT NONE
   if(!getCurrentImplicitTypingScope().ApplyNone())
     Diags.Report(Loc, diag::err_use_implicit_none_stmt);
+
   auto Result = ImplicitStmt::Create(C, Loc, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;

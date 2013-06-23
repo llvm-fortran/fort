@@ -245,6 +245,17 @@ bool Parser::EatIfPresent(tok::TokenKind Kind) {
   return false;
 }
 
+/// EatIfPresentInSameStmt - Eat the token if it's present and isn't a part of a new statement.
+/// Return 'true' if it was delicious.
+bool Parser::EatIfPresentInSameStmt(tok::TokenKind Kind) {
+  if (!Tok.isAtStartOfStatement() && Tok.is(Kind)) {
+    Lex();
+    return true;
+  }
+
+  return false;
+}
+
 /// Expect - Eat the token if it's present. Return 'true' if it was
 /// delicious. Reports error if it wasn't.
 bool Parser::Expect(tok::TokenKind Kind,const llvm::Twine &Msg){
@@ -941,52 +952,58 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
   SourceLocation Loc = Tok.getLocation();
   Lex();
 
-  if (EatIfPresent(tok::kw_NONE))
+  if (EatIfPresentInSameStmt(tok::kw_NONE))
     return Actions.ActOnIMPLICIT(Context, Loc, StmtLabel);
 
-  DeclSpec DS;
-  if (ParseDeclarationTypeSpec(DS))
-    return StmtError();
+  SmallVector<Stmt*, 8> StmtList;
 
-  if (Tok.isAtStartOfStatement() || !EatIfPresent(tok::l_paren)) {
-    Diag.Report(Tok.getLocation(),diag::err_expected_lparen);
-    return StmtError();
-  }
-
-  SmallVector<std::pair<const IdentifierInfo*,
-                        const IdentifierInfo*>, 4> LetterSpecs;
   do {
-    const IdentifierInfo *First = Tok.getIdentifierInfo();
-    if (Tok.isAtStartOfStatement() ||
-        Tok.isNot(tok::identifier) ||
-        First->getName().size() > 1) {
-      Diag.Report(Tok.getLocation(),diag::err_expected_letter);
+    DeclSpec DS;
+    if (ParseDeclarationTypeSpec(DS))
+      return StmtError();
+
+    if (!EatIfPresentInSameStmt(tok::l_paren)) {
+      Diag.Report(Tok.getLocation(),diag::err_expected_lparen);
       return StmtError();
     }
 
-    Lex();
-
-    const IdentifierInfo *Second = 0;
-    if (!Tok.isAtStartOfStatement() &&
-        EatIfPresent(tok::minus)) {
-      Second = Tok.getIdentifierInfo();
-      if (Tok.isNot(tok::identifier) || Second->getName().size() > 1) {
+    do {
+      const IdentifierInfo *First = Tok.getIdentifierInfo();
+      if (Tok.isAtStartOfStatement() ||
+          Tok.isNot(tok::identifier) ||
+          First->getName().size() > 1) {
         Diag.Report(Tok.getLocation(),diag::err_expected_letter);
         return StmtError();
       }
 
       Lex();
+
+      const IdentifierInfo *Second = nullptr;
+      if (EatIfPresentInSameStmt(tok::minus)) {
+        Second = Tok.getIdentifierInfo();
+        if (Tok.isAtStartOfStatement() ||
+            Tok.isNot(tok::identifier) ||
+            Second->getName().size() > 1) {
+          Diag.Report(Tok.getLocation(),diag::err_expected_letter);
+          return StmtError();
+        }
+
+        Lex();
+      }
+
+      auto Stmt = Actions.ActOnIMPLICIT(Context, Loc, DS, std::make_pair(First, Second), nullptr);
+      if(Stmt.isUsable())
+        StmtList.push_back(Stmt.take());
+    } while (EatIfPresentInSameStmt(tok::comma));
+
+    if (!EatIfPresentInSameStmt(tok::r_paren)) {
+      Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+      return StmtError();
     }
 
-    LetterSpecs.push_back(std::make_pair(First, Second));
-  } while (!Tok.isAtStartOfStatement() && EatIfPresent(tok::comma));
+  } while(EatIfPresentInSameStmt(tok::comma));
 
-  if (Tok.isAtStartOfStatement() || !EatIfPresent(tok::r_paren)) {
-    Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
-    return StmtError();
-  }
-
-  return Actions.ActOnIMPLICIT(Context, Loc, DS, LetterSpecs, StmtLabel);
+  return Actions.ActOnBundledCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
 /// ParsePARAMETERStmt - Parse the PARAMETER statement.
@@ -1170,7 +1187,7 @@ notImplemented:
   Diag.Report(Tok.getLocation(),
               diag::err_unsupported_stmt)
       << SourceRange(Tok.getLocation(),
-                       getMaxLocationOfCurrentToken());
+                     getMaxLocationOfCurrentToken());
   return false;
 }
 

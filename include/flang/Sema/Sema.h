@@ -182,6 +182,8 @@ public:
 
   void ActOnEndDerivedTypeDecl();
 
+  StmtResult ActOnBundledCompoundStmt(ASTContext &C, SourceLocation Loc,
+                                      ArrayRef<Stmt*> Body, Expr *StmtLabel);
 
   // PROGRAM statement:
   StmtResult ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,
@@ -202,8 +204,8 @@ public:
 
   // IMPLICIT statement:
   StmtResult ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, DeclSpec &DS,
-                           ArrayRef<ImplicitStmt::LetterSpec> LetterSpecs,
-                           Expr *StmtLabel);
+                           ImplicitStmt::LetterSpecTy LetterSpec, Expr *StmtLabel);
+
   StmtResult ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
   // DIMENSION statement

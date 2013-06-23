@@ -109,7 +109,7 @@ public:
 
   /// \brief Associates a type rule with an identifier
   /// returns true if associating is sucessfull.
-  bool Apply(const ImplicitStmt::LetterSpec& Spec, QualType T);
+  bool Apply(const ImplicitStmt::LetterSpecTy& Spec, QualType T);
 
   /// \brief Applies an IMPLICIT NONE rule.
   /// returns true if the applicating is sucessfull.

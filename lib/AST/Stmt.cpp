@@ -29,6 +29,21 @@ Stmt *Stmt::Create(ASTContext &C, StmtTy StmtType, SourceLocation Loc, Expr *Stm
 }
 
 //===----------------------------------------------------------------------===//
+// Bundled Compound Statement
+//===----------------------------------------------------------------------===//
+
+BundledCompoundStmt::BundledCompoundStmt(ASTContext &C, SourceLocation Loc,
+                                         ArrayRef<Stmt*> Body, Expr *StmtLabel)
+  : ListStmt(C, BundledCompound, Loc, Body, StmtLabel) {
+}
+
+BundledCompoundStmt *BundledCompoundStmt::Create(ASTContext &C, SourceLocation Loc,
+                                                 ArrayRef<Stmt*> Body,
+                                                 Expr *StmtLabel) {
+  return new(C) BundledCompoundStmt(C, Loc, Body, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Program Statement
 //===----------------------------------------------------------------------===//
 
@@ -96,23 +111,26 @@ ImportStmt *ImportStmt::Create(ASTContext &C, SourceLocation Loc,
 // Implicit Statement
 //===----------------------------------------------------------------------===//
 
-ImplicitStmt::ImplicitStmt(ASTContext &C, SourceLocation L, Expr *StmtLabel)
-  : ListStmt(C, Implicit, L, ArrayRef<LetterSpec>(), StmtLabel), None(true) {}
-
-ImplicitStmt::ImplicitStmt(ASTContext &C, SourceLocation L, QualType T,
-                           ArrayRef<LetterSpec> SpecList,
-                           Expr *StmtLabel)
-  : ListStmt(C, Implicit, L, SpecList, StmtLabel), Ty(T), None(false) {}
-
-ImplicitStmt *ImplicitStmt::Create(ASTContext &C, SourceLocation L,
-                                   Expr *StmtLabel) {
-  return new (C) ImplicitStmt(C, L, StmtLabel);
+ImplicitStmt::ImplicitStmt(SourceLocation Loc, Expr *StmtLabel)
+  : Stmt(Implicit, Loc, StmtLabel), None(true),
+    LetterSpec(LetterSpecTy(nullptr,nullptr)) {
 }
 
-ImplicitStmt *ImplicitStmt::Create(ASTContext &C, SourceLocation L, QualType T,
-                                   ArrayRef<LetterSpec> SpecList,
+ImplicitStmt::ImplicitStmt(SourceLocation Loc, QualType T,
+                           LetterSpecTy Spec,
+                           Expr *StmtLabel)
+  : Stmt(Implicit, Loc, StmtLabel), Ty(T), None(false),
+    LetterSpec(Spec) {}
+
+ImplicitStmt *ImplicitStmt::Create(ASTContext &C, SourceLocation Loc,
                                    Expr *StmtLabel) {
-  return new (C) ImplicitStmt(C, L, T, SpecList, StmtLabel);
+  return new (C) ImplicitStmt(Loc, StmtLabel);
+}
+
+ImplicitStmt *ImplicitStmt::Create(ASTContext &C, SourceLocation Loc, QualType T,
+                                   LetterSpecTy LetterSpec,
+                                   Expr *StmtLabel) {
+  return new (C) ImplicitStmt(Loc, T, LetterSpec, StmtLabel);
 }
 
 //===----------------------------------------------------------------------===//

@@ -74,7 +74,7 @@ ImplicitTypingScope::ImplicitTypingScope()
   : Parent(nullptr), None(false) {
 }
 
-bool ImplicitTypingScope::Apply(const ImplicitStmt::LetterSpec &Spec, QualType T) {
+bool ImplicitTypingScope::Apply(const ImplicitStmt::LetterSpecTy &Spec, QualType T) {
   if(None) return false;
   char Low = toupper((Spec.first->getNameStart())[0]);
   if(Spec.second) {
