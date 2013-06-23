@@ -843,6 +843,9 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult Termi
                    diag::err_stmt_label_must_decl_after)
           << Stream.str() << "DO"
           << TerminatingStmt.get()->getSourceRange();
+      Diags.Report(Decl->getStmtLabel()->getLocation(),
+                   diag::note_previous_definition)
+          << Decl->getStmtLabel()->getSourceRange();
       return StmtError();
     }
   }

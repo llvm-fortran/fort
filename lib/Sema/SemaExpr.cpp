@@ -313,6 +313,8 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResul
   llvm::SmallVector<Expr*, 8> Subs(Subscripts.size());
   //FIXME constraint
   //A subscript expression may contain array element references and function references.
+
+  bool HasErrors = false;
   for(size_t I = 0; I < Subscripts.size(); ++I) {
     if(IsIntegerExpression(Subscripts[I]))
       Subs[I] = Subscripts[I].take();
@@ -320,9 +322,11 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResul
       Diags.Report(Subscripts[I].get()->getLocation(),
                    diag::err_expected_integer_expr)
         << Subscripts[I].get()->getSourceRange();
-      return ExprError();
+      HasErrors = true;
     }
   }
+  if(HasErrors) return ExprError();
+
   return ArrayElementExpr::Create(C, Loc, Target.take(), Subs);
 }
 

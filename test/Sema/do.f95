@@ -10,7 +10,7 @@ PROGRAM dotest
     C = R
     DO 10 I = 1, 10
       R = I * R
-10  CONTINUE
+10  CONTINUE ! expected-note {{previous definition is here}}
 
     END DO ! expected-error {{use of 'END DO' without the do statement}}
 
