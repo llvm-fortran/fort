@@ -354,7 +354,10 @@ StmtResult Sema::ActOnBundledCompoundStmt(ASTContext &C, SourceLocation Loc,
                                           ArrayRef<Stmt*> Body, Expr *StmtLabel) {
   if(Body.size() == 1) {
     auto Result = Body[0];
-    if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+    if(StmtLabel) {
+      DeclareStatementLabel(StmtLabel, Result);
+      Result->setStmtLabel(StmtLabel);
+    }
     return Result;
   }
   auto Result = BundledCompoundStmt::Create(C, Loc, Body, StmtLabel);
@@ -440,28 +443,23 @@ StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, Expr *StmtLabe
   return Result;
 }
 
-ParameterStmt::ParamPair
-Sema::ActOnPARAMETERPair(ASTContext &C, SourceLocation Loc, const IdentifierInfo *IDInfo,
-                         ExprResult CE) {
+StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
+                                SourceLocation IDLoc,
+                                const IdentifierInfo *IDInfo, ExprResult Value,
+                                Expr *StmtLabel) {
   if (const VarDecl *Prev = IDInfo->getFETokenInfo<VarDecl>()) {
-    Diags.Report(Loc, diag::err_redefinition) << IDInfo;
+    Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
     Diags.Report(Prev->getLocation(), diag::note_previous_definition);
-    return ParameterStmt::ParamPair(0, ExprResult());
+    return StmtError();
   }
 
-  QualType T = CE.get()->getType();
-  VarDecl *VD = VarDecl::Create(C, CurContext, Loc, IDInfo, T);
+  QualType T = Value.get()->getType();
+  VarDecl *VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, T);
   CurContext->addDecl(VD);
-
   // Store the Decl in the IdentifierInfo for easy access.
   const_cast<IdentifierInfo*>(IDInfo)->setFETokenInfo(VD);
-  return ParameterStmt::ParamPair(IDInfo, CE);
-}
 
-StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
-                                ArrayRef<ParameterStmt::ParamPair> ParamList,
-                                Expr *StmtLabel) {
-  auto Result = ParameterStmt::Create(C, Loc, ParamList, StmtLabel);
+  auto Result = DeclStmt::Create(C, Loc, VD, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }

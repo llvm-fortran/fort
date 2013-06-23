@@ -30,6 +30,7 @@ public:
 
 private:
 #define VISIT(STMT) void visit(const STMT *S)
+  VISIT(DeclStmt);
   VISIT(BundledCompoundStmt);
   VISIT(ProgramStmt);
   VISIT(EndProgramStmt);
@@ -59,6 +60,7 @@ void StmtVisitor::visit(StmtResult S) {
     visit(stmt);                                        \
     return;                                             \
   }
+  HANDLE(DeclStmt);
   HANDLE(BundledCompoundStmt);
   HANDLE(ProgramStmt);
   HANDLE(EndProgramStmt);
@@ -85,6 +87,11 @@ void StmtVisitor::visit(StmtResult S) {
   case Stmt::EndDo: OS << "(end do)\n"; break;
   default: break;
   }
+}
+
+void StmtVisitor::visit(const DeclStmt *S) {
+  S->getDeclaration()->print(OS);
+  OS << "\n";
 }
 
 void StmtVisitor::visit(const BundledCompoundStmt *S) {

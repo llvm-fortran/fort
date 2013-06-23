@@ -29,6 +29,19 @@ Stmt *Stmt::Create(ASTContext &C, StmtTy StmtType, SourceLocation Loc, Expr *Stm
 }
 
 //===----------------------------------------------------------------------===//
+// Declaration Statement
+//===----------------------------------------------------------------------===//
+
+DeclStmt::DeclStmt(SourceLocation Loc, NamedDecl *Decl, Expr *StmtLabel)
+  : Stmt(DeclStmtKind, Loc, StmtLabel), Declaration(Decl) {
+}
+
+DeclStmt *DeclStmt::Create(ASTContext &C, SourceLocation Loc,
+                           NamedDecl *Declaration, Expr *StmtLabel) {
+  return new(C) DeclStmt(Loc, Declaration, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Bundled Compound Statement
 //===----------------------------------------------------------------------===//
 
@@ -131,20 +144,6 @@ ImplicitStmt *ImplicitStmt::Create(ASTContext &C, SourceLocation Loc, QualType T
                                    LetterSpecTy LetterSpec,
                                    Expr *StmtLabel) {
   return new (C) ImplicitStmt(Loc, T, LetterSpec, StmtLabel);
-}
-
-//===----------------------------------------------------------------------===//
-// Parameter Statement
-//===----------------------------------------------------------------------===//
-
-ParameterStmt::ParameterStmt(ASTContext &C, SourceLocation Loc,
-                             ArrayRef<ParamPair> PList, Expr *StmtLabel)
-  : ListStmt(C, Parameter, Loc, PList, StmtLabel) {}
-
-ParameterStmt *ParameterStmt::Create(ASTContext &C, SourceLocation Loc,
-                                     ArrayRef<ParamPair>ParamList,
-                                     Expr *StmtLabel) {
-  return new (C) ParameterStmt(C, Loc, ParamList, StmtLabel);
 }
 
 //===----------------------------------------------------------------------===//

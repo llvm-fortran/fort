@@ -33,6 +33,7 @@ class IdentifierInfo;
 class Stmt {
 public:
   enum StmtTy {
+    DeclStmtKind,
     BundledCompound,
     Program,
 
@@ -43,7 +44,6 @@ public:
 
     // Implicit Part
     Implicit,
-    Parameter,
     Format,
     Entry,
 
@@ -102,6 +102,11 @@ public:
   /// getStmtLabel - Get the statement label for this statement.
   Expr *getStmtLabel() const { return StmtLabel; }
 
+  void setStmtLabel(Expr *E) {
+    assert(!StmtLabel);
+    StmtLabel = E;
+  }
+
   static bool classof(const Stmt*) { return true; }
 
 public:
@@ -125,6 +130,27 @@ public:
   void operator delete(void*, ASTContext*, unsigned) throw() { }
   void operator delete(void*, std::size_t) throw() { }
   void operator delete(void*, void*) throw() { }
+};
+
+/// DeclStmt - Adaptor class for mixing declarations with statements and
+/// expressions.
+///
+class DeclStmt : public Stmt {
+  NamedDecl *Declaration;
+
+  DeclStmt(SourceLocation Loc, NamedDecl *Decl, Expr *StmtLabel);
+public:
+  static DeclStmt *Create(ASTContext &C, SourceLocation Loc,
+                          NamedDecl *Declaration, Expr *StmtLabel);
+
+  NamedDecl *getDeclaration() const {
+    return Declaration;
+  }
+
+  static bool classof(const DeclStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == DeclStmtKind;
+  }
 };
 
 /// ListStmt - A statement which has a list of identifiers associated with it.
@@ -327,27 +353,6 @@ public:
   static bool classof(const ImplicitStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStatementID() == Implicit;
-  }
-};
-
-/// ParameterStmt - Specifies the PARAMETER attribute and the values for the
-/// named constants in the list.
-///
-class ParameterStmt : public ListStmt<std::pair<const IdentifierInfo*,
-                                                ExprResult> > {
-public:
-  typedef std::pair<const IdentifierInfo*, ExprResult> ParamPair;
-private:
-  ParameterStmt(ASTContext &C, SourceLocation Loc, ArrayRef<ParamPair> ParamList,
-                Expr *StmtLabel);
-public:
-  static ParameterStmt *Create(ASTContext &C, SourceLocation Loc,
-                               ArrayRef<ParamPair> ParamList,
-                               Expr *StmtLabel);
-
-  static bool classof(const ParameterStmt*) { return true; }
-  static bool classof(const Stmt *S) {
-    return S->getStatementID() == Parameter;
   }
 };
 

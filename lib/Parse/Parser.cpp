@@ -1018,46 +1018,47 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
 
   SourceLocation Loc = Tok.getLocation();
   Lex();
-  if (!EatIfPresent(tok::l_paren)) {
-    Diag.ReportError(Tok.getLocation(),
-                     "expected '(' in PARAMETER statement");
-    return StmtResult(true);
+
+  SmallVector<Stmt*, 8> StmtList;
+
+  if (!EatIfPresentInSameStmt(tok::l_paren)) {
+    Diag.Report(Tok.getLocation(),diag::err_expected_lparen);
+    return StmtError();
   }
 
-  SmallVector<ParameterStmt::ParamPair, 4> ParamList;
-  SmallVector<SourceLocation, 4> NamedLocs;
   do {
-    if (Tok.isNot(tok::identifier)) {
-      Diag.ReportError(Tok.getLocation(),
-                       "expected a named constant in PARAMETER statement");
-      return StmtResult(true);
+    if (Tok.isAtStartOfStatement() ||
+        Tok.isNot(tok::identifier)) {
+      Diag.Report(Tok.getLocation(),
+                  diag::err_expected_ident);
+      return StmtError();
     }
 
     SourceLocation IDLoc = Tok.getLocation();
     const IdentifierInfo *II = Tok.getIdentifierInfo();
     Lex();
 
-    if (!EatIfPresent(tok::equal)) {
-      Diag.ReportError(Tok.getLocation(),
-                       "expected '=' in PARAMETER statement");
-      return StmtResult(true);
+    if (!EatIfPresentInSameStmt(tok::equal)) {
+      Diag.Report(Tok.getLocation(),diag::err_expected_equal);
+      return StmtError();
     }
 
     ExprResult ConstExpr = ParseExpression();
     if (ConstExpr.isInvalid())
-      return StmtResult(true);
+      return StmtError();
 
-    ParamList.push_back(Actions.ActOnPARAMETERPair(Context, IDLoc, II,
-                                                   ConstExpr));
-  } while (EatIfPresent(tok::comma));
+    auto Stmt = Actions.ActOnPARAMETER(Context, Loc, IDLoc, II,
+                                       ConstExpr, nullptr);
+    if(Stmt.isUsable())
+      StmtList.push_back(Stmt.take());
+  } while(EatIfPresentInSameStmt(tok::comma));
 
-  if (!EatIfPresent(tok::r_paren)) {
-    Diag.ReportError(Tok.getLocation(),
-                     "expected ')' in PARAMETER statement");
-    return StmtResult(true);
+  if (!EatIfPresentInSameStmt(tok::r_paren)) {
+    Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+    return StmtError();
   }
 
-  return Actions.ActOnPARAMETER(Context, Loc, ParamList, StmtLabel);
+  return Actions.ActOnBundledCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
 /// ParseFORMATStmt - Parse the FORMAT statement.

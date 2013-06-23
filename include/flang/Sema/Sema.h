@@ -216,11 +216,10 @@ public:
                             Expr *StmtLabel);
 
   // PARAMETER statement:
-  ParameterStmt::ParamPair ActOnPARAMETERPair(ASTContext &C, SourceLocation Loc,
-                                              const IdentifierInfo *IDInfo,
-                                              ExprResult CE);
   StmtResult ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
-                            ArrayRef<ParameterStmt::ParamPair> ParamList,
+                            SourceLocation IDLoc,
+                            const IdentifierInfo *IDInfo,
+                            ExprResult Value,
                             Expr *StmtLabel);
 
   // ASYNCHRONOUS statement:
