@@ -16,6 +16,7 @@
 
 #include "flang/AST/Type.h"
 #include "flang/AST/IntrinsicFunctions.h"
+#include "flang/Basic/SourceLocation.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/SourceMgr.h"
@@ -59,10 +60,10 @@ protected:
 private:
   QualType Ty;
   ExprType ExprID;
-  llvm::SMLoc Loc;
+  SourceLocation Loc;
   friend class ASTContext;
 protected:
-  Expr(ExprType ET, QualType T, llvm::SMLoc L) : ExprID(ET), Loc(L) {
+  Expr(ExprType ET, QualType T, SourceLocation L) : ExprID(ET), Loc(L) {
     setType(T);
   }
 public:
@@ -70,13 +71,13 @@ public:
   void setType(QualType T) { Ty = T; }
 
   ExprType getExpressionID() const { return ExprID; }
-  llvm::SMLoc getLocation() const { return Loc; }
+  SourceLocation getLocation() const { return Loc; }
 
-  virtual SMLoc getLocStart() const { return Loc; }
-  virtual SMLoc getLocEnd() const { return Loc; }
+  virtual SourceLocation getLocStart() const { return Loc; }
+  virtual SourceLocation getLocEnd() const { return Loc; }
 
-  inline llvm::SMRange getSourceRange() const {
-    return llvm::SMRange(getLocStart(), getLocEnd());
+  inline SourceRange getSourceRange() const {
+    return SourceRange(getLocStart(), getLocEnd());
   }
 
   virtual void print(raw_ostream&);
@@ -88,15 +89,15 @@ public:
 /// ConstantExpr - The base class for all constant expressions.
 class ConstantExpr : public Expr {
   Expr *Kind;                   // Optional Kind Selector
-  llvm::SMLoc MaxLoc;
+  SourceLocation MaxLoc;
 protected:
-  ConstantExpr(ExprType Ty, QualType T, llvm::SMLoc Loc, llvm::SMLoc MLoc)
+  ConstantExpr(ExprType Ty, QualType T, SourceLocation Loc, SourceLocation MLoc)
     : Expr(Ty, T, Loc), MaxLoc(MLoc), Kind(0) {}
 public:
   Expr *getKindSelector() const { return Kind; }
   void setKindSelector(Expr *K) { Kind = K; }
 
-  virtual SMLoc getLocEnd() const;
+  virtual SourceLocation getLocEnd() const;
 
   virtual void print(llvm::raw_ostream&);
 
@@ -175,11 +176,11 @@ public:
 
 class IntegerConstantExpr : public ConstantExpr {
   APIntStorage Num;
-  IntegerConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                      llvm::SMLoc MaxLoc, llvm::StringRef Data);
+  IntegerConstantExpr(ASTContext &C, SourceLocation Loc,
+                      SourceLocation MaxLoc, llvm::StringRef Data);
 public:
-  static IntegerConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                                     llvm::SMLoc MaxLoc, llvm::StringRef Data);
+  static IntegerConstantExpr *Create(ASTContext &C, SourceLocation Loc,
+                                     SourceLocation MaxLoc, llvm::StringRef Data);
 
   APInt getValue() const { return Num.getValue(); }
 
@@ -193,11 +194,11 @@ public:
 
 class RealConstantExpr : public ConstantExpr {
   APFloatStorage Num;
-  RealConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                   llvm::SMLoc MaxLoc, llvm::StringRef Data);
+  RealConstantExpr(ASTContext &C, SourceLocation Loc,
+                   SourceLocation MaxLoc, llvm::StringRef Data);
 public:
-  static RealConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                                  llvm::SMLoc MaxLoc, llvm::StringRef Data);
+  static RealConstantExpr *Create(ASTContext &C, SourceLocation Loc,
+                                  SourceLocation MaxLoc, llvm::StringRef Data);
 
   APFloat getValue() const { return Num.getValue(); }
 
@@ -211,11 +212,11 @@ public:
 
 class DoublePrecisionConstantExpr : public ConstantExpr {
   APFloatStorage Num;
-  DoublePrecisionConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                              llvm::SMLoc MaxLoc, llvm::StringRef Data);
+  DoublePrecisionConstantExpr(ASTContext &C, SourceLocation Loc,
+                              SourceLocation MaxLoc, llvm::StringRef Data);
 public:
-  static DoublePrecisionConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                                             llvm::SMLoc MaxLoc, llvm::StringRef Data);
+  static DoublePrecisionConstantExpr *Create(ASTContext &C, SourceLocation Loc,
+                                             SourceLocation MaxLoc, llvm::StringRef Data);
 
   APFloat getValue() const { return Num.getValue(); }
 
@@ -229,11 +230,11 @@ public:
 
 class ComplexConstantExpr : public ConstantExpr {
   APFloatStorage Re, Im;
-  ComplexConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::SMLoc MaxLoc,
+  ComplexConstantExpr(ASTContext &C, SourceLocation Loc, SourceLocation MaxLoc,
                       const APFloat &Re, const APFloat &Im);
 public:
-  static ComplexConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                                     llvm::SMLoc MaxLoc,
+  static ComplexConstantExpr *Create(ASTContext &C, SourceLocation Loc,
+                                     SourceLocation MaxLoc,
                                      const APFloat &Re, const APFloat &Im);
 
   APFloat getRealValue() const { return Re.getValue(); }
@@ -249,11 +250,11 @@ public:
 
 class CharacterConstantExpr : public ConstantExpr {
   char *Data;
-  CharacterConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                        llvm::SMLoc MaxLoc, llvm::StringRef Data);
+  CharacterConstantExpr(ASTContext &C, SourceLocation Loc,
+                        SourceLocation MaxLoc, llvm::StringRef Data);
 public:
-  static CharacterConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                                       llvm::SMLoc MaxLoc, llvm::StringRef Data);
+  static CharacterConstantExpr *Create(ASTContext &C, SourceLocation Loc,
+                                       SourceLocation MaxLoc, llvm::StringRef Data);
 
   const char *getValue() const { return Data; }
 
@@ -271,11 +272,11 @@ public:
 private:
   APIntStorage Num;
   BOZKind Kind;
-  BOZConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                  llvm::SMLoc MaxLoc, llvm::StringRef Data);
+  BOZConstantExpr(ASTContext &C, SourceLocation Loc,
+                  SourceLocation MaxLoc, llvm::StringRef Data);
 public:
-  static BOZConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                                 llvm::SMLoc MaxLoc, llvm::StringRef Data);
+  static BOZConstantExpr *Create(ASTContext &C, SourceLocation Loc,
+                                 SourceLocation MaxLoc, llvm::StringRef Data);
 
   APInt getValue() const { return Num.getValue(); }
 
@@ -293,11 +294,11 @@ public:
 
 class LogicalConstantExpr : public ConstantExpr {
   bool Val;
-  LogicalConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                      llvm::SMLoc MaxLoc, llvm::StringRef Data);
+  LogicalConstantExpr(ASTContext &C, SourceLocation Loc,
+                      SourceLocation MaxLoc, llvm::StringRef Data);
 public:
-  static LogicalConstantExpr *Create(ASTContext &C, llvm::SMLoc Loc,
-                                     llvm::SMLoc MaxLoc, llvm::StringRef Data);
+  static LogicalConstantExpr *Create(ASTContext &C, SourceLocation Loc,
+                                     SourceLocation MaxLoc, llvm::StringRef Data);
 
   bool isTrue() const { return Val; }
   bool isFalse() const { return !Val; }
@@ -344,7 +345,7 @@ public:
 private:
   DesignatorTy Ty;
 protected:
-  DesignatorExpr(llvm::SMLoc loc, QualType T, DesignatorTy ty)
+  DesignatorExpr(SourceLocation loc, QualType T, DesignatorTy ty)
     : Expr(Designator, T, loc), Ty(ty) {}
 public:
   DesignatorTy getDesignatorType() const { return Ty; }
@@ -362,10 +363,10 @@ public:
 class SubstringExpr : public DesignatorExpr {
 private:
   Expr *Target, *StartingPoint, *EndPoint;
-  SubstringExpr(ASTContext &C, llvm::SMLoc Loc, Expr *E,
+  SubstringExpr(ASTContext &C, SourceLocation Loc, Expr *E,
                 Expr *Start, Expr *End);
 public:
-  static SubstringExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+  static SubstringExpr *Create(ASTContext &C, SourceLocation Loc,
                                Expr *Target, Expr *StartingPoint,
                                Expr *EndPoint);
 
@@ -373,8 +374,8 @@ public:
   Expr *getStartingPoint() const { return StartingPoint; }
   Expr *getEndPoint() const { return EndPoint; }
 
-  SMLoc getLocStart() const;
-  SMLoc getLocEnd() const;
+  SourceLocation getLocStart() const;
+  SourceLocation getLocEnd() const;
 
   virtual void print(llvm::raw_ostream &);
 
@@ -395,10 +396,10 @@ class ArrayElementExpr : public DesignatorExpr, public MultiArgumentExpr {
 private:
   Expr *Target;
 
-  ArrayElementExpr(ASTContext &C, llvm::SMLoc Loc, Expr *E,
+  ArrayElementExpr(ASTContext &C, SourceLocation Loc, Expr *E,
                    llvm::ArrayRef<Expr*> Subs);
 public:
-  static ArrayElementExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+  static ArrayElementExpr *Create(ASTContext &C, SourceLocation Loc,
                                   Expr *Target,
                                   llvm::ArrayRef<Expr*> Subscripts);
 
@@ -407,8 +408,8 @@ public:
     return getArguments();
   }
 
-  SMLoc getLocStart() const;
-  SMLoc getLocEnd() const;
+  SourceLocation getLocStart() const;
+  SourceLocation getLocEnd() const;
 
   virtual void print(llvm::raw_ostream &);
 
@@ -550,13 +551,13 @@ public:
 /// VarExpr -
 class VarExpr : public DesignatorExpr {
   const VarDecl *Variable;
-  VarExpr(llvm::SMLoc Loc, const VarDecl *Var);
+  VarExpr(SourceLocation Loc, const VarDecl *Var);
 public:
-  static VarExpr *Create(ASTContext &C, llvm::SMLoc L, const VarDecl *V);
+  static VarExpr *Create(ASTContext &C, SourceLocation L, const VarDecl *V);
 
   const VarDecl *getVarDecl() const { return Variable; }
 
-  SMLoc getLocEnd() const;
+  SourceLocation getLocEnd() const;
 
   virtual void print(llvm::raw_ostream&);
 
@@ -589,17 +590,17 @@ public:
 protected:
   Operator Op;
   Expr *E;
-  UnaryExpr(ExprType ET, QualType T, llvm::SMLoc Loc, Operator op, Expr *e)
+  UnaryExpr(ExprType ET, QualType T, SourceLocation Loc, Operator op, Expr *e)
     : Expr(ET, T, Loc), Op(op), E(e) {}
 public:
-  static UnaryExpr *Create(ASTContext &C, llvm::SMLoc Loc, Operator Op, Expr *E);
+  static UnaryExpr *Create(ASTContext &C, SourceLocation Loc, Operator Op, Expr *E);
 
   Operator getOperator() const { return Op; }
 
   const ExprResult getExpression() const { return E; }
   ExprResult getExpression() { return E; }
 
-  SMLoc getLocEnd() const;
+  SourceLocation getLocEnd() const;
 
   virtual void print(llvm::raw_ostream&);
 
@@ -612,9 +613,9 @@ public:
 /// DefinedOperatorUnaryExpr -
 class DefinedOperatorUnaryExpr : public UnaryExpr {
   IdentifierInfo *II;
-  DefinedOperatorUnaryExpr(llvm::SMLoc Loc, Expr *E, IdentifierInfo *IDInfo);
+  DefinedOperatorUnaryExpr(SourceLocation Loc, Expr *E, IdentifierInfo *IDInfo);
 public:
-  static DefinedOperatorUnaryExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+  static DefinedOperatorUnaryExpr *Create(ASTContext &C, SourceLocation Loc,
                                           Expr *E, IdentifierInfo *IDInfo);
 
   const IdentifierInfo *getIdentifierInfo() const { return II; }
@@ -662,11 +663,11 @@ public:
 protected:
   Operator Op;
   Expr *LHS, *RHS;
-  BinaryExpr(ExprType ET, QualType T, llvm::SMLoc Loc, Operator op,
+  BinaryExpr(ExprType ET, QualType T, SourceLocation Loc, Operator op,
              Expr *lhs, Expr *rhs)
     : Expr(ET, T, Loc), Op(op), LHS(lhs), RHS(rhs) {}
 public:
-  static BinaryExpr *Create(ASTContext &C, llvm::SMLoc Loc, Operator Op,
+  static BinaryExpr *Create(ASTContext &C, SourceLocation Loc, Operator Op,
                             Expr *LHS, Expr *RHS);
 
   Operator getOperator() const { return Op; }
@@ -676,8 +677,8 @@ public:
   const Expr *getRHS() const { return RHS; }
   Expr *getRHS() { return RHS; }
 
-  SMLoc getLocStart() const;
-  SMLoc getLocEnd() const;
+  SourceLocation getLocStart() const;
+  SourceLocation getLocEnd() const;
 
   virtual void print(llvm::raw_ostream&);
 
@@ -690,13 +691,13 @@ public:
 /// DefinedOperatorBinaryExpr -
 class DefinedOperatorBinaryExpr : public BinaryExpr {
   IdentifierInfo *II;
-  DefinedOperatorBinaryExpr(llvm::SMLoc Loc, Expr *LHS, Expr *RHS,
+  DefinedOperatorBinaryExpr(SourceLocation Loc, Expr *LHS, Expr *RHS,
                             IdentifierInfo *IDInfo)
     // FIXME: The type here needs to be calculated.
     : BinaryExpr(Expr::DefinedBinaryOperator, QualType(), Loc, Defined,
                  LHS, RHS), II(IDInfo) {}
 public:
-  static DefinedOperatorBinaryExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+  static DefinedOperatorBinaryExpr *Create(ASTContext &C, SourceLocation Loc,
                                            Expr *LHS, Expr *RHS,
                                            IdentifierInfo *IDInfo);
 
@@ -719,9 +720,9 @@ public:
 class ImplicitCastExpr : public Expr {
   intrinsic::FunctionKind Op;
   Expr *E;
-  ImplicitCastExpr(ASTContext &C, llvm::SMLoc Loc, intrinsic::FunctionKind op, Expr *e);
+  ImplicitCastExpr(ASTContext &C, SourceLocation Loc, intrinsic::FunctionKind op, Expr *e);
 public:
-  static ImplicitCastExpr *Create(ASTContext &C, llvm::SMLoc Loc,
+  static ImplicitCastExpr *Create(ASTContext &C, SourceLocation Loc,
                                   intrinsic::FunctionKind Op, Expr *E);
 
   intrinsic::FunctionKind getIntrinsicFunction() const { return Op;  }

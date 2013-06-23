@@ -15,7 +15,7 @@
 #define FLANG_DIAGNOSTIC_H__
 
 #include "flang/Basic/DiagnosticIDs.h"
-#include "llvm/Support/SMLoc.h"
+#include "flang/Basic/SourceLocation.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
 #include "llvm/ADT/StringRef.h"
@@ -37,6 +37,8 @@ class DiagnosticErrorTrap;
 class LangOptions;
 class IdentifierInfo;
 class Lexer;
+
+typedef llvm::SMFixIt FixItHint;
 
 /// DiagnosticEngine - This concrete class is used by the front-end to report problems
 /// and issues. It manages the diagnostics and passes them off to the
@@ -117,8 +119,8 @@ private:
   /// modifications done through the command-line.
   struct DiagStatePoint {
     DiagState *State;
-    llvm::SMLoc Loc;
-    DiagStatePoint(DiagState *State, llvm::SMLoc Loc)
+    SourceLocation Loc;
+    DiagStatePoint(DiagState *State, SourceLocation Loc)
       : State(State), Loc(Loc) { }
 
     bool operator<(const DiagStatePoint &RHS) const {
@@ -149,8 +151,8 @@ private:
     return DiagStatePoints.back().State;
   }
 
-  void PushDiagStatePoint(DiagState *State, llvm::SMLoc L) {
-    llvm::SMLoc Loc(L);
+  void PushDiagStatePoint(DiagState *State, SourceLocation L) {
+    SourceLocation Loc(L);
     // Make sure that DiagStatePoints is always sorted according to Loc.
     assert(Loc.isValid() && "Adding invalid loc point");
     assert(!DiagStatePoints.empty() &&
@@ -162,7 +164,7 @@ private:
 
   /// \brief Finds the DiagStatePoint that contains the diagnostic state of
   /// the given source location.
-  DiagStatePointsTy::iterator GetDiagStatePointForLoc(llvm::SMLoc Loc) const;
+  DiagStatePointsTy::iterator GetDiagStatePointForLoc(SourceLocation Loc) const;
 
   /// \brief Sticky flag set to \c true when an error is emitted.
   bool ErrorOccurred;
@@ -262,7 +264,7 @@ public:
   /// \param Loc The source location that this change of diagnostic state should
   /// take affect. It can be null if we are setting the latest state.
   void setDiagnosticMapping(diag::kind Diag, diag::Mapping Map,
-                            llvm::SMLoc Loc);
+                            SourceLocation Loc);
 
   /// \brief Reset the state of the diagnostic object to its initial
   /// configuration.
@@ -276,7 +278,7 @@ public:
   /// \param DiagID A member of the @c diag::kind enum.
   /// \param Loc Represents the source location associated with the diagnostic,
   /// which can be an invalid location if no position information is available.
-  inline DiagnosticBuilder Report(llvm::SMLoc Loc, unsigned DiagID);
+  inline DiagnosticBuilder Report(SourceLocation Loc, unsigned DiagID);
   inline DiagnosticBuilder Report(unsigned DiagID);
 
   /// ReportError - Emit an error at the location \arg L, with the message \arg
@@ -284,21 +286,21 @@ public:
   ///
   /// \return The return value is always true, as an idiomatic convenience to
   /// clients.
-  bool ReportError(llvm::SMLoc L, const llvm::Twine &Msg);
+  bool ReportError(SourceLocation L, const llvm::Twine &Msg);
 
   /// ReportWarning - Emit a warning at the location \arg L, with the message
   /// \arg Msg.
   ///
   /// \return The return value is always true, as an idiomatic convenience to
   /// clients.
-  bool ReportWarning(llvm::SMLoc L, const llvm::Twine &Msg);
+  bool ReportWarning(SourceLocation L, const llvm::Twine &Msg);
 
   /// ReportNote - Emit a note at the location \arg L, with the message
   /// \arg Msg.
   ///
   /// \return The return value is always true, as an idiomatic convenience to
   /// clients
-  bool ReportNote(llvm::SMLoc L, const llvm::Twine &Msg);
+  bool ReportNote(SourceLocation L, const llvm::Twine &Msg);
 
   /// \brief Clear out the current diagnostic.
   void Clear() { CurDiagID = ~0U; }
@@ -319,7 +321,7 @@ private:
   friend class DiagnosticErrorTrap;
 
   /// \brief The location of the current diagnostic that is in flight.
-  llvm::SMLoc CurDiagLoc;
+  SourceLocation CurDiagLoc;
 
   /// \brief The ID of the current diagnostic that is in flight.
   ///
@@ -369,17 +371,17 @@ private:
   intptr_t DiagArgumentsVal[MaxArguments];
 
   /// \brief The list of ranges added to this diagnostic.
-  llvm::SMRange DiagRanges[MaxRanges];
+  SourceRange DiagRanges[MaxRanges];
 
   /// \brief If valid, provides a hint with some code to insert, remove,
   /// or modify at a particular position.
-  struct FixIt : llvm::SMFixIt {
-    FixIt() : llvm::SMFixIt(llvm::SMLoc(),"") {}
-    FixIt(const llvm::SMFixIt &Hint) : llvm::SMFixIt(Hint) {}
+  struct FixIt : FixItHint {
+    FixIt() : FixItHint(SourceLocation(),"") {}
+    FixIt(const FixItHint &Hint) : FixItHint(Hint) {}
   };
   FixIt DiagFixItHints[MaxFixItHints];
 
-  DiagnosticMappingInfo makeMappingInfo(diag::Mapping Map, llvm::SMLoc L) {
+  DiagnosticMappingInfo makeMappingInfo(diag::Mapping Map, SourceLocation L) {
     bool isPragma = L.isValid();
     DiagnosticMappingInfo MappingInfo = DiagnosticMappingInfo::Make(
       Map, /*IsUser=*/true, isPragma);
@@ -408,7 +410,7 @@ protected:
 
   unsigned getCurrentDiagID() const { return CurDiagID; }
 
-  llvm::SMLoc getCurrentDiagLoc() const { return CurDiagLoc; }
+  SourceLocation getCurrentDiagLoc() const { return CurDiagLoc; }
 };
 
 /// \brief RAII class that determines when any errors have occurred between the
@@ -582,14 +584,14 @@ public:
     DiagObj->DiagArgumentsVal[NumArgs++] = V;
   }
 
-  void AddSourceRange(const llvm::SMRange &R) const {
+  void AddSourceRange(const SourceRange &R) const {
     assert(isActive() && "Clients must not add to cleared diagnostic!");
     assert(NumRanges < DiagnosticsEngine::MaxRanges &&
            "Too many arguments to diagnostic!");
     DiagObj->DiagRanges[NumRanges++] = R;
   }
 
-  void AddFixItHint(const llvm::SMFixIt &Hint) const {
+  void AddFixItHint(const FixItHint &Hint) const {
     assert(isActive() && "Clients must not add to cleared diagnostic!");
     assert(NumFixits < DiagnosticsEngine::MaxFixItHints &&
            "Too many arguments to diagnostic!");
@@ -638,18 +640,18 @@ inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB,
 }
 
 inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB,
-                                           const llvm::SMRange &R) {
+                                           const SourceRange &R) {
   DB.AddSourceRange(R);
   return DB;
 }
 
 inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB,
-                                           const llvm::SMFixIt &Hint) {
+                                           const FixItHint &Hint) {
   DB.AddFixItHint(Hint);
   return DB;
 }
 
-inline DiagnosticBuilder DiagnosticsEngine::Report(llvm::SMLoc Loc,
+inline DiagnosticBuilder DiagnosticsEngine::Report(SourceLocation Loc,
                                             unsigned DiagID){
   assert(CurDiagID == ~0U && "Multiple diagnostics in flight at once!");
   CurDiagLoc = Loc;
@@ -657,7 +659,7 @@ inline DiagnosticBuilder DiagnosticsEngine::Report(llvm::SMLoc Loc,
   return DiagnosticBuilder(this);
 }
 inline DiagnosticBuilder DiagnosticsEngine::Report(unsigned DiagID) {
-  return Report(llvm::SMLoc(), DiagID);
+  return Report(SourceLocation(), DiagID);
 }
 
 //===----------------------------------------------------------------------===//
@@ -677,7 +679,7 @@ public:
 
   const DiagnosticsEngine *getDiags() const { return DiagObj; }
   unsigned getID() const { return DiagObj->CurDiagID; }
-  const llvm::SMLoc &getLocation() const { return DiagObj->CurDiagLoc; }
+  const SourceLocation &getLocation() const { return DiagObj->CurDiagLoc; }
   bool hasSourceManager() const { return DiagObj->hasSourceManager(); }
   llvm::SourceMgr &getSourceManager() const { return DiagObj->getSourceManager();}
 
@@ -748,13 +750,13 @@ public:
   }
 
   /// \pre Idx < getNumRanges()
-  const llvm::SMRange getRange(unsigned Idx) const {
+  const SourceRange getRange(unsigned Idx) const {
     assert(Idx < DiagObj->NumDiagRanges && "Invalid diagnostic range index!");
     return DiagObj->DiagRanges[Idx];
   }
 
   /// \brief Return an array reference for this diagnostic's ranges.
-  llvm::ArrayRef<llvm::SMRange> getRanges() const {
+  llvm::ArrayRef<SourceRange> getRanges() const {
     return llvm::makeArrayRef(DiagObj->DiagRanges, DiagObj->NumDiagRanges);
   }
 
@@ -762,12 +764,12 @@ public:
     return DiagObj->NumDiagFixItHints;
   }
 
-  const llvm::SMFixIt &getFixItHint(unsigned Idx) const {
+  const FixItHint &getFixItHint(unsigned Idx) const {
     assert(Idx < getNumFixItHints() && "Invalid index!");
     return DiagObj->DiagFixItHints[Idx];
   }
 
-  const llvm::SMFixIt *getFixItHints() const {
+  const FixItHint *getFixItHints() const {
     return getNumFixItHints()? DiagObj->DiagFixItHints : 0;
   }
 
@@ -824,10 +826,10 @@ public:
   ///
   /// Default implementation just keeps track of the total number of warnings
   /// and errors.
-  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, llvm::SMLoc L,
+  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, SourceLocation L,
                                 const llvm::Twine &Msg,
-                                llvm::ArrayRef<llvm::SMRange> Ranges =
-                                  llvm::ArrayRef<llvm::SMRange>());
+                                llvm::ArrayRef<SourceRange> Ranges =
+                                  llvm::ArrayRef<SourceRange>());
 };
 
 } // end namespace flang

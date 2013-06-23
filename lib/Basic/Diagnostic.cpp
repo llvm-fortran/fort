@@ -52,7 +52,7 @@ void DiagnosticsEngine::Reset() {
   // Create a DiagState and DiagStatePoint representing diagnostic changes
   // through command-line.
   DiagStates.push_back(DiagState());
-  DiagStatePoints.push_back(DiagStatePoint(&DiagStates.back(), llvm::SMLoc()));
+  DiagStatePoints.push_back(DiagStatePoint(&DiagStates.back(), SourceLocation()));
 }
 
 void DiagnosticsEngine::ReportDelayed() {
@@ -63,7 +63,7 @@ void DiagnosticsEngine::ReportDelayed() {
 }
 
 DiagnosticsEngine::DiagStatePointsTy::iterator
-DiagnosticsEngine::GetDiagStatePointForLoc(llvm::SMLoc L) const {
+DiagnosticsEngine::GetDiagStatePointForLoc(SourceLocation L) const {
   return DiagStatePoints.end() - 1;
 
   assert(!DiagStatePoints.empty());
@@ -77,7 +77,7 @@ DiagnosticsEngine::GetDiagStatePointForLoc(llvm::SMLoc L) const {
     return DiagStatePoints.end() - 1;
 
   DiagStatePointsTy::iterator Pos = DiagStatePoints.end();
-  llvm::SMLoc LastStateChangePos = DiagStatePoints.back().Loc;
+  SourceLocation LastStateChangePos = DiagStatePoints.back().Loc;
   if (DiagStatePoints.back().Loc.isValid() &&
       L.getPointer() < LastStateChangePos.getPointer())
     Pos = std::upper_bound(DiagStatePoints.begin(), DiagStatePoints.end(),
@@ -87,7 +87,7 @@ DiagnosticsEngine::GetDiagStatePointForLoc(llvm::SMLoc L) const {
 }
 
 void DiagnosticsEngine::setDiagnosticMapping(diag::kind Diag, diag::Mapping Map,
-                                             llvm::SMLoc L) {
+                                             SourceLocation L) {
   assert(Diag < diag::DIAG_UPPER_LIMIT &&
          "Can only map builtin diagnostics");
   assert((Diags->isBuiltinWarningOrExtension(Diag) ||
@@ -96,8 +96,8 @@ void DiagnosticsEngine::setDiagnosticMapping(diag::kind Diag, diag::Mapping Map,
   assert(!DiagStatePoints.empty());
   assert((L.isValid() || SrcMgr) && "No SourceMgr for valid location");
 
-  llvm::SMLoc Loc = L;
-  llvm::SMLoc LastStateChangePos = DiagStatePoints.back().Loc;
+  SourceLocation Loc = L;
+  SourceLocation LastStateChangePos = DiagStatePoints.back().Loc;
   // Don't allow a mapping to a warning override an error/fatal mapping.
   if (Map == diag::MAP_WARNING) {
     DiagnosticMappingInfo &Info = GetCurDiagState()->getOrAddMappingInfo(Diag);
@@ -192,7 +192,7 @@ bool DiagnosticsEngine::EmitCurrentDiagnostic(bool Force) {
 ///
 /// \return The return value is always true, as an idiomatic convenience to
 /// clients.
-bool DiagnosticsEngine::ReportError(llvm::SMLoc L, const llvm::Twine &Msg) {
+bool DiagnosticsEngine::ReportError(SourceLocation L, const llvm::Twine &Msg) {
   Client->HandleDiagnostic(Error, L, Msg);
   return true;
 }
@@ -202,7 +202,7 @@ bool DiagnosticsEngine::ReportError(llvm::SMLoc L, const llvm::Twine &Msg) {
 ///
 /// \return The return value is always true, as an idiomatic convenience to
 /// clients.
-bool DiagnosticsEngine::ReportWarning(llvm::SMLoc L, const llvm::Twine &Msg) {
+bool DiagnosticsEngine::ReportWarning(SourceLocation L, const llvm::Twine &Msg) {
   Client->HandleDiagnostic(Warning, L, Msg);
   return true;
 }
@@ -212,7 +212,7 @@ bool DiagnosticsEngine::ReportWarning(llvm::SMLoc L, const llvm::Twine &Msg) {
 ///
 /// \return The return value is always true, as an idiomatic convenience to
 /// clients.
-bool DiagnosticsEngine::ReportNote(llvm::SMLoc L, const llvm::Twine &Msg) {
+bool DiagnosticsEngine::ReportNote(SourceLocation L, const llvm::Twine &Msg) {
   Client->HandleDiagnostic(Note, L, Msg);
   return true;
 }
@@ -220,9 +220,9 @@ bool DiagnosticsEngine::ReportNote(llvm::SMLoc L, const llvm::Twine &Msg) {
 DiagnosticClient::~DiagnosticClient() {}
 
 void DiagnosticClient::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
-                                        llvm::SMLoc,
+                                        SourceLocation,
                                         const llvm::Twine &,
-                                        llvm::ArrayRef<llvm::SMRange>) {
+                                        llvm::ArrayRef<SourceRange>) {
   if (!IncludeInDiagnosticCounts())
     return;
 

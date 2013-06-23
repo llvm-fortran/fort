@@ -21,7 +21,7 @@ namespace flang {
 /// HandleDiagnostic - Store the errors, warnings, and notes that are
 /// reported.
 ///
-void TextDiagnosticBuffer::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, llvm::SMLoc L,
+void TextDiagnosticBuffer::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, SourceLocation L,
                                             const llvm::Twine &Msg) {
   // Default implementation (Warnings/errors count).
   DiagnosticClient::HandleDiagnostic(DiagLevel, L, Msg);

@@ -21,7 +21,6 @@
 #include "llvm/ADT/APSInt.h"
 #include "llvm/ADT/FoldingSet.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/Support/SMLoc.h"
 #include "llvm/Support/PrettyStackTrace.h"
 #include "flang/Basic/LLVM.h"
 
@@ -103,7 +102,7 @@ private:
   DeclContext *DeclCtx;
 
   /// Loc - The location of this decl.
-  llvm::SMLoc Loc;
+  SourceLocation Loc;
 
   /// DeclKind - The class of decl this is.
   unsigned DeclKind    : 8;
@@ -120,7 +119,7 @@ private:
 
 protected:
 
-  Decl(Kind DK, DeclContext *DC, llvm::SMLoc L)
+  Decl(Kind DK, DeclContext *DC, SourceLocation L)
     : NextDeclInContext(0), DeclCtx(DC), Loc(L), DeclKind(DK),
       InvalidDecl(false), HasAttrs(false), Implicit(false) {}
 
@@ -131,11 +130,11 @@ public:
   virtual SourceRange getSourceRange() const {
     return SourceRange(getLocation(), getLocation());
   }
-  llvm::SMLoc getLocStart() const { return getSourceRange().getBegin(); }
-  llvm::SMLoc getLocEnd() const { return getSourceRange().getEnd(); }
+  SourceLocation getLocStart() const { return getSourceRange().Start; }
+  SourceLocation getLocEnd() const { return getSourceRange().End; }
 
-  llvm::SMLoc getLocation() const { return Loc; }
-  void setLocation(llvm::SMLoc L) { Loc = L; }
+  SourceLocation getLocation() const { return Loc; }
+  void setLocation(SourceLocation L) { Loc = L; }
 
   Kind getKind() const { return static_cast<Kind>(DeclKind); }
 
@@ -178,11 +177,11 @@ public:
 /// doing something to a specific decl.
 class PrettyStackTraceDecl : public llvm::PrettyStackTraceEntry {
   const Decl *TheDecl;
-  llvm::SMLoc Loc;
+  SourceLocation Loc;
   llvm::SourceMgr &SM;
   const char *Message;
 public:
-  PrettyStackTraceDecl(const Decl *theDecl, llvm::SMLoc L,
+  PrettyStackTraceDecl(const Decl *theDecl, SourceLocation L,
                        llvm::SourceMgr &sm, const char *Msg)
     : TheDecl(theDecl), Loc(L), SM(sm), Message(Msg) {}
 
@@ -405,7 +404,7 @@ class TranslationUnitDecl : public Decl, public DeclContext {
   ASTContext &Ctx;
 
   explicit TranslationUnitDecl(ASTContext &ctx)
-    : Decl(TranslationUnit, 0, llvm::SMLoc()),
+    : Decl(TranslationUnit, 0, SourceLocation()),
       DeclContext(TranslationUnit), Ctx(ctx) {}
 public:
   ASTContext &getASTContext() const { return Ctx; }
@@ -432,7 +431,7 @@ class NamedDecl : public Decl {
   friend class ASTContext;
   friend class DeclContext;
 protected:
-  NamedDecl(Kind DK, DeclContext *DC, llvm::SMLoc L, DeclarationName N)
+  NamedDecl(Kind DK, DeclContext *DC, SourceLocation L, DeclarationName N)
     : Decl(DK, DC, L), Name(N) {}
 public:
   /// getIdentifier - Get the identifier that names this declaration, if there
@@ -468,15 +467,15 @@ class TypeDecl : public NamedDecl {
   mutable const Type *TypeForDecl;
 
   /// LocStart - The start of the source range for this declaration.
-  llvm::SMLoc LocStart;
+  SourceLocation LocStart;
 
   friend class ASTContext;
   friend class DeclContext;
   friend class RecordDecl;
   friend class TagType;
 protected:
-  TypeDecl(Kind DK, DeclContext *DC, llvm::SMLoc L, const IdentifierInfo *Id,
-           llvm::SMLoc StartL = llvm::SMLoc())
+  TypeDecl(Kind DK, DeclContext *DC, SourceLocation L, const IdentifierInfo *Id,
+           SourceLocation StartL = SourceLocation())
     : NamedDecl(DK, DC, L, Id), TypeForDecl(0), LocStart(StartL) {}
 
 public:
@@ -484,14 +483,14 @@ public:
   const Type *getTypeForDecl() const { return TypeForDecl; }
   void setTypeForDecl(const Type *TD) { TypeForDecl = TD; }
 
-  llvm::SMLoc getLocStart() const { return LocStart; }
-  void setLocStart(llvm::SMLoc L) { LocStart = L; }
+  SourceLocation getLocStart() const { return LocStart; }
+  void setLocStart(SourceLocation L) { LocStart = L; }
 
   virtual SourceRange getSourceRange() const {
     if (LocStart.isValid())
       return SourceRange(LocStart, getLocation());
     else
-      return SourceRange(getLocation());
+      return SourceRange(getLocation(), getLocation());
   }
 
   // Implement isa/cast/dyncast/etc.
@@ -512,7 +511,7 @@ class RecordDecl : public TypeDecl, public DeclContext {
 
   friend class DeclContext;
 protected:
-  RecordDecl(Kind DK, DeclContext *DC, llvm::SMLoc StartLoc, llvm::SMLoc IdLoc,
+  RecordDecl(Kind DK, DeclContext *DC, SourceLocation StartLoc, SourceLocation IdLoc,
              const IdentifierInfo *Id, RecordDecl *PrevDecl)
     : TypeDecl(DK, DC, IdLoc, Id), DeclContext(Record) {
     IsDefinition = false;
@@ -520,16 +519,16 @@ protected:
   }
 public:
   static RecordDecl *Create(const ASTContext &C, DeclContext *DC,
-                            llvm::SMLoc StartLoc, llvm::SMLoc IdLoc,
+                            SourceLocation StartLoc, SourceLocation IdLoc,
                             const IdentifierInfo *Id, RecordDecl *PrevDecl = 0);
 
-  /// getOuterLocStart - Return SMLoc representing start of source range taking
+  /// getOuterLocStart - Return SourceLocation representing start of source range taking
   /// into account any outer template declarations.
   virtual SourceRange getSourceRange() const {
     if (LocStart.isValid())
       return SourceRange(LocStart, getLocation());
     else
-      return SourceRange(getLocation());
+      return SourceRange(getLocation(), getLocation());
   }
 
   // FIXME: Could be more than just 'this'.
@@ -589,7 +588,7 @@ public:
 class ValueDecl : public NamedDecl {
   QualType DeclType;
 protected:
-  ValueDecl(Kind DK, DeclContext *DC, llvm::SMLoc L,
+  ValueDecl(Kind DK, DeclContext *DC, SourceLocation L,
             DeclarationName N, QualType T)
     : NamedDecl(DK, DC, L, N), DeclType(T) {}
 public:
@@ -610,13 +609,13 @@ class EnumConstantDecl : public ValueDecl {
   Expr *Init;                   // An integer constant expression.
   llvm::APSInt Val;             // The value.
 protected:
-  EnumConstantDecl(DeclContext *DC, llvm::SMLoc L,
+  EnumConstantDecl(DeclContext *DC, SourceLocation L,
                    IdentifierInfo *Id, QualType T, Expr *E,
                    const llvm::APSInt &V)
     : ValueDecl(EnumConstant, DC, L, Id, T), Init(E), Val(V) {}
 public:
   static EnumConstantDecl *Create(ASTContext &C, DeclContext *DC,
-                                  llvm::SMLoc L, IdentifierInfo *Id,
+                                  SourceLocation L, IdentifierInfo *Id,
                                   QualType T, Expr *E,
                                   const llvm::APSInt &V);
 
@@ -638,7 +637,7 @@ public:
 /// \brief Represents a ValueDecl that came out of a declarator.
 class DeclaratorDecl : public ValueDecl {
 protected:
-  DeclaratorDecl(Kind DK, DeclContext *DC, llvm::SMLoc L,
+  DeclaratorDecl(Kind DK, DeclContext *DC, SourceLocation L,
                  DeclarationName N, QualType T)
     : ValueDecl(DK, DC, L, N, T) {
   }
@@ -780,12 +779,12 @@ public:
 /// represent a member of a struct.
 class FieldDecl : public DeclaratorDecl {
 protected:
-  FieldDecl(Kind DK, DeclContext *DC, llvm::SMLoc IdLoc, const IdentifierInfo *Id,
+  FieldDecl(Kind DK, DeclContext *DC, SourceLocation IdLoc, const IdentifierInfo *Id,
             QualType T)
     : DeclaratorDecl(DK, DC, IdLoc, Id, T) {}
 public:
   static FieldDecl *Create(const ASTContext &C, DeclContext *DC,
-                           llvm::SMLoc IdLoc, const IdentifierInfo *Id, QualType T);
+                           SourceLocation IdLoc, const IdentifierInfo *Id, QualType T);
 
   /// getParent - Returns the parent of this field declaration, which is the
   /// struct in which this method is defined.
@@ -815,13 +814,13 @@ class VarDecl : public DeclaratorDecl {
   friend class ASTContext;  // ASTContext creates these.
 
 protected:
-  VarDecl(Kind DK, DeclContext *DC, llvm::SMLoc IdLoc, const IdentifierInfo *ID,
+  VarDecl(Kind DK, DeclContext *DC, SourceLocation IdLoc, const IdentifierInfo *ID,
           QualType T)
     : DeclaratorDecl(DK, DC, IdLoc, ID, T), Init(0) {}
 
 public:
   static VarDecl *Create(ASTContext &C, DeclContext *DC,
-                         llvm::SMLoc IDLoc, const IdentifierInfo *ID,
+                         SourceLocation IDLoc, const IdentifierInfo *ID,
                          QualType T);
 
   void Profile(llvm::FoldingSetNodeID &ID) {
@@ -840,7 +839,7 @@ public:
 };
 
 class FileScopeAsmDecl : public Decl {
-  FileScopeAsmDecl(DeclContext *DC, llvm::SMLoc StartL, llvm::SMLoc EndL)
+  FileScopeAsmDecl(DeclContext *DC, SourceLocation StartL, SourceLocation EndL)
     : Decl(FileScopeAsm, DC, StartL) {}
 public:
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }

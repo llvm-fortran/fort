@@ -12,25 +12,25 @@
 
 namespace flang {
 
-StarFormatSpec::StarFormatSpec(SMLoc Loc)
+StarFormatSpec::StarFormatSpec(SourceLocation Loc)
   : FormatSpec(FormatSpec::FS_Star, Loc) {}
 
-StarFormatSpec *StarFormatSpec::Create(ASTContext &C, SMLoc Loc) {
+StarFormatSpec *StarFormatSpec::Create(ASTContext &C, SourceLocation Loc) {
   return new (C) StarFormatSpec(Loc);
 }
 
-DefaultCharFormatSpec::DefaultCharFormatSpec(SMLoc L, ExprResult F)
+DefaultCharFormatSpec::DefaultCharFormatSpec(SourceLocation L, ExprResult F)
   : FormatSpec(FormatSpec::FS_DefaultCharExpr, L), Fmt(F) {}
 
-DefaultCharFormatSpec *DefaultCharFormatSpec::Create(ASTContext &C, SMLoc Loc,
+DefaultCharFormatSpec *DefaultCharFormatSpec::Create(ASTContext &C, SourceLocation Loc,
                                                    ExprResult Fmt) {
   return new (C) DefaultCharFormatSpec(Loc, Fmt);
 }
 
-LabelFormatSpec::LabelFormatSpec(SMLoc L, ExprResult Lbl)
+LabelFormatSpec::LabelFormatSpec(SourceLocation L, ExprResult Lbl)
   : FormatSpec(FormatSpec::FS_Label, L), Label(Lbl) {}
 
-LabelFormatSpec *LabelFormatSpec::Create(ASTContext &C, SMLoc Loc,
+LabelFormatSpec *LabelFormatSpec::Create(ASTContext &C, SourceLocation Loc,
                                          ExprResult Label) {
   return new (C) LabelFormatSpec(Loc, Label);
 }

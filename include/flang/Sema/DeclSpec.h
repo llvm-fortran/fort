@@ -14,10 +14,10 @@
 #ifndef FLANG_SEMA_DECLSPEC_H__
 #define FLANG_SEMA_DECLSPEC_H__
 
-#include "flang/AST/Type.h"
+#include "flang/Basic/SourceLocation.h"
 #include "flang/Basic/Specifiers.h"
+#include "flang/AST/Type.h"
 #include "flang/Sema/Ownership.h"
-#include "llvm/Support/SMLoc.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 

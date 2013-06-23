@@ -57,7 +57,7 @@ bool Parser::AssignIntentSpec(DeclSpec &DS, DeclSpec::IS Val) {
 bool Parser::ParseTypeDeclarationList(DeclSpec &DS,
                                       SmallVectorImpl<DeclResult> &Decls) {
   while (!Tok.isAtStartOfStatement()) {
-    llvm::SMLoc IDLoc = Tok.getLocation();
+    SourceLocation IDLoc = Tok.getLocation();
     const IdentifierInfo *ID = Tok.getIdentifierInfo();
     if (!ID)
       return Diag.ReportError(IDLoc,
@@ -79,7 +79,7 @@ bool Parser::ParseTypeDeclarationList(DeclSpec &DS,
     }
     else Decls.push_back(Actions.ActOnEntityDecl(Context, DS, IDLoc, ID));
 
-    llvm::SMLoc CommaLoc = Tok.getLocation();
+    SourceLocation CommaLoc = Tok.getLocation();
     if (!EatIfPresent(tok::comma)) {
       if (!Tok.isAtStartOfStatement())
         return Diag.ReportError(Tok.getLocation(),
@@ -310,7 +310,7 @@ ExprResult Parser::ParseSelector(bool IsKindSel) {
 ///     type-param-spec :=
 ///         [ keyword = ] type-param-value
 bool Parser::ParseDerivedTypeSpec(DeclSpec &DS) {
-  //  llvm::SMLoc Loc = Tok.getLocation();
+  //  SourceLocation Loc = Tok.getLocation();
   //  const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
   Lex();
 
@@ -542,7 +542,7 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
 bool Parser::ParseOptionalMatchingIdentifier(const IdentifierInfo *OriginalId) {
   if (Tok.is(tok::identifier) && !Tok.isAtStartOfStatement()) {
     const IdentifierInfo * IDInfo = Tok.getIdentifierInfo();
-    llvm::SMLoc NameLoc = Tok.getLocation();
+    SourceLocation NameLoc = Tok.getLocation();
     Lex(); // Eat the ending token.
 
     //FIXME: is this case insensitive???
@@ -605,7 +605,7 @@ bool Parser::ParseOptionalMatchingIdentifier(const IdentifierInfo *OriginalId) {
 ///   end-type-stmt :=
 ///     END TYPE [ type-name ]
 bool Parser::ParseDerivedTypeDefinitionStmt() {
-  llvm::SMLoc Loc, IDLoc;
+  SourceLocation Loc, IDLoc;
   const IdentifierInfo *ID;
 
   Loc = Tok.getLocation();
@@ -657,7 +657,7 @@ bool Parser::ParseDerivedTypeComponent() {
 bool Parser::ParseDerivedTypeComponentDeclarationList(DeclSpec &DS,
                               SmallVectorImpl<DeclResult> &Decls) {
   while (!Tok.isAtStartOfStatement()) {
-    llvm::SMLoc IDLoc = Tok.getLocation();
+    SourceLocation IDLoc = Tok.getLocation();
     const IdentifierInfo *ID = Tok.getIdentifierInfo();
     if (!ID)
       return Diag.ReportError(IDLoc,
@@ -670,7 +670,7 @@ bool Parser::ParseDerivedTypeComponentDeclarationList(DeclSpec &DS,
 
     Decls.push_back(Actions.ActOnDerivedTypeFieldDecl(Context, DS, IDLoc, ID));
 
-    llvm::SMLoc CommaLoc = Tok.getLocation();
+    SourceLocation CommaLoc = Tok.getLocation();
     if (!EatIfPresent(tok::comma)) {
       if (!Tok.is(tok::kw_ENDTYPE) && !Tok.isAtStartOfStatement())
         return Diag.ReportError(Tok.getLocation(),

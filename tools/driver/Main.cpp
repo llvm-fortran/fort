@@ -76,7 +76,7 @@ static bool ParseFile(const std::string &Filename,
   SrcMgr.setIncludeDirs(IncludeDirs);
 
   // Tell SrcMgr about this buffer, which is what Parser will pick up.
-  SrcMgr.AddNewSourceBuffer(MB.take(), SMLoc());
+  SrcMgr.AddNewSourceBuffer(MB.take(), llvm::SMLoc());
 
   LangOptions Opts;
   Opts.ReturnComments = ReturnComments;

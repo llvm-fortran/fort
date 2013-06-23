@@ -230,7 +230,7 @@ MainProgramDecl *MainProgramDecl::Create(ASTContext &C, DeclContext *DC,
 //===----------------------------------------------------------------------===//
 
 RecordDecl *RecordDecl::Create(const ASTContext &C, DeclContext *DC,
-                               llvm::SMLoc StartLoc, llvm::SMLoc IdLoc,
+                               SourceLocation StartLoc, SourceLocation IdLoc,
                                const IdentifierInfo *Id, RecordDecl *PrevDecl) {
   RecordDecl* R = new (C) RecordDecl(Record, DC, StartLoc, IdLoc, Id, PrevDecl);
   C.getTypeDeclType(R, PrevDecl);
@@ -242,14 +242,14 @@ RecordDecl *RecordDecl::Create(const ASTContext &C, DeclContext *DC,
 //===----------------------------------------------------------------------===//
 
 EnumConstantDecl *EnumConstantDecl::Create(ASTContext &C, DeclContext *DC,
-                                           llvm::SMLoc L, IdentifierInfo *Id,
+                                           SourceLocation L, IdentifierInfo *Id,
                                            QualType T, Expr *E,
                                            const llvm::APSInt &V) {
   return new (C) EnumConstantDecl(DC, L, Id, T, E, V);
 }
 
 SourceRange EnumConstantDecl::getSourceRange() const {
-  llvm::SMLoc End = getLocation();
+  SourceLocation End = getLocation();
   if (Init)
     End = Init->getLocation();  // FIXME: getLocEnd() ?
   return SourceRange(getLocation(), End);
@@ -260,7 +260,7 @@ SourceRange EnumConstantDecl::getSourceRange() const {
 //===----------------------------------------------------------------------===//
 
 FieldDecl *FieldDecl::Create(const ASTContext &C, DeclContext *DC,
-                             /*llvm::SMLoc StartLoc,*/ llvm::SMLoc IdLoc,
+                             /*SourceLocation StartLoc,*/ SourceLocation IdLoc,
                              const IdentifierInfo *Id, QualType T) {
   return new (C) FieldDecl(Decl::Field, DC, IdLoc, Id, T);
 }
@@ -270,7 +270,7 @@ FieldDecl *FieldDecl::Create(const ASTContext &C, DeclContext *DC,
 //===----------------------------------------------------------------------===//
 
 VarDecl *VarDecl::Create(ASTContext &C, DeclContext *DC,
-                         llvm::SMLoc IdLoc, const IdentifierInfo *Id,
+                         SourceLocation IdLoc, const IdentifierInfo *Id,
                          QualType T) {
   return new (C) VarDecl(Var, DC, IdLoc, Id, T);
 }

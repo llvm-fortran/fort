@@ -83,8 +83,8 @@ void VerifyDiagnosticConsumer::EndSourceFile() {
 }
 
 void VerifyDiagnosticConsumer::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
-                                                llvm::SMLoc L, const llvm::Twine &Msg,
-                                                llvm::ArrayRef<llvm::SMRange> Ranges) {
+                                                SourceLocation L, const llvm::Twine &Msg,
+                                                llvm::ArrayRef<SourceRange> Ranges) {
   // Send the diagnostic to the buffer, we will check it once we reach the end
   // of the source file (or are destructed).
   Buffer->HandleDiagnostic(DiagLevel, L, Msg);
@@ -103,7 +103,7 @@ namespace {
 ///
 class StandardDirective : public Directive {
 public:
-  StandardDirective(llvm::SMLoc DirectiveLoc, llvm::SMLoc DiagnosticLoc,
+  StandardDirective(SourceLocation DirectiveLoc, SourceLocation DiagnosticLoc,
                     StringRef Text, unsigned Min, unsigned Max)
     : Directive(DirectiveLoc, DiagnosticLoc, Text, Min, Max) { }
 
@@ -121,7 +121,7 @@ public:
 ///
 class RegexDirective : public Directive {
 public:
-  RegexDirective(llvm::SMLoc DirectiveLoc, llvm::SMLoc DiagnosticLoc,
+  RegexDirective(SourceLocation DirectiveLoc, SourceLocation DiagnosticLoc,
                  StringRef Text, unsigned Min, unsigned Max)
     : Directive(DirectiveLoc, DiagnosticLoc, Text, Min, Max), Regex(Text) { }
 
@@ -231,14 +231,14 @@ private:
 } // namespace anonymous
 
 /// \brief Get the source location in \arg BufferId for the given line.
-static llvm::SMLoc translateLine(const llvm::SourceMgr &SM,
+static SourceLocation translateLine(const llvm::SourceMgr &SM,
                                  int BufferId,
                                  unsigned Line) {
   const llvm::MemoryBuffer *Buffer = SM.getMemoryBuffer(BufferId);
   const char *Buf = Buffer->getBufferStart();
   size_t BufLength = Buffer->getBufferSize();
   if (BufLength == 0)
-    return llvm::SMLoc::getFromPointer(Buf);
+    return SourceLocation::getFromPointer(Buf);
 
   size_t i = 0;
   unsigned LineNo = 1;
@@ -246,11 +246,11 @@ static llvm::SMLoc translateLine(const llvm::SourceMgr &SM,
   for (; i < BufLength && LineNo != Line; ++i)
     if (Buf[i] == '\n') ++LineNo;
 
-  return llvm::SMLoc::getFromPointer(Buf + i);
+  return SourceLocation::getFromPointer(Buf + i);
 }
 
-static llvm::SMLoc getLocWithOffset(llvm::SMLoc L, intptr_t offset) {
-  return llvm::SMLoc::getFromPointer(L.getPointer() + offset);
+static SourceLocation getLocWithOffset(SourceLocation L, intptr_t offset) {
+  return SourceLocation::getFromPointer(L.getPointer() + offset);
 }
 
 /// ParseDirective - Go through the comment and see if it indicates expected
@@ -258,7 +258,7 @@ static llvm::SMLoc getLocWithOffset(llvm::SMLoc L, intptr_t offset) {
 ///
 /// Returns true if any valid directives were found.
 static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr &SM,
-                           Lexer *PP, const llvm::SMLoc& Pos,
+                           Lexer *PP, const SourceLocation& Pos,
                            VerifyDiagnosticConsumer::DirectiveStatus &Status) {
   DiagnosticsEngine &Diags = PP->getDiagnostics();
 
@@ -319,7 +319,7 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr 
     }
 
     // Next optional token: @
-    SMLoc ExpectedLoc;
+    SourceLocation ExpectedLoc;
     if (!PH.Next("@")) {
       ExpectedLoc = Pos;
     } else {
@@ -434,7 +434,7 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, const llvm::SourceMgr 
 
 /// HandleComment - Hook into the preprocessor and extract comments containing
 ///  expected errors and warnings.
-bool VerifyDiagnosticConsumer::HandleComment(Lexer &PP, const llvm::SMLoc& CommentBegin, const llvm::StringRef &C) {
+bool VerifyDiagnosticConsumer::HandleComment(Lexer &PP, const SourceLocation& CommentBegin, const llvm::StringRef &C) {
   const llvm::SourceMgr &SM = PP.getSourceManager();
 
   // If this comment is for a different source manager, ignore it.
@@ -516,8 +516,8 @@ static unsigned PrintExpected(DiagnosticsEngine &Diags, const llvm::SourceMgr &S
 }
 
 /// \brief Determine whether two source locations come from the same file.
-static bool IsFromSameFile(const llvm::SourceMgr &SM, llvm::SMLoc DirectiveLoc,
-                           llvm::SMLoc  DiagnosticLoc) {
+static bool IsFromSameFile(const llvm::SourceMgr &SM, SourceLocation DirectiveLoc,
+                           SourceLocation  DiagnosticLoc) {
   return SM.FindBufferContainingLoc(DirectiveLoc) ==
      SM.FindBufferContainingLoc(DiagnosticLoc);
   return true;
@@ -633,8 +633,8 @@ void VerifyDiagnosticConsumer::CheckDiagnostics() {
   ED.Notes.clear();
 }
 
-Directive *Directive::create(bool RegexKind, llvm::SMLoc DirectiveLoc,
-                             llvm::SMLoc DiagnosticLoc, StringRef Text,
+Directive *Directive::create(bool RegexKind, SourceLocation DirectiveLoc,
+                             SourceLocation DiagnosticLoc, StringRef Text,
                              unsigned Min, unsigned Max) {
   if (RegexKind)
     return new RegexDirective(DirectiveLoc, DiagnosticLoc, Text, Min, Max);

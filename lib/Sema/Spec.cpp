@@ -38,7 +38,7 @@ void Sema::ActOnSpecificationPart(ArrayRef<StmtResult> Body) {
 }
 
 VarDecl *Sema::GetVariableForSpecification(const IdentifierInfo *IDInfo,
-                                           SMLoc ErrorLoc,
+                                           SourceLocation ErrorLoc,
                                            const llvm::Twine &ErrorMsg) {
   DeclContext::lookup_result LRes = CurContext->lookup(IDInfo);
   for(; LRes.first != LRes.second; ++LRes.first){

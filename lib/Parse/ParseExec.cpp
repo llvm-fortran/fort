@@ -143,7 +143,7 @@ Parser::StmtResult Parser::ParseActionStmt() {
 ///     block :=
 ///       execution-part-construct ..
 StmtResult Parser::ParseBlockStmt() {
-  SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
 
   std::vector<StmtResult> body;
   if(ParseExecutionPart(body))
@@ -152,7 +152,7 @@ StmtResult Parser::ParseBlockStmt() {
 }
 
 Parser::StmtResult Parser::ParseAssignStmt() {
-  SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   Lex();
 
   auto Value = ParseStatementLabelReference();
@@ -176,7 +176,7 @@ Parser::StmtResult Parser::ParseAssignStmt() {
 }
 
 Parser::StmtResult Parser::ParseGotoStmt() {
-  SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   Lex();
 
   auto Destination = ParseStatementLabelReference();
@@ -386,7 +386,7 @@ Parser::StmtResult Parser::ParseAssignmentStmt() {
   ExprResult LHS = ParsePrimaryExpr(true);
   if(LHS.isInvalid()) return StmtError();
 
-  llvm::SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   if(!Tok.is(tok::equal)) {
     Diag.Report(Tok.getLocation(),diag::err_expected_equal);
     return StmtError();
@@ -408,10 +408,10 @@ Parser::StmtResult Parser::ParseAssignmentStmt() {
 ///      or label
 ///      or *
 Parser::StmtResult Parser::ParsePrintStmt() {
-  SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   Lex();
 
-  SMLoc FormatLoc = Tok.getLocation();
+  SourceLocation FormatLoc = Tok.getLocation();
   FormatSpec *FS = 0;
   if (EatIfPresent(tok::star)) {
     FS = Actions.ActOnStarFormatSpec(Context, FormatLoc);
@@ -441,7 +441,7 @@ Parser::StmtResult Parser::ParsePrintStmt() {
 ///     end-program-stmt :=
 ///         END [ PROGRAM [ program-name ] ]
 Parser::StmtResult Parser::ParseEND_PROGRAMStmt() {
-  llvm::SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   if (Tok.isNot(tok::kw_END) && Tok.isNot(tok::kw_ENDPROGRAM)) {
     Diag.Report(Tok.getLocation(),diag::err_expected_stmt)
       << "END PROGRAM";
@@ -450,7 +450,7 @@ Parser::StmtResult Parser::ParseEND_PROGRAMStmt() {
   Lex();
 
   const IdentifierInfo *IDInfo = 0;
-  llvm::SMLoc NameLoc;
+  SourceLocation NameLoc;
   if (Tok.is(tok::identifier) && !Tok.isAtStartOfStatement()) {
     IDInfo = Tok.getIdentifierInfo();
     NameLoc = Tok.getLocation();

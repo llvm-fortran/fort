@@ -124,14 +124,14 @@ void DeclarationNameInfo::printName(llvm::raw_ostream &OS) const {
   assert(false && "Unexpected declaration name kind");
 }
 
-llvm::SMLoc DeclarationNameInfo::getEndLoc() const {
+SourceLocation DeclarationNameInfo::getEndLoc() const {
   switch (Name.getNameKind()) {
   case DeclarationName::Identifier:
     return NameLoc;
   }
 
   assert(false && "Unexpected declaration name kind");
-  return llvm::SMLoc();
+  return SourceLocation();
 }
 
 } //namespace flang

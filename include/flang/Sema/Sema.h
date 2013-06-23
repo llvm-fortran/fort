@@ -24,7 +24,6 @@
 #include "flang/Sema/Scope.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SourceMgr.h"
-#include "llvm/Support/SMLoc.h"
 #include "flang/Basic/LLVM.h"
 #include <vector>
 
@@ -143,7 +142,7 @@ public:
   void PopDeclContext();
 
   void PushExecutableProgramUnit();
-  void PopExecutableProgramUnit(SMLoc Loc);
+  void PopExecutableProgramUnit(SourceLocation Loc);
 
   void DeclareStatementLabel(Expr *StmtLabel, Stmt *S);
   void CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S);
@@ -151,33 +150,33 @@ public:
   void ActOnTranslationUnit();
   void ActOnEndProgramUnit();
 
-  void ActOnMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc);
-  void ActOnEndMainProgram(SMLoc Loc, const IdentifierInfo *IDInfo, SMLoc NameLoc);
+  void ActOnMainProgram(const IdentifierInfo *IDInfo, SourceLocation NameLoc);
+  void ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo, SourceLocation NameLoc);
 
   void ActOnSpecificationPart(ArrayRef<StmtResult> Body);
   VarDecl *GetVariableForSpecification(const IdentifierInfo *IDInfo,
-                                       SMLoc ErrorLoc,
+                                       SourceLocation ErrorLoc,
                                        const llvm::Twine &ErrorMsg);
   bool ApplySpecification(const DimensionStmt *Stmt);
 
   QualType ActOnTypeName(ASTContext &C, DeclSpec &DS);
-  VarDecl *ActOnKindSelector(ASTContext &C, SMLoc IDLoc,
+  VarDecl *ActOnKindSelector(ASTContext &C, SourceLocation IDLoc,
                              const IdentifierInfo *IDInfo);
 
-  Decl *ActOnEntityDecl(ASTContext &C, const QualType &T, SMLoc IDLoc,
+  Decl *ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDLoc,
                         const IdentifierInfo *IDInfo);
 
-  Decl *ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SMLoc IDLoc,
+  Decl *ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
                         const IdentifierInfo *IDInfo);
 
-  Decl *ActOnImplicitEntityDecl(ASTContext &C, SMLoc IDLoc,
+  Decl *ActOnImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo);
 
   // FIXME: TODO more features.
-  RecordDecl *ActOnDerivedTypeDecl(ASTContext &C, SMLoc Loc,
-                                      SMLoc NameLoc, const IdentifierInfo* IDInfo);
+  RecordDecl *ActOnDerivedTypeDecl(ASTContext &C, SourceLocation Loc,
+                                   SourceLocation NameLoc, const IdentifierInfo* IDInfo);
 
-  FieldDecl *ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SMLoc IDLoc,
+  FieldDecl *ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
                                        const IdentifierInfo *IDInfo,
                                        ExprResult Init = ExprResult());
 
@@ -186,7 +185,7 @@ public:
 
   // PROGRAM statement:
   StmtResult ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,
-                          SMLoc Loc, SMLoc NameLoc, Expr *StmtLabel);
+                          SourceLocation Loc, SourceLocation NameLoc, Expr *StmtLabel);
 
   // USE statement:
   StmtResult ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
@@ -197,96 +196,96 @@ public:
                       Expr *StmtLabel);
 
   // IMPORT statement:
-  StmtResult ActOnIMPORT(ASTContext &C, SMLoc Loc,
+  StmtResult ActOnIMPORT(ASTContext &C, SourceLocation Loc,
                          ArrayRef<const IdentifierInfo*> ImportNamesList,
                          Expr *StmtLabel);
 
   // IMPLICIT statement:
-  StmtResult ActOnIMPLICIT(ASTContext &C, SMLoc Loc, DeclSpec &DS,
+  StmtResult ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, DeclSpec &DS,
                            ArrayRef<ImplicitStmt::LetterSpec> LetterSpecs,
                            Expr *StmtLabel);
-  StmtResult ActOnIMPLICIT(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
+  StmtResult ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
   // DIMENSION statement
   // The source code statement is split into multiple ones in the parsing stage.
-  StmtResult ActOnDIMENSION(ASTContext &C, SMLoc Loc,
+  StmtResult ActOnDIMENSION(ASTContext &C, SourceLocation Loc,
                             const IdentifierInfo *IDInfo,
                             ArrayRef<std::pair<ExprResult,ExprResult> > Dims,
                             Expr *StmtLabel);
 
   // PARAMETER statement:
-  ParameterStmt::ParamPair ActOnPARAMETERPair(ASTContext &C, SMLoc Loc,
+  ParameterStmt::ParamPair ActOnPARAMETERPair(ASTContext &C, SourceLocation Loc,
                                               const IdentifierInfo *IDInfo,
                                               ExprResult CE);
-  StmtResult ActOnPARAMETER(ASTContext &C, SMLoc Loc,
+  StmtResult ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
                             ArrayRef<ParameterStmt::ParamPair> ParamList,
                             Expr *StmtLabel);
 
   // ASYNCHRONOUS statement:
-  StmtResult ActOnASYNCHRONOUS(ASTContext &C, SMLoc Loc,
+  StmtResult ActOnASYNCHRONOUS(ASTContext &C, SourceLocation Loc,
                                ArrayRef<const IdentifierInfo*> ObjNames,
                                Expr *StmtLabel);
 
   // END PROGRAM statement:
   StmtResult ActOnENDPROGRAM(ASTContext &C,
                              const IdentifierInfo *ProgName,
-                             SMLoc Loc, SMLoc NameLoc,
+                             SourceLocation Loc, SourceLocation NameLoc,
                              Expr *StmtLabel);
 
   // EXTERNAL statement:
-  StmtResult ActOnEXTERNAL(ASTContext &C, SMLoc Loc,
+  StmtResult ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
                            ArrayRef<const IdentifierInfo *> ExternalNames,
                            Expr *StmtLabel);
 
   // INTRINSIC statement:
-  StmtResult ActOnINTRINSIC(ASTContext &C, SMLoc Loc,
+  StmtResult ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
                             ArrayRef<const IdentifierInfo *> IntrinsicNames,
                             Expr *StmtLabel);
 
-  StmtResult ActOnAssignmentStmt(ASTContext &C, llvm::SMLoc Loc,
+  StmtResult ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                  ExprResult LHS,
                                  ExprResult RHS, Expr *StmtLabel);
 
   QualType ActOnArraySpec(ASTContext &C, QualType ElemTy,
                           ArrayRef<std::pair<ExprResult,ExprResult> > Dims);
 
-  StarFormatSpec *ActOnStarFormatSpec(ASTContext &C, SMLoc Loc);
+  StarFormatSpec *ActOnStarFormatSpec(ASTContext &C, SourceLocation Loc);
   DefaultCharFormatSpec *ActOnDefaultCharFormatSpec(ASTContext &C,
-                                                    SMLoc Loc,
+                                                    SourceLocation Loc,
                                                     ExprResult Fmt);
-  LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SMLoc Loc,
+  LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SourceLocation Loc,
                                         ExprResult Label);
 
-  StmtResult ActOnBlock(ASTContext &C, SMLoc Loc, ArrayRef<StmtResult> Body);
+  StmtResult ActOnBlock(ASTContext &C, SourceLocation Loc, ArrayRef<StmtResult> Body);
 
-  StmtResult ActOnAssignStmt(ASTContext &C, SMLoc Loc,
+  StmtResult ActOnAssignStmt(ASTContext &C, SourceLocation Loc,
                              ExprResult Value, VarExpr* VarRef,
                              Expr *StmtLabel);
 
-  StmtResult ActOnAssignedGotoStmt(ASTContext &C, SMLoc Loc,
+  StmtResult ActOnAssignedGotoStmt(ASTContext &C, SourceLocation Loc,
                                    VarExpr* VarRef, ArrayRef<ExprResult> AllowedValues,
                                    Expr *StmtLabel);
 
-  StmtResult ActOnGotoStmt(ASTContext &C, SMLoc Loc,
+  StmtResult ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
                            ExprResult Destination, Expr *StmtLabel);
 
-  StmtResult ActOnIfStmt(ASTContext &C, SMLoc Loc,
+  StmtResult ActOnIfStmt(ASTContext &C, SourceLocation Loc,
                          ExprResult Condition, Expr *StmtLabel);
-  StmtResult ActOnElseIfStmt(ASTContext &C, SMLoc Loc,
+  StmtResult ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
                              ExprResult Condition, Expr *StmtLabel);
-  StmtResult ActOnElseStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
-  StmtResult ActOnEndIfStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
+  StmtResult ActOnElseStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
+  StmtResult ActOnEndIfStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
-  StmtResult ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStmt,
+  StmtResult ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult TerminatingStmt,
                          VarExpr *DoVar, ExprResult E1, ExprResult E2,
                          ExprResult E3, Expr *StmtLabel);
-  StmtResult ActOnEndDoStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
+  StmtResult ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
-  StmtResult ActOnContinueStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
+  StmtResult ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
-  StmtResult ActOnStopStmt(ASTContext &C, SMLoc Loc, ExprResult StopCode, Expr *StmtLabel);
+  StmtResult ActOnStopStmt(ASTContext &C, SourceLocation Loc, ExprResult StopCode, Expr *StmtLabel);
 
-  StmtResult ActOnPrintStmt(ASTContext &C, SMLoc Loc, FormatSpec *FS,
+  StmtResult ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,
                             ArrayRef<ExprResult> OutputItemList,
                             Expr *StmtLabel);
 
@@ -304,16 +303,16 @@ public:
     return ExprResult();
   }
 
-  ExprResult ActOnUnaryExpr(ASTContext &C, llvm::SMLoc Loc,
+  ExprResult ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,
                             UnaryExpr::Operator Op, ExprResult E);
 
-  ExprResult ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
+  ExprResult ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
                              BinaryExpr::Operator Op,
                              ExprResult LHS,ExprResult RHS);
 
-  ExprResult ActOnSubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
+  ExprResult ActOnSubstringExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
                                 ExprResult StartingPoint, ExprResult EndPoint);
-  ExprResult ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
+  ExprResult ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
                                 llvm::ArrayRef<ExprResult> Subscripts);
 
 };

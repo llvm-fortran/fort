@@ -27,7 +27,7 @@ static TypeSpecifierType GetArithmeticTypeSpec(const Type *T) {
   else return TST_unspecified;
 }
 
-ExprResult Sema::ActOnUnaryExpr(ASTContext &C, llvm::SMLoc Loc,
+ExprResult Sema::ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,
                                 UnaryExpr::Operator Op, ExprResult E) {
   unsigned DiagType = 0;
 
@@ -62,13 +62,13 @@ typecheckInvalidOperand:
   E.get()->getType().print(Stream);
   Diags.Report(Loc,DiagType)
       << Stream.str()
-      << llvm::SMRange(Loc,
+      << SourceRange(Loc,
                        E.get()->getLocEnd());
   return ExprError();
 }
 
 // FIXME: verify return type for binary expressions.
-ExprResult Sema::ActOnBinaryExpr(ASTContext &C, llvm::SMLoc Loc,
+ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
                                  BinaryExpr::Operator Op,
                                  ExprResult LHS, ExprResult RHS) {
   unsigned DiagType = 0;
@@ -268,7 +268,7 @@ typecheckInvalidOperands:
   RHS.get()->getType().print(StreamRHS);
   Diags.Report(Loc,DiagType)
       << StreamLHS.str() << StreamRHS.str()
-      << llvm::SMRange(LHS.get()->getLocStart(),
+      << SourceRange(LHS.get()->getLocStart(),
                        RHS.get()->getLocEnd());
   return ExprError();
 }
@@ -277,7 +277,7 @@ static bool IsIntegerExpression(ExprResult E) {
   return E.get()->getType().getTypePtr()->isIntegerType();
 }
 
-ExprResult Sema::ActOnSubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
+ExprResult Sema::ActOnSubstringExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
                                     ExprResult StartingPoint, ExprResult EndPoint) {
   bool HasErrors = false;
   if(StartingPoint.get() && !IsIntegerExpression(StartingPoint.get())) {
@@ -298,7 +298,7 @@ ExprResult Sema::ActOnSubstringExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult T
                                StartingPoint.take(), EndPoint.take());
 }
 
-ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult Target,
+ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
                                     llvm::ArrayRef<ExprResult> Subscripts) {
   assert(Subscripts.size());
   auto AT = Target.get()->getType().getTypePtr()->asArrayType();
@@ -307,7 +307,7 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, llvm::SMLoc Loc, ExprResult T
     Diags.Report(Loc,
                  diag::err_array_subscript_dimension_count_mismatch)
       << int(AT->getDimensionCount())
-      << llvm::SMRange(Loc, Subscripts.back().get()->getLocEnd());
+      << SourceRange(Loc, Subscripts.back().get()->getLocEnd());
     return ExprError();
   }
   llvm::SmallVector<Expr*, 8> Subs(Subscripts.size());

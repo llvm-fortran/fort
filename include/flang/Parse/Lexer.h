@@ -24,7 +24,7 @@
 namespace llvm {
 
 class MemoryBuffer;
-class SMLoc;
+class SourceLocation;
 class SourceMgr;
 
 } // end namespace llvm
@@ -248,7 +248,7 @@ public:
 
   const llvm::SourceMgr &getSourceManager() const { return SrcMgr; }
 
-  llvm::SMLoc getLoc() const;
+  SourceLocation getLoc() const;
 
   /// getBufferPtr - Get a pointer to the next line to be lexed.
   const char* getBufferPtr() const { return Text.GetBufferPtr(); }
@@ -295,7 +295,7 @@ public:
 
   // The handler shall return true if it has pushed any tokens
   // to be read using e.g. EnterToken or EnterTokenStream.
-  virtual bool HandleComment(Lexer &Lexer, const llvm::SMLoc& Loc, const llvm::StringRef &Comment) = 0;
+  virtual bool HandleComment(Lexer &Lexer, const SourceLocation& Loc, const llvm::StringRef &Comment) = 0;
 };
 
 } // end namespace flang

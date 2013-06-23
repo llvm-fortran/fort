@@ -100,7 +100,7 @@ private:
   // PrevTokLocation - The location of the token we previously consumed. This
   // token is used for diagnostics where we expected to see a token following
   // another token.
-  llvm::SMLoc PrevTokLocation;
+  SourceLocation PrevTokLocation;
 
   /// Identifiers - This is mapping/lookup information for all identifiers in
   /// the program, including program keywords.
@@ -114,15 +114,15 @@ private:
 
   /// ConsumeToken - Consume the current 'peek token' and lex the next one. This
   /// returns the location of the consumed token.
-  llvm::SMLoc ConsumeToken() {
+  SourceLocation ConsumeToken() {
     PrevTokLocation = Tok.getLocation();
     TheLexer.Lex(Tok);
     return PrevTokLocation;
   }
 
   /// Returns the maximum location of the current token
-  llvm::SMLoc getMaxLocationOfCurrentToken() {
-    return llvm::SMLoc::getFromPointer(Tok.getLocation().getPointer() +
+  SourceLocation getMaxLocationOfCurrentToken() {
+    return SourceLocation::getFromPointer(Tok.getLocation().getPointer() +
                                        Tok.getLength());
   }
 
@@ -279,7 +279,7 @@ private:
   ExprResult ParseLevel1Expr();
   ExprResult ParsePrimaryExpr(bool IsLvalue = false);
   ExprResult ParseExpression();
-  ExprResult ParseComplexConstant(llvm::SMLoc Loc);
+  ExprResult ParseComplexConstant(SourceLocation Loc);
 
   /// \brief Looks at the next token to see if it's an expression
   /// and calls ParseExpression if it is, or reports an expected expression

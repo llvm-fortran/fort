@@ -15,8 +15,8 @@
 #ifndef FLANG_AST_FORMATSPEC_H__
 #define FLANG_AST_FORMATSPEC_H__
 
+#include "flang/Basic/SourceLocation.h"
 #include "flang/Sema/Ownership.h"
-#include "llvm/Support/SMLoc.h"
 #include "flang/Basic/LLVM.h"
 
 namespace flang {
@@ -28,22 +28,22 @@ protected:
   enum FormatType { FS_DefaultCharExpr, FS_Label, FS_Star };
 private:
   FormatType ID;
-  SMLoc Loc;
+  SourceLocation Loc;
 protected:
-  FormatSpec(FormatType id, SMLoc L)
+  FormatSpec(FormatType id, SourceLocation L)
     : ID(id), Loc(L) {}
   friend class ASTContext;
 public:
-  SMLoc getLocation() const { return Loc; }
+  SourceLocation getLocation() const { return Loc; }
 
   FormatType getFormatSpecID() const { return ID; }
   static bool classof(const FormatSpec *) { return true; }
 };
 
 class StarFormatSpec : public FormatSpec {
-  StarFormatSpec(SMLoc L);
+  StarFormatSpec(SourceLocation L);
 public:
-  static StarFormatSpec *Create(ASTContext &C, SMLoc Loc);
+  static StarFormatSpec *Create(ASTContext &C, SourceLocation Loc);
 
   static bool classof(const StarFormatSpec *) { return true; }
   static bool classof(const FormatSpec *F) {
@@ -53,9 +53,9 @@ public:
 
 class DefaultCharFormatSpec : public FormatSpec {
   ExprResult Fmt;
-  DefaultCharFormatSpec(SMLoc L, ExprResult Fmt);
+  DefaultCharFormatSpec(SourceLocation L, ExprResult Fmt);
 public:
-  static DefaultCharFormatSpec *Create(ASTContext &C, SMLoc Loc,
+  static DefaultCharFormatSpec *Create(ASTContext &C, SourceLocation Loc,
                                        ExprResult Fmt);
 
   ExprResult getFormat() const { return Fmt; }
@@ -68,9 +68,9 @@ public:
 
 class LabelFormatSpec : public FormatSpec {
   ExprResult Label;
-  LabelFormatSpec(SMLoc L, ExprResult Lbl);
+  LabelFormatSpec(SourceLocation L, ExprResult Lbl);
 public:
-  static LabelFormatSpec *Create(ASTContext &C, SMLoc Loc,
+  static LabelFormatSpec *Create(ASTContext &C, SourceLocation Loc,
                                  ExprResult Lbl);
 
   ExprResult getLabel() const { return Label; }

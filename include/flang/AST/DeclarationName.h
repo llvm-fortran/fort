@@ -208,10 +208,10 @@ class DeclarationNameInfo {
   /// Name - The declaration name, also encoding name kind.
   DeclarationName Name;
   /// Loc - The main source location for the declaration name.
-  llvm::SMLoc NameLoc;
+  SourceLocation NameLoc;
 
 public:
-  DeclarationNameInfo(DeclarationName Name, llvm::SMLoc NameLoc)
+  DeclarationNameInfo(DeclarationName Name, SourceLocation NameLoc)
     : Name(Name), NameLoc(NameLoc) {}
 
   /// getName - Returns the embedded declaration name.
@@ -220,9 +220,9 @@ public:
   void setName(DeclarationName N) { Name = N; }
 
   /// getLoc - Returns the main location of the declaration name.
-  llvm::SMLoc getLoc() const { return NameLoc; }
+  SourceLocation getLoc() const { return NameLoc; }
   /// setLoc - Sets the main location of the declaration name.
-  void setLoc(llvm::SMLoc L) { NameLoc = L; }
+  void setLoc(SourceLocation L) { NameLoc = L; }
 
   /// getAsString - Retrieve the human-readable string for this name.
   std::string getAsString() const;
@@ -231,9 +231,9 @@ public:
   void printName(llvm::raw_ostream &OS) const;
 
   /// getBeginLoc - Retrieve the location of the first token.
-  llvm::SMLoc getBeginLoc() const { return NameLoc; }
+  SourceLocation getBeginLoc() const { return NameLoc; }
   /// getEndLoc - Retrieve the location of the last token.
-  llvm::SMLoc getEndLoc() const;
+  SourceLocation getEndLoc() const;
   /// getSourceRange - The range of the declaration name.
   SourceRange getSourceRange() const {
     return SourceRange(getBeginLoc(), getEndLoc());

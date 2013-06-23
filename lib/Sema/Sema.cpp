@@ -64,7 +64,7 @@ static bool IsValidDoTerminatingStatement(Stmt *S);
 // Unterminated labeled do statement
 static void ReportUnterminatedLabeledDoStmt(DiagnosticsEngine &Diags,
                                             const ExecutableProgramUnitStmts::ControlFlowStmt &S,
-                                            SMLoc Loc) {
+                                            SourceLocation Loc) {
   std::string Str;
   llvm::raw_string_ostream Stream(Str);
   S.ExpectedEndDoLabel->print(Stream);
@@ -74,7 +74,7 @@ static void ReportUnterminatedLabeledDoStmt(DiagnosticsEngine &Diags,
 // Unterminated if/do statement
 static void ReportUnterminatedStmt(DiagnosticsEngine &Diags,
                                    const ExecutableProgramUnitStmts::ControlFlowStmt &S,
-                                   SMLoc Loc,
+                                   SourceLocation Loc,
                                    bool ReportUnterminatedLabeledDo = true) {
   const char * Keyword;
   switch(S.Statement->getStatementID()) {
@@ -94,7 +94,7 @@ static void ReportUnterminatedStmt(DiagnosticsEngine &Diags,
   Diags.Report(Loc, diag::err_expected_kw) << Keyword;
 }
 
-void Sema::PopExecutableProgramUnit(SMLoc Loc) {
+void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
   // Fix the forward statement label references
   auto StmtLabelForwardDecls = CurStmtLabelScope.getForwardDecls();
   for(size_t I = 0; I < StmtLabelForwardDecls.size(); ++I) {
@@ -202,7 +202,7 @@ void Sema::ActOnEndProgramUnit() {
   PopDeclContext();
 }
 
-void Sema::ActOnMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc) {
+void Sema::ActOnMainProgram(const IdentifierInfo *IDInfo, SourceLocation NameLoc) {
   DeclarationName DN(IDInfo);
   DeclarationNameInfo NameInfo(DN, NameLoc);
   PushDeclContext(MainProgramDecl::Create(Context,
@@ -211,7 +211,7 @@ void Sema::ActOnMainProgram(const IdentifierInfo *IDInfo, SMLoc NameLoc) {
   PushExecutableProgramUnit();
 }
 
-void Sema::ActOnEndMainProgram(SMLoc Loc, const IdentifierInfo *IDInfo, SMLoc NameLoc) {
+void Sema::ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo, SourceLocation NameLoc) {
   assert(CurContext && "DeclContext imbalance!");
 
   DeclarationName DN(IDInfo);
@@ -281,7 +281,7 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
   return ActOnArraySpec(C, EQs, DS.getDimensions());
 }
 
-VarDecl *Sema::ActOnKindSelector(ASTContext &C, SMLoc IDLoc,
+VarDecl *Sema::ActOnKindSelector(ASTContext &C, SourceLocation IDLoc,
                                  const IdentifierInfo *IDInfo) {
   VarDecl *VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, QualType());
   CurContext->addDecl(VD);
@@ -291,7 +291,7 @@ VarDecl *Sema::ActOnKindSelector(ASTContext &C, SMLoc IDLoc,
   return VD;
 }
 
-Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SMLoc IDLoc,
+Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDLoc,
                             const IdentifierInfo *IDInfo) {
   if (const VarDecl *Prev = IDInfo->getFETokenInfo<VarDecl>()) {
     if (Prev->getDeclContext() == CurContext) {
@@ -315,13 +315,13 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SMLoc IDLoc,
   return VD;
 }
 
-Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, llvm::SMLoc IDLoc,
+Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
                             const IdentifierInfo *IDInfo) {
   QualType T = ActOnTypeName(C, DS);
   return ActOnEntityDecl(C, T, IDLoc, IDInfo);
 }
 
-Decl *Sema::ActOnImplicitEntityDecl(ASTContext &C, SMLoc IDLoc,
+Decl *Sema::ActOnImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
                                     const IdentifierInfo *IDInfo) {
   auto Result = getCurrentImplicitTypingScope().Resolve(IDInfo);
   if(Result.first == ImplicitTypingScope::NoneRule) {
@@ -349,7 +349,7 @@ Decl *Sema::ActOnImplicitEntityDecl(ASTContext &C, SMLoc IDLoc,
 }
 
 StmtResult Sema::ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,
-                              SMLoc Loc, SMLoc NameLoc, Expr *StmtLabel) {
+                              SourceLocation Loc, SourceLocation NameLoc, Expr *StmtLabel) {
   auto Result = ProgramStmt::Create(C, ProgName, Loc, NameLoc, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
@@ -371,7 +371,7 @@ StmtResult Sema::ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
   return Result;
 }
 
-StmtResult Sema::ActOnIMPORT(ASTContext &C, SMLoc Loc,
+StmtResult Sema::ActOnIMPORT(ASTContext &C, SourceLocation Loc,
                              ArrayRef<const IdentifierInfo*> ImportNamesList,
                              Expr *StmtLabel) {
   auto Result = ImportStmt::Create(C, Loc, ImportNamesList, StmtLabel);
@@ -379,7 +379,7 @@ StmtResult Sema::ActOnIMPORT(ASTContext &C, SMLoc Loc,
   return Result;
 }
 
-StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SMLoc Loc, DeclSpec &DS,
+StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, DeclSpec &DS,
                                ArrayRef<ImplicitStmt::LetterSpec> LetterSpecs,
                                Expr *StmtLabel) {
   QualType Ty = ActOnTypeName(C, DS);
@@ -412,7 +412,7 @@ StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SMLoc Loc, DeclSpec &DS,
   return Result;
 }
 
-StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
+StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   // IMPLICIT NONE
   if(!getCurrentImplicitTypingScope().ApplyNone())
     Diags.Report(Loc, diag::err_use_implicit_none_stmt);
@@ -422,7 +422,7 @@ StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
 }
 
 ParameterStmt::ParamPair
-Sema::ActOnPARAMETERPair(ASTContext &C, SMLoc Loc, const IdentifierInfo *IDInfo,
+Sema::ActOnPARAMETERPair(ASTContext &C, SourceLocation Loc, const IdentifierInfo *IDInfo,
                          ExprResult CE) {
   if (const VarDecl *Prev = IDInfo->getFETokenInfo<VarDecl>()) {
     Diags.Report(Loc, diag::err_redefinition) << IDInfo;
@@ -439,7 +439,7 @@ Sema::ActOnPARAMETERPair(ASTContext &C, SMLoc Loc, const IdentifierInfo *IDInfo,
   return ParameterStmt::ParamPair(IDInfo, CE);
 }
 
-StmtResult Sema::ActOnPARAMETER(ASTContext &C, SMLoc Loc,
+StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
                                 ArrayRef<ParameterStmt::ParamPair> ParamList,
                                 Expr *StmtLabel) {
   auto Result = ParameterStmt::Create(C, Loc, ParamList, StmtLabel);
@@ -447,7 +447,7 @@ StmtResult Sema::ActOnPARAMETER(ASTContext &C, SMLoc Loc,
   return Result;
 }
 
-StmtResult Sema::ActOnASYNCHRONOUS(ASTContext &C, SMLoc Loc,
+StmtResult Sema::ActOnASYNCHRONOUS(ASTContext &C, SourceLocation Loc,
                                    ArrayRef<const IdentifierInfo *>ObjNames,
                                    Expr *StmtLabel) {
   auto Result = AsynchronousStmt::Create(C, Loc, ObjNames, StmtLabel);
@@ -455,7 +455,7 @@ StmtResult Sema::ActOnASYNCHRONOUS(ASTContext &C, SMLoc Loc,
   return Result;
 }
 
-StmtResult Sema::ActOnDIMENSION(ASTContext &C, SMLoc Loc,
+StmtResult Sema::ActOnDIMENSION(ASTContext &C, SourceLocation Loc,
                                const IdentifierInfo *IDInfo,
                                ArrayRef<std::pair<ExprResult,ExprResult> > Dims,
                                Expr *StmtLabel) {
@@ -466,14 +466,14 @@ StmtResult Sema::ActOnDIMENSION(ASTContext &C, SMLoc Loc,
 
 StmtResult Sema::ActOnENDPROGRAM(ASTContext &C,
                                  const IdentifierInfo *ProgName,
-                                 llvm::SMLoc Loc, llvm::SMLoc NameLoc,
+                                 SourceLocation Loc, SourceLocation NameLoc,
                                  Expr *StmtLabel) {
   auto Result = EndProgramStmt::Create(C, ProgName, Loc, NameLoc, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
-StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SMLoc Loc,
+StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
                                ArrayRef<const IdentifierInfo *> ExternalNames,
                                Expr *StmtLabel) {
   auto Result = ExternalStmt::Create(C, Loc, ExternalNames, StmtLabel);
@@ -481,7 +481,7 @@ StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SMLoc Loc,
   return Result;
 }
 
-StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SMLoc Loc,
+StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
                                 ArrayRef<const IdentifierInfo *> IntrinsicNames,
                                 Expr *StmtLabel) {
   // FIXME: Name Constraints.
@@ -491,7 +491,7 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SMLoc Loc,
   return Result;
 }
 
-StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, llvm::SMLoc Loc,
+StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                      ExprResult LHS,
                                      ExprResult RHS, Expr *StmtLabel) {
   Stmt *Result = 0;
@@ -557,7 +557,7 @@ typeError:
   RHS.get()->getType().print(StreamRHS);
   Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
       << StreamLHS.str() << StreamRHS.str()
-      << llvm::SMRange(LHS.get()->getLocStart(),
+      << SourceRange(LHS.get()->getLocStart(),
                        RHS.get()->getLocEnd());
   return StmtError();
 }
@@ -567,22 +567,22 @@ QualType Sema::ActOnArraySpec(ASTContext &C, QualType ElemTy,
   return QualType(ArrayType::Create(C, ElemTy, Dims), 0);
 }
 
-StarFormatSpec *Sema::ActOnStarFormatSpec(ASTContext &C, SMLoc Loc) {
+StarFormatSpec *Sema::ActOnStarFormatSpec(ASTContext &C, SourceLocation Loc) {
   return StarFormatSpec::Create(C, Loc);
 }
 
 DefaultCharFormatSpec *Sema::ActOnDefaultCharFormatSpec(ASTContext &C,
-                                                        SMLoc Loc,
+                                                        SourceLocation Loc,
                                                         ExprResult Fmt) {
   return DefaultCharFormatSpec::Create(C, Loc, Fmt);
 }
 
-LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SMLoc Loc,
+LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SourceLocation Loc,
                                       ExprResult Label) {
   return LabelFormatSpec::Create(C, Loc, Label);
 }
 
-StmtResult Sema::ActOnBlock(ASTContext &C, SMLoc Loc, ArrayRef<StmtResult> Body) {
+StmtResult Sema::ActOnBlock(ASTContext &C, SourceLocation Loc, ArrayRef<StmtResult> Body) {
   return BlockStmt::Create(C, Loc, Body);
 }
 
@@ -592,7 +592,7 @@ static void ResolveAssignStmtLabel(const StmtLabelScope::ForwardDecl &Self,
   static_cast<AssignStmt*>(Self.Statement)->setAddress(StmtLabelReference(Destination));
 }
 
-StmtResult Sema::ActOnAssignStmt(ASTContext &C, SMLoc Loc,
+StmtResult Sema::ActOnAssignStmt(ASTContext &C, SourceLocation Loc,
                                  ExprResult Value, VarExpr* VarRef,
                                  Expr *StmtLabel) {
   Stmt *Result;
@@ -618,7 +618,7 @@ static void ResolveAssignedGotoStmtLabel(const StmtLabelScope::ForwardDecl &Self
     setAllowedValue(Self.ResolveCallbackData,StmtLabelReference(Destination));
 }
 
-StmtResult Sema::ActOnAssignedGotoStmt(ASTContext &C, SMLoc Loc,
+StmtResult Sema::ActOnAssignedGotoStmt(ASTContext &C, SourceLocation Loc,
                                        VarExpr* VarRef,
                                        ArrayRef<ExprResult> AllowedValues,
                                        Expr *StmtLabel) {
@@ -648,7 +648,7 @@ static void ResolveGotoStmtLabel(const StmtLabelScope::ForwardDecl &Self,
   static_cast<GotoStmt*>(Self.Statement)->setDestination(StmtLabelReference(Destination));
 }
 
-StmtResult Sema::ActOnGotoStmt(ASTContext &C, SMLoc Loc,
+StmtResult Sema::ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
                                ExprResult Destination, Expr *StmtLabel) {
   Stmt *Result;
   auto Decl = getCurrentStmtLabelScope().Resolve(Destination.get());
@@ -677,7 +677,7 @@ static void ReportExpectedLogical(DiagnosticsEngine &Diag, ExprResult E) {
       << Stream.str();
 }
 
-StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
+StmtResult Sema::ActOnIfStmt(ASTContext &C, SourceLocation Loc,
                              ExprResult Condition, Expr *StmtLabel) {
   if(!IsLogicalExpression(Condition)) {
     ReportExpectedLogical(Diags, Condition);
@@ -691,7 +691,7 @@ StmtResult Sema::ActOnIfStmt(ASTContext &C, SMLoc Loc,
   return Result;
 }
 
-StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SMLoc Loc,
+StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
                                  ExprResult Condition, Expr *StmtLabel) {
   if(!CurExecutableStmts.HasEntered() ||
      !CurExecutableStmts.LastEntered().is(Stmt::If)) {
@@ -717,7 +717,7 @@ StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SMLoc Loc,
   return Result;
 }
 
-StmtResult Sema::ActOnElseStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
+StmtResult Sema::ActOnElseStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   if(!CurExecutableStmts.HasEntered() ||
      !CurExecutableStmts.LastEntered().is(Stmt::If)) {
     if(CurExecutableStmts.HasEntered(Stmt::If))
@@ -733,7 +733,7 @@ StmtResult Sema::ActOnElseStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
   return Result;
 }
 
-StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
+StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   // Report begin .. end mismatch
   if(!CurExecutableStmts.HasEntered() ||
      !CurExecutableStmts.LastEntered().is(Stmt::If)) {
@@ -815,7 +815,7 @@ static ExprResult ApplyDoConversionIfNeeded(ASTContext &C, ExprResult E, QualTyp
 }
 
 /// FIXME: TODO Transfer of control into the range of a DO-loop from outside the range is not permitted.
-StmtResult Sema::ActOnDoStmt(ASTContext &C, SMLoc Loc, ExprResult TerminatingStmt,
+StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult TerminatingStmt,
                              VarExpr *DoVar, ExprResult E1, ExprResult E2,
                              ExprResult E3, Expr *StmtLabel) {
   // typecheck
@@ -896,7 +896,7 @@ void Sema::CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S) {
   } while(I>0);
 }
 
-StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
+StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   // Report begin .. end mismatch
   if(!CurExecutableStmts.HasEntered() ||
      !CurExecutableStmts.LastEntered().is(Stmt::Do)) {
@@ -926,21 +926,21 @@ StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
   return Result;
 }
 
-StmtResult Sema::ActOnContinueStmt(ASTContext &C, SMLoc Loc, Expr *StmtLabel) {
+StmtResult Sema::ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   auto Result = ContinueStmt::Create(C, Loc, StmtLabel);
   CurExecutableStmts.Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
-StmtResult Sema::ActOnStopStmt(ASTContext &C, SMLoc Loc, ExprResult StopCode, Expr *StmtLabel) {
+StmtResult Sema::ActOnStopStmt(ASTContext &C, SourceLocation Loc, ExprResult StopCode, Expr *StmtLabel) {
   auto Result = StopStmt::Create(C, Loc, StopCode.take(), StmtLabel);
   CurExecutableStmts.Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
-StmtResult Sema::ActOnPrintStmt(ASTContext &C, SMLoc Loc, FormatSpec *FS,
+StmtResult Sema::ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,
                                 ArrayRef<ExprResult> OutputItemList,
                                 Expr *StmtLabel) {
   auto Result = PrintStmt::Create(C, Loc, FS, OutputItemList, StmtLabel);
@@ -949,16 +949,16 @@ StmtResult Sema::ActOnPrintStmt(ASTContext &C, SMLoc Loc, FormatSpec *FS,
   return Result;
 }
 
-RecordDecl *Sema::ActOnDerivedTypeDecl(ASTContext &C, SMLoc Loc,
-                                          SMLoc NameLoc,
-                                          const IdentifierInfo* IDInfo) {
+RecordDecl *Sema::ActOnDerivedTypeDecl(ASTContext &C, SourceLocation Loc,
+                                       SourceLocation NameLoc,
+                                       const IdentifierInfo* IDInfo) {
   RecordDecl* Record = RecordDecl::Create(C, CurContext, Loc, NameLoc, IDInfo);
   CurContext->addDecl(Record);
   PushDeclContext(Record);
   return Record;
 }
 
-FieldDecl *Sema::ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SMLoc IDLoc,
+FieldDecl *Sema::ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
                                      const IdentifierInfo *IDInfo,
                                      ExprResult Init) {
   //FIXME: TODO same field name check

@@ -15,7 +15,7 @@
 #define LLVM_FLANG_TOKEN_H__
 
 #include "flang/Basic/TokenKinds.h"
-#include "llvm/Support/SMLoc.h"
+#include "flang/Basic/SourceLocation.h"
 #include "flang/Basic/LLVM.h"
 #include <cassert>
 #include <cstdlib>
@@ -35,7 +35,7 @@ class IdentifierInfo;
 /// compressed into a smaller form if memory footprint is important.
 class Token {
   /// The location of the token.
-  llvm::SMLoc Loc;
+  SourceLocation Loc;
 
   // Conceptually these next two fields could be in a union. However, this
   // causes gcc 4.2 to pessimize LexTokenInternal, a very performance critical
@@ -94,10 +94,10 @@ public:
 
   /// getLocation - Return a source location identifier for the specified offset
   /// in the current file.
-  llvm::SMLoc getLocation() const { return Loc; }
+  SourceLocation getLocation() const { return Loc; }
   unsigned getLength() const { return UintData; }
 
-  void setLocation(llvm::SMLoc L) { Loc = L; }
+  void setLocation(SourceLocation L) { Loc = L; }
   void setLength(unsigned Len) { UintData = Len; }
 
   const char *getName() const {
@@ -109,7 +109,7 @@ public:
     Kind = tok::unknown;
     Flags = 0;
     PtrData = 0;
-    Loc = llvm::SMLoc();
+    Loc = SourceLocation();
   }
 
   IdentifierInfo *getIdentifierInfo() const {

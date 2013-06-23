@@ -16,7 +16,6 @@
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/SMLoc.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/ADT/Twine.h"
 
@@ -41,8 +40,8 @@ void Lexer::setBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr) {
   TokStart = 0;
 }
 
-llvm::SMLoc Lexer::getLoc() const {
-  return llvm::SMLoc::getFromPointer(TokStart);
+SourceLocation Lexer::getLoc() const {
+  return SourceLocation::getFromPointer(TokStart);
 }
 
 void Lexer::addCommentHandler(CommentHandler *Handler) {
@@ -98,7 +97,7 @@ SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
   // the LineBegin.
   if (I != 132 && *BufPtr == '&') {
     if (Atoms.empty()) // FIXME: This isn't sufficient.
-      Diags.Report(SMLoc::getFromPointer(BufPtr),
+      Diags.Report(SourceLocation::getFromPointer(BufPtr),
                    diag::err_continuation_out_of_context);
     ++I, ++BufPtr;
     LineBegin = BufPtr;
@@ -204,7 +203,7 @@ GetCharacterLiteral(unsigned &I, const char *&LineBegin) {
     if (AmpersandPos)
       Atoms.push_back(StringRef(LineBegin, AmpersandPos - LineBegin));
     else {
-      Diags.Report(SMLoc::getFromPointer(QuoteStart),diag::err_unterminated_string);
+      Diags.Report(SourceLocation::getFromPointer(QuoteStart),diag::err_unterminated_string);
       break;
     }
 
@@ -247,7 +246,7 @@ void Lexer::LineOfText::GetNextLine() {
       // beginning of a comment. If not, the '&' is invalid. Report and ignore
       // it.
       if (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '!') {
-        Diags.ReportError(SMLoc::getFromPointer(AmpersandPos),
+        Diags.ReportError(SourceLocation::getFromPointer(AmpersandPos),
                           "continuation character not at end of line");
         AmpersandPos = 0;     // Pretend nothing's wrong.
       }
@@ -628,7 +627,7 @@ void Lexer::getSpelling(const Token &Tok,
 void Lexer::FormTokenWithChars(Token &Result, tok::TokenKind Kind) {
   uint64_t TokLen = getCurrentPtr() - TokStart;
   CurKind = Kind;
-  Result.setLocation(llvm::SMLoc::getFromPointer(TokStart));
+  Result.setLocation(SourceLocation::getFromPointer(TokStart));
   Result.setLength(TokLen);
   Result.setKind(Kind);
 
@@ -644,7 +643,7 @@ void Lexer::FormDefinedOperatorTokenWithChars(Token &Result) {
   assert(TokLen >= 2 && "Malformed defined operator!");
 
   if (TokLen - 2 > 63){
-    Diags.Report(SMLoc::getFromPointer(TokStart),
+    Diags.Report(SourceLocation::getFromPointer(TokStart),
                  diag::err_defined_operator_too_long);
     return FormTokenWithChars(Result, tok::unknown);
   }
@@ -745,7 +744,7 @@ void Lexer::LexNumericConstant(Token &Result) {
   const char *NumBegin = getCurrentPtr();
   bool BeginsWithDot = (*NumBegin == '.');
   if (!LexIntegerLiteralConstant() && BeginsWithDot) {
-    Diags.ReportError(SMLoc::getFromPointer(NumBegin),
+    Diags.ReportError(SourceLocation::getFromPointer(NumBegin),
                       "invalid REAL literal");
     FormTokenWithChars(Result, tok::error);
     return;
@@ -779,7 +778,7 @@ void Lexer::LexNumericConstant(Token &Result) {
     if (C == '-' || C == '+')
       C = getNextChar();
     if (!isDecimalNumberBody(C)) {
-      Diags.Report(SMLoc::getFromPointer(NumBegin),
+      Diags.Report(SourceLocation::getFromPointer(NumBegin),
                    diag::err_exponent_has_no_digits);
       FormTokenWithChars(Result, tok::error);
       return;
@@ -909,7 +908,7 @@ void Lexer::LexTokenInternal(Token &Result) {
         Char = getNextChar();
 
       if (Char != '.') {
-        Diags.Report(SMLoc::getFromPointer(TokStart),diag::err_defined_operator_missing_end);
+        Diags.Report(SourceLocation::getFromPointer(TokStart),diag::err_defined_operator_missing_end);
         FormTokenWithChars(Result, tok::unknown);
         return;
       }
@@ -949,14 +948,14 @@ void Lexer::LexTokenInternal(Token &Result) {
       } while (isBinaryNumberBody(Char));
 
       if (getCurrentPtr() - TokStart == 2) {
-        Diags.ReportError(SMLoc::getFromPointer(BOZBegin),
+        Diags.ReportError(SourceLocation::getFromPointer(BOZBegin),
                           "no binary digits for BOZ constant");
         FormTokenWithChars(Result, tok::error);
         return;
       }
 
       if ((DoubleQuote && Char != '"') || Char != '\'') {
-        Diags.ReportError(SMLoc::getFromPointer(BOZBegin),
+        Diags.ReportError(SourceLocation::getFromPointer(BOZBegin),
                           "binary BOZ constant missing ending quote");
         FormTokenWithChars(Result, tok::error);
         return;
@@ -980,14 +979,14 @@ void Lexer::LexTokenInternal(Token &Result) {
       } while (isOctalNumberBody(Char));
 
       if (getCurrentPtr() - TokStart == 2) {
-        Diags.ReportError(SMLoc::getFromPointer(BOZBegin),
+        Diags.ReportError(SourceLocation::getFromPointer(BOZBegin),
                           "no octal digits for BOZ constant");
         FormTokenWithChars(Result, tok::error);
         return;
       }
 
       if ((DoubleQuote && Char != '"') || Char != '\'') {
-        Diags.ReportError(SMLoc::getFromPointer(BOZBegin),
+        Diags.ReportError(SourceLocation::getFromPointer(BOZBegin),
                           "octal BOZ constant missing ending quote");
         FormTokenWithChars(Result, tok::unknown);
         return;
@@ -1012,14 +1011,14 @@ void Lexer::LexTokenInternal(Token &Result) {
       } while (isHexNumberBody(Char));
 
       if (getCurrentPtr() - TokStart == 2) {
-        Diags.ReportError(SMLoc::getFromPointer(BOZBegin),
+        Diags.ReportError(SourceLocation::getFromPointer(BOZBegin),
                           "no hex digits for BOZ constant");
         FormTokenWithChars(Result, tok::unknown);
         return;
       }
 
       if ((DoubleQuote && Char != '"') || Char != '\'') {
-        Diags.ReportError(SMLoc::getFromPointer(BOZBegin),
+        Diags.ReportError(SourceLocation::getFromPointer(BOZBegin),
                           "hex BOZ constant missing ending quote");
         FormTokenWithChars(Result, tok::unknown);
         return;

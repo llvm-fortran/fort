@@ -41,7 +41,7 @@ Parser::ExprResult Parser::ParseExpression() {
   if (Tok.isNot(tok::defined_operator))
     return LHS;
 
-  llvm::SMLoc OpLoc = Tok.getLocation();
+  SourceLocation OpLoc = Tok.getLocation();
   IdentifierInfo *II = Tok.getIdentifierInfo();
   Lex();
 
@@ -93,7 +93,7 @@ ExprResult Parser::ParseExpectedFollowupExpression(const char *DiagAfter) {
 //         .EQV.
 //      or .NEQV.
 Parser::ExprResult Parser::ParseAndOperand() {
-  llvm::SMLoc NotLoc = Tok.getLocation();
+  SourceLocation NotLoc = Tok.getLocation();
   bool Negate = EatIfPresent(tok::kw_NOT);
 
   ExprResult E = ParseLevel4Expr();
@@ -108,7 +108,7 @@ Parser::ExprResult Parser::ParseOrOperand() {
   if (E.isInvalid()) return E;
 
   while (Tok.getKind() == tok::kw_AND) {
-    llvm::SMLoc OpLoc = Tok.getLocation();
+    SourceLocation OpLoc = Tok.getLocation();
     Lex();
     ExprResult AndOp = ParseAndOperand();
     if (AndOp.isInvalid()) return AndOp;
@@ -122,7 +122,7 @@ Parser::ExprResult Parser::ParseEquivOperand() {
   if (E.isInvalid()) return E;
 
   while (Tok.getKind() == tok::kw_OR) {
-    llvm::SMLoc OpLoc = Tok.getLocation();
+    SourceLocation OpLoc = Tok.getLocation();
     Lex();
     ExprResult OrOp = ParseOrOperand();
     if (OrOp.isInvalid()) return OrOp;
@@ -136,7 +136,7 @@ Parser::ExprResult Parser::ParseLevel5Expr() {
   if (E.isInvalid()) return E;
 
   while (true) {
-    llvm::SMLoc OpLoc = Tok.getLocation();
+    SourceLocation OpLoc = Tok.getLocation();
     switch (Tok.getKind()) {
     default:
       return E;
@@ -180,7 +180,7 @@ Parser::ExprResult Parser::ParseLevel4Expr() {
   if (E.isInvalid()) return E;
 
   while (true) {
-    llvm::SMLoc OpLoc = Tok.getLocation();
+    SourceLocation OpLoc = Tok.getLocation();
     BinaryExpr::Operator Op = BinaryExpr::None;
     switch (Tok.getKind()) {
     default:
@@ -227,7 +227,7 @@ Parser::ExprResult Parser::ParseLevel3Expr() {
   if (E.isInvalid()) return E;
 
   while (Tok.getKind() == tok::slashslash) {
-    llvm::SMLoc OpLoc = Tok.getLocation();
+    SourceLocation OpLoc = Tok.getLocation();
     Lex();
     ExprResult Lvl2Expr = ParseLevel2Expr();
     if (Lvl2Expr.isInvalid()) return Lvl2Expr;
@@ -265,7 +265,7 @@ Parser::ExprResult Parser::ParseMultOperand() {
   if (E.isInvalid()) return E;
 
   if (Tok.getKind() == tok::starstar) {
-    llvm::SMLoc OpLoc = Tok.getLocation();
+    SourceLocation OpLoc = Tok.getLocation();
     Lex();
     ExprResult MulOp = ParseMultOperand();
     if (MulOp.isInvalid()) return MulOp;
@@ -279,7 +279,7 @@ Parser::ExprResult Parser::ParseAddOperand() {
   if (E.isInvalid()) return E;
 
   while (true) {
-    llvm::SMLoc OpLoc = Tok.getLocation();
+    SourceLocation OpLoc = Tok.getLocation();
     BinaryExpr::Operator Op = BinaryExpr::None;
     switch (Tok.getKind()) {
     default:
@@ -301,7 +301,7 @@ Parser::ExprResult Parser::ParseAddOperand() {
 }
 Parser::ExprResult Parser::ParseLevel2Expr() {
   ExprResult E;
-  llvm::SMLoc OpLoc = Tok.getLocation();
+  SourceLocation OpLoc = Tok.getLocation();
   tok::TokenKind Kind = Tok.getKind();
 
   if (Kind == tok::plus || Kind == tok::minus) {
@@ -351,7 +351,7 @@ Parser::ExprResult Parser::ParseLevel2Expr() {
 //     defined-unary-op :=
 //         . letter [ letter ] ... .
 Parser::ExprResult Parser::ParseLevel1Expr() {
-  llvm::SMLoc OpLoc = Tok.getLocation();
+  SourceLocation OpLoc = Tok.getLocation();
   IdentifierInfo *II = 0;
   if (Tok.is(tok::defined_operator)) {
     II = Tok.getIdentifierInfo();
@@ -371,7 +371,7 @@ Parser::ExprResult Parser::ParseLevel1Expr() {
 void Parser::SetKindSelector(ConstantExpr *E, StringRef Kind) {
   if (Kind.empty()) return;
 
-  SMLoc Loc; // FIXME: Need to figure out the correct kind position.
+  SourceLocation Loc; // FIXME: Need to figure out the correct kind position.
   Expr *KindExpr = 0;
 
   if (::isdigit(Kind[0])) {
@@ -404,7 +404,7 @@ static llvm::APFloat GetNumberConstant(ExprResult E) {
 // Parses a complex constant
 //   := (X,X)
 //     X := integer-constant | real-constant
-Parser::ExprResult Parser::ParseComplexConstant(llvm::SMLoc Loc) {
+Parser::ExprResult Parser::ParseComplexConstant(SourceLocation Loc) {
   ExprResult X,Y;
   X = ParsePrimaryExpr();
   Expect(tok::comma,"Expected ',' after the real part");
@@ -428,7 +428,7 @@ Parser::ExprResult Parser::ParseComplexConstant(llvm::SMLoc Loc) {
 //      or ( expr )
 Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
   ExprResult E;
-  llvm::SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
 
   // FIXME: Add rest of the primary expressions.
   switch (Tok.getKind()) {
@@ -735,7 +735,7 @@ ExprResult Parser::ParseSubstring(ExprResult Target) {
       return ExprError();
     }
   }
-  llvm::SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   Lex();
   if(!Tok.is(tok::r_paren)) {
     EndPoint = ParseExpression();
@@ -752,7 +752,7 @@ ExprResult Parser::ParseSubstring(ExprResult Target) {
 ///
 ExprResult Parser::ParseF77Subscript(ExprResult Target) {
   std::vector<ExprResult> Exprs;
-  llvm::SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   Lex();
 
   do {

@@ -19,7 +19,7 @@
 
 namespace llvm {
   class raw_ostream;
-  class SMLoc;
+  class SourceLocation;
   class SourceMgr;
 } // end namespace llvm
 
@@ -34,9 +34,9 @@ public:
   virtual ~TextDiagnosticPrinter();
 
   // TODO: Emit caret diagnostics and Highlight range.
-  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, llvm::SMLoc L,
+  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, SourceLocation L,
                                 const llvm::Twine &Msg,
-                                llvm::ArrayRef<llvm::SMRange> Ranges);
+                                llvm::ArrayRef<SourceRange> Ranges);
 };
 
 } // end namespace flang

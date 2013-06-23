@@ -289,7 +289,7 @@ namespace flang {
 /// DiagnosticsEngine object, classify the specified diagnostic ID into a Level,
 /// by consumable the DiagnosticClient.
 DiagnosticIDs::Level
-DiagnosticIDs::getDiagnosticLevel(unsigned DiagID, llvm::SMLoc Loc,
+DiagnosticIDs::getDiagnosticLevel(unsigned DiagID, SourceLocation Loc,
                                   const DiagnosticsEngine &Diag) const {
   // Handle custom diagnostics, which cannot be mapped.
   if (DiagID >= diag::DIAG_UPPER_LIMIT)
@@ -308,7 +308,7 @@ DiagnosticIDs::getDiagnosticLevel(unsigned DiagID, llvm::SMLoc Loc,
 /// diagnostic state. Can be null in order to query the latest state.
 DiagnosticIDs::Level
 DiagnosticIDs::getDiagnosticLevel(unsigned DiagID, unsigned DiagClass,
-                                  llvm::SMLoc Loc,
+                                  SourceLocation Loc,
                                   const DiagnosticsEngine &Diag) const {
   // Specific non-error diagnostics may be mapped to various levels from ignored
   // to error.  Errors can only be mapped to fatal.
@@ -663,7 +663,7 @@ void DiagnosticIDs::EmitDiag(DiagnosticsEngine &Diag, Level DiagLevel) const {
     case Fatal: Lvl = DiagnosticsEngine::Fatal; break;
   }
   Diag.Client->HandleDiagnostic(Lvl, Info.getLocation(), llvm::Twine(OutStr),
-                                llvm::ArrayRef<llvm::SMRange>(Diag.DiagRanges,Diag.NumDiagRanges));
+                                llvm::ArrayRef<SourceRange>(Diag.DiagRanges,Diag.NumDiagRanges));
 
   Diag.CurDiagID = ~0U;
 }

@@ -403,7 +403,7 @@ bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
   // If the PROGRAM statement has an identifier, pass it on to the main program
   // action.
   const IdentifierInfo *IDInfo = 0;
-  SMLoc NameLoc;
+  SourceLocation NameLoc;
   if (ProgStmt.isUsable()) {
     ProgramStmt *PS = ProgStmt.takeAs<ProgramStmt>();
     IDInfo = PS->getProgramName();
@@ -437,8 +437,8 @@ bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
   Body.push_back(EndProgStmt);
 
   IDInfo = 0;
-  NameLoc = SMLoc();
-  auto Loc = SMLoc();
+  NameLoc = SourceLocation();
+  auto Loc = SourceLocation();
   if (EndProgStmt.isUsable()) {
     EndProgramStmt *EPS = EndProgStmt.takeAs<EndProgramStmt>();
     Loc = EPS->getLocation();
@@ -759,7 +759,7 @@ bool Parser::ParseArraySpec(SmallVectorImpl<std::pair<ExprResult,ExprResult> > &
 Parser::StmtResult Parser::ParsePROGRAMStmt() {
   // Check to see if we start with a 'PROGRAM' statement.
   const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
-  llvm::SMLoc ProgramLoc = Tok.getLocation();
+  SourceLocation ProgramLoc = Tok.getLocation();
   if (!isaKeyword(IDInfo->getName()) || Tok.isNot(tok::kw_PROGRAM))
     return Actions.ActOnPROGRAM(Context, 0, ProgramLoc, ProgramLoc,
                                 StmtLabel);
@@ -771,7 +771,7 @@ Parser::StmtResult Parser::ParsePROGRAMStmt() {
     return StmtError();
   }
 
-  llvm::SMLoc NameLoc = Tok.getLocation();
+  SourceLocation NameLoc = Tok.getLocation();
   IDInfo = Tok.getIdentifierInfo();
   Lex(); // Eat program name.
   return Actions.ActOnPROGRAM(Context, IDInfo, ProgramLoc, NameLoc,
@@ -900,7 +900,7 @@ Parser::StmtResult Parser::ParseIMPORTStmt() {
   if (PeekAhead().is(tok::equal))
     return StmtResult();
 
-  SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   Lex();
   EatIfPresent(tok::coloncolon);
 
@@ -938,7 +938,7 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
   if (PeekAhead().is(tok::equal))
     return StmtResult();
 
-  SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   Lex();
 
   if (EatIfPresent(tok::kw_NONE))
@@ -999,7 +999,7 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
   if (PeekAhead().is(tok::equal))
     return StmtResult();
 
-  SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   Lex();
   if (!EatIfPresent(tok::l_paren)) {
     Diag.ReportError(Tok.getLocation(),
@@ -1008,7 +1008,7 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
   }
 
   SmallVector<ParameterStmt::ParamPair, 4> ParamList;
-  SmallVector<SMLoc, 4> NamedLocs;
+  SmallVector<SourceLocation, 4> NamedLocs;
   do {
     if (Tok.isNot(tok::identifier)) {
       Diag.ReportError(Tok.getLocation(),
@@ -1016,7 +1016,7 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
       return StmtResult(true);
     }
 
-    SMLoc IDLoc = Tok.getLocation();
+    SourceLocation IDLoc = Tok.getLocation();
     const IdentifierInfo *II = Tok.getIdentifierInfo();
     Lex();
 
@@ -1169,7 +1169,7 @@ bool Parser::ParseSpecificationStmt(std::vector<StmtResult> &Body) {
 notImplemented:
   Diag.Report(Tok.getLocation(),
               diag::err_unsupported_stmt)
-      << llvm::SMRange(Tok.getLocation(),
+      << SourceRange(Tok.getLocation(),
                        getMaxLocationOfCurrentToken());
   return false;
 }
@@ -1200,7 +1200,7 @@ Parser::StmtResult Parser::ParseALLOCATABLEStmt() {
 ///     asynchronous-stmt :=
 ///         ASYNCHRONOUS [::] object-name-list
 Parser::StmtResult Parser::ParseASYNCHRONOUSStmt() {
-  SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   Lex();
   EatIfPresent(tok::coloncolon);
 
@@ -1264,7 +1264,7 @@ Parser::StmtResult Parser::ParseDATAStmt() {
 ///         DIMENSION [::] array-name ( array-spec ) #
 ///         # [ , array-name ( array-spec ) ] ...
 bool Parser::ParseDIMENSIONStmt(std::vector<StmtResult> &Stmts) {
-  SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   Lex();
 
   EatIfPresent(tok::coloncolon);
@@ -1315,7 +1315,7 @@ Parser::StmtResult Parser::ParseEQUIVALENCEStmt() {
 ///     external-stmt :=
 ///         EXTERNAL [::] external-name-list
 Parser::StmtResult Parser::ParseEXTERNALStmt() {
-  SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   Lex();
 
   EatIfPresent(tok::coloncolon);
@@ -1358,7 +1358,7 @@ Parser::StmtResult Parser::ParseINTENTStmt() {
 ///     intrinsic-stmt :=
 ///         INTRINSIC [::] intrinsic-procedure-name-list
 Parser::StmtResult Parser::ParseINTRINSICStmt() {
-  SMLoc Loc = Tok.getLocation();
+  SourceLocation Loc = Tok.getLocation();
   Lex();
 
   EatIfPresent(tok::coloncolon);

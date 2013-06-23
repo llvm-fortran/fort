@@ -15,10 +15,10 @@
 #define FLANG_AST_STMT_H__
 
 #include "flang/AST/ASTContext.h"
-#include "flang/Basic/Token.h"
 #include "flang/Sema/Ownership.h"
+#include "flang/Basic/Token.h"
+#include "flang/Basic/SourceLocation.h"
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/SMLoc.h"
 #include "flang/Basic/LLVM.h"
 
 namespace flang {
@@ -68,7 +68,7 @@ public:
   };
 private:
   StmtTy StmtID;
-  SMLoc Loc;
+  SourceLocation Loc;
   Expr *StmtLabel;
 
   Stmt(const Stmt &);           // Do not implement!
@@ -83,20 +83,20 @@ protected:
     assert(0 && "Stmts cannot be released with regular 'delete'.");
   }
 
-  Stmt(StmtTy ID, SMLoc L, Expr *SLT)
+  Stmt(StmtTy ID, SourceLocation L, Expr *SLT)
     : StmtID(ID), Loc(L), StmtLabel(SLT) {}
 public:
   virtual ~Stmt();
 
   /// Creates a statement that does nothing
   static Stmt *Create(ASTContext &C, StmtTy StmtType,
-                      SMLoc Loc, Expr *StmtLabel);
+                      SourceLocation Loc, Expr *StmtLabel);
 
   /// getStatementID - Get the ID of the statement.
   StmtTy getStatementID() const { return StmtID; }
 
   /// getLocation - Get the location of the statement.
-  SMLoc getLocation() const { return Loc; }
+  SourceLocation getLocation() const { return Loc; }
 
   /// getStmtLabel - Get the statement label for this statement.
   Expr *getStmtLabel() const { return StmtLabel; }
@@ -133,7 +133,7 @@ class ListStmt : public Stmt {
   unsigned NumIDs;
   T *IDList;
 protected:
-  ListStmt(ASTContext &C, Stmt::StmtTy ID, SMLoc L, ArrayRef<T> IDs,
+  ListStmt(ASTContext &C, Stmt::StmtTy ID, SourceLocation L, ArrayRef<T> IDs,
            Expr *SLT)
     : Stmt(ID, L, SLT) {
     NumIDs = IDs.size();
@@ -155,22 +155,22 @@ public:
 ///
 class ProgramStmt : public Stmt {
   const IdentifierInfo *ProgName;
-  SMLoc NameLoc;
+  SourceLocation NameLoc;
 
-  ProgramStmt(const IdentifierInfo *progName, SMLoc Loc,
-              SMLoc NameL, Expr *SLT)
+  ProgramStmt(const IdentifierInfo *progName, SourceLocation Loc,
+              SourceLocation NameL, Expr *SLT)
     : Stmt(Program, Loc, SLT), ProgName(progName), NameLoc(NameL) {}
   ProgramStmt(const ProgramStmt &); // Do not implement!
 public:
   static ProgramStmt *Create(ASTContext &C, const IdentifierInfo *ProgName,
-                             SMLoc L, SMLoc NameL,
+                             SourceLocation L, SourceLocation NameL,
                              Expr *StmtLabel);
 
   /// getProgramName - Get the name of the program. This may be null.
   const IdentifierInfo *getProgramName() const { return ProgName; }
 
   /// getNameLocation - Get the location of the program name.
-  SMLoc getNameLocation() const { return NameLoc; }
+  SourceLocation getNameLocation() const { return NameLoc; }
 
   static bool classof(const ProgramStmt*) { return true; }
   static bool classof(const Stmt *S) {
@@ -182,22 +182,22 @@ public:
 ///
 class EndProgramStmt : public Stmt {
   const IdentifierInfo *ProgName;
-  SMLoc NameLoc;
+  SourceLocation NameLoc;
 
-  EndProgramStmt(const IdentifierInfo *progName, SMLoc Loc,
-                 SMLoc NameL, Expr *SLT)
+  EndProgramStmt(const IdentifierInfo *progName, SourceLocation Loc,
+                 SourceLocation NameL, Expr *SLT)
     : Stmt(EndProgram, Loc, SLT), ProgName(progName), NameLoc(NameL) {}
   EndProgramStmt(const EndProgramStmt &); // Do not implement!
 public:
   static EndProgramStmt *Create(ASTContext &C, const IdentifierInfo *ProgName,
-                                SMLoc L, SMLoc NameL,
+                                SourceLocation L, SourceLocation NameL,
                                 Expr *StmtLabel);
 
   /// getProgramName - Get the name of the program. This may be null.
   const IdentifierInfo *getProgramName() const { return ProgName; }
 
   /// getNameLocation - Get the location of the program name.
-  SMLoc getNameLocation() const { return NameLoc; }
+  SourceLocation getNameLocation() const { return NameLoc; }
 
   static bool classof(const EndProgramStmt*) { return true; }
   static bool classof(const Stmt *S) {
@@ -252,10 +252,10 @@ public:
 /// are accessible in the interface body by host association.
 ///
 class ImportStmt : public ListStmt<> {
-  ImportStmt(ASTContext &C, SMLoc Loc, ArrayRef<const IdentifierInfo*> names,
+  ImportStmt(ASTContext &C, SourceLocation Loc, ArrayRef<const IdentifierInfo*> names,
              Expr *StmtLabel);
 public:
-  static ImportStmt *Create(ASTContext &C, SMLoc Loc,
+  static ImportStmt *Create(ASTContext &C, SourceLocation Loc,
                             ArrayRef<const IdentifierInfo*> Names,
                             Expr *StmtLabel);
 
@@ -277,12 +277,12 @@ private:
   QualType Ty;
   bool None;
 
-  ImplicitStmt(ASTContext &C, SMLoc L, Expr *StmtLabel);
-  ImplicitStmt(ASTContext &C, SMLoc L, QualType T,
+  ImplicitStmt(ASTContext &C, SourceLocation L, Expr *StmtLabel);
+  ImplicitStmt(ASTContext &C, SourceLocation L, QualType T,
                ArrayRef<LetterSpec> SpecList, Expr *StmtLabel);
 public:
-  static ImplicitStmt *Create(ASTContext &C, SMLoc L, Expr *StmtLabel);
-  static ImplicitStmt *Create(ASTContext &C, SMLoc L, QualType T,
+  static ImplicitStmt *Create(ASTContext &C, SourceLocation L, Expr *StmtLabel);
+  static ImplicitStmt *Create(ASTContext &C, SourceLocation L, QualType T,
                               ArrayRef<LetterSpec> SpecList,
                               Expr *StmtLabel);
 
@@ -304,10 +304,10 @@ class ParameterStmt : public ListStmt<std::pair<const IdentifierInfo*,
 public:
   typedef std::pair<const IdentifierInfo*, ExprResult> ParamPair;
 private:
-  ParameterStmt(ASTContext &C, SMLoc Loc, ArrayRef<ParamPair> ParamList,
+  ParameterStmt(ASTContext &C, SourceLocation Loc, ArrayRef<ParamPair> ParamList,
                 Expr *StmtLabel);
 public:
-  static ParameterStmt *Create(ASTContext &C, SMLoc Loc,
+  static ParameterStmt *Create(ASTContext &C, SourceLocation Loc,
                                ArrayRef<ParamPair> ParamList,
                                Expr *StmtLabel);
 
@@ -322,11 +322,11 @@ public:
 class DimensionStmt : public ListStmt<ArrayType::Dimension> {
   const IdentifierInfo *VarName;
 
-  DimensionStmt(ASTContext &C, SMLoc Loc, const IdentifierInfo* IDInfo,
+  DimensionStmt(ASTContext &C, SourceLocation Loc, const IdentifierInfo* IDInfo,
                  ArrayRef<ArrayType::Dimension> Dims,
                  Expr *StmtLabel);
 public:
-  static DimensionStmt *Create(ASTContext &C, SMLoc Loc,
+  static DimensionStmt *Create(ASTContext &C, SourceLocation Loc,
                                const IdentifierInfo* IDInfo,
                                ArrayRef<ArrayType::Dimension> Dims,
                                Expr *StmtLabel);
@@ -346,9 +346,9 @@ public:
 class FormatStmt : public Stmt {
   FormatSpec *FS;
 
-  FormatStmt(SMLoc Loc, FormatSpec *fs, Expr *StmtLabel);
+  FormatStmt(SourceLocation Loc, FormatSpec *fs, Expr *StmtLabel);
 public:
-  static FormatStmt *Create(ASTContext &C, SMLoc Loc, FormatSpec *fs,
+  static FormatStmt *Create(ASTContext &C, SourceLocation Loc, FormatSpec *fs,
                             Expr *StmtLabel);
 
   static bool classof(const FormatStmt*) { return true; }
@@ -360,9 +360,9 @@ public:
 /// EntryStmt -
 ///
 class EntryStmt : public Stmt {
-  EntryStmt(SMLoc Loc, Expr *StmtLabel);
+  EntryStmt(SourceLocation Loc, Expr *StmtLabel);
 public:
-  static EntryStmt *Create(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
+  static EntryStmt *Create(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
   static bool classof(const EntryStmt*) { return true; }
   static bool classof(const Stmt *S) {
@@ -374,11 +374,11 @@ public:
 /// objects.
 ///
 class AsynchronousStmt : public ListStmt<> {
-  AsynchronousStmt(ASTContext &C, SMLoc Loc,
+  AsynchronousStmt(ASTContext &C, SourceLocation Loc,
                    ArrayRef<const IdentifierInfo*> objNames,
                    Expr *StmtLabel);
 public:
-  static AsynchronousStmt *Create(ASTContext &C, SMLoc Loc,
+  static AsynchronousStmt *Create(ASTContext &C, SourceLocation Loc,
                                   ArrayRef<const IdentifierInfo*> objNames,
                                   Expr *StmtLabel);
 
@@ -391,11 +391,11 @@ public:
 /// ExternalStmt - Specifies the external attribute for a list of objects.
 ///
 class ExternalStmt : public ListStmt<> {
-  ExternalStmt(ASTContext &C, SMLoc Loc,
+  ExternalStmt(ASTContext &C, SourceLocation Loc,
                ArrayRef<const IdentifierInfo *> ExternalNames,
                Expr *StmtLabel);
 public:
-  static ExternalStmt *Create(ASTContext &C, SMLoc Loc,
+  static ExternalStmt *Create(ASTContext &C, SourceLocation Loc,
                               ArrayRef<const IdentifierInfo*> ExternalNames,
                               Expr *StmtLabel);
 
@@ -409,11 +409,11 @@ public:
 /// IntrinsicStmt - Lists the intrinsic functions declared in this program unit.
 ///
 class IntrinsicStmt : public ListStmt<> {
-  IntrinsicStmt(ASTContext &C, SMLoc Loc,
+  IntrinsicStmt(ASTContext &C, SourceLocation Loc,
                 ArrayRef<const IdentifierInfo *> IntrinsicNames,
                 Expr *StmtLabel);
 public:
-  static IntrinsicStmt *Create(ASTContext &C, SMLoc Loc,
+  static IntrinsicStmt *Create(ASTContext &C, SourceLocation Loc,
                                ArrayRef<const IdentifierInfo*> IntrinsicNames,
                                Expr *StmtLabel);
 
@@ -429,10 +429,10 @@ public:
 
 /// BlockStmt
 class BlockStmt : public ListStmt<StmtResult> {
-  BlockStmt(ASTContext &C, SMLoc Loc,
+  BlockStmt(ASTContext &C, SourceLocation Loc,
             ArrayRef<StmtResult> Body);
 public:
-  static BlockStmt *Create(ASTContext &C, SMLoc Loc,
+  static BlockStmt *Create(ASTContext &C, SourceLocation Loc,
                            ArrayRef<StmtResult> Body);
 
   static bool classof(const BlockStmt*) { return true; }
@@ -462,10 +462,10 @@ struct StmtLabelReference {
 class AssignStmt : public Stmt {
   StmtLabelReference Address;
   Expr *Destination;
-  AssignStmt(SMLoc Loc, StmtLabelReference Addr, Expr *Dest,
+  AssignStmt(SourceLocation Loc, StmtLabelReference Addr, Expr *Dest,
              Expr *StmtLabel);
 public:
-  static AssignStmt *Create(ASTContext &C, SMLoc Loc,
+  static AssignStmt *Create(ASTContext &C, SourceLocation Loc,
                             StmtLabelReference Address,
                             Expr *Destination,
                             Expr *StmtLabel);
@@ -488,11 +488,11 @@ public:
 /// variable.
 class AssignedGotoStmt : public ListStmt<StmtLabelReference> {
   Expr *Destination;
-  AssignedGotoStmt(ASTContext &C, SMLoc Loc, Expr *Dest,
+  AssignedGotoStmt(ASTContext &C, SourceLocation Loc, Expr *Dest,
                    ArrayRef<StmtLabelReference> Vals,
                    Expr *StmtLabel);
 public:
-  static AssignedGotoStmt *Create(ASTContext &C, SMLoc Loc,
+  static AssignedGotoStmt *Create(ASTContext &C, SourceLocation Loc,
                                   Expr *Destination,
                                   ArrayRef<StmtLabelReference> AllowedValues,
                                   Expr *StmtLabel);
@@ -514,9 +514,9 @@ public:
 /// GotoStmt - an unconditional jump
 class GotoStmt : public Stmt {
   StmtLabelReference Destination;
-  GotoStmt(SMLoc Loc, StmtLabelReference Dest, Expr *StmtLabel);
+  GotoStmt(SourceLocation Loc, StmtLabelReference Dest, Expr *StmtLabel);
 public:
-  static GotoStmt *Create(ASTContext &C, SMLoc Loc,
+  static GotoStmt *Create(ASTContext &C, SourceLocation Loc,
                           StmtLabelReference Destination,
                           Expr *StmtLabel);
 
@@ -537,9 +537,9 @@ class IfStmt : public Stmt {
   Expr *Condition;
   Stmt *ThenArm, *ElseArm;
 
-  IfStmt(SMLoc Loc, Expr *Cond, Expr *StmtLabel);
+  IfStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel);
 public:
-  static IfStmt *Create(ASTContext &C, SMLoc Loc,
+  static IfStmt *Create(ASTContext &C, SourceLocation Loc,
                         Expr *Condition, Expr *StmtLabel);
 
   inline Expr *getCondition() const { return Condition; }
@@ -559,7 +559,7 @@ public:
 class CFBlockStmt : public Stmt {
   Stmt *Body;
 protected:
-  CFBlockStmt(StmtTy Type, SMLoc Loc, Expr *StmtLabel);
+  CFBlockStmt(StmtTy Type, SourceLocation Loc, Expr *StmtLabel);
 public:
   Stmt *getBody() const { return Body; }
   void setBody(Stmt *Body);
@@ -571,11 +571,11 @@ class DoStmt : public CFBlockStmt {
   Expr *DoVar;
   Expr *Init, *Terminate, *Increment;
 
-  DoStmt(SMLoc Loc, StmtLabelReference TermStmt, Expr *DoVariable,
+  DoStmt(SourceLocation Loc, StmtLabelReference TermStmt, Expr *DoVariable,
          Expr *InitialParam, Expr *TerminalParam,
          Expr *IncrementationParam,Expr *StmtLabel);
 public:
-  static DoStmt *Create(ASTContext &C,SMLoc Loc, StmtLabelReference TermStmt,
+  static DoStmt *Create(ASTContext &C,SourceLocation Loc, StmtLabelReference TermStmt,
                         Expr *DoVariable, Expr *InitialParam,
                         Expr *TerminalParam,Expr *IncrementationParam,
                         Expr *StmtLabel);
@@ -595,9 +595,9 @@ public:
 
 /// ContinueStmt
 class ContinueStmt : public Stmt {
-  ContinueStmt(SMLoc Loc, Expr *StmtLabel);
+  ContinueStmt(SourceLocation Loc, Expr *StmtLabel);
 public:
-  static ContinueStmt *Create(ASTContext &C, SMLoc Loc, Expr *StmtLabel);
+  static ContinueStmt *Create(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
   static bool classof(const ContinueStmt*) { return true; }
   static bool classof(const Stmt *S) {
@@ -609,9 +609,9 @@ public:
 class StopStmt : public Stmt {
   Expr *StopCode;
 
-  StopStmt(SMLoc Loc, Expr *stopCode, Expr *StmtLabel);
+  StopStmt(SourceLocation Loc, Expr *stopCode, Expr *StmtLabel);
 public:
-  static StopStmt *Create(ASTContext &C, SMLoc Loc, Expr *stopCode, Expr *StmtLabel);
+  static StopStmt *Create(ASTContext &C, SourceLocation Loc, Expr *stopCode, Expr *StmtLabel);
 
   Expr *getStopCode() const { return StopCode; }
 
@@ -626,9 +626,9 @@ class AssignmentStmt : public Stmt {
   Expr *LHS;
   Expr *RHS;
 
-  AssignmentStmt(llvm::SMLoc Loc, Expr *lhs, Expr *rhs, Expr *StmtLabel);
+  AssignmentStmt(SourceLocation Loc, Expr *lhs, Expr *rhs, Expr *StmtLabel);
 public:
-  static AssignmentStmt *Create(ASTContext &C, llvm::SMLoc Loc, Expr *LHS,
+  static AssignmentStmt *Create(ASTContext &C, SourceLocation Loc, Expr *LHS,
                                 Expr *RHS, Expr *StmtLabel);
 
   Expr *getLHS() const { return LHS; }
@@ -643,10 +643,10 @@ public:
 /// PrintStmt
 class PrintStmt : public ListStmt<ExprResult> {
   FormatSpec *FS;
-  PrintStmt(ASTContext &C, SMLoc L, FormatSpec *fs,
+  PrintStmt(ASTContext &C, SourceLocation L, FormatSpec *fs,
             ArrayRef<ExprResult> OutList, Expr *StmtLabel);
 public:
-  static PrintStmt *Create(ASTContext &C, SMLoc L, FormatSpec *fs,
+  static PrintStmt *Create(ASTContext &C, SourceLocation L, FormatSpec *fs,
                            ArrayRef<ExprResult> OutList, Expr *StmtLabel);
 
   FormatSpec *getFormatSpec() const { return FS; }

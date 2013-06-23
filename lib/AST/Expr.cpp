@@ -31,63 +31,63 @@ void APNumericStorage::setIntValue(ASTContext &C, const APInt &Val) {
     VAL = 0;
 }
 
-SMLoc ConstantExpr::getLocEnd() const {
+SourceLocation ConstantExpr::getLocEnd() const {
   return MaxLoc;
 }
 
-IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                                         llvm::SMLoc MaxLoc, llvm::StringRef Data)
+IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, SourceLocation Loc,
+                                         SourceLocation MaxLoc, llvm::StringRef Data)
   : ConstantExpr(IntegerConstant, C.IntegerTy,  Loc, MaxLoc) {
   llvm::APInt Val(64,Data,10);
   Num.setValue(C, Val);
 }
 
-IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                                 llvm::SMLoc MaxLoc, llvm::StringRef Data) {
+IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, SourceLocation Loc,
+                                                 SourceLocation MaxLoc, llvm::StringRef Data) {
   return new (C) IntegerConstantExpr(C, Loc, MaxLoc, Data);
 }
 
-RealConstantExpr::RealConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                                   llvm::SMLoc MaxLoc, llvm::StringRef Data)
+RealConstantExpr::RealConstantExpr(ASTContext &C, SourceLocation Loc,
+                                   SourceLocation MaxLoc, llvm::StringRef Data)
   : ConstantExpr(RealConstant, C.RealTy, Loc, MaxLoc) {
   // FIXME: IEEEdouble?
   APFloat Val(APFloat::IEEEsingle, Data);
   Num.setValue(C, Val);
 }
 
-RealConstantExpr *RealConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                           llvm::SMLoc MaxLoc, llvm::StringRef Data) {
+RealConstantExpr *RealConstantExpr::Create(ASTContext &C, SourceLocation Loc,
+                                           SourceLocation MaxLoc, llvm::StringRef Data) {
   return new (C) RealConstantExpr(C, Loc, MaxLoc, Data);
 }
 
-DoublePrecisionConstantExpr::DoublePrecisionConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                                                         llvm::SMLoc MaxLoc, llvm::StringRef Data)
+DoublePrecisionConstantExpr::DoublePrecisionConstantExpr(ASTContext &C, SourceLocation Loc,
+                                                         SourceLocation MaxLoc, llvm::StringRef Data)
   : ConstantExpr(RealConstant, C.DoublePrecisionTy, Loc, MaxLoc) {
   APFloat Val(APFloat::IEEEdouble, Data);
   Num.setValue(C, Val);
 }
 
-DoublePrecisionConstantExpr *DoublePrecisionConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                                                 llvm::SMLoc MaxLoc,
+DoublePrecisionConstantExpr *DoublePrecisionConstantExpr::Create(ASTContext &C, SourceLocation Loc,
+                                                                 SourceLocation MaxLoc,
                                                                  llvm::StringRef Data) {
   return new (C) DoublePrecisionConstantExpr(C, Loc, MaxLoc, Data);
 }
 
-ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, llvm::SMLoc Loc, llvm::SMLoc MaxLoc,
+ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, SourceLocation Loc, SourceLocation MaxLoc,
                                          const APFloat &Re, const APFloat &Im)
   : ConstantExpr(ComplexConstant, C.ComplexTy, Loc, MaxLoc) {
   this->Re.setValue(C, Re);
   this->Im.setValue(C, Im);
 }
 
-ComplexConstantExpr *ComplexConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                                 llvm::SMLoc MaxLoc,
+ComplexConstantExpr *ComplexConstantExpr::Create(ASTContext &C, SourceLocation Loc,
+                                                 SourceLocation MaxLoc,
                                                  const APFloat &Re, const APFloat &Im) {
   return new (C) ComplexConstantExpr(C, Loc, MaxLoc, Re, Im);
 }
 
-CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                                             llvm::SMLoc MaxLoc, llvm::StringRef data)
+CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, SourceLocation Loc,
+                                             SourceLocation MaxLoc, llvm::StringRef data)
   : ConstantExpr(CharacterConstant, C.CharacterTy, Loc, MaxLoc) {
   // TODO: A 'kind' on a character literal constant.
   Data = new (C) char[data.size() + 1];
@@ -95,14 +95,14 @@ CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, llvm::SMLoc Loc,
   Data[data.size()] = '\0';
 }
 
-CharacterConstantExpr *CharacterConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                                     llvm::SMLoc MaxLoc,
+CharacterConstantExpr *CharacterConstantExpr::Create(ASTContext &C, SourceLocation Loc,
+                                                     SourceLocation MaxLoc,
                                                      llvm::StringRef Data) {
   return new (C) CharacterConstantExpr(C, Loc, MaxLoc, Data);
 }
 
-BOZConstantExpr::BOZConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                                 llvm::SMLoc MaxLoc, llvm::StringRef Data)
+BOZConstantExpr::BOZConstantExpr(ASTContext &C, SourceLocation Loc,
+                                 SourceLocation MaxLoc, llvm::StringRef Data)
   : ConstantExpr(BOZConstant, C.IntegerTy, Loc, MaxLoc) {
   unsigned Radix = 0;
   switch (Data[0]) {
@@ -128,19 +128,19 @@ BOZConstantExpr::BOZConstantExpr(ASTContext &C, llvm::SMLoc Loc,
   Num.setValue(C, Val);
 }
 
-BOZConstantExpr *BOZConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                         llvm::SMLoc MaxLoc, llvm::StringRef Data) {
+BOZConstantExpr *BOZConstantExpr::Create(ASTContext &C, SourceLocation Loc,
+                                         SourceLocation MaxLoc, llvm::StringRef Data) {
   return new (C) BOZConstantExpr(C, Loc, MaxLoc, Data);
 }
 
-LogicalConstantExpr::LogicalConstantExpr(ASTContext &C, llvm::SMLoc Loc,
-                                         llvm::SMLoc MaxLoc, llvm::StringRef Data)
+LogicalConstantExpr::LogicalConstantExpr(ASTContext &C, SourceLocation Loc,
+                                         SourceLocation MaxLoc, llvm::StringRef Data)
   : ConstantExpr(LogicalConstant, C.LogicalTy, Loc, MaxLoc) {
   Val = (Data.compare_lower(".TRUE.") == 0);
 }
 
-LogicalConstantExpr *LogicalConstantExpr::Create(ASTContext &C, llvm::SMLoc Loc,
-                                                 llvm::SMLoc MaxLoc, llvm::StringRef Data) {
+LogicalConstantExpr *LogicalConstantExpr::Create(ASTContext &C, SourceLocation Loc,
+                                                 SourceLocation MaxLoc, llvm::StringRef Data) {
   return new (C) LogicalConstantExpr(C, Loc, MaxLoc, Data);
 }
 
@@ -156,86 +156,86 @@ MultiArgumentExpr::MultiArgumentExpr(ASTContext &C, ArrayRef<Expr*> Args) {
   }
 }
 
-SubstringExpr::SubstringExpr(ASTContext &C, llvm::SMLoc Loc, Expr *E,
+SubstringExpr::SubstringExpr(ASTContext &C, SourceLocation Loc, Expr *E,
                              Expr *Start, Expr *End)
   : DesignatorExpr(Loc,C.CharacterTy,DesignatorExpr::Substring),
     Target(E), StartingPoint(Start), EndPoint(End) {
 }
 
-SubstringExpr *SubstringExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+SubstringExpr *SubstringExpr::Create(ASTContext &C, SourceLocation Loc,
                                      Expr *Target, Expr *StartingPoint,
                                      Expr *EndPoint) {
   return new(C) SubstringExpr(C, Loc, Target, StartingPoint, EndPoint);
 }
 
-SMLoc SubstringExpr::getLocStart() const {
+SourceLocation SubstringExpr::getLocStart() const {
   return Target->getLocStart();
 }
 
-SMLoc SubstringExpr::getLocEnd() const {
+SourceLocation SubstringExpr::getLocEnd() const {
   if(EndPoint) return EndPoint->getLocEnd();
   else if(StartingPoint) return StartingPoint->getLocEnd();
   else return getLocation();
 }
 
-ArrayElementExpr::ArrayElementExpr(ASTContext &C, llvm::SMLoc Loc, Expr *E,
+ArrayElementExpr::ArrayElementExpr(ASTContext &C, SourceLocation Loc, Expr *E,
                                    llvm::ArrayRef<Expr *> Subs)
   : DesignatorExpr(Loc, E->getType()->asArrayType()->getElementType(),
                    DesignatorExpr::ArrayElement),
     MultiArgumentExpr(C, Subs), Target(E) {
 }
 
-ArrayElementExpr *ArrayElementExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+ArrayElementExpr *ArrayElementExpr::Create(ASTContext &C, SourceLocation Loc,
                                            Expr *Target,
                                            llvm::ArrayRef<Expr *> Subscripts) {
   return new(C) ArrayElementExpr(C, Loc, Target, Subscripts);
 }
 
-SMLoc ArrayElementExpr::getLocStart() const {
+SourceLocation ArrayElementExpr::getLocStart() const {
   return Target->getLocStart();
 }
 
-SMLoc ArrayElementExpr::getLocEnd() const {
+SourceLocation ArrayElementExpr::getLocEnd() const {
   return getArguments().back()->getLocEnd();
 }
 
-VarExpr::VarExpr(llvm::SMLoc Loc, const VarDecl *Var)
+VarExpr::VarExpr(SourceLocation Loc, const VarDecl *Var)
   : DesignatorExpr(Loc, Var->getType(), DesignatorExpr::ObjectName),
     Variable(Var) {}
 
-VarExpr *VarExpr::Create(ASTContext &C, llvm::SMLoc Loc, const VarDecl *VD) {
+VarExpr *VarExpr::Create(ASTContext &C, SourceLocation Loc, const VarDecl *VD) {
   return new (C) VarExpr(Loc, VD);
 }
 
-SMLoc VarExpr::getLocEnd() const {
-  return SMLoc::getFromPointer(getLocation().getPointer() +
+SourceLocation VarExpr::getLocEnd() const {
+  return SourceLocation::getFromPointer(getLocation().getPointer() +
                                Variable->getIdentifier()->getLength());
 }
 
-UnaryExpr *UnaryExpr::Create(ASTContext &C, llvm::SMLoc Loc, Operator Op,
+UnaryExpr *UnaryExpr::Create(ASTContext &C, SourceLocation Loc, Operator Op,
                              Expr *E) {
   return new (C) UnaryExpr(Expr::Unary,
                            (Op != Not) ? E->getType() : C.LogicalTy,
                            Loc, Op, E);
 }
 
-SMLoc UnaryExpr::getLocEnd() const {
+SourceLocation UnaryExpr::getLocEnd() const {
   return E->getLocEnd();
 }
 
-DefinedOperatorUnaryExpr::DefinedOperatorUnaryExpr(llvm::SMLoc Loc, Expr *E,
+DefinedOperatorUnaryExpr::DefinedOperatorUnaryExpr(SourceLocation Loc, Expr *E,
                                                    IdentifierInfo *IDInfo)
   : UnaryExpr(Expr::DefinedUnaryOperator, E->getType(), Loc, Defined, E),
     II(IDInfo) {}
 
 DefinedOperatorUnaryExpr *DefinedOperatorUnaryExpr::Create(ASTContext &C,
-                                                           llvm::SMLoc Loc,
+                                                           SourceLocation Loc,
                                                            Expr *E,
                                                            IdentifierInfo *IDInfo) {
   return new (C) DefinedOperatorUnaryExpr(Loc, E, IDInfo);
 }
 
-BinaryExpr *BinaryExpr::Create(ASTContext &C, llvm::SMLoc Loc, Operator Op,
+BinaryExpr *BinaryExpr::Create(ASTContext &C, SourceLocation Loc, Operator Op,
                                Expr *LHS, Expr *RHS) {
   QualType Ty;
 
@@ -258,16 +258,16 @@ BinaryExpr *BinaryExpr::Create(ASTContext &C, llvm::SMLoc Loc, Operator Op,
   return new (C) BinaryExpr(Expr::Binary, Ty, Loc, Op, LHS, RHS);
 }
 
-SMLoc BinaryExpr::getLocStart() const {
+SourceLocation BinaryExpr::getLocStart() const {
   return LHS->getLocStart();
 }
 
-SMLoc BinaryExpr::getLocEnd() const {
+SourceLocation BinaryExpr::getLocEnd() const {
   return RHS->getLocEnd();
 }
 
 DefinedOperatorBinaryExpr *
-DefinedOperatorBinaryExpr::Create(ASTContext &C, llvm::SMLoc Loc, Expr *LHS,
+DefinedOperatorBinaryExpr::Create(ASTContext &C, SourceLocation Loc, Expr *LHS,
                                   Expr *RHS, IdentifierInfo *IDInfo) {
   return new (C) DefinedOperatorBinaryExpr(Loc, LHS, RHS, IDInfo);
 }
@@ -283,12 +283,12 @@ static inline QualType ConversionType(ASTContext &C, intrinsic::FunctionKind Op)
   }
 }
 
-ImplicitCastExpr::ImplicitCastExpr(ASTContext &C, llvm::SMLoc Loc,
+ImplicitCastExpr::ImplicitCastExpr(ASTContext &C, SourceLocation Loc,
                                    intrinsic::FunctionKind op, Expr *e)
   : Expr(ImplicitCast,ConversionType(C, op),Loc),Op(op),E(e) {
 }
 
-ImplicitCastExpr *ImplicitCastExpr::Create(ASTContext &C, llvm::SMLoc Loc,
+ImplicitCastExpr *ImplicitCastExpr::Create(ASTContext &C, SourceLocation Loc,
                                            intrinsic::FunctionKind Op, Expr *E) {
   return new(C) ImplicitCastExpr(C, Loc, Op, E);
 }

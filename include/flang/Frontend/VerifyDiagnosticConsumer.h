@@ -141,15 +141,15 @@ public:
   ///
   class Directive {
   public:
-    static Directive *create(bool RegexKind, llvm::SMLoc DirectiveLoc,
-                             llvm::SMLoc DiagnosticLoc,
+    static Directive *create(bool RegexKind, SourceLocation DirectiveLoc,
+                             SourceLocation DiagnosticLoc,
                              StringRef Text, unsigned Min, unsigned Max);
   public:
     /// Constant representing n or more matches.
     static const unsigned MaxCount = UINT_MAX;
 
-    llvm::SMLoc DirectiveLoc;
-    llvm::SMLoc DiagnosticLoc;
+    SourceLocation DirectiveLoc;
+    SourceLocation DiagnosticLoc;
     const std::string Text;
     unsigned Min, Max;
 
@@ -163,7 +163,7 @@ public:
     virtual bool match(StringRef S) = 0;
 
   protected:
-    Directive(llvm::SMLoc DirectiveLoc, llvm::SMLoc DiagnosticLoc,
+    Directive(SourceLocation DirectiveLoc, SourceLocation DiagnosticLoc,
               StringRef Text, unsigned Min, unsigned Max)
       : DirectiveLoc(DirectiveLoc), DiagnosticLoc(DiagnosticLoc),
         Text(Text), Min(Min), Max(Max) {
@@ -228,11 +228,11 @@ public:
 
   virtual void EndSourceFile();
 
-  virtual bool HandleComment(Lexer &Lexer, const llvm::SMLoc& Loc, const llvm::StringRef &Comment);
+  virtual bool HandleComment(Lexer &Lexer, const SourceLocation& Loc, const llvm::StringRef &Comment);
 
-  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, llvm::SMLoc L,
+  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, SourceLocation L,
                                 const llvm::Twine &Msg,
-                                llvm::ArrayRef<llvm::SMRange> Ranges);
+                                llvm::ArrayRef<SourceRange> Ranges);
 };
 
 } // end namespace flang

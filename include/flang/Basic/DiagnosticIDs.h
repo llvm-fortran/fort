@@ -15,6 +15,7 @@
 #ifndef LLVM_FLANG_DIAGNOSTICIDS_H
 #define LLVM_FLANG_DIAGNOSTICIDS_H
 
+#include "flang/Basic/SourceLocation.h"
 #include "flang/Basic/LLVM.h"
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
 #include "llvm/ADT/StringRef.h"
@@ -248,14 +249,14 @@ private:
   ///
   /// \param Loc The source location we are interested in finding out the
   /// diagnostic state. Can be null in order to query the latest state.
-  DiagnosticIDs::Level getDiagnosticLevel(unsigned DiagID, llvm::SMLoc Loc,
+  DiagnosticIDs::Level getDiagnosticLevel(unsigned DiagID, SourceLocation Loc,
                                           const DiagnosticsEngine &Diag) const;
 
   /// \brief An internal implementation helper used when \p DiagClass is
   /// already known.
   DiagnosticIDs::Level getDiagnosticLevel(unsigned DiagID,
                                           unsigned DiagClass,
-                                          llvm::SMLoc Loc,
+                                          SourceLocation Loc,
                                           const DiagnosticsEngine &Diag) const;
 
   /// \brief Used to report a diagnostic that is finally fully formed.

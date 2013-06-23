@@ -42,9 +42,9 @@ const unsigned WordWrapIndentation = 6;
 TextDiagnosticPrinter::~TextDiagnosticPrinter() {}
 
 void TextDiagnosticPrinter::HandleDiagnostic(DiagnosticsEngine::Level Level,
-                                             llvm::SMLoc L,
+                                             SourceLocation L,
                                              const llvm::Twine &Msg,
-                                             llvm::ArrayRef<llvm::SMRange> Ranges) {
+                                             llvm::ArrayRef<SourceRange> Ranges) {
   // Default implementation (Warnings/errors count).
   DiagnosticClient::HandleDiagnostic(Level, L, Msg);
   llvm::SourceMgr::DiagKind MsgTy;
@@ -57,7 +57,7 @@ void TextDiagnosticPrinter::HandleDiagnostic(DiagnosticsEngine::Level Level,
   }
 
   SrcMgr.PrintMessage(L, MsgTy, Msg,
-                      Ranges, llvm::ArrayRef<llvm::SMFixIt>(), true);
+                      Ranges, llvm::ArrayRef<FixItHint>(), true);
 }
 
 } //namespace flang

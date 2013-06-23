@@ -24,7 +24,7 @@ class Lexer;
 
 class TextDiagnosticBuffer : public DiagnosticClient {
 public:
-  typedef std::vector<std::pair<llvm::SMLoc, std::string> > DiagList;
+  typedef std::vector<std::pair<SourceLocation, std::string> > DiagList;
   typedef DiagList::iterator iterator;
   typedef DiagList::const_iterator const_iterator;
 private:
@@ -39,7 +39,7 @@ public:
   const_iterator note_begin() const { return Notes.begin(); }
   const_iterator note_end() const   { return Notes.end(); }
 
-  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, llvm::SMLoc L,
+  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, SourceLocation L,
                                 const llvm::Twine &Msg);
 
   /// FlushDiagnostics - Flush the buffered diagnostics to an given
