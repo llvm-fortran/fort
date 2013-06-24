@@ -166,9 +166,10 @@ Parser::StmtResult Parser::ParseAssignStmt() {
         << "TO";
     return StmtError();
   }
+  auto VarLoc = Tok.getLocation();
   auto Var = ParseIntegerVariableReference();
   if(!Var) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_int_var)
+    Diag.Report(VarLoc, diag::err_expected_int_var)
         << "TO";
     return StmtError();
   }

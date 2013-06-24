@@ -2,6 +2,7 @@
 PROGRAM dotest
     INTEGER I
     REAL R
+    REAL x
 
     R = 1.0
     DO 10 I = 1,10

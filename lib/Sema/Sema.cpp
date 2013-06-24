@@ -296,19 +296,14 @@ VarDecl *Sema::ActOnKindSelector(ASTContext &C, SourceLocation IDLoc,
 
 Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDLoc,
                             const IdentifierInfo *IDInfo) {
-  if (const VarDecl *Prev = IDInfo->getFETokenInfo<VarDecl>()) {
-    if (Prev->getDeclContext() == CurContext) {
-      Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
-      Diags.Report(Prev->getLocation(), diag::note_previous_definition);
-      return nullptr;
-    }
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+    return nullptr;
   }
 
   VarDecl *VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, T);
   CurContext->addDecl(VD);
-
-  // Store the Decl in the IdentifierInfo for easy access.
-  const_cast<IdentifierInfo*>(IDInfo)->setFETokenInfo(VD);
 
   // FIXME: For debugging:
   llvm::outs() << "(declaration\n  '";
@@ -349,6 +344,17 @@ Decl *Sema::ActOnImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
   } else {
     return ActOnEntityDecl(C, Result.second, IDLoc, IDInfo);
   }
+}
+
+Decl *Sema::LookupIdentifier(const IdentifierInfo *IDInfo) {
+  auto Result = CurContext->lookup(IDInfo);
+  if(Result.first >= Result.second) return nullptr;
+  assert(Result.first + 1 >= Result.second);
+  return *Result.first;
+}
+
+Decl *Sema::ResolveIdentifier(const IdentifierInfo *IDInfo) {
+  return LookupIdentifier(IDInfo);
 }
 
 StmtResult Sema::ActOnBundledCompoundStmt(ASTContext &C, SourceLocation Loc,
@@ -471,13 +477,12 @@ StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
                                 Expr *StmtLabel) {
   VarDecl *VD = nullptr;
 
-  if (VarDecl *Prev = IDInfo->getFETokenInfo<VarDecl>()) {
-    if (Prev->getDeclContext() == CurContext) {
-      if(Prev->isParameter()) {
-        Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
-        Diags.Report(Prev->getLocation(), diag::note_previous_definition);
-        return StmtError();
-      } else VD = Prev; // The type was already specified.
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    VD = dyn_cast<VarDecl>(Prev);
+    if(!VD || VD->isParameter()) {
+      Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+      Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+      return StmtError();
     }
   }
 
@@ -503,8 +508,6 @@ StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
     VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, T);
     VD->MutateIntoParameter(Value.take());
     CurContext->addDecl(VD);
-    // Store the Decl in the IdentifierInfo for easy access.
-    const_cast<IdentifierInfo*>(IDInfo)->setFETokenInfo(VD);
   }
 
   auto Result = DeclStmt::Create(C, Loc, VD, StmtLabel);
@@ -560,19 +563,15 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
     return StmtError();
   }
 
-  if (NamedDecl *Prev = IDInfo->getFETokenInfo<NamedDecl>()) {
-    if (Prev->getDeclContext() == CurContext) {
-      Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
-      Diags.Report(Prev->getLocation(), diag::note_previous_definition);
-      return StmtError();
-    }
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+    return StmtError();
   }
 
   auto Decl = IntrinsicFunctionDecl::Create(C, CurContext, IDLoc, IDInfo,
-                                                  C.IntegerTy, FuncResult.Function);
+                                            C.IntegerTy, FuncResult.Function);
   CurContext->addDecl(Decl);
-  // Store the Decl in the IdentifierInfo for easy access.
-  const_cast<IdentifierInfo*>(IDInfo)->setFETokenInfo(Decl);
 
   auto Result = DeclStmt::Create(C, Loc, Decl, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);

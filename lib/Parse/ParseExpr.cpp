@@ -603,8 +603,9 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
   //       name
   const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
   if (!IDInfo) return ExprError();
-  VarDecl *VD = IDInfo->getFETokenInfo<VarDecl>();
-  if (!VD) {
+  auto Declaration = Actions.ResolveIdentifier(IDInfo);
+  VarDecl *VD;
+  if (!Declaration) {
     /// Declare implicit declarations only if the expression is lvalue
     if(!IsLvalue) {
       Diag.Report(Tok.getLocation(), diag::err_undeclared_var_use)
@@ -622,6 +623,8 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
     }
     VD = cast<VarDecl>(D);
   }
+  else VD = dyn_cast<VarDecl>(Declaration);
+
 
   ExprResult E = VarExpr::Create(Context, Tok.getLocation(), VD);
   Lex();
@@ -821,19 +824,17 @@ ExprResult Parser::ParsePartReference() {
 
 /// Parser a variable reference
 VarExpr *Parser::ParseVariableReference() {
-  if(!Tok.is(tok::identifier))
+  if(Tok.isAtStartOfStatement() ||
+     !Tok.is(tok::identifier))
     return nullptr;
   const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
   if (!IDInfo) return nullptr;
-  VarDecl *VD = IDInfo->getFETokenInfo<VarDecl>();
-  if (!VD) {
-    // This variable hasn't been specified before. We need to apply any IMPLICIT
-    // rules to it.
-    Decl *D = Actions.ActOnImplicitEntityDecl(Context, Tok.getLocation(),
-                                              IDInfo);
-    if (!D) return nullptr;
-    VD = cast<VarDecl>(D);
-  }
+  auto Declaration = Actions.ResolveIdentifier(IDInfo);
+  if (!Declaration)
+    return nullptr;
+  auto VD = dyn_cast<VarDecl>(Declaration);
+  if(!VD)
+    return nullptr;
 
   auto E = VarExpr::Create(Context, Tok.getLocation(), VD);
   Lex();
@@ -842,14 +843,10 @@ VarExpr *Parser::ParseVariableReference() {
 
 /// Parses an integer variable reference
 VarExpr *Parser::ParseIntegerVariableReference() {
-  if(!Tok.is(tok::identifier))
-    return nullptr;
-  const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
-  if (!IDInfo) return nullptr;
-  VarDecl *VD = IDInfo->getFETokenInfo<VarDecl>();
-  if(VD && VD->getType()->isIntegerType()) {
-    Lex();
-    return VarExpr::Create(Context, Tok.getLocation(), VD);
+  auto E = ParseVariableReference();
+  if(E) {
+    return static_cast<VarExpr*>(E)->getType()->isIntegerType()?
+           E : nullptr;
   }
   return nullptr;
 }

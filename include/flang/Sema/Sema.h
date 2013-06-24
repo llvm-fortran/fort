@@ -175,6 +175,11 @@ public:
   Decl *ActOnImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo);
 
+  /// Returns a declaration which matches the identifier in this context
+  Decl *LookupIdentifier(const IdentifierInfo *IDInfo);
+
+  Decl *ResolveIdentifier(const IdentifierInfo *IDInfo);
+
   // FIXME: TODO more features.
   RecordDecl *ActOnDerivedTypeDecl(ASTContext &C, SourceLocation Loc,
                                    SourceLocation NameLoc, const IdentifierInfo* IDInfo);
