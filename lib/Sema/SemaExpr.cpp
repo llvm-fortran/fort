@@ -330,4 +330,18 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResul
   return ArrayElementExpr::Create(C, Loc, Target.take(), Subs);
 }
 
+ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
+                                                const IntrinsicFunctionDecl *Function,
+                                                ArrayRef<ExprResult> Arguments) {
+  SmallVector<Expr*, 8> Args(Arguments.size());
+  for(size_t I = 0; I < Arguments.size(); ++I)
+    Args[I] = Arguments[I].take();
+
+  // FIXME: TODO
+  QualType ReturnType = C.IntegerTy;
+
+  return IntrinsicFunctionCallExpr::Create(C, Loc, Function->getFunction(),
+                                           Args, ReturnType);
+}
+
 } // namespace flang

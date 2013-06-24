@@ -55,7 +55,10 @@ protected:
 
     // Binary Expressions
     Binary,
-    DefinedBinaryOperator
+    DefinedBinaryOperator,
+
+    // Call Expressions
+    IntrinsicFunctionCall,
   };
 private:
   QualType Ty;
@@ -728,6 +731,9 @@ public:
   intrinsic::FunctionKind getIntrinsicFunction() const { return Op;  }
   Expr *getExpression() { return E; }
 
+  SourceLocation getLocStart() const;
+  SourceLocation getLocEnd() const;
+
   virtual void print(llvm::raw_ostream&);
 
   static bool classof(const Expr *E) {
@@ -736,6 +742,30 @@ public:
   static bool classof(const ImplicitCastExpr *) { return true; }
 };
 
+/// IntrinsicFunctionCallExpr - represents a call to an intrinsic function
+class IntrinsicFunctionCallExpr : public Expr, public MultiArgumentExpr {
+  intrinsic::FunctionKind Function;
+  IntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
+                            intrinsic::FunctionKind Func,
+                            ArrayRef<Expr*> Args,
+                            QualType ReturnType);
+public:
+  static IntrinsicFunctionCallExpr *Create(ASTContext &C, SourceLocation Loc,
+                                           intrinsic::FunctionKind Func,
+                                           ArrayRef<Expr*> Arguments,
+                                           QualType ReturnType);
+
+  intrinsic::FunctionKind getIntrinsicFunction() const { return Function;  }
+
+  SourceLocation getLocEnd() const;
+
+  virtual void print(llvm::raw_ostream&);
+
+  static bool classof(const Expr *E) {
+    return E->getExpressionID() == Expr::IntrinsicFunctionCall;
+  }
+  static bool classof(const IntrinsicFunctionCallExpr *) { return true; }
+};
 
 } // end flang namespace
 

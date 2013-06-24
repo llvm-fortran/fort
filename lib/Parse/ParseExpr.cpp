@@ -625,6 +625,17 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
   }
   else VD = dyn_cast<VarDecl>(Declaration);
 
+  if(!VD) {
+    auto Loc = Tok.getLocation();
+    Lex();
+    if(IntrinsicFunctionDecl *IFunc = dyn_cast<IntrinsicFunctionDecl>(Declaration)) {
+      SmallVector<ExprResult, 8> Arguments;
+      auto Result = ParseFunctionCallArgumentList(Arguments);
+      if(Result.isInvalid())
+        return ExprError();
+      return Actions.ActOnIntrinsicFunctionCallExpr(Context, Loc, IFunc, Arguments);
+    } else return ExprError();//FIXME
+  }
 
   ExprResult E = VarExpr::Create(Context, Tok.getLocation(), VD);
   Lex();
@@ -650,6 +661,27 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
   }
 
   return E;
+}
+
+ExprResult Parser::ParseFunctionCallArgumentList(SmallVectorImpl<ExprResult> &Args) {
+  if(!EatIfPresentInSameStmt(tok::l_paren)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_lparen);
+    return ExprError();
+  }
+
+  if(EatIfPresentInSameStmt(tok::r_paren)) return ExprResult();
+  do {
+    auto E = ParseExpression();
+    if(E.isInvalid())
+      return ExprError();
+    Args.push_back(E);
+  } while (EatIfPresentInSameStmt(tok::comma));
+
+  if(!EatIfPresentInSameStmt(tok::r_paren)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
+    return ExprError();
+  }
+  return ExprResult();
 }
 
 /// ParseArrayElement - Parse an array element.

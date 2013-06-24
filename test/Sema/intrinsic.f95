@@ -9,7 +9,7 @@ PROGRAM intrintest
 
   INTEGER I
 
-  !FIXME: I = INT(2.0)
-  !FIXME: I = ABS(-3)
+  I = INT(2.0)
+  I = ABS(-3)
 
 END PROGRAM

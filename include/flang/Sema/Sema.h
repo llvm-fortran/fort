@@ -325,6 +325,10 @@ public:
   ExprResult ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
                                 llvm::ArrayRef<ExprResult> Subscripts);
 
+  ExprResult ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
+                                            const IntrinsicFunctionDecl *Function,
+                                            ArrayRef<ExprResult> Arguments);
+
 };
 
 } // end flang namespace

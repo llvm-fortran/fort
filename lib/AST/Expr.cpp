@@ -293,6 +293,36 @@ ImplicitCastExpr *ImplicitCastExpr::Create(ASTContext &C, SourceLocation Loc,
   return new(C) ImplicitCastExpr(C, Loc, Op, E);
 }
 
+SourceLocation ImplicitCastExpr::getLocStart() const {
+  return E->getLocStart();
+}
+
+SourceLocation ImplicitCastExpr::getLocEnd() const {
+  return E->getLocEnd();
+}
+
+IntrinsicFunctionCallExpr::
+IntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
+                          intrinsic::FunctionKind Func,
+                          ArrayRef<Expr*> Args,
+                          QualType ReturnType)
+  : Expr(IntrinsicFunctionCall, ReturnType, Loc),
+    MultiArgumentExpr(C, Args), Function(Func) {
+}
+
+IntrinsicFunctionCallExpr *IntrinsicFunctionCallExpr::
+Create(ASTContext &C, SourceLocation Loc,
+       intrinsic::FunctionKind Func,
+       ArrayRef<Expr*> Arguments,
+       QualType ReturnType) {
+  return new(C) IntrinsicFunctionCallExpr(C, Loc, Func, Arguments,
+                                          ReturnType);
+}
+
+SourceLocation IntrinsicFunctionCallExpr::getLocEnd() const {
+  return getArguments().back()->getLocEnd();
+}
+
 //===----------------------------------------------------------------------===//
 // Expression Print Statements
 //===----------------------------------------------------------------------===//
@@ -350,6 +380,16 @@ void DefinedOperatorUnaryExpr::print(llvm::raw_ostream &O) {
 void ImplicitCastExpr::print(llvm::raw_ostream &O) {
   O << intrinsic::getFunctionName(Op) << '(';
   E->print(O);
+  O << ')';
+}
+
+void IntrinsicFunctionCallExpr::print(llvm::raw_ostream &O) {
+  O << intrinsic::getFunctionName(Function) << '(';
+  auto Args = getArguments();
+  for(size_t I = 0; I < Args.size(); ++I) {
+    if(I) O << ", ";
+    Args[I]->print(O);
+  }
   O << ')';
 }
 
