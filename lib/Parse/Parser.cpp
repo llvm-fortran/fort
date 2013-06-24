@@ -991,7 +991,8 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
         Lex();
       }
 
-      auto Stmt = Actions.ActOnIMPLICIT(Context, Loc, DS, std::make_pair(First, Second), nullptr);
+      auto Stmt = Actions.ActOnIMPLICIT(Context, Loc, DS,
+                                        std::make_pair(First, Second), nullptr);
       if(Stmt.isUsable())
         StmtList.push_back(Stmt.take());
     } while (EatIfPresentInSameStmt(tok::comma));
@@ -1053,8 +1054,12 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
       StmtList.push_back(Stmt.take());
   } while(EatIfPresentInSameStmt(tok::comma));
 
+
   if (!EatIfPresentInSameStmt(tok::r_paren)) {
-    Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+    if (Tok.isAtStartOfStatement())
+      Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+    else
+      Diag.Report(Tok.getLocation(),diag::err_expected_comma);
     return StmtError();
   }
 
@@ -1180,6 +1185,8 @@ bool Parser::ParseSpecificationStmt(std::vector<StmtResult> &Body) {
     goto notImplemented;
   }
 
+  if(Result.isInvalid())
+    LexToEndOfStatement();
   if(Result.isUsable())
     Body.push_back(Result);
 
@@ -1289,7 +1296,7 @@ bool Parser::ParseDIMENSIONStmt(std::vector<StmtResult> &Stmts) {
   llvm::SmallVector<std::pair<ExprResult, ExprResult>, 4> Dimensions;
   IdentifierInfo *ID;
   while (!Tok.isAtStartOfStatement()) {
-    if (Tok.isNot(tok::identifier)){
+    if (Tok.isNot(tok::identifier)) {
       Diag.ReportError(Tok.getLocation(),
                        "expected an identifier in DIMENSION statement");
       return true;
@@ -1379,29 +1386,37 @@ Parser::StmtResult Parser::ParseINTRINSICStmt() {
   SourceLocation Loc = Tok.getLocation();
   Lex();
 
-  EatIfPresent(tok::coloncolon);
+  EatIfPresentInSameStmt(tok::coloncolon);
 
-  SmallVector<const IdentifierInfo*, 8> IntrinsicNameList;
+  SmallVector<Stmt *,8> StmtList;
+
   while (!Tok.isAtStartOfStatement()) {
-    if (Tok.isNot(tok::identifier)) {
-      Diag.ReportError(Tok.getLocation(),
-                       "expected an identifier in INTRINSIC statement");
-      return StmtResult(true);
+    int x = Tok.getKind();
+    int y = tok::identifier;
+    if (!(Tok.is(tok::identifier) ||
+         (Tok.getIdentifierInfo() &&
+          isaKeyword(Tok.getIdentifierInfo()->getName()))
+        )) {
+      Diag.Report(Tok.getLocation(), diag::err_expected_ident);
+      return StmtError();
     }
 
-    IntrinsicNameList.push_back(Tok.getIdentifierInfo());
+    auto Stmt = Actions.ActOnINTRINSIC(Context, Loc, Tok.getLocation(),
+                                       Tok.getIdentifierInfo(), nullptr);
+    if(Stmt.isUsable())
+      StmtList.push_back(Stmt.take());
+
     Lex();
-    if (!EatIfPresent(tok::comma)) {
+    if (!EatIfPresentInSameStmt(tok::comma)) {
       if (!Tok.isAtStartOfStatement()) {
-        Diag.ReportError(Tok.getLocation(),
-                         "expected ',' in INTRINSIC statement");
-        return StmtResult(true);
+        Diag.Report(Tok.getLocation(), diag::err_expected_comma);
+        return StmtError();
       }
       break;
     }
   }
 
-  return Actions.ActOnINTRINSIC(Context, Loc, IntrinsicNameList, StmtLabel);
+  return Actions.ActOnBundledCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
 /// ParseNAMELISTStmt - Parse the NAMELIST statement.

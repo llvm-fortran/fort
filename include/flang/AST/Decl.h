@@ -16,6 +16,7 @@
 
 #include "flang/AST/DeclarationName.h"
 #include "flang/AST/Type.h"
+#include "flang/AST/IntrinsicFunctions.h"
 #include "flang/Basic/IdentifierTable.h"
 #include "flang/Basic/SourceLocation.h"
 #include "llvm/ADT/APSInt.h"
@@ -705,12 +706,24 @@ public:
   }
 };
 
+/// Represents an intrinsic function declaration.
 class IntrinsicFunctionDecl : public DeclaratorDecl {
-protected:
-  IntrinsicFunctionDecl(Kind DK, DeclContext *DC, const DeclarationNameInfo &NameInfo,
-                        QualType T)
-    : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T) {
-    }
+  intrinsic::FunctionKind Function;
+
+  IntrinsicFunctionDecl(Kind DK, DeclContext *DC,
+                        SourceLocation IDLoc, const IdentifierInfo *ID,
+                        QualType T, intrinsic::FunctionKind Func)
+    : DeclaratorDecl(DK, DC, IDLoc, ID, T),
+      Function(Func) {
+  }
+public:
+  static IntrinsicFunctionDecl *Create(ASTContext &C, DeclContext *DC,
+                                       SourceLocation IDLoc, const IdentifierInfo *ID,
+                                       QualType T, intrinsic::FunctionKind Function);
+
+  intrinsic::FunctionKind getFunction() const {
+    return Function;
+  }
 
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
   static bool classof(const IntrinsicFunctionDecl *D) { return true; }

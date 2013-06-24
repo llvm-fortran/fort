@@ -293,28 +293,6 @@ KEYWORD(NEQV                   , KEYALL)
 KEYWORD(TRUE                   , KEYALL)
 KEYWORD(FALSE                  , KEYALL)
 
-// [FIXME]: Builtins. These turn into bi_* tokens. All builtins may be
-// redefined.
-
-// Type conversion
-BUILTIN(dble                   , KEYALL)
-BUILTIN(int                    , KEYALL)
-BUILTIN(cmplx                  , KEYALL)
-BUILTIN(count                  , KEYALL)
-BUILTIN(sum                    , KEYALL)
-
-// Conversion between characters and integers
-BUILTIN(char                   , KEYALL)
-BUILTIN(ichar                  , KEYALL)
-BUILTIN(achar                  , KEYALL)
-BUILTIN(iachar                 , KEYALL)
-
-// String comparisons
-BUILTIN(lgt                    , KEYALL)
-BUILTIN(lge                    , KEYALL)
-BUILTIN(lle                    , KEYALL)
-BUILTIN(llt                    , KEYALL)
-
 #undef BUILTIN
 #undef KEYWORD
 #undef TOK

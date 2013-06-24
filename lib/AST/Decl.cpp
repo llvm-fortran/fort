@@ -266,6 +266,20 @@ FieldDecl *FieldDecl::Create(const ASTContext &C, DeclContext *DC,
 }
 
 //===----------------------------------------------------------------------===//
+// IntrinsicFunctionDecl Implementation
+//===----------------------------------------------------------------------===//
+
+IntrinsicFunctionDecl *IntrinsicFunctionDecl::Create(ASTContext &C,
+                                                     DeclContext *DC,
+                                                     SourceLocation IDLoc,
+                                                     const IdentifierInfo *ID,
+                                                     QualType T,
+                                                     intrinsic::FunctionKind Function) {
+  return new(C) IntrinsicFunctionDecl(Decl::IntrinsicFunction, DC, IDLoc, ID,
+                                      T, Function);
+}
+
+//===----------------------------------------------------------------------===//
 // VarDecl Implementation
 //===----------------------------------------------------------------------===//
 

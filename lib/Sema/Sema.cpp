@@ -27,7 +27,8 @@
 namespace flang {
 
 Sema::Sema(ASTContext &ctxt, DiagnosticsEngine &D)
-  : Context(ctxt), Diags(D), CurContext(0) {}
+  : Context(ctxt), Diags(D), CurContext(0), IntrinsicFunctionMapping(LangOptions()) {
+}
 
 Sema::~Sema() {}
 
@@ -546,11 +547,34 @@ StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
 }
 
 StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
-                                ArrayRef<const IdentifierInfo *> IntrinsicNames,
+                                SourceLocation IDLoc,
+                                const IdentifierInfo *IDInfo,
                                 Expr *StmtLabel) {
-  // FIXME: Name Constraints.
-  // FIXME: Function declaration.
-  auto Result = IntrinsicStmt::Create(C, Loc, IntrinsicNames, StmtLabel);
+  auto FuncResult = IntrinsicFunctionMapping.Resolve(IDInfo);
+  if(FuncResult.IsInvalid) {
+    Diags.Report(IDLoc, diag::err_intrinsic_invalid_func)
+      << IDInfo
+      << SourceRange(IDLoc,
+                     SourceLocation::getFromPointer(
+                       IDLoc.getPointer() + IDInfo->getLength()));
+    return StmtError();
+  }
+
+  if (NamedDecl *Prev = IDInfo->getFETokenInfo<NamedDecl>()) {
+    if (Prev->getDeclContext() == CurContext) {
+      Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+      Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+      return StmtError();
+    }
+  }
+
+  auto Decl = IntrinsicFunctionDecl::Create(C, CurContext, IDLoc, IDInfo,
+                                                  C.IntegerTy, FuncResult.Function);
+  CurContext->addDecl(Decl);
+  // Store the Decl in the IdentifierInfo for easy access.
+  const_cast<IdentifierInfo*>(IDInfo)->setFETokenInfo(Decl);
+
+  auto Result = DeclStmt::Create(C, Loc, Decl, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }

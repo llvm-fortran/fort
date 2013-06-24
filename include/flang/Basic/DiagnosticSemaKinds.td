@@ -87,6 +87,9 @@ def err_parameter_requires_const_init : Error<
 def note_parameter_value_invalid_expr : Note<
   "this expression is not allowed in a constant expression">;
 
+def err_intrinsic_invalid_func : Error<
+  "invalid function name %0 in an intrinsic statement">;
+
 def err_expect_stmt_name : Error<
   "expected name %0 for '%1' statement">;
 

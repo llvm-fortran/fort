@@ -112,6 +112,9 @@ class Sema {
   /// \brief The implicit scope for the current program unit.
   ImplicitTypingScope CurImplicitTypingScope;
 
+  /// \brief The mapping
+  intrinsic::FunctionMapping IntrinsicFunctionMapping;
+
 public:
   typedef Expr ExprTy;
 
@@ -240,7 +243,8 @@ public:
 
   // INTRINSIC statement:
   StmtResult ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
-                            ArrayRef<const IdentifierInfo *> IntrinsicNames,
+                            SourceLocation IDLoc,
+                            const IdentifierInfo *IDInfo,
                             Expr *StmtLabel);
 
   StmtResult ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,

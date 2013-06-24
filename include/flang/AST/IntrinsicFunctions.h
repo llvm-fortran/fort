@@ -14,6 +14,10 @@
 #ifndef FLANG_AST_INTRINSICFUNCTIONS_H__
 #define FLANG_AST_INTRINSICFUNCTIONS_H__
 
+#include "flang/Basic/IdentifierTable.h"
+#include "flang/Basic/LangOptions.h"
+#include "llvm/ADT/StringMap.h"
+
 namespace flang {
 namespace intrinsic {
 
@@ -22,7 +26,6 @@ namespace intrinsic {
 enum FunctionKind {
 #define INTRINSIC_FUNCTION(NAME, VERSION) NAME,
 #include "IntrinsicFunctions.def"
-#undef INTRINSIC_FUNCTION
   NUM_FUNCTIONS
 };
 
@@ -30,6 +33,20 @@ enum FunctionKind {
 /// typed overloads which may be used in original source code are
 /// not taken into consideration)
 const char *getFunctionName(FunctionKind Kind);
+
+/// Maps the intrinsic function identifiers to function IDs
+class FunctionMapping {
+  llvm::StringMap<FunctionKind> Mapping;
+public:
+  FunctionMapping(const LangOptions &Options);
+
+  struct Result {
+    FunctionKind Function;
+    bool IsInvalid;
+  };
+
+  Result Resolve(const IdentifierInfo *IDInfo);
+};
 
 }  // end namespace intrinsic
 }  // end namespace flang
