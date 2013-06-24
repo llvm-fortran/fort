@@ -19,6 +19,8 @@ def err_expected_integer_expr : Error<
 
 def err_typecheck_assign_incompatible : Error<
   "assigning to '%0' from incompatible type '%1'">;
+def err_typecheck_passing_incompatible : Error<
+  "passing %0 to parameter of incompatible type %1">;
 
 def err_typecheck_arith_invalid_operands : Error<
   "invalid operands to an arithmetic binary expression ('%0' and '%1')">;
@@ -95,6 +97,39 @@ def err_expect_stmt_name : Error<
 
 def err_redefinition : Error<"redefinition of %0">;
 def err_undeclared_var_use : Error<"use of undeclared identifier %0">;
+
+def err_typecheck_call_too_few_args : Error<
+  "too few arguments to "
+  "%select{intrinsic function|function|subprogram}0 call, "
+  "expected %1, have %2">;
+def err_typecheck_call_too_few_args_one : Error<
+  "too few arguments to "
+  "%select{intrinsic function|function|subprogram}0 call, "
+  "single argument %1 was not specified">;
+def err_typecheck_call_too_few_args_at_least : Error<
+  "too few arguments to "
+  "%select{intrinsic function|function|subprogram}0 call, "
+  "expected at least %1, have %2">;
+def err_typecheck_call_too_few_args_at_least_one : Error<
+  "too few arguments to "
+  "%select{intrinsic function|function|subprogram}0 call, "
+  "at least argument %1 must be specified">;
+def err_typecheck_call_too_many_args : Error<
+  "too many arguments to "
+  "%select{intrinsic function|function|subprogram}0 call, "
+  "expected %1, have %2">;
+def err_typecheck_call_too_many_args_one : Error<
+  "too many arguments to "
+  "%select{intrinsic function|function|subprogram}0 call, "
+  "expected single argument %1, have %2 arguments">;
+def err_typecheck_call_too_many_args_at_most : Error<
+  "too many arguments to "
+  "%select{intrinsic function|function|subprogram}0 call, "
+  "expected at most %1, have %2">;
+def err_typecheck_call_too_many_args_at_most_one : Error<
+  "too many arguments to "
+  "%select{intrinsic function|function|subprogram}0 call, "
+  "expected at most single argument %1, have %2 arguments">;
 
 }
 

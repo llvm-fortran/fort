@@ -15,6 +15,7 @@
 #define FLANG_TYPE_H__
 
 #include "flang/Basic/Specifiers.h"
+#include "flang/Basic/Diagnostic.h"
 #include "flang/Sema/Ownership.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/APSInt.h"
@@ -840,6 +841,13 @@ inline const ArrayType *Type::asArrayType() const {
     return AT;
   }
   return 0;
+}
+
+inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB,
+                                           QualType T) {
+  DB.AddTaggedVal(reinterpret_cast<intptr_t>(T.getAsOpaquePtr()),
+                  DiagnosticsEngine::ak_qualtype);
+  return DB;
 }
 
 } // end flang namespace

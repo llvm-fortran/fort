@@ -326,7 +326,7 @@ public:
                                 llvm::ArrayRef<ExprResult> Subscripts);
 
   ExprResult ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
-                                            const IntrinsicFunctionDecl *Function,
+                                            const IntrinsicFunctionDecl *FunctionDecl,
                                             ArrayRef<ExprResult> Arguments);
 
 };

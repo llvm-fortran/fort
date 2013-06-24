@@ -21,10 +21,17 @@
 namespace flang {
 namespace intrinsic {
 
+enum FunctionArgumentCountKind {
+  ArgumentCount1,
+  ArgumentCount2,
+  ArgumentCount1or2,
+  ArgumentCount2orMore
+};
+
 /// FunctionKind - This provides a simple uniform namespace for
 /// intrinsic functions from all Fortran languages.
 enum FunctionKind {
-#define INTRINSIC_FUNCTION(NAME, VERSION) NAME,
+#define INTRINSIC_FUNCTION(NAME, NUMARGS, VERSION) NAME,
 #include "IntrinsicFunctions.def"
   NUM_FUNCTIONS
 };
@@ -33,6 +40,9 @@ enum FunctionKind {
 /// typed overloads which may be used in original source code are
 /// not taken into consideration)
 const char *getFunctionName(FunctionKind Kind);
+
+/// \brief Returns the number of arguments that the function accepts.
+FunctionArgumentCountKind getFunctionArgumentCount(FunctionKind Function);
 
 /// Maps the intrinsic function identifiers to function IDs
 class FunctionMapping {

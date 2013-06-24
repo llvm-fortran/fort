@@ -17,7 +17,7 @@
 namespace flang {
 
 static char const * const FunctionNames[] = {
-#define INTRINSIC_FUNCTION(NAME, VERSION) #NAME,
+#define INTRINSIC_FUNCTION(NAME, NUMARGS, VERSION) #NAME,
 #include "flang/AST/IntrinsicFunctions.def"
   nullptr
 };
@@ -28,6 +28,21 @@ const char *intrinsic::getFunctionName(FunctionKind Kind) {
 }
 
 namespace intrinsic {
+
+static FunctionArgumentCountKind FunctionArgCounts[] = {
+  #define NUM_ARGS_1 ArgumentCount1
+  #define NUM_ARGS_2 ArgumentCount2
+  #define NUM_ARGS_1_OR_2 ArgumentCount1or2
+  #define NUM_ARGS_2_OR_MORE ArgumentCount2orMore
+  #define INTRINSIC_FUNCTION(NAME, NUMARGS, VERSION) NUMARGS,
+  #include "flang/AST/IntrinsicFunctions.def"
+    ArgumentCount1,
+};
+
+FunctionArgumentCountKind getFunctionArgumentCount(FunctionKind Function) {
+  assert(Function < NUM_FUNCTIONS && "Invalid function kind!");
+  return FunctionArgCounts[Function];
+}
 
 FunctionMapping::FunctionMapping(const LangOptions &) {
   for(unsigned I = 0; I < NUM_FUNCTIONS; ++I)

@@ -13,6 +13,7 @@
 
 #include "flang/Basic/Diagnostic.h"
 #include "flang/Basic/IdentifierTable.h"
+#include "flang/AST/Type.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/ADT/StringExtras.h"
@@ -633,6 +634,14 @@ FormatDiagnostic(const char *DiagStr, const char *DiagEnd,
       }
 
       llvm::raw_svector_ostream(OutStr) << '\'' << II->getName() << '\'';
+      break;
+    }
+    case DiagnosticsEngine::ak_qualtype: {
+      QualType T = QualType::getFromOpaquePtr((void*)getRawArg(ArgNo));
+      llvm::raw_svector_ostream Stream(OutStr);
+      Stream << '\'';
+      T.print(Stream);
+      Stream << '\'';
       break;
     }
     }
