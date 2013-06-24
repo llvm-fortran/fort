@@ -57,13 +57,10 @@ ExprResult Sema::ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,
   return UnaryExpr::Create(C, Loc, Op, E.take());
 
 typecheckInvalidOperand:
-  std::string TypeString;
-  llvm::raw_string_ostream Stream(TypeString);
-  E.get()->getType().print(Stream);
   Diags.Report(Loc,DiagType)
-      << Stream.str()
+      << E.get()->getType()
       << SourceRange(Loc,
-                       E.get()->getLocEnd());
+                     E.get()->getLocEnd());
   return ExprError();
 }
 
@@ -261,15 +258,10 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
   return BinaryExpr::Create(C, Loc, Op, LHS.take(), RHS.take());
 
 typecheckInvalidOperands:
-  std::string TypeStrings[2];
-  llvm::raw_string_ostream StreamLHS(TypeStrings[0]),
-      StreamRHS(TypeStrings[1]);
-  LHS.get()->getType().print(StreamLHS);
-  RHS.get()->getType().print(StreamRHS);
   Diags.Report(Loc,DiagType)
-      << StreamLHS.str() << StreamRHS.str()
+      << LHS.get()->getType() << RHS.get()->getType()
       << SourceRange(LHS.get()->getLocStart(),
-                       RHS.get()->getLocEnd());
+                     RHS.get()->getLocEnd());
   return ExprError();
 }
 

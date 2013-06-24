@@ -637,15 +637,10 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 typeError:
-  std::string TypeStrings[2];
-  llvm::raw_string_ostream StreamLHS(TypeStrings[0]),
-      StreamRHS(TypeStrings[1]);
-  LHS.get()->getType().print(StreamLHS);
-  RHS.get()->getType().print(StreamRHS);
   Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
-      << StreamLHS.str() << StreamRHS.str()
+      << LHS.get()->getType() << RHS.get()->getType()
       << SourceRange(LHS.get()->getLocStart(),
-                       RHS.get()->getLocEnd());
+                     RHS.get()->getLocEnd());
   return StmtError();
 }
 
@@ -757,11 +752,8 @@ static inline bool IsLogicalExpression(ExprResult E) {
 }
 
 static void ReportExpectedLogical(DiagnosticsEngine &Diag, ExprResult E) {
-  std::string TypeString;
-  llvm::raw_string_ostream Stream(TypeString);
-  E.get()->getType().print(Stream);
   Diag.Report(E.get()->getLocation(), diag::err_typecheck_expected_logical_expr)
-      << Stream.str() << E.get()->getSourceRange();
+    << E.get()->getType() << E.get()->getSourceRange();
 }
 
 StmtResult Sema::ActOnIfStmt(ASTContext &C, SourceLocation Loc,
@@ -848,11 +840,8 @@ static int ExpectRealOrIntegerOrDoublePrec(DiagnosticsEngine &Diags, const Expr 
                                            unsigned DiagType = diag::err_typecheck_expected_do_expr) {
   auto T = E->getType();
   if(T->isIntegerType() || T->isRealType() || T->isDoublePrecisionType()) return 0;
-  std::string TypeString;
-  llvm::raw_string_ostream Stream(TypeString);
-  E->getType().print(Stream);
-  Diags.Report(E->getLocation(),DiagType)
-    << Stream.str() << E->getSourceRange();
+  Diags.Report(E->getLocation(), DiagType)
+    << E->getType() << E->getSourceRange();
   return 1;
 }
 
