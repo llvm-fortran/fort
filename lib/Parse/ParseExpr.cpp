@@ -794,13 +794,12 @@ ExprResult Parser::ParseF77Subscript(ExprResult Target) {
     ExprResult E = ParseExpression();
     if(E.isInvalid()) return E;
     Exprs.push_back(E);
-  } while(EatIfPresent(tok::comma));
+  } while(EatIfPresentInSameStmt(tok::comma));
 
-  if(!Tok.is(tok::r_paren)) {
+  if(!EatIfPresentInSameStmt(tok::r_paren)) {
     Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
     return ExprError();
   }
-  Lex();
   return Actions.ActOnSubscriptExpr(Context, Loc, Target, Exprs);
 }
 

@@ -2,6 +2,7 @@
 PROGRAM datatest
   INTEGER I, J, K
   REAL X,Y,Z
+  INTEGER I_ARR(10)
 
   DATA I / 1 /
   DATA J, K / 2*42 /
@@ -11,5 +12,7 @@ PROGRAM datatest
   DATA X, Y / 1 2 / ! expected-error {{expected '/'}}
 
   DATA ! expected-error@+2 {{expected an expression}}
+
+  DATA (I_ARR(I), I = 1,10) / 10*0 /
 
 END PROGRAM

@@ -622,6 +622,54 @@ ExprResult Sema::ActOnDATAConstantExpr(ASTContext &C,
                    : Value;
 }
 
+ExprResult Sema::ActOnDATAOuterImpliedDoExpr(ASTContext &C,
+                                             ExprResult Expression) {
+  return Expression;
+}
+
+ExprResult Sema::ActOnDATAImpliedDoExpr(ASTContext &C, SourceLocation Loc,
+                                        SourceLocation IDLoc,
+                                        const IdentifierInfo *IDInfo,
+                                        ArrayRef<ExprResult> Body,
+                                        ExprResult E1, ExprResult E2,
+                                        ExprResult E3) {
+  // NB: The unresolved identifier resolution is done in the OuterImpliedDo.
+
+  llvm::SmallVector<Expr*, 8> BodyExprs(Body.size());
+  for(size_t I = 0; I < BodyExprs.size(); ++I)
+    BodyExprs[I] = Body[I].take();
+
+  auto Decl = VarDecl::Create(C, CurContext, IDLoc, IDInfo, C.IntegerTy);
+
+  return ImpliedDoExpr::Create(C, Loc, Decl, BodyExprs,
+                               E1.take(), E2.take(), E3.take());
+}
+
+ExprResult Sema::ActOnDATAImpliedDoArrayElementExpr(ASTContext &C, SourceLocation Loc,
+                                                    ExprResult Target,
+                                                    ArrayRef<ExprResult> Subscripts) {
+  assert(Subscripts.size());
+  if(!CheckSubscriptExprDimensionCount(Loc, Target, Subscripts))
+    return ExprError();
+
+  llvm::SmallVector<Expr*, 8> Subs(Subscripts.size());
+  bool HasErrors = false;
+  for(size_t I = 0; I < Subscripts.size(); ++I) {
+    if(UnresolvedIdentifierExpr::classof(Subscripts[I].get())
+       || Subscripts[I].get()->getType()->isIntegerType())
+      Subs[I] = Subscripts[I].take();
+    else {
+      Diags.Report(Subscripts[I].get()->getLocation(),
+                   diag::err_expected_integer_expr)
+        << Subscripts[I].get()->getSourceRange();
+      HasErrors = true;
+    }
+  }
+  if(HasErrors) return ExprError();
+
+  return ArrayElementExpr::Create(C, Loc, Target.take(), Subs);
+}
+
 StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                      ExprResult LHS,
                                      ExprResult RHS, Expr *StmtLabel) {

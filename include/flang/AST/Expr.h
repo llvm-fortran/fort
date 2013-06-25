@@ -51,6 +51,7 @@ protected:
     ImplicitCast,
 
     Variable,
+    UnresolvedIdentifier,
     Unary,
     DefinedUnaryOperator,
 
@@ -60,6 +61,9 @@ protected:
 
     // Call Expressions
     IntrinsicFunctionCall,
+
+    //Other
+    ImpliedDo
   };
 private:
   QualType Ty;
@@ -335,6 +339,11 @@ public:
   SourceLocation getLocEnd() const;
 
   virtual void print(llvm::raw_ostream&);
+
+  static bool classof(const Expr *E) {
+    return E->getExpressionID() == Expr::RepeatedConstant;
+  }
+  static bool classof(const RepeatedConstantExpr *) { return true; }
 };
 
 
@@ -346,9 +355,8 @@ private:
     Expr **Arguments;
     Expr *Argument;
   };
-protected:
-  MultiArgumentExpr(ASTContext &C, ArrayRef<Expr*> Args);
 public:
+  MultiArgumentExpr(ASTContext &C, ArrayRef<Expr*> Args);
 
   ArrayRef<Expr*> getArguments() const {
     return NumArguments == 1? ArrayRef<Expr*>(Argument) :
@@ -599,6 +607,28 @@ public:
   static bool classof(const VarExpr *) { return true; }
 };
 
+/// UnresolvedIdentifierExpr - this is an probably a variable reference
+/// to a variable that is declared later on in the source code.
+///
+/// Used in implied DO in the DATA statement.
+class UnresolvedIdentifierExpr : public Expr {
+  const IdentifierInfo *IDInfo;
+  UnresolvedIdentifierExpr(SourceLocation Loc, const IdentifierInfo *ID);
+public:
+  static UnresolvedIdentifierExpr *Create(ASTContext &C, SourceLocation Loc,
+                                          const IdentifierInfo *IDInfo);
+  const IdentifierInfo *getIdentifier() const { return IDInfo; }
+
+  SourceLocation getLocEnd() const;
+
+  virtual void print(llvm::raw_ostream&);
+
+  static bool classof(const Expr *E) {
+    return E->getExpressionID() == Expr::UnresolvedIdentifier;
+  }
+  static bool classof(const UnresolvedIdentifierExpr *) { return true; }
+};
+
 /// UnaryExpr -
 class UnaryExpr : public Expr {
 public:
@@ -787,6 +817,38 @@ public:
 
   static bool classof(const Expr *E) {
     return E->getExpressionID() == Expr::IntrinsicFunctionCall;
+  }
+  static bool classof(const IntrinsicFunctionCallExpr *) { return true; }
+};
+
+/// ImpliedDoExpr - represents an implied do in a DATA statement
+class ImpliedDoExpr : public Expr {
+  VarDecl *DoVar;
+  MultiArgumentExpr DoList;
+  Expr *Init, *Terminate, *Increment;
+
+  ImpliedDoExpr(ASTContext &C, SourceLocation Loc,
+                VarDecl *Var, ArrayRef<Expr*> Body,
+                Expr *InitialParam, Expr *TerminalParam,
+                Expr *IncrementationParam);
+public:
+  static ImpliedDoExpr *Create(ASTContext &C, SourceLocation Loc,
+                               VarDecl *DoVar, ArrayRef<Expr*> Body,
+                               Expr *InitialParam, Expr *TerminalParam,
+                               Expr *IncrementationParam);
+
+  VarDecl *getVarDecl() const { return DoVar; }
+  ArrayRef<Expr*> getBody() const { return DoList.getArguments(); }
+  Expr *getInitialParameter() const { return Init; }
+  Expr *getTerminalParameter() const { return Terminate; }
+  Expr *getIncrementationParameter() const { return Increment; }
+
+  SourceLocation getLocEnd() const;
+
+  virtual void print(llvm::raw_ostream &);
+
+  static bool classof(const Expr *E) {
+    return E->getExpressionID() == ImpliedDo;
   }
   static bool classof(const IntrinsicFunctionCallExpr *) { return true; }
 };

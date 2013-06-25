@@ -290,18 +290,27 @@ ExprResult Sema::ActOnSubstringExpr(ASTContext &C, SourceLocation Loc, ExprResul
                                StartingPoint.take(), EndPoint.take());
 }
 
-ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
-                                    llvm::ArrayRef<ExprResult> Subscripts) {
-  assert(Subscripts.size());
+bool Sema::CheckSubscriptExprDimensionCount(SourceLocation Loc,
+                                            ExprResult Target,
+                                            ArrayRef<ExprResult> Arguments) {
   auto AT = Target.get()->getType().getTypePtr()->asArrayType();
   assert(AT);
-  if(AT->getDimensionCount() != Subscripts.size()) {
+  if(AT->getDimensionCount() != Arguments.size()) {
     Diags.Report(Loc,
                  diag::err_array_subscript_dimension_count_mismatch)
       << int(AT->getDimensionCount())
-      << SourceRange(Loc, Subscripts.back().get()->getLocEnd());
-    return ExprError();
+      << SourceRange(Loc, Arguments.back().get()->getLocEnd());
+    return false;
   }
+  return true;
+}
+
+ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
+                                    llvm::ArrayRef<ExprResult> Subscripts) {
+  assert(Subscripts.size());
+  if(!CheckSubscriptExprDimensionCount(Loc, Target, Subscripts))
+    return ExprError();
+
   llvm::SmallVector<Expr*, 8> Subs(Subscripts.size());
   //FIXME constraint
   //A subscript expression may contain array element references and function references.

@@ -257,9 +257,24 @@ public:
                        ArrayRef<ExprResult> LHS,
                        ArrayRef<ExprResult> RHS,
                        Expr *StmtLabel);
+
   ExprResult ActOnDATAConstantExpr(ASTContext &C, SourceLocation RepeatLoc,
                                    ExprResult RepeatCount,
                                    ExprResult Value);
+
+  ExprResult ActOnDATAOuterImpliedDoExpr(ASTContext &C,
+                                         ExprResult Expression);
+
+  ExprResult ActOnDATAImpliedDoExpr(ASTContext &C, SourceLocation Loc,
+                                    SourceLocation IDLoc,
+                                    const IdentifierInfo *IDInfo,
+                                    ArrayRef<ExprResult> Body,
+                                    ExprResult E1, ExprResult E2,
+                                    ExprResult E3);
+
+  ExprResult ActOnDATAImpliedDoArrayElementExpr(ASTContext &C, SourceLocation Loc,
+                                                ExprResult Target,
+                                                ArrayRef<ExprResult> Subscripts);
 
   StmtResult ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                  ExprResult LHS,
@@ -331,12 +346,21 @@ public:
 
   ExprResult ActOnSubstringExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
                                 ExprResult StartingPoint, ExprResult EndPoint);
+
   ExprResult ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
                                 llvm::ArrayRef<ExprResult> Subscripts);
 
   ExprResult ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
                                             const IntrinsicFunctionDecl *FunctionDecl,
                                             ArrayRef<ExprResult> Arguments);
+
+private:
+
+  /// Returns true if the subscript expression has the
+  /// right amount of dimensions.
+  bool CheckSubscriptExprDimensionCount(SourceLocation Loc,
+                                        ExprResult Target,
+                                        ArrayRef<ExprResult> Arguments);
 
 };
 

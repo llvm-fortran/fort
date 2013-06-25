@@ -232,6 +232,23 @@ SourceLocation VarExpr::getLocEnd() const {
                                Variable->getIdentifier()->getLength());
 }
 
+UnresolvedIdentifierExpr::UnresolvedIdentifierExpr(SourceLocation Loc,
+                                                   const IdentifierInfo *ID)
+  : Expr(UnresolvedIdentifier, QualType(), Loc), IDInfo(ID) {
+}
+
+UnresolvedIdentifierExpr *UnresolvedIdentifierExpr::Create(ASTContext &C,
+                                                           SourceLocation Loc,
+                                                           const IdentifierInfo *IDInfo) {
+  return new(C) UnresolvedIdentifierExpr(Loc, IDInfo);
+}
+
+SourceLocation UnresolvedIdentifierExpr::getLocEnd() const {
+  return SourceLocation::getFromPointer(getLocation().getPointer() +
+                                        IDInfo->getLength());
+}
+
+
 UnaryExpr *UnaryExpr::Create(ASTContext &C, SourceLocation Loc, Operator Op,
                              Expr *E) {
   return new (C) UnaryExpr(Expr::Unary,
@@ -341,6 +358,27 @@ Create(ASTContext &C, SourceLocation Loc,
 
 SourceLocation IntrinsicFunctionCallExpr::getLocEnd() const {
   return getArguments().back()->getLocEnd();
+}
+
+ImpliedDoExpr::ImpliedDoExpr(ASTContext &C, SourceLocation Loc,
+                             VarDecl *Var, ArrayRef<Expr*> Body,
+                             Expr *InitialParam, Expr *TerminalParam,
+                             Expr *IncrementationParam)
+  : Expr(ImpliedDo, QualType(), Loc), DoVar(Var),
+    DoList(C, Body), Init(InitialParam), Terminate(TerminalParam),
+    Increment(IncrementationParam) {
+}
+
+ImpliedDoExpr *ImpliedDoExpr::Create(ASTContext &C, SourceLocation Loc,
+                                     VarDecl *DoVar, ArrayRef<Expr*> Body,
+                                     Expr *InitialParam, Expr *TerminalParam,
+                                     Expr *IncrementationParam) {
+  return new(C) ImpliedDoExpr(C, Loc, DoVar, Body, InitialParam,
+                              TerminalParam, IncrementationParam);
+}
+
+SourceLocation ImpliedDoExpr::getLocEnd() const {
+  return Terminate->getLocEnd();
 }
 
 //===----------------------------------------------------------------------===//
@@ -463,6 +501,10 @@ void VarExpr::print(llvm::raw_ostream &O) {
   O << *Variable;
 }
 
+void UnresolvedIdentifierExpr::print(llvm::raw_ostream &O) {
+  O << getIdentifier();
+}
+
 void BinaryExpr::print(llvm::raw_ostream &O) {
   O << '(';
   LHS->print(O);
@@ -496,6 +538,25 @@ void DefinedOperatorBinaryExpr::print(llvm::raw_ostream &O) {
   LHS->print(O);
   II->getName();
   RHS->print(O);
+  O << ')';
+}
+
+void ImpliedDoExpr::print(llvm::raw_ostream &O) {
+  O << '(';
+  auto Body = getBody();
+  for(size_t I = 0; I < Body.size(); ++I) {
+    if(I) O << ", ";
+    Body[I]->print(O);
+  }
+  O << ", " << getVarDecl();
+  O << " = ";
+  getInitialParameter()->print(O);
+  O << ", ";
+  getTerminalParameter()->print(O);
+  if(getIncrementationParameter()) {
+     O << ", ";
+     getIncrementationParameter()->print(O);
+  }
   O << ')';
 }
 

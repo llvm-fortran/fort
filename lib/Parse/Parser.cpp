@@ -14,6 +14,7 @@
 #include "flang/Parse/Parser.h"
 #include "flang/Parse/LexDiagnostic.h"
 #include "flang/Parse/ParseDiagnostic.h"
+#include "flang/Sema/SemaDiagnostic.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
@@ -1305,18 +1306,19 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
       return StmtError();
     }
 
-    /// Implied do list
-    if(EatIfPresentInSameStmt(tok::l_paren)) {
-      ParseDATAStmtImpliedDo();
-    } else {
-       auto E = ParsePrimaryExpr();
-       if(E.isInvalid()) {
-         return StmtError();
-       }
-       Names.push_back(E);
+    ExprResult E;
+    if(Tok.is(tok::l_paren)) {
+      E = ParseDATAStmtImpliedDo();
+      if(E.isUsable())
+        E = Actions.ActOnDATAOuterImpliedDoExpr(Context, E);
     }
-  } while(EatIfPresentInSameStmt(tok::comma));
+    else
+       E = ParsePrimaryExpr();
 
+     if(E.isInvalid())
+       return StmtError();
+     Names.push_back(E);
+  } while(EatIfPresentInSameStmt(tok::comma));
 
   // clist
   if(!EatIfPresentInSameStmt(tok::slash)) {
@@ -1358,41 +1360,163 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
   return Actions.ActOnDATA(Context, Loc, Names, Values, nullptr);
 }
 
-Parser::StmtResult Parser::ParseDATAStmtImpliedDo() {
-  /// Another implied DO
-  if(EatIfPresentInSameStmt(tok::l_paren)) {
-    auto Result = ParseDATAStmtImpliedDo();
+Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
+  auto Loc = Tok.getLocation();
+  Lex();
+
+  SmallVector<ExprResult, 8> DList;
+  ExprResult E1, E2, E3;
+
+  while(true) {
+    ExprResult E;
+    if(Tok.isAtStartOfStatement()) {
+      Diag.Report(Tok.getLocation(), diag::err_expected_expression);
+      return ExprError();
+    }
+
+    if(Tok.is(tok::l_paren))
+      E = ParseDATAStmtImpliedDo();
+    else
+      E = ParseDATAStmtImpliedDoArrayElementExpr();
+
+    if(E.isInvalid()) return ExprError();
+    DList.push_back(E);
+
+    if(EatIfPresentInSameStmt(tok::comma)) {
+      if(Tok.isAtStartOfStatement()) {
+        Diag.Report(Tok.getLocation(), diag::err_expected_expression);
+        return ExprError();
+      }
+      if(PeekAhead().is(tok::equal)) break;
+    } else {
+      Diag.Report(Tok.getLocation(), diag::err_expected_comma);
+      return ExprError();
+    }
   }
-  if(!EatIfPresentInSameStmt(tok::comma)) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_comma);
-    return StmtError();
-  }
-  if(!Tok.isAtStartOfStatement() ||
-     !(Tok.is(tok::identifier) ||
-      (Tok.getIdentifierInfo() &&
-       isaKeyword(Tok.getIdentifierInfo()->getName())))) {
+
+  if(!(Tok.is(tok::identifier) ||
+     (Tok.getIdentifierInfo() &&
+      isaKeyword(Tok.getIdentifierInfo()->getName())))) {
     Diag.Report(Tok.getLocation(), diag::err_expected_ident);
+    return ExprError();
   }
   auto IDLoc = Tok.getLocation();
   auto IDInfo = Tok.getIdentifierInfo();
+  Lex();
   if(!EatIfPresentInSameStmt(tok::equal)) {
     Diag.Report(Tok.getLocation(), diag::err_expected_equal);
-    return StmtError();
+    return ExprError();
   }
-  auto E1 = ParseExpectedFollowupExpression("=");
+  if(Tok.isAtStartOfStatement()) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_expression_after)
+      << "=";
+    return ExprError();
+  }
+  E1 = ParseDATAStmtImpliedDoExpr();
   if(!EatIfPresentInSameStmt(tok::comma)) {
     Diag.Report(Tok.getLocation(), diag::err_expected_comma);
-    return StmtError();
+    return ExprError();
   }
-  auto E2 = ParseExpectedFollowupExpression(",");
-  ExprResult E3;
+  if(Tok.isAtStartOfStatement()) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_expression_after)
+      << ",";
+    return ExprError();
+  }
+  E2 = ParseDATAStmtImpliedDoExpr();
   if(EatIfPresentInSameStmt(tok::comma)) {
-    E3 = ParseExpectedFollowupExpression(",");
+    if(Tok.isAtStartOfStatement()) {
+      Diag.Report(Tok.getLocation(), diag::err_expected_expression_after)
+        << ",";
+      return ExprError();
+    }
+    E3 = ParseDATAStmtImpliedDoExpr();
   }
 
   if(!EatIfPresentInSameStmt(tok::r_paren)) {
     Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
-    return StmtError();
+    return ExprError();
+  }
+
+  return Actions.ActOnDATAImpliedDoExpr(Context, Loc, IDLoc, IDInfo,
+                                        DList, E1, E2, E3);
+}
+
+Parser::ExprResult Parser::ParseDATAStmtImpliedDoArrayElementExpr() {
+  if(!(Tok.is(tok::identifier) ||
+     (Tok.getIdentifierInfo() &&
+     isaKeyword(Tok.getIdentifierInfo()->getName())))) {
+   Diag.Report(Tok.getLocation(), diag::err_expected_ident);
+   return ExprError();
+  }
+  auto IDLoc = Tok.getLocation();
+  auto IDInfo = Tok.getIdentifierInfo();
+  auto Declaration = Actions.ResolveIdentifier(Tok.getIdentifierInfo());
+  Lex();
+  if(!Declaration) {
+    Diag.Report(IDLoc, diag::err_undeclared_var_use)
+     << IDInfo;
+    return ExprError();
+  }
+  auto Var = dyn_cast<VarDecl>(Declaration);
+  if(!Var ||
+    !Var->getType()->isArrayType()) {
+    // FIXME: proper error.
+    Diag.Report(IDLoc, diag::err_undeclared_var_use)
+     << IDInfo;
+    return ExprError();
+  }
+  auto VarExpr = VarExpr::Create(Context, IDLoc, Var);
+
+  SmallVector<ExprResult, 8> Subscripts;
+  auto SubscriptsLoc = Tok.getLocation();
+  if(!EatIfPresentInSameStmt(tok::l_paren)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_lparen);
+    return ExprError();
+  }
+
+  do {
+    if(Tok.isAtStartOfStatement()) {
+      Diag.Report(Tok.getLocation(), diag::err_expected_expression);
+      return ExprError();
+    }
+
+    auto SubE = ParseDATAStmtImpliedDoExpr();
+    if(SubE.isInvalid()) return ExprError();
+    Subscripts.push_back(SubE);
+  } while(EatIfPresentInSameStmt(tok::comma));
+
+  if(!EatIfPresentInSameStmt(tok::r_paren)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
+    return ExprError();
+  }
+
+  return Actions.ActOnDATAImpliedDoArrayElementExpr(Context, SubscriptsLoc, VarExpr, Subscripts);
+}
+
+Parser::ExprResult Parser::ParseDATAStmtImpliedDoExpr() {
+  if(Tok.is(tok::int_literal_constant)|| Tok.is(tok::real_literal_constant)
+     || Tok.is(tok::binary_boz_constant) || Tok.is(tok::octal_boz_constant)
+     || Tok.is(tok::hex_boz_constant) || Tok.is(tok::logical_literal_constant)) {
+    return ParsePrimaryExpr();
+  } else if(Tok.is(tok::char_literal_constant)) {
+    std::string NumStr;
+    CleanLiteral(Tok, NumStr);
+    auto E = CharacterConstantExpr::Create(Context, Tok.getLocation(),
+                                           getMaxLocationOfCurrentToken(),
+                                           StringRef(NumStr));
+    Lex();
+    return E;
+  } else {
+    if(!(Tok.is(tok::identifier) ||
+       (Tok.getIdentifierInfo() &&
+        isaKeyword(Tok.getIdentifierInfo()->getName())))) {
+      Diag.Report(Tok.getLocation(), diag::err_expected_ident);
+      return ExprError();
+    }
+    auto E = UnresolvedIdentifierExpr::Create(Context, Tok.getLocation(),
+                                              Tok.getIdentifierInfo());
+    Lex();
+    return E;
   }
 }
 
