@@ -144,6 +144,26 @@ LogicalConstantExpr *LogicalConstantExpr::Create(ASTContext &C, SourceLocation L
   return new (C) LogicalConstantExpr(C, Loc, MaxLoc, Data);
 }
 
+RepeatedConstantExpr::RepeatedConstantExpr(SourceLocation Loc,
+                                           IntegerConstantExpr *Repeat,
+                                           Expr *Expression)
+  : Expr(RepeatedConstant, Expression->getType(), Loc),
+    RepeatCount(Repeat), E(Expression) {
+}
+
+RepeatedConstantExpr *RepeatedConstantExpr::Create(ASTContext &C, SourceLocation Loc,
+                                                   IntegerConstantExpr *RepeatCount,
+                                                   Expr* Expression) {
+  return new (C) RepeatedConstantExpr(Loc, RepeatCount, Expression);
+}
+
+SourceLocation RepeatedConstantExpr::getLocStart() const {
+  return RepeatCount->getLocStart();
+}
+SourceLocation RepeatedConstantExpr::getLocEnd() const {
+  return E->getLocEnd();
+}
+
 MultiArgumentExpr::MultiArgumentExpr(ASTContext &C, ArrayRef<Expr*> Args) {
   assert(Args.size() > 0);
   NumArguments = Args.size();
@@ -432,6 +452,11 @@ void CharacterConstantExpr::print(llvm::raw_ostream &O) {
 
 void LogicalConstantExpr::print(llvm::raw_ostream &O) {
   O << (isTrue()? "true" : "false");
+}
+
+void RepeatedConstantExpr::print(llvm::raw_ostream &O) {
+  O << getRepeatCount() << "*";
+  getExpression()->print(O);
 }
 
 void VarExpr::print(llvm::raw_ostream &O) {

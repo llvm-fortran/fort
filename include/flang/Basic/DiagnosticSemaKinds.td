@@ -16,6 +16,8 @@ let CategoryName = "Semantic Issue" in {
 
 def err_expected_integer_expr : Error<
   "expected an integer expression">;
+def err_expected_integer_gt_0 : Error<
+  "expected an integer greater than 0">;
 
 def err_typecheck_assign_incompatible : Error<
   "assigning to %0 from incompatible type %1">;
@@ -88,6 +90,8 @@ def err_parameter_requires_const_init : Error<
   "parameter %0 must be initialized by a constant expression">;
 def note_parameter_value_invalid_expr : Note<
   "this expression is not allowed in a constant expression">;
+def err_expected_constant_expr : Error<
+  "expected a constant expression">;
 
 def err_intrinsic_invalid_func : Error<
   "invalid function name %0 in an intrinsic statement">;

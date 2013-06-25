@@ -44,6 +44,7 @@ def err_expected_rbrace : Error<"expected '}'">;
 def err_expected_colon : Error<"expected ':'">;
 def err_expected_equal : Error<"expected '='">;
 def err_expected_comma : Error<"expected ','">;
+def err_expected_slash : Error<"expected '/'">;
 def err_expected_kw : Error<"expected '%0'">;
 def err_expected_stmt_label : Error<"expected statement label">;
 def err_expected_stmt_label_after : Error<"expected statement label after '%0'">;

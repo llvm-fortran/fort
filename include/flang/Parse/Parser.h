@@ -224,6 +224,8 @@ private:
   StmtResult ParseBINDStmt();
   StmtResult ParseCOMMONStmt();
   StmtResult ParseDATAStmt();
+  StmtResult ParseDATAStmtPart(SourceLocation Loc);
+  StmtResult ParseDATAStmtImpliedDo();
   bool ParseDIMENSIONStmt(std::vector<StmtResult> &Stmts);
   StmtResult ParseEQUIVALENCEStmt();
   StmtResult ParseEXTERNALStmt();

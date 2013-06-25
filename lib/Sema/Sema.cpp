@@ -578,6 +578,50 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
+StmtResult Sema::ActOnDATA(ASTContext &C, SourceLocation Loc,
+                           ArrayRef<ExprResult> LHS,
+                           ArrayRef<ExprResult> RHS,
+                           Expr *StmtLabel) {
+  return StmtError();
+}
+
+ExprResult Sema::ActOnDATAConstantExpr(ASTContext &C,
+                                       SourceLocation RepeatLoc,
+                                       ExprResult RepeatCount,
+                                       ExprResult Value) {
+  IntegerConstantExpr *RepeatExpr = nullptr;
+  bool HasErrors = false;
+
+  if(RepeatCount.isUsable()) {
+    RepeatExpr = dyn_cast<IntegerConstantExpr>(RepeatCount.get());
+    if(!RepeatExpr ||
+       RepeatExpr->getValue().isNegative() ||
+       !RepeatExpr->getValue()) {
+      Diags.Report(RepeatCount.get()->getLocation(),
+                   diag::err_expected_integer_gt_0)
+        << RepeatCount.get()->getSourceRange();
+      HasErrors = true;
+    }
+  }
+
+  auto Constant = dyn_cast<ConstantExpr>(Value.get());
+  if(!Constant) {
+    /// the value can also be a constant variable
+    VarExpr *Var = dyn_cast<VarExpr>(Value.get());
+    if(!(Var && Var->getVarDecl()->isParameter())) {
+      Diags.Report(Value.get()->getLocation(),
+                   diag::err_expected_constant_expr)
+        << Value.get()->getSourceRange();
+      HasErrors = true;
+    }
+  }
+
+  if(HasErrors) return ExprError();
+  return RepeatExpr? RepeatedConstantExpr::Create(C, RepeatLoc,
+                                                  RepeatExpr, Value.take())
+                   : Value;
+}
+
 StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                      ExprResult LHS,
                                      ExprResult RHS, Expr *StmtLabel) {

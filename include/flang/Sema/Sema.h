@@ -252,6 +252,15 @@ public:
                             const IdentifierInfo *IDInfo,
                             Expr *StmtLabel);
 
+  // DATA statement:
+  StmtResult ActOnDATA(ASTContext &C, SourceLocation Loc,
+                       ArrayRef<ExprResult> LHS,
+                       ArrayRef<ExprResult> RHS,
+                       Expr *StmtLabel);
+  ExprResult ActOnDATAConstantExpr(ASTContext &C, SourceLocation RepeatLoc,
+                                   ExprResult RepeatCount,
+                                   ExprResult Value);
+
   StmtResult ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                  ExprResult LHS,
                                  ExprResult RHS, Expr *StmtLabel);

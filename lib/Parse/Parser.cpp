@@ -1143,7 +1143,7 @@ bool Parser::ParseSpecificationStmt(std::vector<StmtResult> &Body) {
     goto notImplemented;
   case tok::kw_DATA:
     Result = ParseDATAStmt();
-    goto notImplemented;
+    break;
   case tok::kw_DIMENSION:
     ParseDIMENSIONStmt(Body);
     return false;
@@ -1279,7 +1279,121 @@ Parser::StmtResult Parser::ParseCOMMONStmt() {
 ///     data-stmt :=
 ///         DATA data-stmt-set [ [,] data-stmt-set ] ...
 Parser::StmtResult Parser::ParseDATAStmt() {
-  return StmtResult();
+  SourceLocation Loc = Tok.getLocation();
+  Lex();
+
+  SmallVector<Stmt *,8> StmtList;
+
+  while(true) {
+    auto Stmt = ParseDATAStmtPart(Loc);
+    if(Stmt.isInvalid()) return StmtError();
+    StmtList.push_back(Stmt.take());
+    if(Tok.isAtStartOfStatement()) break;
+  }
+
+  return Actions.ActOnBundledCompoundStmt(Context, Loc, StmtList, StmtLabel);
+}
+
+Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
+  SmallVector<ExprResult, 8> Names;
+  SmallVector<ExprResult, 8> Values;
+
+  // nlist
+  do {
+    if(Tok.isAtStartOfStatement()) {
+      Diag.Report(Tok.getLocation(), diag::err_expected_expression);
+      return StmtError();
+    }
+
+    /// Implied do list
+    if(EatIfPresentInSameStmt(tok::l_paren)) {
+      ParseDATAStmtImpliedDo();
+    } else {
+       auto E = ParsePrimaryExpr();
+       if(E.isInvalid()) {
+         return StmtError();
+       }
+       Names.push_back(E);
+    }
+  } while(EatIfPresentInSameStmt(tok::comma));
+
+
+  // clist
+  if(!EatIfPresentInSameStmt(tok::slash)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_slash);
+    return StmtError();
+  }
+
+  do {
+    if(Tok.isAtStartOfStatement()) {
+      Diag.Report(Tok.getLocation(), diag::err_expected_expression);
+      return StmtError();
+    }
+
+    ExprResult Repeat;
+    SourceLocation RepeatLoc;
+    if(Tok.is(tok::int_literal_constant)
+       && PeekAhead().is(tok::star)) {
+      Repeat = ParsePrimaryExpr();
+      RepeatLoc = Tok.getLocation();
+      EatIfPresentInSameStmt(tok::star);
+      if(Tok.isAtStartOfStatement()) {
+        Diag.Report(Tok.getLocation(), diag::err_expected_expression);
+        return StmtError();
+      }
+    }
+    auto Value = ParsePrimaryExpr();
+    if(Value.isInvalid()) return StmtError();
+
+    Value = Actions.ActOnDATAConstantExpr(Context, RepeatLoc, Repeat, Value);
+    if(Value.isUsable())
+      Values.push_back(Value);
+  } while(EatIfPresentInSameStmt(tok::comma));
+
+  if(!EatIfPresentInSameStmt(tok::slash)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_slash);
+    return StmtError();
+  }
+
+  return Actions.ActOnDATA(Context, Loc, Names, Values, nullptr);
+}
+
+Parser::StmtResult Parser::ParseDATAStmtImpliedDo() {
+  /// Another implied DO
+  if(EatIfPresentInSameStmt(tok::l_paren)) {
+    auto Result = ParseDATAStmtImpliedDo();
+  }
+  if(!EatIfPresentInSameStmt(tok::comma)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_comma);
+    return StmtError();
+  }
+  if(!Tok.isAtStartOfStatement() ||
+     !(Tok.is(tok::identifier) ||
+      (Tok.getIdentifierInfo() &&
+       isaKeyword(Tok.getIdentifierInfo()->getName())))) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_ident);
+  }
+  auto IDLoc = Tok.getLocation();
+  auto IDInfo = Tok.getIdentifierInfo();
+  if(!EatIfPresentInSameStmt(tok::equal)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_equal);
+    return StmtError();
+  }
+  auto E1 = ParseExpectedFollowupExpression("=");
+  if(!EatIfPresentInSameStmt(tok::comma)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_comma);
+    return StmtError();
+  }
+  auto E2 = ParseExpectedFollowupExpression(",");
+  ExprResult E3;
+  if(EatIfPresentInSameStmt(tok::comma)) {
+    E3 = ParseExpectedFollowupExpression(",");
+  }
+
+  if(!EatIfPresentInSameStmt(tok::r_paren)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
+    return StmtError();
+  }
 }
 
 /// ParseDIMENSIONStmt - Parse the DIMENSION statement.

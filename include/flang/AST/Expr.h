@@ -47,6 +47,7 @@ protected:
     CharacterConstant,
     BOZConstant,
     LogicalConstant,
+    RepeatedConstant,
     ImplicitCast,
 
     Variable,
@@ -313,6 +314,29 @@ public:
   }
   static bool classof(const LogicalConstantExpr *) { return true; }
 };
+
+/// This is a constant repeated several times,
+/// for example in DATA statement - 15*0
+class RepeatedConstantExpr : public Expr {
+  IntegerConstantExpr *RepeatCount;
+  Expr *E;
+  RepeatedConstantExpr(SourceLocation Loc,
+                       IntegerConstantExpr *Repeat,
+                       Expr *Expression);
+public:
+  static RepeatedConstantExpr *Create(ASTContext &C, SourceLocation Loc,
+                                      IntegerConstantExpr *RepeatCount,
+                                      Expr *Expression);
+
+  APInt getRepeatCount() const { return RepeatCount->getValue(); }
+  Expr *getExpression() const { return E; }
+
+  SourceLocation getLocStart() const;
+  SourceLocation getLocEnd() const;
+
+  virtual void print(llvm::raw_ostream&);
+};
+
 
 /// An expression with multiple arguments.
 class MultiArgumentExpr {
