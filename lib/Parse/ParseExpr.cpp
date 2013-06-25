@@ -388,32 +388,6 @@ void Parser::SetKindSelector(ConstantExpr *E, StringRef Kind) {
   E->setKindSelector(KindExpr);
 }
 
-static llvm::APFloat GetNumberConstant(ExprResult E) {
-  Expr *Expr = E.get();
-  if(RealConstantExpr::classof(Expr))
-    return static_cast<RealConstantExpr*>(Expr)->getValue();
-  else {
-    assert(IntegerConstantExpr::classof(Expr));
-    llvm::APInt Int = static_cast<IntegerConstantExpr*>(Expr)->getValue();
-    llvm::APFloat result(llvm::APFloat::IEEEsingle);
-    result.convertFromAPInt(Int,true,llvm::APFloat::rmNearestTiesToEven);
-    return result;
-  }
-}
-
-// Parses a complex constant
-//   := (X,X)
-//     X := integer-constant | real-constant
-Parser::ExprResult Parser::ParseComplexConstant(SourceLocation Loc) {
-  ExprResult X,Y;
-  X = ParsePrimaryExpr();
-  Expect(tok::comma,"Expected ',' after the real part");
-  Y = ParsePrimaryExpr();
-  APFloat Re = GetNumberConstant(X), Im = GetNumberConstant(Y);
-  return ComplexConstantExpr::Create(Context, Loc,
-                                     getMaxLocationOfCurrentToken(), Re, Im);
-}
-
 // ParsePrimaryExpr - Parse a primary expression.
 //
 //   [R701]:
@@ -443,19 +417,21 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
   case tok::l_paren: {
     Lex();
 
-    // Check for a complex constant
-    if((Tok.is(tok::int_literal_constant) ||
-       Tok.is(tok::real_literal_constant)) &&
-       PeekAhead().is(tok::comma)) {
-      //complex constant
-      E = ParseComplexConstant(Loc);
-    } else E = ParseExpression();
+    E = ParseExpression();
+    // complex constant.
+    if(EatIfPresentInSameStmt(tok::comma)) {
+      if(E.isInvalid()) return E;
+      auto ImPart = ParseExpression();
+      if(ImPart.isInvalid()) return ImPart;
+      E = Actions.ActOnComplexConstantExpr(Context, Loc,
+                                           getMaxLocationOfCurrentToken(),
+                                           E, ImPart);
+    }
 
-    if (Tok.isNot(tok::r_paren)) {
+    if (!EatIfPresentInSameStmt(tok::r_paren)) {
       Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
       return ExprError();
     }
-    Lex();
     break;
   }
   case tok::logical_literal_constant: {

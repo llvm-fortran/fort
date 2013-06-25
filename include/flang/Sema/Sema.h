@@ -333,6 +333,10 @@ public:
     return ExprResult();
   }
 
+  ExprResult ActOnComplexConstantExpr(ASTContext &C, SourceLocation Loc,
+                                      SourceLocation MaxLoc,
+                                      ExprResult RealPart, ExprResult ImPart);
+
   ExprResult ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,
                             UnaryExpr::Operator Op, ExprResult E);
 

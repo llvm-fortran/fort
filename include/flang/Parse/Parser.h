@@ -293,7 +293,6 @@ private:
   ExprResult ParseLevel1Expr();
   ExprResult ParsePrimaryExpr(bool IsLvalue = false);
   ExprResult ParseExpression();
-  ExprResult ParseComplexConstant(SourceLocation Loc);
   ExprResult ParseFunctionCallArgumentList(SmallVectorImpl<ExprResult> &Args);
 
   /// \brief Looks at the next token to see if it's an expression

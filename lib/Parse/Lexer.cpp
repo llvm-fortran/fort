@@ -1118,17 +1118,9 @@ LexIdentifier:
     break;
   // [TODO]: Arithmetical Operators
   case '+':
-    Char = peekNextChar();
-    if(isDecimalNumberBody(Char)) {
-      return LexNumericConstant(Result);
-    }
     Kind = tok::plus;
     break;
   case '-':
-    Char = peekNextChar();
-    if(isDecimalNumberBody(Char)) {
-      return LexNumericConstant(Result);
-    }
     Kind = tok::minus;
     break;
   case '*':

@@ -9,13 +9,13 @@ PROGRAM expressions
   Z = 2.0
   W = 3.0
 
-  X = X + Y - Z + W ! CHECK: (((X+Y)-Z)+W)
-  X = X + Y * Z ! CHECK: (X+(Y*Z))
+  X = X + Y-Z + W ! CHECK: (((X+Y)-Z)+W)
+  X = X+Y * Z ! CHECK: (X+(Y*Z))
   X = X * Y + Z ! CHECK: ((X*Y)+Z)
   X = (X + Y) * Z ! CHECK: ((X+Y)*Z)
   X = X * Y ** Z ! CHECK: (X*(Y**Z))
   X = X + Y ** Z / W ! CHECK: (X+((Y**Z)/W))
-  X = X + Y ** (Z / W) ! CHECK: (X+(Y**(Z/W)))
+  X = X+Y ** (Z / W) ! CHECK: (X+(Y**(Z/W)))
 
   X = (X + Y) * Z - W ! CHECK: (((X+Y)*Z)-W)
   X = X + Y * -Z ! CHECK: (X+(Y*(-Z)))

@@ -27,6 +27,35 @@ static TypeSpecifierType GetArithmeticTypeSpec(const Type *T) {
   else return TST_unspecified;
 }
 
+static llvm::APFloat GetNumberConstant(DiagnosticsEngine &Diags, Expr *E) {
+  if(auto Real = dyn_cast<RealConstantExpr>(E)) {
+    return Real->getValue();
+  } else if(auto Int = dyn_cast<IntegerConstantExpr>(E)) {
+    llvm::APFloat result(llvm::APFloat::IEEEsingle);
+    result.convertFromAPInt(Int->getValue(),true,llvm::APFloat::rmNearestTiesToEven);
+    return result;
+  } else if(auto Unary = dyn_cast<UnaryExpr>(E)) {
+    auto Value = GetNumberConstant(Diags, Unary->getExpression());
+    if(Unary->getOperator() == UnaryExpr::Minus)
+      Value.changeSign();
+    return Value;
+  } else {
+    Diags.Report(E->getLocation(), diag::err_expected_integer_or_real_constant_expr)
+     << E->getSourceRange();
+    return llvm::APFloat(0.0);
+  }
+}
+
+
+ExprResult Sema::ActOnComplexConstantExpr(ASTContext &C, SourceLocation Loc,
+                                          SourceLocation MaxLoc,
+                                          ExprResult RealPart, ExprResult ImPart) {
+  APFloat Re = GetNumberConstant(Diags, RealPart.take()),
+          Im = GetNumberConstant(Diags, ImPart.take());
+  return ComplexConstantExpr::Create(C, Loc,
+                                     MaxLoc, Re, Im);
+}
+
 ExprResult Sema::ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,
                                 UnaryExpr::Operator Op, ExprResult E) {
   unsigned DiagType = 0;

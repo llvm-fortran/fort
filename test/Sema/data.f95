@@ -17,6 +17,8 @@ PROGRAM datatest
   ! FIXME: DATA X / PI /
 
   DATA (I_ARR(I), I = 1,10) / 10*0 /
+  DATA (I_ARR(I), I = 0 + 1, 20/2) / 10*0 /
+
   DATA (I_ARR(WHAT), I = 1,10) / 10*0 / ! expected-error {{use of undeclared identifier 'WHAT'}}
 
   DATA (ZZZ, I = 1,10) / 1 / ! expected-error {{expected an implied do or an array element expression}}
@@ -28,6 +30,7 @@ PROGRAM datatest
 
   DATA ((I_ARR2(I,J), J = 1,2), I_ARR(I), I = 1,2) / 4*3, 2*0 /
 
+  !FIXME: change error type.
   DATA ((I_ARR2(I,J), J = 1,2), I_ARR(J), I = 1,2) / 4*3, 2*0 / ! expected-error {{use of undeclared identifier 'J'}}
 
 END PROGRAM

@@ -13,7 +13,7 @@ PROGRAM imptest
 
   C = A ! CHECK: C = REAL(A)
   D = C ! CHECK: D = C
-  E = -1.0 ! CHECK: E = -1
+  E = -1.0 ! CHECK: E = (-1)
   F = C ! CHECK: F = C
 
   I = 0 ! CHECK: I = 0
