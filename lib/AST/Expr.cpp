@@ -232,15 +232,16 @@ SourceLocation VarExpr::getLocEnd() const {
                                Variable->getIdentifier()->getLength());
 }
 
-UnresolvedIdentifierExpr::UnresolvedIdentifierExpr(SourceLocation Loc,
+UnresolvedIdentifierExpr::UnresolvedIdentifierExpr(ASTContext &C,
+                                                   SourceLocation Loc,
                                                    const IdentifierInfo *ID)
-  : Expr(UnresolvedIdentifier, QualType(), Loc), IDInfo(ID) {
+  : Expr(UnresolvedIdentifier, C.IntegerTy, Loc), IDInfo(ID) {
 }
 
 UnresolvedIdentifierExpr *UnresolvedIdentifierExpr::Create(ASTContext &C,
                                                            SourceLocation Loc,
                                                            const IdentifierInfo *IDInfo) {
-  return new(C) UnresolvedIdentifierExpr(Loc, IDInfo);
+  return new(C) UnresolvedIdentifierExpr(C, Loc, IDInfo);
 }
 
 SourceLocation UnresolvedIdentifierExpr::getLocEnd() const {

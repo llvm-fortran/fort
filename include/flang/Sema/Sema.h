@@ -272,10 +272,6 @@ public:
                                     ExprResult E1, ExprResult E2,
                                     ExprResult E3);
 
-  ExprResult ActOnDATAImpliedDoArrayElementExpr(ASTContext &C, SourceLocation Loc,
-                                                ExprResult Target,
-                                                ArrayRef<ExprResult> Subscripts);
-
   StmtResult ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                  ExprResult LHS,
                                  ExprResult RHS, Expr *StmtLabel);

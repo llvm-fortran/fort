@@ -682,7 +682,19 @@ ExprResult Sema::ActOnDATAOuterImpliedDoExpr(ASTContext &C,
             << IDInfo << E->getSourceRange();
           HasErrors = true;
         }
-      } else if(!dyn_cast<IntegerConstantExpr>(E)) {
+      }
+      else if(auto Unary = dyn_cast<UnaryExpr>(E)) {
+        return UnaryExpr::Create(C, Unary->getLocation(),
+                                 Unary->getOperator(),
+                                 visitLeaf(Unary->getExpression()));
+      }
+      else if(auto Binary = dyn_cast<BinaryExpr>(E)) {
+        return BinaryExpr::Create(C, Binary->getLocation(),
+                                  Binary->getOperator(),
+                                  visitLeaf(Binary->getLHS()),
+                                  visitLeaf(Binary->getRHS()));
+      }
+      else if(!IntegerConstantExpr::classof(E)) {
         Diags.Report(E->getLocation(),diag::err_implied_do_expect_leaf_expr )
           << E->getSourceRange();
         HasErrors = true;
@@ -747,31 +759,6 @@ ExprResult Sema::ActOnDATAImpliedDoExpr(ASTContext &C, SourceLocation Loc,
 
   return ImpliedDoExpr::Create(C, Loc, Decl, BodyExprs,
                                E1.take(), E2.take(), E3.take());
-}
-
-ExprResult Sema::ActOnDATAImpliedDoArrayElementExpr(ASTContext &C, SourceLocation Loc,
-                                                    ExprResult Target,
-                                                    ArrayRef<ExprResult> Subscripts) {
-  assert(Subscripts.size());
-  if(!CheckSubscriptExprDimensionCount(Loc, Target, Subscripts))
-    return ExprError();
-
-  llvm::SmallVector<Expr*, 8> Subs(Subscripts.size());
-  bool HasErrors = false;
-  for(size_t I = 0; I < Subscripts.size(); ++I) {
-    if(UnresolvedIdentifierExpr::classof(Subscripts[I].get())
-       || Subscripts[I].get()->getType()->isIntegerType())
-      Subs[I] = Subscripts[I].take();
-    else {
-      Diags.Report(Subscripts[I].get()->getLocation(),
-                   diag::err_expected_integer_expr)
-        << Subscripts[I].get()->getSourceRange();
-      HasErrors = true;
-    }
-  }
-  if(HasErrors) return ExprError();
-
-  return ArrayElementExpr::Create(C, Loc, Target.take(), Subs);
 }
 
 StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,

@@ -99,7 +99,7 @@ def err_intrinsic_invalid_func : Error<
 def err_implied_do_expect_leaf_expr : Error<
   "expected an integer constant or an implied do variable expression">;
 def err_implied_do_expect_expr : Error<
-  "expected an implied do or a array element expression">;
+  "expected an implied do or an array element expression">;
 
 def err_expect_stmt_name : Error<
   "expected name %0 for '%1' statement">;

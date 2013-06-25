@@ -102,6 +102,18 @@ private:
   // another token.
   SourceLocation PrevTokLocation;
 
+  /// DontResolveIdentifiers - if set, the identifier tokens create
+  /// an UnresolvedIdentifierExpr, instead of resolving the identifier.
+  /// As a of this result Subscript, Substring and function call
+  /// expressions aren't parsed.
+  bool DontResolveIdentifiers;
+
+  /// DontResolveIdentifiersInSubExpressions - if set,
+  /// ParsePrimaryExpression will set the DontResolveIdentifiers
+  /// to true when parsing any subexpressions like array subscripts,
+  /// etc.
+  bool DontResolveIdentifiersInSubExpressions;
+
   /// Identifiers - This is mapping/lookup information for all identifiers in
   /// the program, including program keywords.
   mutable IdentifierTable Identifiers;
@@ -226,8 +238,6 @@ private:
   StmtResult ParseDATAStmt();
   StmtResult ParseDATAStmtPart(SourceLocation Loc);
   ExprResult ParseDATAStmtImpliedDo();
-  ExprResult ParseDATAStmtImpliedDoArrayElementExpr();
-  ExprResult ParseDATAStmtImpliedDoExpr();
   bool ParseDIMENSIONStmt(std::vector<StmtResult> &Stmts);
   StmtResult ParseEQUIVALENCEStmt();
   StmtResult ParseEXTERNALStmt();

@@ -613,7 +613,8 @@ public:
 /// Used in implied DO in the DATA statement.
 class UnresolvedIdentifierExpr : public Expr {
   const IdentifierInfo *IDInfo;
-  UnresolvedIdentifierExpr(SourceLocation Loc, const IdentifierInfo *ID);
+  UnresolvedIdentifierExpr(ASTContext &C, SourceLocation Loc,
+                           const IdentifierInfo *ID);
 public:
   static UnresolvedIdentifierExpr *Create(ASTContext &C, SourceLocation Loc,
                                           const IdentifierInfo *IDInfo);

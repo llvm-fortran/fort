@@ -3,6 +3,7 @@ PROGRAM datatest
   INTEGER I, J, K
   REAL X,Y,Z, ZZZ
   INTEGER I_ARR(10)
+  INTEGER I_ARR2(2,2)
 
   ! FIXME: PARAMETER (PI = 3.14)
 
@@ -17,5 +18,16 @@ PROGRAM datatest
 
   DATA (I_ARR(I), I = 1,10) / 10*0 /
   DATA (I_ARR(WHAT), I = 1,10) / 10*0 / ! expected-error {{use of undeclared identifier 'WHAT'}}
+
+  DATA (ZZZ, I = 1,10) / 1 / ! expected-error {{expected an implied do or an array element expression}}
+
+  DATA (I_ARR(I), I = 1, .true.) / 10*0 / ! expected-error {{expected an integer constant or an implied do variable expression}}
+  DATA (I_ARR(.false.), I = 1,5) / 5*11 / ! expected-error {{expected an integer expression}}
+
+  DATA ((I_ARR2(I,J), J = 1,2), I = 1,2) / 4*3 /
+
+  DATA ((I_ARR2(I,J), J = 1,2), I_ARR(I), I = 1,2) / 4*3, 2*0 /
+
+  DATA ((I_ARR2(I,J), J = 1,2), I_ARR(J), I = 1,2) / 4*3, 2*0 / ! expected-error {{use of undeclared identifier 'J'}}
 
 END PROGRAM

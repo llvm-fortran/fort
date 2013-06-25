@@ -598,6 +598,14 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
     return ParseSubstring(E);
   }
 
+  if(DontResolveIdentifiers) {
+    auto E = UnresolvedIdentifierExpr::Create(Context,
+                                              Tok.getLocation(),
+                                              Tok.getIdentifierInfo());
+    Lex();
+    return E;
+  }
+
   // [R504]:
   //   object-name :=
   //       name
@@ -624,6 +632,22 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
     VD = cast<VarDecl>(D);
   }
   else VD = dyn_cast<VarDecl>(Declaration);
+
+  struct ScopedFlag {
+    bool value;
+    bool &dest;
+
+    ScopedFlag(bool &flag) : dest(flag) {
+      value = flag;
+    }
+    ~ScopedFlag() {
+      dest = value;
+    }
+  };
+
+  ScopedFlag Flag(DontResolveIdentifiers);
+  if(DontResolveIdentifiersInSubExpressions)
+    DontResolveIdentifiers = true;
 
   if(!VD) {
     auto Loc = Tok.getLocation();
