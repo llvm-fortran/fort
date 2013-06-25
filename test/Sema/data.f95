@@ -2,6 +2,7 @@
 PROGRAM datatest
   INTEGER I, J, K
   REAL X,Y,Z, ZZZ
+  INTEGER I_ARR(10)
 
   ! FIXME: PARAMETER (PI = 3.14)
 
@@ -13,5 +14,8 @@ PROGRAM datatest
   DATA X, Y / 2, J / ! expected-error {{expected a constant expression}}
 
   ! FIXME: DATA X / PI /
+
+  DATA (I_ARR(I), I = 1,10) / 10*0 /
+  DATA (I_ARR(WHAT), I = 1,10) / 10*0 / ! expected-error {{use of undeclared identifier 'WHAT'}}
 
 END PROGRAM

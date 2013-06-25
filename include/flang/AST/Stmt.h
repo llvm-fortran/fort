@@ -50,6 +50,7 @@ public:
     Asynchronous,
     External,
     Intrinsic,
+    Data,
     EndProgram,
 
     // Action Statements
@@ -459,6 +460,35 @@ public:
   static bool classof(const IntrinsicStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStatementID() == Intrinsic;
+  }
+};
+
+/// DataStmt - this is a part of the DATA statement
+class DataStmt : public Stmt {
+  unsigned NumNames;
+  unsigned NumValues;
+  Expr **NameList, **ValueList;
+
+  DataStmt(ASTContext &C, SourceLocation Loc,
+           ArrayRef<Expr*> Names,
+           ArrayRef<Expr*> Values,
+           Expr *StmtLabel);
+public:
+  static DataStmt *Create(ASTContext &C, SourceLocation Loc,
+                          ArrayRef<Expr*> Names,
+                          ArrayRef<Expr*> Values,
+                          Expr *StmtLabel);
+
+  ArrayRef<Expr*> getNames() const {
+    return ArrayRef<Expr*>(NameList, NumNames);
+  }
+  ArrayRef<Expr*> getValues() const {
+    return ArrayRef<Expr*>(ValueList, NumValues);
+  }
+
+  static bool classof(const DataStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == Data;
   }
 };
 

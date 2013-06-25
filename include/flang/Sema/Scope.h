@@ -23,6 +23,7 @@
 namespace flang {
 
 class Decl;
+class DeclContext;
 class UsingDirectiveDecl;
 
 /// StatementLabelScope - This is a component of a scope which assist with
@@ -122,6 +123,28 @@ public:
 
   /// \brief Returns a rule and possibly a type associated with this identifier.
   std::pair<RuleType, QualType> Resolve(const IdentifierInfo *IdInfo);
+};
+
+/// InnerScope - This is a scope which assists with resolving identifiers
+/// in the inner scopes of declaration contexts, such as implied do
+/// and statement function.
+///
+class InnerScope {
+  llvm::StringMap<Decl*> Declarations;
+  InnerScope *Parent;
+public:
+  InnerScope(InnerScope *Prev = nullptr);
+
+  InnerScope *getParent() const { return Parent; }
+
+  /// Declares a new declaration in this scope.
+  void Declare(const IdentifierInfo *IDInfo, Decl *Declaration);
+
+  /// Returns a valid declaration if such declaration exists in this scope.
+  Decl *Lookup(const IdentifierInfo *IDInfo) const;
+
+  /// Resolves an identifier by looking at this and parent scopes.
+  Decl *Resolve(const IdentifierInfo *IDInfo) const;
 };
 
 /// Scope - A scope is a transient data structure that is used while parsing the

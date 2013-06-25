@@ -113,6 +113,26 @@ ImplicitTypingScope::Resolve(const IdentifierInfo *IdInfo) {
   else return std::make_pair(DefaultRule, QualType());
 }
 
+InnerScope::InnerScope(InnerScope *Prev)
+  : Parent(Prev) {
+}
+
+void InnerScope::Declare(const IdentifierInfo *IDInfo, Decl *Declaration) {
+  Declarations[IDInfo->getName()] = Declaration;
+}
+
+Decl *InnerScope::Lookup(const IdentifierInfo *IDInfo) const {
+  auto Result = Declarations.find(IDInfo->getName());
+  if(Result != Declarations.end())
+    return Result->getValue();
+  return nullptr;
+}
+
+Decl *InnerScope::Resolve(const IdentifierInfo *IDInfo) const {
+  auto Result = Lookup(IDInfo);
+  return Result? Result : (Parent? Parent->Resolve(IDInfo) : nullptr);
+}
+
 
 void Scope::Init(Scope *parent, unsigned flags) {
   AnyParent = parent;

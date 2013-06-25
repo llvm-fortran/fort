@@ -578,11 +578,19 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
+/// FIXME: add sema
 StmtResult Sema::ActOnDATA(ASTContext &C, SourceLocation Loc,
                            ArrayRef<ExprResult> LHS,
                            ArrayRef<ExprResult> RHS,
                            Expr *StmtLabel) {
-  return StmtError();
+  SmallVector<Expr*, 8> Names (LHS.size());
+  SmallVector<Expr*, 8> Values(RHS.size());
+  for(size_t I = 0; I < LHS.size(); ++I)
+    Names[I] = LHS[I].take();
+  for(size_t I = 0; I < RHS.size(); ++I)
+    Values[I] = RHS[I].take();
+
+  return DataStmt::Create(C, Loc, Names, Values, StmtLabel);
 }
 
 ExprResult Sema::ActOnDATAConstantExpr(ASTContext &C,
@@ -622,9 +630,105 @@ ExprResult Sema::ActOnDATAConstantExpr(ASTContext &C,
                    : Value;
 }
 
+/// FIXME: allow outer scope integer constants.
+/// FIXME: walk constant expressions like 1+1.
 ExprResult Sema::ActOnDATAOuterImpliedDoExpr(ASTContext &C,
                                              ExprResult Expression) {
-  return Expression;
+  /// Resolves the implied do AST.
+  class ImpliedDoResolver {
+  public:
+    ASTContext &C;
+    DiagnosticsEngine &Diags;
+    Sema &S;
+    InnerScope *CurScope;
+    bool HasErrors;
+
+    ImpliedDoResolver(ASTContext &Context,
+                      DiagnosticsEngine &Diag, Sema &Sem)
+      : C(Context), Diags(Diag), S(Sem), CurScope(nullptr),
+        HasErrors(false) {
+    }
+
+    Expr* visit(Expr *E) {
+      if(auto ImpliedDo = dyn_cast<ImpliedDoExpr>(E))
+        return visit(ImpliedDo);
+      else if(auto ArrayElement = dyn_cast<ArrayElementExpr>(E))
+        return visit(ArrayElement);
+      else {
+        Diags.Report(E->getLocation(), diag::err_implied_do_expect_expr)
+          << E->getSourceRange();
+        HasErrors = true;
+      }
+      return E;
+    }
+
+    Expr *visitLeaf(Expr *E) {
+      if(auto Unresolved = dyn_cast<UnresolvedIdentifierExpr>(E)) {
+        auto IDInfo = Unresolved->getIdentifier();
+        if(auto Declaration = CurScope->Resolve(IDInfo)) {
+          auto VD = dyn_cast<VarDecl>(Declaration);
+          assert(VD);
+          return VarExpr::Create(C, Unresolved->getLocation(), VD);
+        } else {
+          /*FIXME: outer scope constants.
+           *if(auto OuterDeclaration = S.ResolveIdentifier(IDInfo)) {
+            if(auto VD = dyn_cast<VarDecl>(OuterDeclaration)) {
+              // a constant variable
+              if(VD->isParameter())
+                return VarExpr::Create(C, )
+            }
+          }*/
+          Diags.Report(E->getLocation(), diag::err_undeclared_var_use)
+            << IDInfo << E->getSourceRange();
+          HasErrors = true;
+        }
+      } else if(!dyn_cast<IntegerConstantExpr>(E)) {
+        Diags.Report(E->getLocation(),diag::err_implied_do_expect_leaf_expr )
+          << E->getSourceRange();
+        HasErrors = true;
+      }
+      return E;
+    }
+
+    Expr *visit(ArrayElementExpr *E) {
+      auto Subscripts = E->getArguments();
+      SmallVector<Expr*, 8> ResolvedSubscripts(Subscripts.size());
+      for(size_t I = 0; I < Subscripts.size(); ++I)
+        ResolvedSubscripts[I] = visitLeaf(Subscripts[I]);
+      return ArrayElementExpr::Create(C, E->getLocation(),
+                                      E->getTarget(), ResolvedSubscripts);
+    }
+
+    Expr *visit(ImpliedDoExpr *E) {
+      // enter a new scope.
+      InnerScope Scope(CurScope);
+      CurScope = &Scope;
+      auto Var = E->getVarDecl();
+      Scope.Declare(Var->getIdentifier(), Var);
+
+      Expr *InitialParam, *TerminalParam, *IncParam;
+
+      InitialParam = visitLeaf(E->getInitialParameter());
+      TerminalParam = visitLeaf(E->getTerminalParameter());
+      if(E->getIncrementationParameter())
+        IncParam = visitLeaf(E->getIncrementationParameter());
+      else IncParam = nullptr;
+
+      auto Body = E->getBody();
+      SmallVector<Expr*, 8> ResolvedBody(Body.size());
+      for(size_t I = 0; I < Body.size(); ++I)
+        ResolvedBody[I] = visit(Body[I]);
+
+      CurScope = CurScope->getParent();
+      return ImpliedDoExpr::Create(C, E->getLocation(), Var,
+                                   ResolvedBody, InitialParam,
+                                   TerminalParam, IncParam);
+    }
+  };
+
+  ImpliedDoResolver Visitor(C, Diags, *this);
+  ExprResult Result = Visitor.visit(Expression.get());
+  return Visitor.HasErrors? ExprError() : Result;
 }
 
 ExprResult Sema::ActOnDATAImpliedDoExpr(ASTContext &C, SourceLocation Loc,

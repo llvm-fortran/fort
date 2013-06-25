@@ -548,7 +548,7 @@ void ImpliedDoExpr::print(llvm::raw_ostream &O) {
     if(I) O << ", ";
     Body[I]->print(O);
   }
-  O << ", " << getVarDecl();
+  O << ", " << getVarDecl()->getIdentifier()->getName();
   O << " = ";
   getInitialParameter()->print(O);
   O << ", ";

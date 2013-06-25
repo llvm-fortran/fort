@@ -39,6 +39,7 @@ private:
   VISIT(ImplicitStmt);
   VISIT(DimensionStmt);
   VISIT(AsynchronousStmt);
+  VISIT(DataStmt);
   VISIT(BlockStmt);
   VISIT(AssignStmt);
   VISIT(AssignedGotoStmt);
@@ -69,6 +70,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(ImplicitStmt);
   HANDLE(DimensionStmt);
   HANDLE(AsynchronousStmt);
+  HANDLE(DataStmt);
   HANDLE(BlockStmt);
   HANDLE(AssignStmt);
   HANDLE(AssignedGotoStmt);
@@ -148,6 +150,23 @@ void StmtVisitor::visit(const DimensionStmt *S) {
 
 void StmtVisitor::visit(const AsynchronousStmt *S) {
 }
+
+void StmtVisitor::visit(const DataStmt *S) {
+  OS << "DATA ";
+  auto Names = S->getNames();
+  for(size_t I = 0; I < Names.size(); ++I) {
+    if(I) OS << ", ";
+    Names[I]->print(OS);
+  }
+  OS << " / ";
+  auto Values = S->getValues();
+  for(size_t I = 0; I < Values.size(); ++I) {
+    if(I) OS << ", ";
+    Values[I]->print(OS);
+  }
+  OS << " /\n";
+}
+
 void StmtVisitor::visit(const BlockStmt *S) {
   ArrayRef<StmtResult> Body = S->getIDList();
   for(size_t i = 0; i < Body.size(); ++i) {
