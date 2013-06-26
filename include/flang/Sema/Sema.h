@@ -225,6 +225,7 @@ public:
 
   // PARAMETER statement:
   StmtResult ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
+                            SourceLocation EqualLoc,
                             SourceLocation IDLoc,
                             const IdentifierInfo *IDInfo,
                             ExprResult Value,
@@ -355,6 +356,10 @@ public:
                                             ArrayRef<ExprResult> Arguments);
 
 private:
+
+  /// Performs assignment typechecking.
+  ExprResult TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
+                                 SourceLocation Loc, SourceLocation MinLoc);
 
   /// Returns true if the subscript expression has the
   /// right amount of dimensions.

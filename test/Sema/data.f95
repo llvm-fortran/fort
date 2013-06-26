@@ -5,7 +5,7 @@ PROGRAM datatest
   INTEGER I_ARR(10)
   INTEGER I_ARR2(2,2)
 
-  ! FIXME: PARAMETER (PI = 3.14)
+  PARAMETER (PI = 3.14, INDEX = 1)
 
   DATA I / 1 /
   DATA J, K / 2*42 /
@@ -14,7 +14,7 @@ PROGRAM datatest
   DATA X, Y / 2*ZZZ / ! expected-error {{expected a constant expression}}
   DATA X, Y / 2, J / ! expected-error {{expected a constant expression}}
 
-  ! FIXME: DATA X / PI /
+  DATA X / PI /
 
   DATA (I_ARR(I), I = 1,10) / 10*0 /
   DATA (I_ARR(I), I = 0 + 1, 20/2) / 10*0 /
@@ -30,7 +30,10 @@ PROGRAM datatest
 
   DATA ((I_ARR2(I,J), J = 1,2), I_ARR(I), I = 1,2) / 4*3, 2*0 /
 
-  !FIXME: change error type.
-  DATA ((I_ARR2(I,J), J = 1,2), I_ARR(J), I = 1,2) / 4*3, 2*0 / ! expected-error {{use of undeclared identifier 'J'}}
+  DATA ((I_ARR2(I,J), J = 1,2), I_ARR(J), I = 1,2) / 4*3, 2*0 / ! expected-error {{expected an integer constant or an implied do variable expression}}
+  DATA (I_ARR(I+1), I=1,10) / 10*9 / ! expected-error {{expected an integer constant expression}}
+
+  DATA (I_ARR(I), I = INDEX, 10) / 10 * 0 /
+  DATA (I_ARR2(INDEX,J), J = 1,2) / 2*3 /
 
 END PROGRAM

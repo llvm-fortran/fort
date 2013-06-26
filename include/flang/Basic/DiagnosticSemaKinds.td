@@ -20,6 +20,8 @@ def err_expected_integer_gt_0 : Error<
   "expected an integer greater than 0">;
 def err_expected_integer_or_real_constant_expr : Error<
   "expected an integer or a real constant expression">;
+def err_expected_integer_constant_expr : Error<
+  "expected an integer constant expression">;
 
 def err_typecheck_assign_incompatible : Error<
   "assigning to %0 from incompatible type %1">;

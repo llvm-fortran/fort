@@ -472,6 +472,7 @@ public:
 };
 
 StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
+                                SourceLocation EqualLoc,
                                 SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo, ExprResult Value,
                                 Expr *StmtLabel) {
@@ -500,8 +501,10 @@ StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
   }
 
   if(VD) {
-    auto MyT = VD->getType();
-    // FIXME: TODO Implicit cast.
+    Value = TypecheckAssignment(VD->getType(), Value,
+                                EqualLoc, IDLoc);
+    if(Value.isInvalid()) return StmtError();
+    // FIXME: if value is invalid, mutate into parameter givin a zero value
     VD->MutateIntoParameter(Value.take());
   } else {
     QualType T = Value.get()->getType();
@@ -662,37 +665,45 @@ ExprResult Sema::ActOnDATAOuterImpliedDoExpr(ASTContext &C,
       return E;
     }
 
-    Expr *visitLeaf(Expr *E) {
+    Expr *visitLeaf(Expr *E,int depth = 0) {
       if(auto Unresolved = dyn_cast<UnresolvedIdentifierExpr>(E)) {
         auto IDInfo = Unresolved->getIdentifier();
         if(auto Declaration = CurScope->Resolve(IDInfo)) {
-          auto VD = dyn_cast<VarDecl>(Declaration);
-          assert(VD);
-          return VarExpr::Create(C, Unresolved->getLocation(), VD);
+          if(depth) {
+            Diags.Report(E->getLocation(),diag::err_expected_integer_constant_expr)
+              << E->getSourceRange();
+            HasErrors = true;
+          } else {
+            // an implied do variable
+            auto VD = dyn_cast<VarDecl>(Declaration);
+            assert(VD);
+            return VarExpr::Create(C, Unresolved->getLocation(), VD);
+          }
         } else {
-          /*FIXME: outer scope constants.
-           *if(auto OuterDeclaration = S.ResolveIdentifier(IDInfo)) {
+           if(auto OuterDeclaration = S.ResolveIdentifier(IDInfo)) {
             if(auto VD = dyn_cast<VarDecl>(OuterDeclaration)) {
               // a constant variable
               if(VD->isParameter())
-                return VarExpr::Create(C, )
+                return VarExpr::Create(C, E->getLocation(), VD);
             }
-          }*/
-          Diags.Report(E->getLocation(), diag::err_undeclared_var_use)
-            << IDInfo << E->getSourceRange();
+            Diags.Report(E->getLocation(),diag::err_implied_do_expect_leaf_expr)
+              << E->getSourceRange();
+          } else
+            Diags.Report(E->getLocation(), diag::err_undeclared_var_use)
+              << IDInfo << E->getSourceRange();
           HasErrors = true;
         }
       }
       else if(auto Unary = dyn_cast<UnaryExpr>(E)) {
         return UnaryExpr::Create(C, Unary->getLocation(),
                                  Unary->getOperator(),
-                                 visitLeaf(Unary->getExpression()));
+                                 visitLeaf(Unary->getExpression(), depth+1));
       }
       else if(auto Binary = dyn_cast<BinaryExpr>(E)) {
         return BinaryExpr::Create(C, Binary->getLocation(),
                                   Binary->getOperator(),
-                                  visitLeaf(Binary->getLHS()),
-                                  visitLeaf(Binary->getRHS()));
+                                  visitLeaf(Binary->getLHS(), depth+1),
+                                  visitLeaf(Binary->getRHS(), depth+1));
       }
       else if(!IntegerConstantExpr::classof(E)) {
         Diags.Report(E->getLocation(),diag::err_implied_do_expect_leaf_expr )
@@ -761,11 +772,9 @@ ExprResult Sema::ActOnDATAImpliedDoExpr(ASTContext &C, SourceLocation Loc,
                                E1.take(), E2.take(), E3.take());
 }
 
-StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
-                                     ExprResult LHS,
-                                     ExprResult RHS, Expr *StmtLabel) {
-  Stmt *Result = 0;
-  const Type *LHSType = LHS.get()->getType().getTypePtr();
+ExprResult Sema::TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
+                                     SourceLocation Loc, SourceLocation MinLoc) {
+  const Type *LHSType = LHSTypeof.getTypePtr();
   const Type *RHSType = RHS.get()->getType().getTypePtr();
 
   // Arithmetic assigment
@@ -815,16 +824,26 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
   // Invalid assignment
   else goto typeError;
 
-  Result = AssignmentStmt::Create(C, Loc, LHS.take(), RHS.take(), StmtLabel);
+  return RHS;
+typeError:
+  Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
+      << LHSTypeof << RHS.get()->getType()
+      << SourceRange(MinLoc,
+                     RHS.get()->getLocEnd());
+  return ExprError();
+}
+
+StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
+                                     ExprResult LHS,
+                                     ExprResult RHS, Expr *StmtLabel) {
+  RHS = TypecheckAssignment(LHS.get()->getType(), RHS,
+                            Loc, LHS.get()->getLocStart());
+  if(RHS.isInvalid()) return StmtError();
+
+  auto Result = AssignmentStmt::Create(C, Loc, LHS.take(), RHS.take(), StmtLabel);
   CurExecutableStmts.Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
-typeError:
-  Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
-      << LHS.get()->getType() << RHS.get()->getType()
-      << SourceRange(LHS.get()->getLocStart(),
-                     RHS.get()->getLocEnd());
-  return StmtError();
 }
 
 QualType Sema::ActOnArraySpec(ASTContext &C, QualType ElemTy,

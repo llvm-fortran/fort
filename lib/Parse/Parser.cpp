@@ -1041,6 +1041,7 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
     const IdentifierInfo *II = Tok.getIdentifierInfo();
     Lex();
 
+    auto EqualLoc = Tok.getLocation();
     if (!EatIfPresentInSameStmt(tok::equal)) {
       Diag.Report(Tok.getLocation(),diag::err_expected_equal);
       return StmtError();
@@ -1050,7 +1051,8 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
     if (ConstExpr.isInvalid())
       return StmtError();
 
-    auto Stmt = Actions.ActOnPARAMETER(Context, Loc, IDLoc, II,
+    auto Stmt = Actions.ActOnPARAMETER(Context, Loc, EqualLoc,
+                                       IDLoc, II,
                                        ConstExpr, nullptr);
     if(Stmt.isUsable())
       StmtList.push_back(Stmt.take());
@@ -1143,6 +1145,9 @@ bool Parser::ParseSpecificationStmt(std::vector<StmtResult> &Body) {
   case tok::kw_COMMON:
     Result = ParseCOMMONStmt();
     goto notImplemented;
+  case tok::kw_PARAMETER:
+    Result = ParsePARAMETERStmt();
+    break;
   case tok::kw_DATA:
     Result = ParseDATAStmt();
     break;
