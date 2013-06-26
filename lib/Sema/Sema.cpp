@@ -545,11 +545,9 @@ StmtResult Sema::ActOnENDPROGRAM(ASTContext &C,
 }
 
 StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
-                               ArrayRef<const IdentifierInfo *> ExternalNames,
+                               SourceLocation IDLoc, const IdentifierInfo *IDInfo,
                                Expr *StmtLabel) {
-  auto Result = ExternalStmt::Create(C, Loc, ExternalNames, StmtLabel);
-  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  return Result;
+  return StmtError();//FIXME: TODO
 }
 
 StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,

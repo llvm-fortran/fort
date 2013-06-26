@@ -256,7 +256,7 @@ private:
   StmtResult ParseEQUIVALENCEStmt();
   StmtResult ParseEXTERNALStmt();
   StmtResult ParseINTENTStmt();
-  StmtResult ParseINTRINSICStmt();
+  StmtResult ParseINTRINSICStmt(bool IsActuallyExternal = false);
   StmtResult ParseNAMELISTStmt();
   StmtResult ParseOPTIONALStmt();
   StmtResult ParsePOINTERStmt();

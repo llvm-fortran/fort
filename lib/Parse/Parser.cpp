@@ -1515,32 +1515,7 @@ Parser::StmtResult Parser::ParseEQUIVALENCEStmt() {
 ///     external-stmt :=
 ///         EXTERNAL [::] external-name-list
 Parser::StmtResult Parser::ParseEXTERNALStmt() {
-  SourceLocation Loc = Tok.getLocation();
-  Lex();
-
-  EatIfPresent(tok::coloncolon);
-
-  SmallVector<const IdentifierInfo*, 8> ExternalNameList;
-  while (!Tok.isAtStartOfStatement()) {
-    if (Tok.isNot(tok::identifier)) {
-      Diag.ReportError(Tok.getLocation(),
-                       "expected an identifier in EXTERNAL statement");
-      return StmtResult(true);
-    }
-
-    ExternalNameList.push_back(Tok.getIdentifierInfo());
-    Lex();
-    if (!EatIfPresent(tok::comma)) {
-      if (!Tok.isAtStartOfStatement()) {
-        Diag.ReportError(Tok.getLocation(),
-                         "expected ',' in EXTERNAL statement");
-        return StmtResult(true);
-      }
-      break;
-    }
-  }
-
-  return Actions.ActOnEXTERNAL(Context, Loc, ExternalNameList, StmtLabel);
+  return ParseINTRINSICStmt(/*IsActuallyExternal=*/ true);
 }
 
 /// ParseINTENTStmt - Parse the INTENT statement.
@@ -1557,7 +1532,7 @@ Parser::StmtResult Parser::ParseINTENTStmt() {
 ///   [R1216]:
 ///     intrinsic-stmt :=
 ///         INTRINSIC [::] intrinsic-procedure-name-list
-Parser::StmtResult Parser::ParseINTRINSICStmt() {
+Parser::StmtResult Parser::ParseINTRINSICStmt(bool IsActuallyExternal) {
   SourceLocation Loc = Tok.getLocation();
   Lex();
 
@@ -1566,8 +1541,6 @@ Parser::StmtResult Parser::ParseINTRINSICStmt() {
   SmallVector<Stmt *,8> StmtList;
 
   while (!Tok.isAtStartOfStatement()) {
-    int x = Tok.getKind();
-    int y = tok::identifier;
     if (!(Tok.is(tok::identifier) ||
          (Tok.getIdentifierInfo() &&
           isaKeyword(Tok.getIdentifierInfo()->getName()))
@@ -1576,8 +1549,12 @@ Parser::StmtResult Parser::ParseINTRINSICStmt() {
       return StmtError();
     }
 
-    auto Stmt = Actions.ActOnINTRINSIC(Context, Loc, Tok.getLocation(),
-                                       Tok.getIdentifierInfo(), nullptr);
+
+    auto Stmt = IsActuallyExternal?
+                  Actions.ActOnEXTERNAL(Context, Loc, Tok.getLocation(),
+                                         Tok.getIdentifierInfo(), nullptr):
+                  Actions.ActOnINTRINSIC(Context, Loc, Tok.getLocation(),
+                                         Tok.getIdentifierInfo(), nullptr);
     if(Stmt.isUsable())
       StmtList.push_back(Stmt.take());
 

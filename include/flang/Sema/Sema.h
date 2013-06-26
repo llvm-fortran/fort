@@ -244,7 +244,8 @@ public:
 
   // EXTERNAL statement:
   StmtResult ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
-                           ArrayRef<const IdentifierInfo *> ExternalNames,
+                           SourceLocation IDLoc,
+                           const IdentifierInfo *IDInfo,
                            Expr *StmtLabel);
 
   // INTRINSIC statement:
