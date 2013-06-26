@@ -20,8 +20,8 @@
 #ifndef KEYWORD
 #define KEYWORD(X,Y) TOK(kw_ ## X)
 #endif
-#ifndef BUILTIN
-#define BUILTIN(X,Y) TOK(bi_ ## X)
+#ifndef FORMAT_SPEC(X, Y)
+#define FORMAT_SPEC(X, Y) TOK(fs_ ## X)
 #endif
 
 //===----------------------------------------------------------------------===//
@@ -293,6 +293,53 @@ KEYWORD(NEQV                   , KEYALL)
 KEYWORD(TRUE                   , KEYALL)
 KEYWORD(FALSE                  , KEYALL)
 
-#undef BUILTIN
+// FIXME: correct language versions
+// Fortran 2008 [10.3]
+// R1007: data-edit-desc
+FORMAT_SPEC(I                  , KEYALL)
+FORMAT_SPEC(B                  , KEYALL)
+FORMAT_SPEC(O                  , KEYALL)
+FORMAT_SPEC(Z                  , KEYALL)
+FORMAT_SPEC(F                  , KEYALL)
+FORMAT_SPEC(E                  , KEYALL)
+FORMAT_SPEC(EN                 , KEYALL)
+FORMAT_SPEC(ES                 , KEYALL)
+FORMAT_SPEC(G                  , KEYALL)
+FORMAT_SPEC(L                  , KEYALL)
+FORMAT_SPEC(A                  , KEYALL)
+FORMAT_SPEC(D                  , KEYALL)
+FORMAT_SPEC(DT                 , KEYALL)
+
+// R1013: control-edit-desc (P)
+FORMAT_SPEC(P                  , KEYALL)
+
+// R1015: position-edit-desc
+FORMAT_SPEC(T                  , KEYALL)
+FORMAT_SPEC(TL                 , KEYALL)
+FORMAT_SPEC(TR                 , KEYALL)
+FORMAT_SPEC(X                  , KEYALL)
+
+// R1017: sign-edit-desc
+FORMAT_SPEC(SS                 , KEYALL)
+FORMAT_SPEC(SP                 , KEYALL)
+FORMAT_SPEC(S                  , KEYALL)
+
+// R1018: blank-interp-edit-desc
+FORMAT_SPEC(BN                 , KEYALL)
+FORMAT_SPEC(BZ                 , KEYALL)
+
+// R1019: round-edit-desc
+FORMAT_SPEC(RU                 , KEYALL)
+FORMAT_SPEC(RD                 , KEYALL)
+FORMAT_SPEC(RZ                 , KEYALL)
+FORMAT_SPEC(RN                 , KEYALL)
+FORMAT_SPEC(RC                 , KEYALL)
+FORMAT_SPEC(RP                 , KEYALL)
+
+// R1020: decimal-edit-desc
+FORMAT_SPEC(DC                 , KEYALL)
+FORMAT_SPEC(DP                 , KEYALL)
+
+#undef FORMAT_SPEC
 #undef KEYWORD
 #undef TOK

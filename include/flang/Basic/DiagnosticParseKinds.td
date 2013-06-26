@@ -59,6 +59,10 @@ def err_expected_member_name_or_semi : Error<
 
 def err_expected_letter : Error<
   "expected a letter">;
+def err_expected_int_literal_constant : Error<
+  "expected an integer literal constant">;
+def err_expected_int_literal_constant_after : Error<
+  "expected an integer literal constant after '%0'">;
 
 def err_expected_do_var : Error<
   "expected a real or an integer variable">;
@@ -67,6 +71,11 @@ def err_expected_int_var : Error<
 
 def err_expected_fn_body : Error<
   "expected function body after function declarator">;
+
+def err_format_invalid_desc : Error<
+  "%0 isn't a valid format descriptor">;
+def err_format_expected_desc : Error<
+  "expected a format descriptor">;
 
 // Declarations
 def err_invalid_decl_spec_combination : Error<

@@ -217,9 +217,6 @@ void Parser::ClassifyToken(Token &T) {
   if (IdentifierInfo *KW = Identifiers.lookupKeyword(NameStr)) {
     T.setIdentifierInfo(KW);
     T.setKind(KW->getTokenID());
-  } else if (IdentifierInfo *BI = Identifiers.lookupBuiltin(NameStr)) {
-    T.setIdentifierInfo(BI);
-    T.setKind(BI->getTokenID());
   } else {
     IdentifierInfo *II = getIdentifierInfo(NameStr);
     T.setIdentifierInfo(II);
@@ -1079,19 +1076,6 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
   }
 
   return Actions.ActOnBundledCompoundStmt(Context, Loc, StmtList, StmtLabel);
-}
-
-/// ParseFORMATStmt - Parse the FORMAT statement.
-///
-///   [R1001]:
-///     format-stmt :=
-///         FORMAT format-specification
-///   [R1002]:
-///     format-specification :=
-///         ( [ format-items ] )
-///      or ( [ format-items, ] unlimited-format-item )
-StmtResult Parser::ParseFORMATStmt() {
-  return StmtResult();
 }
 
 /// ParseENTRYStmt - Parse the ENTRY statement.

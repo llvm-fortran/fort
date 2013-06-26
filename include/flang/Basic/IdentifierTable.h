@@ -123,7 +123,7 @@ class IdentifierTable {
   typedef llvm::StringMap<IdentifierInfo*, llvm::BumpPtrAllocator> HashTableTy;
   HashTableTy IdentifierHashTable;
   HashTableTy KeywordHashTable;
-  HashTableTy BuiltinHashTable;
+  HashTableTy FormatSpecHashTable;
   IdentifierInfoLookup *ExternalLookup;
 
 public:
@@ -156,13 +156,13 @@ public:
     return getKeyword(llvm::StringRef(Name, NameLen), TokenCode);
   }
 
-  IdentifierInfo &getBuiltin(const char *NameStart, const char *NameEnd,
-                             tok::TokenKind TokenCode) {
-    return getBuiltin(llvm::StringRef(NameStart, NameEnd-NameStart), TokenCode);
+  IdentifierInfo &getFormatSpec(const char *NameStart, const char *NameEnd,
+                                tok::TokenKind TokenCode) {
+    return getFormatSpec(llvm::StringRef(NameStart, NameEnd-NameStart), TokenCode);
   }
-  IdentifierInfo &getBuiltin(const char *Name, size_t NameLen,
-                             tok::TokenKind TokenCode) {
-    return getBuiltin(llvm::StringRef(Name, NameLen), TokenCode);
+  IdentifierInfo &getFormatSpec(const char *Name, size_t NameLen,
+                                tok::TokenKind TokenCode) {
+    return getFormatSpec(llvm::StringRef(Name, NameLen), TokenCode);
   }
 
   /// get - Return the identifier token info for the specified named identifier.
@@ -232,14 +232,14 @@ public:
     return *II;
   }
 
-  /// getBuiltin - Returns the builtin token for the specified name.
-  IdentifierInfo &getBuiltin(llvm::StringRef Name, tok::TokenKind TokenCode) {
+  /// getBuiltin - Returns the format specification token for the specified name.
+  IdentifierInfo &getFormatSpec(llvm::StringRef Name, tok::TokenKind TokenCode) {
     std::string UCName(Name);
     for (size_t I = 0, E = UCName.size(); I != E; ++I)
       UCName[I] = ::toupper(UCName[I]);
 
     llvm::StringMapEntry<IdentifierInfo*> &Entry =
-      BuiltinHashTable.GetOrCreateValue(UCName);
+      FormatSpecHashTable.GetOrCreateValue(UCName);
 
     IdentifierInfo *II = Entry.getValue();
     if (II) return *II;
@@ -255,7 +255,7 @@ public:
     }
 
     // Lookups failed, make a new IdentifierInfo.
-    void *Mem = BuiltinHashTable.getAllocator().Allocate<IdentifierInfo>();
+    void *Mem = FormatSpecHashTable.getAllocator().Allocate<IdentifierInfo>();
     II = new (Mem) IdentifierInfo();
     II->setTokenID(TokenCode);
     Entry.setValue(II);
@@ -287,14 +287,15 @@ public:
     return Iter != KeywordHashTable.end() ? Iter->getValue() : 0;
   }
 
-  /// lookupBuiltin - Return the iterator pointing to the builtin if found.
-  IdentifierInfo *lookupBuiltin(std::string &Name) const {
-    std::string UCName = Name;
-    for (size_t I = 0, E = UCName.size(); I != E; ++I)
-      UCName[I] = ::toupper(UCName[I]);
+  /// lookupFormatSpec - Return the iterator pointing to the format spec if found.
+  IdentifierInfo *lookupFormatSpec(llvm::StringRef Name) const {
+    if(Name.size() > 2) return nullptr;
+    char UCName[4] = {0,0,0,0};
+    for (size_t I = 0, E = Name.size(); I != E; ++I)
+      UCName[I] = ::toupper(Name[I]);
 
-    HashTableTy::const_iterator Iter = BuiltinHashTable.find(UCName);
-    return Iter != BuiltinHashTable.end() ? Iter->getValue() : 0;
+    HashTableTy::const_iterator Iter = FormatSpecHashTable.find(UCName);
+    return Iter != FormatSpecHashTable.end() ? Iter->getValue() : nullptr;
   }
 
   /// isaIdentifier - Return 'true' if the name is in the identifier hashtable.
@@ -308,13 +309,6 @@ public:
   bool isaKeyword(const llvm::StringRef Name) const {
     std::string NameStr = Name.str();    
     return lookupKeyword(NameStr) ? true : false;
-  }
-
-  /// isaBuiltin - Return 'true' if the name is in the builtin hashtable. I.e.,
-  /// it can be treated as a builtin function in the correct context.
-  bool isaBuiltin(const llvm::StringRef Name) const {
-    std::string NameStr = Name.str();
-    return lookupBuiltin(NameStr) ? true : false;
   }
 
   /// \brief Creates a new IdentifierInfo from the given string.

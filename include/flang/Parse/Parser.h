@@ -166,9 +166,6 @@ public:
   bool isaKeyword(const llvm::StringRef &KW) const {
     return Identifiers.isaKeyword(KW);
   }
-  bool isaBuiltin(const llvm::StringRef &BI) const {
-    return Identifiers.isaBuiltin(BI);
-  }
 
   Parser(llvm::SourceMgr &SrcMgr, const LangOptions &Opts,
          DiagnosticsEngine &D, Sema &actions);
@@ -240,6 +237,10 @@ private:
   StmtResult ParseIMPLICITStmt();
   StmtResult ParsePARAMETERStmt();
   StmtResult ParseFORMATStmt();
+  ExprResult ParseFORMATSpec();
+  ExprResult ParseFORMATItems(bool IsOuter = false);
+  ExprResult ParseFORMATItem();
+  ExprResult ParseFORMATDescInt(const char *DiagAfter = nullptr);
   StmtResult ParseENTRYStmt();
   StmtResult ParseEND_PROGRAMStmt();
 

@@ -357,6 +357,16 @@ public:
                                             const IntrinsicFunctionDecl *FunctionDecl,
                                             ArrayRef<ExprResult> Arguments);
 
+  // Format
+  ExprResult ActOnFORMATDataEditDesc(ASTContext &C, SourceLocation Loc,
+                                     tok::TokenKind Kind, ExprResult Repeat,
+                                     ExprResult W, ExprResult MD,
+                                     ExprResult E);
+  ExprResult ActOnFORMATControlEditDesc(ASTContext &C, SourceLocation Loc,
+                                        tok::TokenKind Kind);
+  ExprResult ActOnFORMATPositionEditDesc(ASTContext &C, SourceLocation Loc,
+                                         tok::TokenKind Kind, ExprResult N);
+
 private:
 
   /// Performs assignment typechecking.

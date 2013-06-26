@@ -36,7 +36,7 @@ IdentifierTable::IdentifierTable(const LangOptions &LangOpts,
                                  IdentifierInfoLookup* externalLookup)
   : IdentifierHashTable(8192), // Start with space for 8K identifiers.
     KeywordHashTable(64),      // Start with space for 64 keywords.
-    BuiltinHashTable(256),     // Start with space for 256 builtins.
+    FormatSpecHashTable(32),   // Start with space for 32 format specs.
     ExternalLookup(externalLookup) {
 
   // Populate the identifier table with info about keywords for the current
@@ -66,7 +66,7 @@ namespace {
 /// lexer to automatically map matching identifiers to specialized token codes.
 static void AddPredefined(llvm::StringRef ID, tok::TokenKind TokenCode,
                           unsigned Flags, const LangOptions &LangOpts,
-                          IdentifierTable &Table, bool isBuiltin) {
+                          IdentifierTable &Table, bool isFormatSpec) {
   if ((Flags & KEYALL) ||
       (!LangOpts.Fortran77 && (Flags & KEYNOTF77)) ||
       (LangOpts.Fortran77 && (Flags & KEYF77)) ||
@@ -74,10 +74,10 @@ static void AddPredefined(llvm::StringRef ID, tok::TokenKind TokenCode,
       (LangOpts.Fortran95 && (Flags & KEYF95)) ||
       (LangOpts.Fortran2003 && (Flags & KEYF2003)) ||
       (LangOpts.Fortran2008 && (Flags & KEYF2008))) {
-    if (!isBuiltin)
+    if (!isFormatSpec)
       Table.getKeyword(ID, TokenCode);
     else
-      Table.getBuiltin(ID, TokenCode);
+      Table.getFormatSpec(ID, TokenCode);
   }
 }
 
@@ -87,8 +87,8 @@ void IdentifierTable::AddPredefineds(const LangOptions &LangOpts) {
 #define KEYWORD(NAME, FLAGS) \
   AddPredefined(llvm::StringRef(#NAME), tok::kw_ ## NAME,       \
                 FLAGS, LangOpts, *this, false);
-#define BUILTIN(NAME, FLAGS) \
-  AddPredefined(llvm::StringRef(#NAME), tok::bi_ ## NAME,       \
+#define FORMAT_SPEC(NAME, FLAGS) \
+  AddPredefined(llvm::StringRef(#NAME), tok::fs_ ## NAME,       \
                 FLAGS, LangOpts, *this, true);
 #include "flang/Basic/TokenKinds.def"
 }
@@ -102,10 +102,10 @@ void IdentifierTable::AddPredefineds(const LangOptions &LangOpts) {
 void IdentifierTable::PrintStats() const {
   unsigned NumBuckets =
     IdentifierHashTable.getNumBuckets() + KeywordHashTable.getNumBuckets() +
-    BuiltinHashTable.getNumBuckets();
+    FormatSpecHashTable.getNumBuckets();
   unsigned NumIdentifiers =
     IdentifierHashTable.getNumItems() + KeywordHashTable.getNumItems() +
-    BuiltinHashTable.getNumItems();
+    FormatSpecHashTable.getNumItems();
   unsigned NumEmptyBuckets = NumBuckets - NumIdentifiers;
   unsigned AverageIdentifierSize = 0;
   unsigned MaxIdentifierLength = 0;
@@ -130,7 +130,7 @@ void IdentifierTable::PrintStats() const {
   }
 
   for (llvm::StringMap<IdentifierInfo*, llvm::BumpPtrAllocator>::const_iterator
-       I = BuiltinHashTable.begin(), E = BuiltinHashTable.end();
+       I = FormatSpecHashTable.begin(), E = FormatSpecHashTable.end();
        I != E; ++I) {
     unsigned IdLen = I->getKeyLength();
     AverageIdentifierSize += IdLen;
@@ -147,8 +147,8 @@ void IdentifierTable::PrintStats() const {
           (AverageIdentifierSize / (double)NumIdentifiers));
   fprintf(stderr, "Max identifier length: %d\n", MaxIdentifierLength);
 
-  // Compute statistics about the memory allocated for identifiers.
+  // Compute statistics about the memory allocated for identifiers
   IdentifierHashTable.getAllocator().PrintStats();
   KeywordHashTable.getAllocator().PrintStats();
-  BuiltinHashTable.getAllocator().PrintStats();
+  FormatSpecHashTable.getAllocator().PrintStats();
 }

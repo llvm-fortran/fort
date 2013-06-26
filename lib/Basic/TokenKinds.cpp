@@ -19,7 +19,7 @@ namespace flang {
 static char const * const TokNames[] = {
 #define TOK(X)       #X,
 #define KEYWORD(X,Y) #X,
-#define BUILTIN(X,Y) #X,
+#define FORMAT_SPEC(X,Y) #X,
 #include "flang/Basic/TokenKinds.def"
   0
 };

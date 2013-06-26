@@ -3,6 +3,7 @@ add_flang_library(flangSema
   Scope.cpp
   Sema.cpp
   SemaExpr.cpp
+  SemaFormat.cpp
   Spec.cpp
   )
 
