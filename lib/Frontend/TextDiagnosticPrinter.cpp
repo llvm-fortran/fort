@@ -44,7 +44,8 @@ TextDiagnosticPrinter::~TextDiagnosticPrinter() {}
 void TextDiagnosticPrinter::HandleDiagnostic(DiagnosticsEngine::Level Level,
                                              SourceLocation L,
                                              const llvm::Twine &Msg,
-                                             llvm::ArrayRef<SourceRange> Ranges) {
+                                             llvm::ArrayRef<SourceRange> Ranges,
+                                             llvm::ArrayRef<FixItHint> FixIts) {
   // Default implementation (Warnings/errors count).
   DiagnosticClient::HandleDiagnostic(Level, L, Msg);
   llvm::SourceMgr::DiagKind MsgTy;
@@ -57,7 +58,7 @@ void TextDiagnosticPrinter::HandleDiagnostic(DiagnosticsEngine::Level Level,
   }
 
   SrcMgr.PrintMessage(L, MsgTy, Msg,
-                      Ranges, llvm::ArrayRef<FixItHint>(), true);
+                      Ranges, FixIts, true);
 }
 
 } //namespace flang

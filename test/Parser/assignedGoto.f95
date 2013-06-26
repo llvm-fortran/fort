@@ -20,6 +20,6 @@ PROGRAM gototest
 
     GO TO DEST (X) ! expected-error {{expected statement label}}
     GOTO DEST (10, 'WRONG') ! expected-error {{expected statement label}}
-    GO TO DEST (10 ! expected-error@+2 {{expected ')'}}
+    GO TO DEST (10 ! expected-error {{expected ')'}}
 
 END PROGRAM

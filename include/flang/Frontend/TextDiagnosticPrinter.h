@@ -36,7 +36,8 @@ public:
   // TODO: Emit caret diagnostics and Highlight range.
   virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, SourceLocation L,
                                 const llvm::Twine &Msg,
-                                llvm::ArrayRef<SourceRange> Ranges);
+                                llvm::ArrayRef<SourceRange> Ranges,
+                                llvm::ArrayRef<FixItHint> FixIts);
 };
 
 } // end namespace flang

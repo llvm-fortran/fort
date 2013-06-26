@@ -24,13 +24,13 @@ PROGRAM dotest
       R = R + I
 50  CONTINUE
 
-    DO 60 I = ! expected-error@+1 {{expected an expression after '='}}
+    DO 60 I = ! expected-error {{expected an expression after '='}}
 60    CONTINUE
 
-    DO 70 I = 1, ! expected-error@+1 {{expected an expression after ','}}
+    DO 70 I = 1, ! expected-error {{expected an expression after ','}}
 70    CONTINUE
 
-    DO 80 I = 1,3, ! expected-error@+1 {{expected an expression after ','}}
+    DO 80 I = 1,3, ! expected-error {{expected an expression after ','}}
 80    CONTINUE
 
     ! FIXME:
@@ -38,8 +38,8 @@ PROGRAM dotest
     ! 1 , 4
 90  CONTINUE
 
-    DO 100 I = 1, ! expected-error@+1 {{expected an expression after ','}}
-      I ! expected-error@+1 {{expected '='}}
+    DO 100 I = 1, ! expected-error {{expected an expression after ','}}
+      I ! expected-error {{expected '='}}
 100 CONTINUE
 
     DO I = 1,10

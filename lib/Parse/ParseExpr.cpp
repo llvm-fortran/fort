@@ -56,7 +56,7 @@ Parser::ExprResult Parser::ParseExpression() {
 /// error.
 ExprResult Parser::ParseExpectedFollowupExpression(const char *DiagAfter) {
   if(Tok.isAtStartOfStatement()) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_expression_after)
+    Diag.Report(getExpectedLoc(), diag::err_expected_expression_after)
       << DiagAfter;
     return ExprError();
   }
@@ -421,7 +421,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
     // complex constant.
     if(EatIfPresentInSameStmt(tok::comma)) {
       if(E.isInvalid()) return E;
-      auto ImPart = ParseExpression();
+      auto ImPart = ParseExpectedFollowupExpression(",");
       if(ImPart.isInvalid()) return ImPart;
       E = Actions.ActOnComplexConstantExpr(Context, Loc,
                                            getMaxLocationOfCurrentToken(),
@@ -429,7 +429,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
     }
 
     if (!EatIfPresentInSameStmt(tok::r_paren)) {
-      Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+      Diag.Report(getExpectedLoc(),diag::err_expected_rparen);
       return ExprError();
     }
     break;
@@ -665,7 +665,7 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
 
 ExprResult Parser::ParseFunctionCallArgumentList(SmallVectorImpl<ExprResult> &Args) {
   if(!EatIfPresentInSameStmt(tok::l_paren)) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_lparen);
+    Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
     return ExprError();
   }
 
@@ -678,7 +678,7 @@ ExprResult Parser::ParseFunctionCallArgumentList(SmallVectorImpl<ExprResult> &Ar
   } while (EatIfPresentInSameStmt(tok::comma));
 
   if(!EatIfPresentInSameStmt(tok::r_paren)) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
+    Diag.Report(getExpectedLoc(), diag::err_expected_rparen);
     return ExprError();
   }
   return ExprResult();
@@ -763,23 +763,22 @@ ExprResult Parser::ParseStructureComponent() {
 ExprResult Parser::ParseSubstring(ExprResult Target) {
   ExprResult StartingPoint, EndPoint;
   Lex();
-  if(!Tok.is(tok::colon)) {
-    StartingPoint = ParseExpression();
-    if(!Tok.is(tok::colon)) {
-      Diag.Report(Tok.getLocation(),diag::err_expected_colon);
-      return ExprError();
-    }
-  }
   SourceLocation Loc = Tok.getLocation();
-  Lex();
-  if(!Tok.is(tok::r_paren)) {
-    EndPoint = ParseExpression();
-    if(!Tok.is(tok::r_paren)) {
-      Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+  if(!EatIfPresentInSameStmt(tok::colon)) {
+    StartingPoint = ParseExpectedFollowupExpression("(");
+    Loc = Tok.getLocation();
+    if(!EatIfPresentInSameStmt(tok::colon)) {
+      Diag.Report(getExpectedLoc(),diag::err_expected_colon);
       return ExprError();
     }
   }
-  Lex();
+  if(!EatIfPresentInSameStmt(tok::r_paren)) {
+    EndPoint = ParseExpectedFollowupExpression(":");
+    if(!EatIfPresentInSameStmt(tok::r_paren)) {
+      Diag.Report(getExpectedLoc(),diag::err_expected_rparen);
+      return ExprError();
+    }
+  }
   return Actions.ActOnSubstringExpr(Context, Loc, Target, StartingPoint, EndPoint);
 }
 
@@ -797,7 +796,7 @@ ExprResult Parser::ParseF77Subscript(ExprResult Target) {
   } while(EatIfPresentInSameStmt(tok::comma));
 
   if(!EatIfPresentInSameStmt(tok::r_paren)) {
-    Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+    Diag.Report(getExpectedLoc(),diag::err_expected_rparen);
     return ExprError();
   }
   return Actions.ActOnSubscriptExpr(Context, Loc, Target, Exprs);

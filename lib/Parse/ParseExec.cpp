@@ -157,12 +157,12 @@ Parser::StmtResult Parser::ParseAssignStmt() {
 
   auto Value = ParseStatementLabelReference();
   if(Value.isInvalid()) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_stmt_label_after)
+    Diag.Report(getExpectedLoc(), diag::err_expected_stmt_label_after)
         << "ASSIGN";
     return StmtError();
   }
-  if(!EatIfPresent(tok::kw_TO)) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_kw)
+  if(!EatIfPresentInSameStmt(tok::kw_TO)) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_kw)
         << "TO";
     return StmtError();
   }
@@ -191,17 +191,17 @@ Parser::StmtResult Parser::ParseGotoStmt() {
 
     // Assigned goto
     SmallVector<ExprResult, 4> AllowedValues;
-    if(EatIfPresent(tok::l_paren)) {
+    if(EatIfPresentInSameStmt(tok::l_paren)) {
       do {
         auto E = ParseStatementLabelReference();
         if(E.isInvalid()) {
-          Diag.Report(Tok.getLocation(), diag::err_expected_stmt_label);
+          Diag.Report(getExpectedLoc(), diag::err_expected_stmt_label);
           return StmtError();
         }
         AllowedValues.append(1, E);
       } while(EatIfPresent(tok::comma));
-      if(!EatIfPresent(tok::r_paren))
-        Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
+      if(!EatIfPresentInSameStmt(tok::r_paren))
+        Diag.Report(getExpectedLoc(), diag::err_expected_rparen);
     }
     return Actions.ActOnAssignedGotoStmt(Context, Loc, Var, AllowedValues, StmtLabel);
   }
@@ -265,10 +265,10 @@ Parser::StmtResult Parser::ParseIfStmt() {
 
   ExprResult Condition = ParseExpectedConditionExpression("IF");
   if(Condition.isInvalid()) return StmtError();
-  if (!EatIfPresent(tok::kw_THEN)){
+  if (!EatIfPresentInSameStmt(tok::kw_THEN)){
     // if-stmt
     if(Tok.isAtStartOfStatement()) {
-      Diag.Report(Tok.getLocation(), diag::err_expected_executable_stmt);
+      Diag.Report(getExpectedLoc(), diag::err_expected_executable_stmt);
       return StmtError();
     }
     auto Result = Actions.ActOnIfStmt(Context, Loc, Condition, StmtLabel);
@@ -290,8 +290,8 @@ Parser::StmtResult Parser::ParseElseIfStmt() {
 
   ExprResult Condition = ParseExpectedConditionExpression("ELSE IF");
   if(Condition.isInvalid()) return StmtError();
-  if (!EatIfPresent(tok::kw_THEN)) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_kw)
+  if (!EatIfPresentInSameStmt(tok::kw_THEN)) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_kw)
         << "THEN";
     return StmtError();
   }
@@ -324,20 +324,20 @@ Parser::StmtResult Parser::ParseDoStmt() {
     Diag.Report(Tok.getLocation(),diag::err_expected_do_var);
     return StmtError();
   }
-  if(!EatIfPresent(tok::equal)) {
-    Diag.Report(Tok.getLocation(),diag::err_expected_equal);
+  if(!EatIfPresentInSameStmt(tok::equal)) {
+    Diag.Report(getExpectedLoc(),diag::err_expected_equal);
     return StmtError();
   }
   auto E1 = ParseExpectedFollowupExpression("=");
   if(E1.isInvalid()) return StmtError();
-  if(!EatIfPresent(tok::comma)) {
-    Diag.Report(Tok.getLocation(),diag::err_expected_comma);
+  if(!EatIfPresentInSameStmt(tok::comma)) {
+    Diag.Report(getExpectedLoc(),diag::err_expected_comma);
     return StmtError();
   }
   auto E2 = ParseExpectedFollowupExpression(",");
   if(E2.isInvalid()) return StmtError();
   ExprResult E3;
-  if(EatIfPresent(tok::comma)) {
+  if(EatIfPresentInSameStmt(tok::comma)) {
     E3 = ParseExpectedFollowupExpression(",");
     if(E3.isInvalid()) return StmtError();
   }
@@ -388,11 +388,10 @@ Parser::StmtResult Parser::ParseAssignmentStmt() {
   if(LHS.isInvalid()) return StmtError();
 
   SourceLocation Loc = Tok.getLocation();
-  if(!Tok.is(tok::equal)) {
-    Diag.Report(Tok.getLocation(),diag::err_expected_equal);
+  if(!EatIfPresentInSameStmt(tok::equal)) {
+    Diag.Report(getExpectedLoc(),diag::err_expected_equal);
     return StmtError();
   }
-  Lex();
 
   ExprResult RHS = ParseExpectedFollowupExpression("=");
   if(RHS.isInvalid()) return StmtError();

@@ -102,6 +102,9 @@ private:
   // another token.
   SourceLocation PrevTokLocation;
 
+  /// Returns the end of location of the previous token.
+  SourceLocation PrevTokLocEnd;
+
   /// DontResolveIdentifiers - if set, the identifier tokens create
   /// an UnresolvedIdentifierExpr, instead of resolving the identifier.
   /// As a of this result Subscript, Substring and function call
@@ -182,6 +185,17 @@ public:
   StmtResult StmtError() { return StmtResult(true); }
 
 private:
+
+  /// If an error occured because an expected token
+  /// isn't there, this returns the location of where
+  /// the expected token should be.
+  SourceLocation getExpectedLoc() const;
+
+  ///
+  inline SourceLocation getExpectedLocForFixIt() const {
+    return PrevTokLocEnd;
+  }
+
   // High-level parsing methods.
   bool ParseInclude();
   bool ParseProgramUnit();

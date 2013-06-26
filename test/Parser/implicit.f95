@@ -8,7 +8,7 @@ PROGRAM imptest
   IMPLICIT REAL (0) ! expected-error {{expected a letter}}
   IMPLICIT REAL (X-'Y') ! expected-error {{expected a letter}}
   IMPLICIT REAL X ! expected-error {{expected '('}}
-  IMPLICIT REAL (X ! expected-error@+2 {{expected ')'}}
+  IMPLICIT REAL (X ! expected-error {{expected ')'}}
 
   A = 33
   B = 44.9

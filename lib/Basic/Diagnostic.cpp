@@ -223,7 +223,8 @@ DiagnosticClient::~DiagnosticClient() {}
 void DiagnosticClient::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
                                         SourceLocation,
                                         const llvm::Twine &,
-                                        llvm::ArrayRef<SourceRange>) {
+                                        llvm::ArrayRef<SourceRange>,
+                                        llvm::ArrayRef<FixItHint>) {
   if (!IncludeInDiagnosticCounts())
     return;
 

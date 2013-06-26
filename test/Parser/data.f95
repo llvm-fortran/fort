@@ -11,7 +11,7 @@ PROGRAM datatest
 
   DATA X, Y / 1 2 / ! expected-error {{expected '/'}}
 
-  DATA ! expected-error@+2 {{expected an expression}}
+  DATA ! expected-error {{expected an expression}}
 
   DATA (I_ARR(I), I = 1,10) / 10*0 /
 

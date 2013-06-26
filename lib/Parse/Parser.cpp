@@ -91,8 +91,15 @@ bool Parser::LeaveIncludeFile() {
   return false;
 }
 
+SourceLocation Parser::getExpectedLoc() const {
+  if(Tok.isAtStartOfStatement())
+    return PrevTokLocEnd;
+  return Tok.getLocation();
+}
+
 /// Lex - Get the next token.
 void Parser::Lex() {
+  PrevTokLocEnd = getMaxLocationOfCurrentToken();
   if (NextTok.isNot(tok::unknown)) {
     Tok = NextTok;
   } else {
@@ -965,7 +972,7 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
       return StmtError();
 
     if (!EatIfPresentInSameStmt(tok::l_paren)) {
-      Diag.Report(Tok.getLocation(),diag::err_expected_lparen);
+      Diag.Report(getExpectedLoc(),diag::err_expected_lparen);
       return StmtError();
     }
 
@@ -974,7 +981,7 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
       if (Tok.isAtStartOfStatement() ||
           Tok.isNot(tok::identifier) ||
           First->getName().size() > 1) {
-        Diag.Report(Tok.getLocation(),diag::err_expected_letter);
+        Diag.Report(getExpectedLoc(),diag::err_expected_letter);
         return StmtError();
       }
 
@@ -986,7 +993,7 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
         if (Tok.isAtStartOfStatement() ||
             Tok.isNot(tok::identifier) ||
             Second->getName().size() > 1) {
-          Diag.Report(Tok.getLocation(),diag::err_expected_letter);
+          Diag.Report(getExpectedLoc(),diag::err_expected_letter);
           return StmtError();
         }
 
@@ -1000,7 +1007,7 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
     } while (EatIfPresentInSameStmt(tok::comma));
 
     if (!EatIfPresentInSameStmt(tok::r_paren)) {
-      Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+      Diag.Report(getExpectedLoc(),diag::err_expected_rparen);
       return StmtError();
     }
 
@@ -1025,14 +1032,14 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
   SmallVector<Stmt*, 8> StmtList;
 
   if (!EatIfPresentInSameStmt(tok::l_paren)) {
-    Diag.Report(Tok.getLocation(),diag::err_expected_lparen);
+    Diag.Report(getExpectedLoc(),diag::err_expected_lparen);
     return StmtError();
   }
 
   do {
     if (Tok.isAtStartOfStatement() ||
         Tok.isNot(tok::identifier)) {
-      Diag.Report(Tok.getLocation(),
+      Diag.Report(getExpectedLoc(),
                   diag::err_expected_ident);
       return StmtError();
     }
@@ -1043,7 +1050,7 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
 
     auto EqualLoc = Tok.getLocation();
     if (!EatIfPresentInSameStmt(tok::equal)) {
-      Diag.Report(Tok.getLocation(),diag::err_expected_equal);
+      Diag.Report(getExpectedLoc(),diag::err_expected_equal);
       return StmtError();
     }
 
@@ -1061,10 +1068,13 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
 
   if (!EatIfPresentInSameStmt(tok::r_paren)) {
     if (Tok.isAtStartOfStatement())
-      Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
-    else
-      Diag.Report(Tok.getLocation(),diag::err_expected_comma);
-    return StmtError();
+      Diag.Report(getExpectedLoc(),diag::err_expected_rparen)
+        << FixItHint(getExpectedLocForFixIt(),")");
+    else {
+      Diag.Report(getExpectedLoc(),diag::err_expected_comma)
+        << FixItHint(getExpectedLocForFixIt(),",");
+      return StmtError();
+    }
   }
 
   return Actions.ActOnBundledCompoundStmt(Context, Loc, StmtList, StmtLabel);
@@ -1308,7 +1318,7 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
   // nlist
   do {
     if(Tok.isAtStartOfStatement()) {
-      Diag.Report(Tok.getLocation(), diag::err_expected_expression);
+      Diag.Report(getExpectedLoc(), diag::err_expected_expression);
       return StmtError();
     }
 
@@ -1328,13 +1338,13 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
 
   // clist
   if(!EatIfPresentInSameStmt(tok::slash)) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_slash);
+    Diag.Report(getExpectedLoc(), diag::err_expected_slash);
     return StmtError();
   }
 
   do {
     if(Tok.isAtStartOfStatement()) {
-      Diag.Report(Tok.getLocation(), diag::err_expected_expression);
+      Diag.Report(getExpectedLoc(), diag::err_expected_expression);
       return StmtError();
     }
 
@@ -1346,7 +1356,7 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
       RepeatLoc = Tok.getLocation();
       EatIfPresentInSameStmt(tok::star);
       if(Tok.isAtStartOfStatement()) {
-        Diag.Report(Tok.getLocation(), diag::err_expected_expression);
+        Diag.Report(getExpectedLoc(), diag::err_expected_expression);
         return StmtError();
       }
     }
@@ -1359,7 +1369,7 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
   } while(EatIfPresentInSameStmt(tok::comma));
 
   if(!EatIfPresentInSameStmt(tok::slash)) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_slash);
+    Diag.Report(getExpectedLoc(), diag::err_expected_slash);
     return StmtError();
   }
 
@@ -1376,7 +1386,7 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
   while(true) {
     ExprResult E;
     if(Tok.isAtStartOfStatement()) {
-      Diag.Report(Tok.getLocation(), diag::err_expected_expression);
+      Diag.Report(getExpectedLoc(), diag::err_expected_expression);
       return ExprError();
     }
 
@@ -1396,12 +1406,12 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
 
     if(EatIfPresentInSameStmt(tok::comma)) {
       if(Tok.isAtStartOfStatement()) {
-        Diag.Report(Tok.getLocation(), diag::err_expected_expression);
+        Diag.Report(getExpectedLoc(), diag::err_expected_expression);
         return ExprError();
       }
       if(PeekAhead().is(tok::equal)) break;
     } else {
-      Diag.Report(Tok.getLocation(), diag::err_expected_comma);
+      Diag.Report(getExpectedLoc(), diag::err_expected_comma);
       return ExprError();
     }
   }
@@ -1409,7 +1419,7 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
   if(!(Tok.is(tok::identifier) ||
      (Tok.getIdentifierInfo() &&
       isaKeyword(Tok.getIdentifierInfo()->getName())))) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_ident);
+    Diag.Report(getExpectedLoc(), diag::err_expected_ident);
     return ExprError();
   }
   auto IDLoc = Tok.getLocation();
@@ -1417,7 +1427,7 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
   Lex();
 
   if(!EatIfPresentInSameStmt(tok::equal)) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_equal);
+    Diag.Report(getExpectedLoc(), diag::err_expected_equal);
     return ExprError();
   }
 
@@ -1426,7 +1436,7 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
 
   E1 = ParseExpectedFollowupExpression("=");
   if(!EatIfPresentInSameStmt(tok::comma)) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_comma);
+    Diag.Report(getExpectedLoc(), diag::err_expected_comma);
     // NB: don't forget
     DontResolveIdentifiers = PrevDontResolveIdentifiers;
     return ExprError();
@@ -1439,7 +1449,7 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
   DontResolveIdentifiers = PrevDontResolveIdentifiers;
 
   if(!EatIfPresentInSameStmt(tok::r_paren)) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
+    Diag.Report(getExpectedLoc(), diag::err_expected_rparen);
     return ExprError();
   }
 
@@ -1562,7 +1572,7 @@ Parser::StmtResult Parser::ParseINTRINSICStmt() {
          (Tok.getIdentifierInfo() &&
           isaKeyword(Tok.getIdentifierInfo()->getName()))
         )) {
-      Diag.Report(Tok.getLocation(), diag::err_expected_ident);
+      Diag.Report(getExpectedLoc(), diag::err_expected_ident);
       return StmtError();
     }
 
@@ -1574,7 +1584,7 @@ Parser::StmtResult Parser::ParseINTRINSICStmt() {
     Lex();
     if (!EatIfPresentInSameStmt(tok::comma)) {
       if (!Tok.isAtStartOfStatement()) {
-        Diag.Report(Tok.getLocation(), diag::err_expected_comma);
+        Diag.Report(getExpectedLoc(), diag::err_expected_comma);
         return StmtError();
       }
       break;

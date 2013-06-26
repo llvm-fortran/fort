@@ -829,7 +829,9 @@ public:
   virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, SourceLocation L,
                                 const llvm::Twine &Msg,
                                 llvm::ArrayRef<SourceRange> Ranges =
-                                  llvm::ArrayRef<SourceRange>());
+                                  llvm::ArrayRef<SourceRange>(),
+                                llvm::ArrayRef<FixItHint> FixIts =
+                                  llvm::ArrayRef<FixItHint>());
 };
 
 } // end namespace flang

@@ -26,7 +26,7 @@ PROGRAM expressions
 
   X = X
   X = (X)
-  X = (3 ! expected-error@+1 {{expected ')'}}
-  X = ! expected-error@+1 {{expected an expression after '='}}
+  X = (3 ! expected-error {{expected ')'}}
+  X = ! expected-error {{expected an expression after '='}}
   X = A ! expected-error {{use of undeclared identifier 'A'}}
 ENDPROGRAM expressions

@@ -663,7 +663,8 @@ void DiagnosticIDs::EmitDiag(DiagnosticsEngine &Diag, Level DiagLevel) const {
     case Fatal: Lvl = DiagnosticsEngine::Fatal; break;
   }
   Diag.Client->HandleDiagnostic(Lvl, Info.getLocation(), llvm::Twine(OutStr),
-                                llvm::ArrayRef<SourceRange>(Diag.DiagRanges,Diag.NumDiagRanges));
+                                llvm::ArrayRef<SourceRange>(Diag.DiagRanges,Diag.NumDiagRanges),
+                                llvm::ArrayRef<FixItHint>(Diag.DiagFixItHints,Diag.NumDiagFixItHints));
 
   Diag.CurDiagID = ~0U;
 }

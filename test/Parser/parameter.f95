@@ -4,8 +4,11 @@ PROGRAM paramtest
   PARAMETER (NUM = 0.1e4)
   PARAMETER (CM = (0.5,-6e2))
 
-  PARAMETER ! expected-error@+1 {{expected '('}}
+  PARAMETER (Z 1) ! expected-error {{expected '='}}
+  PARAMETER (1) ! expected-error {{expected identifier}}
+
+  PARAMETER ! expected-error {{expected '('}}
   PARAMETER (A = 1 B = 2) ! expected-error {{expected ','}}
-  PARAMETER (d = 33 ! expected-error@+2 {{expected ')'}}
+  PARAMETER (d = 33 ! expected-error {{expected ')'}}
 
 END PROGRAM paramtest
