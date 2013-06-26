@@ -6,11 +6,25 @@ PROGRAM intrinfuntest
   DOUBLE PRECISION D
   COMPLEX C
   CHARACTER (LEN=100) STRING
+  LOGICAL logicalResult
 
   INTRINSIC INT, IFIX, IDINT
   INTRINSIC REAL, FLOAT, sngl
   INTRINSIC DBLE, cmplx
   INTRINSIC char, ICHAR
+
+  INTRINSIC AINT, dint, anint, DNINT, nint, IDNINT
+  INTRINSIC abs, iabs, dabs, cabs
+  INTRINSIC len, index
+  INTRINSIC aimag, conjg
+
+  intrinsic sqrt, dsqrt, csqrt, exp, dexp, cexp
+  intrinsic log, alog, dlog, clog, log10, alog10, dlog10
+  intrinsic sin, dsin, csin, cos, dcos, ccos, tan, dtan
+  intrinsic asin, dasin, acos, dacos, atan, datan, atan2, datan2
+  intrinsic sinh, dsinh, cosh, dcosh, tanh, dtanh
+
+  intrinsic lge, lgt, lle, llt
 
 !! conversion functions
 
@@ -52,8 +66,76 @@ PROGRAM intrinfuntest
   STRING = CHAR(65)
   STRING = char('TRUTH') ! expected-error {{passing 'CHARACTER' to parameter of incompatible type 'INTEGER'}}
 
-!!
+!! misc and maths functions
 
-!! math functions
+  R = AINT(R) ! CHECK: R = AINT(R)
+  D = AINT(D) ! CHECK: D = AINT(D)
+  D = DINT(D) ! CHECK: D = DINT(D)
+  D = DINT(R) ! expected-error {{passing 'REAL' to parameter of incompatible type 'DOUBLE PRECISION'}}
+
+  R = ANINT(R) ! CHECK: R = ANINT(R)
+  D = ANINT(D) ! CHECK: D = ANINT(D)
+  D = DNINT(D) ! CHECK: D = DNINT(D)
+  D = DNINT(R) ! expected-error {{passing 'REAL' to parameter of incompatible type 'DOUBLE PRECISION'}}
+
+  I = NINT(R) ! CHECK: I = NINT(R)
+  I = NINT(D) ! CHECK: I = NINT(D)
+  I = IDNINT(D) ! CHECK: I = IDNINT(D)
+  I = IDNINT(R) ! expected-error {{passing 'REAL' to parameter of incompatible type 'DOUBLE PRECISION'}}
+
+  I = ABS(I) ! CHECK: I = ABS(I)
+  R = ABS(R) ! CHECK: R = ABS(R)
+  D = ABS(D) ! CHECK: D = ABS(D)
+  R = ABS(C) ! CHECK: R = ABS(C)
+  I = IABS(I) ! CHECK: I = IABS(I)
+  D = DABS(D) ! CHECK: D = DABS(D)
+  R = CABS(C) ! CHECK: R = CABS(C)
+
+  I = LEN(STRING) ! CHECK: I = LEN(STRING)
+  I = LEN(22) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'CHARACTER'}}
+  I = INDEX(STRING, STRING) ! CHECK: I = INDEX(STRING, STRING)
+
+  R = aimag(C) ! CHECK: R = AIMAG(C)
+  C = CONJG(C) ! CHECK: C = CONJG(C)
+  C = CONJG(R) ! expected-error {{passing 'REAL' to parameter of incompatible type 'COMPLEX'}}
+
+  R = SQRT(R) ! CHECK: R = SQRT(R)
+  D = SQRT(D) ! CHECK: D = SQRT(D)
+  C = SQRT(C) ! CHECK: C = SQRT(C)
+
+  R = EXP(R) ! CHECK: R = EXP(R)
+  D = EXP(D) ! CHECK: D = EXP(D)
+  C = EXP(C) ! CHECK: C = EXP(C)
+
+  R = SQRT(.false.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'REAL' or 'COMPLEX'}}
+
+  R = LOG(R) ! CHECK: R = LOG(R)
+  D = LOG(D) ! CHECK: D = LOG(D)
+  C = LOG(C) ! CHECK: C = LOG(C)
+
+  R = Log10(R) ! CHECK: R = LOG10(R)
+  D = Log10(D) ! CHECK: D = LOG10(D)
+  C = Log10(C) ! expected-error {{passing 'COMPLEX' to parameter of incompatible type 'REAL'}}
+
+  R = SIN(R) ! CHECK: R = SIN(R)
+  D = SIN(D) ! CHECK: D = SIN(D)
+  C = SIN(C) ! CHECK: C = SIN(C)
+
+  R = TAN(R) ! CHECK: R = TAN(R)
+  D = TAN(D) ! CHECK: D = TAN(D)
+
+  R = ALOG10(R) ! CHECK: R = ALOG10(R)
+  D = DLOG10(D) ! CHECK: D = DLOG10(D)
+  C = CLOG(C) ! CHECK: C = CLOG(C)
+
+  R = ATAN2(R, 1.0) ! CHECK: R = ATAN2(R, 1)
+  D = ATAN2(D, 1D0) ! CHECK: D = ATAN2(D, 1)
+
+!! lexical comparison functions
+
+  logicalResult = lge(STRING, STRING) ! CHECK: LOGICALRESULT = LGE(STRING, STRING)
+  logicalResult = lgt(STRING, STRING) ! CHECK: LOGICALRESULT = LGT(STRING, STRING)
+  logicalResult = lle(STRING, STRING) ! CHECK: LOGICALRESULT = LLE(STRING, STRING)
+  logicalResult = llt(STRING, STRING) ! CHECK: LOGICALRESULT = LLT(STRING, STRING)
 
 END PROGRAM
