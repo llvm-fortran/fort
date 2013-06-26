@@ -728,9 +728,10 @@ bool Parser::ParseForAllConstruct() {
 ///      or deferred-shape-spec-list
 ///      or assumed-size-spec
 bool Parser::ParseArraySpec(SmallVectorImpl<std::pair<ExprResult,ExprResult> > &Dims) {
-  if (!EatIfPresent(tok::l_paren))
-    return Diag.ReportError(Tok.getLocation(),
-                            "expected '(' in array spec");
+  if(!EatIfPresentInSameStmt(tok::l_paren)) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
+    goto error;
+  }
 
   // [R511], [R512], [R513]:
   //   explicit-shape-spec :=
@@ -752,17 +753,17 @@ bool Parser::ParseArraySpec(SmallVectorImpl<std::pair<ExprResult,ExprResult> > &
   do {
     ExprResult E = ParseExpression();
     if (E.isInvalid()) goto error;
-    if(EatIfPresent(tok::colon)){
+    if(EatIfPresentInSameStmt(tok::colon)){
       ExprResult E2 = ParseExpression();
       if(E2.isInvalid()) goto error;
       Dims.push_back(std::make_pair(E,E2));
     }
     else Dims.push_back(std::make_pair(ExprResult(),E));
-  } while (EatIfPresent(tok::comma));
+  } while (EatIfPresentInSameStmt(tok::comma));
 
-  if (!EatIfPresent(tok::r_paren)) {
-    Diag.ReportError(Tok.getLocation(),
-                     "expected ')' in array spec");
+  if (!EatIfPresentInSameStmt(tok::r_paren)) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_rparen)
+      << FixItHint(getExpectedLocForFixIt(),")");
     goto error;
   }
 
@@ -1162,8 +1163,8 @@ bool Parser::ParseSpecificationStmt(std::vector<StmtResult> &Body) {
     Result = ParseDATAStmt();
     break;
   case tok::kw_DIMENSION:
-    ParseDIMENSIONStmt(Body);
-    return false;
+    Result = ParseDIMENSIONStmt();
+    break;
   case tok::kw_EQUIVALENCE:
     Result = ParseEQUIVALENCEStmt();
     goto notImplemented;
@@ -1213,6 +1214,7 @@ notImplemented:
               diag::err_unsupported_stmt)
       << SourceRange(Tok.getLocation(),
                      getMaxLocationOfCurrentToken());
+  LexToEndOfStatement();
   return false;
 }
 
@@ -1463,41 +1465,42 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
 ///     dimension-stmt :=
 ///         DIMENSION [::] array-name ( array-spec ) #
 ///         # [ , array-name ( array-spec ) ] ...
-bool Parser::ParseDIMENSIONStmt(std::vector<StmtResult> &Stmts) {
+Parser::StmtResult Parser::ParseDIMENSIONStmt() {
   SourceLocation Loc = Tok.getLocation();
   Lex();
 
   EatIfPresent(tok::coloncolon);
-  llvm::SmallVector<std::pair<ExprResult, ExprResult>, 4> Dimensions;
-  IdentifierInfo *ID;
-  while (!Tok.isAtStartOfStatement()) {
-    if (Tok.isNot(tok::identifier)) {
-      Diag.ReportError(Tok.getLocation(),
-                       "expected an identifier in DIMENSION statement");
-      return true;
+
+  SmallVector<Stmt*,8> StmtList;
+  SmallVector<std::pair<ExprResult, ExprResult>, 4> Dimensions;
+  while (true) {
+    if (!(Tok.is(tok::identifier) ||
+         (Tok.getIdentifierInfo() &&
+          isaKeyword(Tok.getIdentifierInfo()->getName()))
+        )) {
+      Diag.Report(getExpectedLoc(), diag::err_expected_ident);
+      return StmtError();
     }
-    ID = Tok.getIdentifierInfo();
+
+    auto IDLoc = Tok.getLocation();
+    auto ID = Tok.getIdentifierInfo();
     Lex();
-    if (Tok.isNot(tok::l_paren)){
-      Diag.ReportError(Tok.getLocation(),"expected '(' in DIMENSION statement");
-      return true;
-    }
-    if(ParseArraySpec(Dimensions)) return true;
+    if(ParseArraySpec(Dimensions)) return StmtError();
 
-    // NB: attach statement label only to the first statement.
-    Stmts.push_back(Actions.ActOnDIMENSION(Context, Loc, ID, Dimensions, StmtLabel));
-    StmtLabel = 0;
+    auto Stmt = Actions.ActOnDIMENSION(Context, Loc, IDLoc, ID,
+                                       Dimensions, nullptr);
+    if(Stmt.isUsable()) StmtList.push_back(Stmt.take());
+    Dimensions.clear();
 
-    if (!EatIfPresent(tok::comma)) {
+    if (!EatIfPresentInSameStmt(tok::comma)) {
       if (!Tok.isAtStartOfStatement()) {
-        Diag.ReportError(Tok.getLocation(),
-                         "expected ',' in DIMENSION statement");
-        return true;
+        Diag.Report(getExpectedLoc(), diag::err_expected_comma);
+        return StmtError();
       }
       break;
     }
   }
-  return false;
+  return Actions.ActOnBundledCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
 /// ParseEQUIVALENCEStmt - Parse the EQUIVALENCE statement.
@@ -1548,7 +1551,6 @@ Parser::StmtResult Parser::ParseINTRINSICStmt(bool IsActuallyExternal) {
       Diag.Report(getExpectedLoc(), diag::err_expected_ident);
       return StmtError();
     }
-
 
     auto Stmt = IsActuallyExternal?
                   Actions.ActOnEXTERNAL(Context, Loc, Tok.getLocation(),

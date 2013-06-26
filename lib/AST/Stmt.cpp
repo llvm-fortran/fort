@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/AST/Stmt.h"
+#include "flang/AST/Expr.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/Basic/IdentifierTable.h"
 #include "llvm/ADT/StringRef.h"
@@ -162,6 +163,13 @@ DimensionStmt *DimensionStmt::Create(ASTContext &C, SourceLocation Loc,
                                      ArrayRef<ArrayType::Dimension> Dims,
                                      Expr *StmtLabel) {
   return new (C) DimensionStmt(C, Loc, IDInfo, Dims, StmtLabel);
+}
+
+SourceLocation DimensionStmt::getLocEnd() const {
+  auto LastDim = getIDList().back();
+  if(LastDim.second.isUsable())
+    return LastDim.second.get()->getLocEnd();
+  return LastDim.first.get()->getLocEnd();
 }
 
 //===----------------------------------------------------------------------===//

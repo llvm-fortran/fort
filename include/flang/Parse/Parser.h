@@ -252,7 +252,7 @@ private:
   StmtResult ParseDATAStmt();
   StmtResult ParseDATAStmtPart(SourceLocation Loc);
   ExprResult ParseDATAStmtImpliedDo();
-  bool ParseDIMENSIONStmt(std::vector<StmtResult> &Stmts);
+  StmtResult ParseDIMENSIONStmt();
   StmtResult ParseEQUIVALENCEStmt();
   StmtResult ParseEXTERNALStmt();
   StmtResult ParseINTENTStmt();

@@ -159,7 +159,8 @@ public:
   void ActOnSpecificationPart(ArrayRef<StmtResult> Body);
   VarDecl *GetVariableForSpecification(const IdentifierInfo *IDInfo,
                                        SourceLocation ErrorLoc,
-                                       const llvm::Twine &ErrorMsg);
+                                       SourceRange ErrorRange,
+                                       const char *DiagStmtType);
   bool ApplySpecification(const DimensionStmt *Stmt);
 
   QualType ActOnTypeName(ASTContext &C, DeclSpec &DS);
@@ -218,7 +219,7 @@ public:
 
   // DIMENSION statement
   // The source code statement is split into multiple ones in the parsing stage.
-  StmtResult ActOnDIMENSION(ASTContext &C, SourceLocation Loc,
+  StmtResult ActOnDIMENSION(ASTContext &C, SourceLocation Loc, SourceLocation IDLoc,
                             const IdentifierInfo *IDInfo,
                             ArrayRef<std::pair<ExprResult,ExprResult> > Dims,
                             Expr *StmtLabel);

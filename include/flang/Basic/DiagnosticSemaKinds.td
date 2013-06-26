@@ -144,6 +144,16 @@ def err_typecheck_call_too_many_args_at_most_one : Error<
   "%select{intrinsic function|function|subprogram}0 call, "
   "expected at most single argument %1, have %2 arguments">;
 
+def err_spec_not_applicable_undeclared_ident : Error<
+  "'%0' statement can't be applied because the identifier %1 "
+  "isn't declared in the current context">;
+def err_spec_not_applicable_not_var : Error<
+  "'%0' statement can't be applied because %1 "
+  "isn't a variable">;
+def err_spec_dimension_already_array : Error<
+  "'DIMENSION' statement can't be applied to the variable %0 "
+   "because it is already an array">;
+
 }
 
 }

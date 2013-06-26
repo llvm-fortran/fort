@@ -145,7 +145,8 @@ void StmtVisitor::visit(const ImplicitStmt *S) {
   OS << ") )\n";
 }
 void StmtVisitor::visit(const DimensionStmt *S) {
-  OS << "DIMENSION " << S->getVariableName()->getNameStart();
+  OS << "DIMENSION " << S->getVariableName()->getNameStart()
+     << "\n";
 }
 
 void StmtVisitor::visit(const AsynchronousStmt *S) {

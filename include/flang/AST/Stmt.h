@@ -100,6 +100,13 @@ public:
   /// getLocation - Get the location of the statement.
   SourceLocation getLocation() const { return Loc; }
 
+  virtual SourceLocation getLocStart() const { return Loc; }
+  virtual SourceLocation getLocEnd() const { return Loc; }
+
+  inline SourceRange getSourceRange() const {
+    return SourceRange(getLocStart(), getLocEnd());
+  }
+
   /// getStmtLabel - Get the statement label for this statement.
   Expr *getStmtLabel() const { return StmtLabel; }
 
@@ -374,6 +381,8 @@ public:
   const IdentifierInfo *getVariableName() const {
     return VarName;
   }
+
+  SourceLocation getLocEnd() const;
 
   static bool classof(const DimensionStmt*) { return true; }
   static bool classof(const Stmt *S) {

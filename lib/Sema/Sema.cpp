@@ -527,10 +527,11 @@ StmtResult Sema::ActOnASYNCHRONOUS(ASTContext &C, SourceLocation Loc,
 }
 
 StmtResult Sema::ActOnDIMENSION(ASTContext &C, SourceLocation Loc,
-                               const IdentifierInfo *IDInfo,
-                               ArrayRef<std::pair<ExprResult,ExprResult> > Dims,
-                               Expr *StmtLabel) {
-  auto Result = DimensionStmt::Create(C, Loc, IDInfo, Dims, StmtLabel);
+                                SourceLocation IDLoc,
+                                const IdentifierInfo *IDInfo,
+                                ArrayRef<std::pair<ExprResult,ExprResult> > Dims,
+                                Expr *StmtLabel) {
+  auto Result = DimensionStmt::Create(C, IDLoc, IDInfo, Dims, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }

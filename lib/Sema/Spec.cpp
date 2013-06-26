@@ -14,6 +14,7 @@
 
 #include "flang/Sema/Sema.h"
 #include "flang/Sema/DeclSpec.h"
+#include "flang/Sema/SemaDiagnostic.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
@@ -25,44 +26,52 @@ namespace flang {
 
 /// Applies the specification statements to the declarations.
 void Sema::ActOnSpecificationPart(ArrayRef<StmtResult> Body) {
-  Stmt *Stmt;
   for(ArrayRef<StmtResult>::iterator I = Body.begin(), End = Body.end();
       I != End; ++I) {
     if(!I->isUsable()) continue;
-    Stmt = I->get();
 
-    if (const DimensionStmt *DimStmt = dyn_cast<DimensionStmt>(Stmt)){
-      ApplySpecification(DimStmt);
+    ArrayRef<Stmt*> StmtList;
+
+    if (const BundledCompoundStmt *BundledStmt = dyn_cast<BundledCompoundStmt>(I->get()))
+      StmtList = BundledStmt->getBody();
+    else StmtList = ArrayRef<Stmt*>(I->get());
+    for(auto S : StmtList) {
+      if (const DimensionStmt *DimStmt = dyn_cast<DimensionStmt>(S)){
+        ApplySpecification(DimStmt);
+      }
     }
   }
 }
 
 VarDecl *Sema::GetVariableForSpecification(const IdentifierInfo *IDInfo,
                                            SourceLocation ErrorLoc,
-                                           const llvm::Twine &ErrorMsg) {
-  DeclContext::lookup_result LRes = CurContext->lookup(IDInfo);
-  for(; LRes.first != LRes.second; ++LRes.first){
-    // FIXME: multiple declarations?
-    if(VarDecl *VD = dyn_cast<VarDecl>(*LRes.first)){
-      return VD;
-    }
+                                           SourceRange ErrorRange,
+                                           const char *DiagStmtType) {
+  auto Declaration = LookupIdentifier(IDInfo);
+  if(Declaration) {
+    auto VD = dyn_cast<VarDecl>(Declaration);
+    if(VD && !VD->isParameter()) return VD;
+    Diags.Report(ErrorLoc, diag::err_spec_not_applicable_not_var)
+     << DiagStmtType << IDInfo << ErrorRange;
+    Diags.Report(Declaration->getLocation(), diag::note_previous_definition);
+  } else {
+    Diags.Report(ErrorLoc, diag::err_spec_not_applicable_undeclared_ident)
+     << DiagStmtType << IDInfo << ErrorRange;
   }
-  Diags.ReportError(ErrorLoc,ErrorMsg +
-                    " can't be applied because the variable '" +
-                    IDInfo->getName() +
-                    "' isn't declared in the current context!");
-  return 0;
+
+  return nullptr;
 }
 
 bool Sema::ApplySpecification(const DimensionStmt *Stmt) {
-  VarDecl *VD = GetVariableForSpecification(Stmt->getVariableName(),
-                                            Stmt->getLocation(),
-                                            "DIMENSION specification");
+  auto VD = GetVariableForSpecification(Stmt->getVariableName(),
+                                        Stmt->getLocation(),
+                                        Stmt->getSourceRange(),
+                                        "DIMENSION");
   if(!VD) return true;
-  if(isa<ArrayType>(VD->getType())){
-    Diags.ReportError(Stmt->getLocation(),
-                llvm::Twine("DIMENSION specification can't be applied to the variable '") +
-                VD->getName() + "' because it already has DIMENSION specifier!");
+  if(isa<ArrayType>(VD->getType())) {
+    Diags.Report(Stmt->getLocation(),
+                 diag::err_spec_dimension_already_array)
+      << Stmt->getVariableName() << Stmt->getSourceRange();
     return true;
   }
   else

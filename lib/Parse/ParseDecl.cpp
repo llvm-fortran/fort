@@ -64,10 +64,9 @@ bool Parser::ParseTypeDeclarationList(DeclSpec &DS,
                               "expected an identifier in TYPE list");
     Lex();
 
-    // FIXME: If there's a '(' here, it might be parsing an array decl.
     if(Tok.is(tok::l_paren)){
       llvm::SmallVector<std::pair<ExprResult,ExprResult>, 4> Dimensions;
-      if(ParseArraySpec(Dimensions)){
+      if(ParseArraySpec(Dimensions)) {
         return true;
       }
       //Array declaration.
