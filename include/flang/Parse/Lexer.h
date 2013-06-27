@@ -192,6 +192,9 @@ class Lexer {
   /// LexIdentifier - Lex an identifier token.
   void LexIdentifier(Token &Result);
 
+  /// LexFORMATDescriptor - Lex a format desriptor.
+  void LexFORMATDescriptor(Token &Result);
+
   /// LexStatementLabel - Lex the remainder of a statement label -- a 5-digit
   /// number.
   void LexStatementLabel(Token &Result);
@@ -240,6 +243,7 @@ class Lexer {
   Lexer(const Lexer&);          // DO NOT IMPLEMENT
   void operator=(const Lexer&); // DO NOT IMPLEMENT
 public:
+
   /// Lexer constructor - Create a new lexer object. This lexer assumes that the
   /// text range will outlive it, so it doesn't take ownership of it.
   Lexer(llvm::SourceMgr &SM, const LangOptions &Features, DiagnosticsEngine &D);
@@ -278,6 +282,10 @@ public:
     LexTokenInternal(Result);
   }
 
+  /// LexFORMATToken - Return the next token in the file, with respect to the
+  /// FORMAT token rules.
+  void LexFORMATToken(Token &Result);
+
   /// getSpelling - Return the 'spelling' of the Tok token.  The spelling of a
   /// token is the characters used to represent the token in the source file.
   void getSpelling(const Token &Tok,
@@ -285,6 +293,38 @@ public:
 
   /// PrintError - Error printing methods.
   void PrintError(const char *Loc, const std::string &Msg) const;
+};
+
+/// Lexes the format descriptor token.
+class FormatDescriptorLexer {
+protected:
+  std::string Text;
+  size_t Offset;
+  SourceLocation TextLoc;
+public:
+  FormatDescriptorLexer(const Lexer &TheLexer,
+                        const Token &FormatDescriptor);
+
+  /// Returns the location of the next token.
+  SourceLocation getCurrentLoc() const;
+
+  /// returns true if the next token is an integer.
+  bool IsIntPresent() const;
+
+  /// Advances and returns true if an integer
+  /// token is present.
+  bool LexIntIfPresent(llvm::StringRef &Result);
+
+  /// Advances and returns true if an identifier token
+  /// is present.
+  bool LexIdentIfPresent(llvm::StringRef& Result);
+
+  /// Advances by one and returns true if the current char is c.
+  bool LexCharIfPresent(char c);
+
+  /// Returns true if there's no more characters left in the
+  /// given string.
+  bool IsDone() const;
 };
 
 /// \brief Abstract base class that describes a handler that will receive

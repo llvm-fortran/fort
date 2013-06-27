@@ -61,7 +61,8 @@ Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  
   : TheLexer(SM, Opts, D), Features(Opts), CrashInfo(*this), SrcMgr(SM),
     CurBuffer(0), Context(actions.Context), Diag(D), Actions(actions),
     Identifiers(Opts), DontResolveIdentifiers(false),
-    DontResolveIdentifiersInSubExpressions(false){
+    DontResolveIdentifiersInSubExpressions(false),
+    LexFORMATTokens(false) {
   getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBuffer));
   Tok.startToken();
   NextTok.startToken();
@@ -100,6 +101,19 @@ SourceLocation Parser::getExpectedLoc() const {
 /// Lex - Get the next token.
 void Parser::Lex() {
   PrevTokLocEnd = getMaxLocationOfCurrentToken();
+  if(LexFORMATTokens) {
+    if (NextTok.isNot(tok::unknown))
+      Tok = NextTok;
+    else
+      TheLexer.LexFORMATToken(Tok);
+    NextTok.setKind(tok::unknown);
+
+    if (!Tok.is(tok::eof))
+      return;
+    else
+      LexFORMATTokens = false;
+  }
+
   if (NextTok.isNot(tok::unknown)) {
     Tok = NextTok;
   } else {

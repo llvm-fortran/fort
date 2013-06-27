@@ -491,6 +491,13 @@ static inline bool isIdentifierBody(unsigned char c) {
     true : false;
 }
 
+/// isFormatDescriptorBody - Return true if this is the body character of a
+/// descriptor in a FORMAT statement, which is [a-zA-Z0-9.].
+static inline bool isFormatDescriptorBody(unsigned char c) {
+  return (CharInfo[c] & (CHAR_LETTER | CHAR_NUMBER | CHAR_PERIOD)) ?
+    true : false;
+}
+
 /// isLetter - Return true if this is a letter, which is [a-zA-Z].
 static inline bool isLetter(unsigned char c) {
   return (CharInfo[c] & CHAR_LETTER) ? true : false;
@@ -699,6 +706,17 @@ void Lexer::LexIdentifier(Token &Result) {
   // We let the parser determine what type of identifier this is: identifier,
   // keyword, or built-in function.
   FormTokenWithChars(Result, tok::identifier);
+}
+
+/// LexFormatDescriptor - Lex the remainder of a format descriptor.
+void Lexer::LexFORMATDescriptor(Token &Result) {
+  // Match [_A-Za-z0-9]*, we have already matched [A-Za-z$]
+  unsigned char C = getCurrentChar();
+
+  while (isFormatDescriptorBody(C))
+    C = getNextChar();
+
+  FormTokenWithChars(Result, tok::format_descriptor);
 }
 
 /// LexStatementLabel - Lex the remainder of a statement label -- a 5-digit
@@ -1191,6 +1209,137 @@ LexIdentifier:
   // Update the location of token as well as LexPtr.
   Char = getNextChar();
   FormTokenWithChars(Result, Kind);
+}
+
+void Lexer::LexFORMATToken(Token &Result) {
+  Result.startToken();
+
+  if (Text.empty() || Text.AtEndOfLine())  {
+    TokStart = getCurrentPtr();
+    FormTokenWithChars(Result, tok::eof);
+    return;
+  }
+
+  // Small amounts of horizontal whitespace is very common between tokens.
+  char Char = getCurrentChar();
+  while (isHorizontalWhitespace(Char))
+    Char = getNextChar();
+
+  TokStart = getCurrentPtr();
+  tok::TokenKind Kind;
+
+  switch (Char) {
+  case 0:  // Null.
+    // Found end of file?
+    Kind = tok::eof;
+    break;
+  case '!':
+    LexComment(Result);
+    if (Features.ReturnComments)
+      return;
+    return LexFORMATToken(Result);
+  case ')':
+    Kind = tok::r_paren;
+    break;
+  case '(':
+    Kind = tok::l_paren;
+    break;
+  case '*':
+    Kind = tok::star;
+    break;
+  case 'A': case 'B':  case 'C': case 'D': case 'E': case 'F': case 'G':
+  case 'H': case 'I': case 'J': case 'K': case 'L': case 'M': case 'N':
+  case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': case 'U':
+  case 'V': case 'W': case 'X': case 'Y': case 'Z':
+  case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g':
+  case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n':
+  case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u':
+  case 'v': case 'w': case 'x': case 'y': case 'z':
+  case '0': case '1': case '2': case '3': case '4':
+  case '5': case '6': case '7': case '8': case '9':
+  case '.':
+    return LexFORMATDescriptor(Result);
+  case ',':
+    Kind = tok::comma;
+    break;
+  case ':':
+    Kind = tok::colon;
+    break;
+  case '/':
+    Kind = tok::slash;
+    break;
+  case '"':
+  case '\'':
+    // [TODO]: Kinds.
+    return LexCharacterLiteralConstant(Result, Char == '"');
+  default:
+    TokStart = getCurrentPtr();
+    // FIXME: error.
+    Kind = tok::error;
+    break;
+  }
+
+  // Update the location of token as well as LexPtr.
+  Char = getNextChar();
+  FormTokenWithChars(Result, Kind);
+}
+
+FormatDescriptorLexer::FormatDescriptorLexer(const Lexer &TheLexer,
+                                             const Token &FormatDescriptor) {
+  Offset = 0;
+  TextLoc = FormatDescriptor.getLocation();
+
+  llvm::SmallVector<llvm::StringRef, 2> Spelling;
+  TheLexer.getSpelling(FormatDescriptor, Spelling);
+  Text = FormatDescriptor.CleanLiteral(Spelling);
+}
+
+SourceLocation FormatDescriptorLexer::getCurrentLoc() const {
+  return SourceLocation::getFromPointer(TextLoc.getPointer() + Offset);
+}
+
+/// returns true if the next token is an integer.
+bool FormatDescriptorLexer::IsIntPresent() const {
+  return !IsDone() && isDecimalNumberBody(Text[Offset]);
+}
+
+/// Advances and returns true if an integer
+/// token is present.
+bool FormatDescriptorLexer::LexIntIfPresent(llvm::StringRef& Result) {
+  if(IsIntPresent()) {
+    auto Start = Offset;
+    while(!IsDone() && isDecimalNumberBody(Text[Offset])) ++Offset;
+    Result = llvm::StringRef(Text).slice(Start, Offset);
+    return true;
+  }
+  return false;
+}
+
+/// Advances and returns true if an identifier token
+/// is present.
+bool FormatDescriptorLexer::LexIdentIfPresent(llvm::StringRef& Result) {
+  if(!IsDone() && isLetter(Text[Offset])) {
+    auto Start = Offset;
+    while(!IsDone() && isLetter(Text[Offset])) ++Offset;
+    Result = llvm::StringRef(Text).slice(Start, Offset);
+    return true;
+  }
+  return false;
+}
+
+/// Advances by one and returns true if the current char is c.
+bool FormatDescriptorLexer::LexCharIfPresent(char c) {
+  if(!IsDone() && Text[Offset] == c) {
+    ++Offset;
+    return true;
+  }
+  return false;
+}
+
+/// Returns true if there's no more characters left in the
+/// given string.
+bool FormatDescriptorLexer::IsDone() const {
+  return Offset >= Text.size();
 }
 
 } //namespace flang

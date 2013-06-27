@@ -40,6 +40,8 @@ TOK(comment)             // Comment (only in -E -C[C] mode)
 // [FIXME]: Identifiers.
 TOK(identifier)          // abcde123
 
+TOK(format_descriptor) // I2, A, 8X, etc
+
 // [R312]: Statement Labels
 TOK(statement_label)     // 12345
 

@@ -117,6 +117,11 @@ private:
   /// etc.
   bool DontResolveIdentifiersInSubExpressions;
 
+  /// LexFORMATTokens - if set,
+  /// The lexer will lex the format descriptor tokens instead
+  /// of normal tokens.
+  bool LexFORMATTokens;
+
   /// Identifiers - This is mapping/lookup information for all identifiers in
   /// the program, including program keywords.
   mutable IdentifierTable Identifiers;
@@ -240,7 +245,6 @@ private:
   ExprResult ParseFORMATSpec();
   ExprResult ParseFORMATItems(bool IsOuter = false);
   ExprResult ParseFORMATItem();
-  ExprResult ParseFORMATDescInt(const char *DiagAfter = nullptr);
   StmtResult ParseENTRYStmt();
   StmtResult ParseEND_PROGRAMStmt();
 
