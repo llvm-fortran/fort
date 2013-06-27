@@ -1,4 +1,4 @@
-//===--- FormatDesc.h - Fortran Format Descriptors -------------*- C++ -*-===//
+//===--- FormatItem.h - Fortran Format Items -------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,12 +7,12 @@
 //
 //===----------------------------------------------------------------------===//
 //
-//  This file defines the format edit descriptor class.
+//  This file defines the format item and descriptor class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_FORMATSPEC_H__
-#define FLANG_AST_FORMATSPEC_H__
+#ifndef FLANG_AST_FORMATITEM_H__
+#define FLANG_AST_FORMATITEM_H__
 
 #include "flang/Basic/SourceLocation.h"
 #include "flang/AST/Expr.h"
@@ -39,6 +39,8 @@ public:
   SourceLocation getLocation() const { return Loc; }
 
   unsigned getDescriptor() const { return Descriptor; }
+
+  virtual void print(llvm::raw_ostream&);
 
   static bool classof(const FormatItem *) { return true; }
 };
@@ -102,6 +104,8 @@ public:
 
   IntegerConstantExpr *getM() const { return M; }
 
+  void print(llvm::raw_ostream&);
+
   static bool classof(const FormatItem *D) {
     switch(D->getDescriptor()) {
     case tok::fs_I: case tok::fs_B: case tok::fs_O: case tok::fs_Z:
@@ -134,6 +138,8 @@ public:
   IntegerConstantExpr *getD() const { return D; }
   IntegerConstantExpr *getE() const { return E; }
 
+  void print(llvm::raw_ostream&);
+
   static bool classof(const FormatItem *D) {
     switch(D->getDescriptor()) {
     case tok::fs_F: case tok::fs_E:
@@ -156,6 +162,8 @@ public:
                                          tok::TokenKind Descriptor,
                                          IntegerConstantExpr *RepeatCount,
                                          IntegerConstantExpr *W);
+
+  void print(llvm::raw_ostream&);
 
   static bool classof(const FormatItem *D) {
     switch(D->getDescriptor()) {
@@ -198,6 +206,8 @@ public:
 
   IntegerConstantExpr *getN() const { return getRepeatCount(); }
 
+  void print(llvm::raw_ostream&);
+
   static bool classof(const FormatItem *D) {
     switch(D->getDescriptor()) {
     case tok::fs_T: case tok::fs_TL:
@@ -218,6 +228,8 @@ public:
                                          CharacterConstantExpr *Str);
 
   const char *getValue() const { return Str->getValue(); }
+
+  void print(llvm::raw_ostream&);
 
   static bool classof(const FormatItem *S) {
     return S->getDescriptor() == fs_CharacterStringEditDesc;
@@ -245,6 +257,8 @@ public:
   IntegerConstantExpr *getRepeatCount() const {
     return RepeatCount;
   }
+
+  void print(llvm::raw_ostream&);
 
   static bool classof(const FormatItem *S) {
     return S->getDescriptor() == fs_FormatItems;

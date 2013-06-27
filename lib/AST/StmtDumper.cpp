@@ -15,6 +15,7 @@
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
 #include "flang/AST/Type.h"
+#include "flang/AST/FormatItem.h"
 #include "flang/Basic/LLVM.h"
 #include "llvm/Support/raw_ostream.h"
 using namespace flang;
@@ -50,6 +51,7 @@ private:
   VISIT(StopStmt);
   VISIT(AssignmentStmt);
   VISIT(PrintStmt);
+  VISIT(FormatStmt);
 #undef VISIT
 };
 
@@ -81,6 +83,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(StopStmt);
   HANDLE(AssignmentStmt);
   HANDLE(PrintStmt);
+  HANDLE(FormatStmt);
 #undef HANDLE
 
   switch(S.get()->getStatementID()) {
@@ -246,6 +249,14 @@ void StmtVisitor::visit(const AssignmentStmt *S) {
 }
 void StmtVisitor::visit(const PrintStmt *S) {
   OS << "(print)\n";
+}
+
+void StmtVisitor::visit(const FormatStmt *S) {
+  OS << "FORMAT ";
+  S->getItemList()->print(OS);
+  if(S->getUnlimitedItemList())
+    S->getUnlimitedItemList()->print(OS);
+  OS << "\n";
 }
 
 void flang::dump(StmtResult S) {

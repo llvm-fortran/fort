@@ -18,6 +18,8 @@ def err_expected_integer_expr : Error<
   "expected an integer expression">;
 def err_expected_integer_gt_0 : Error<
   "expected an integer greater than 0">;
+def err_expected_positive_integer : Error<
+  "expected a positive integer">;
 def err_expected_integer_or_real_constant_expr : Error<
   "expected an integer or a real constant expression">;
 def err_expected_integer_constant_expr : Error<
@@ -153,6 +155,9 @@ def err_spec_not_applicable_not_var : Error<
 def err_spec_dimension_already_array : Error<
   "'DIMENSION' statement can't be applied to the variable %0 "
    "because it is already an array">;
+
+def err_format_without_stmt_label : Error<
+  "'FORMAT' statement is missing a statement label">;
 
 }
 

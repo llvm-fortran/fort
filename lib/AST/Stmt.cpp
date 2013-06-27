@@ -176,12 +176,17 @@ SourceLocation DimensionStmt::getLocEnd() const {
 // Format Statement
 //===----------------------------------------------------------------------===//
 
-FormatStmt::FormatStmt(SourceLocation Loc, FormatSpec *fs, Expr *StmtLabel)
-  : Stmt(Format, Loc, StmtLabel), FS(fs) {}
+FormatStmt::FormatStmt(SourceLocation Loc, FormatItemList *ItemList,
+                       FormatItemList *UnlimitedItemList, Expr *StmtLabel)
+  : Stmt(Format, Loc, StmtLabel), Items(ItemList),
+    UnlimitedItems(UnlimitedItemList) {
+}
 
-FormatStmt *FormatStmt::Create(ASTContext &C, SourceLocation Loc, FormatSpec *fs,
+FormatStmt *FormatStmt::Create(ASTContext &C, SourceLocation Loc,
+                               FormatItemList *ItemList,
+                               FormatItemList *UnlimitedItemList,
                                Expr *StmtLabel) {
-  return new (C) FormatStmt(Loc, fs, StmtLabel);
+  return new (C) FormatStmt(Loc, ItemList, UnlimitedItemList, StmtLabel);
 }
 
 //===----------------------------------------------------------------------===//

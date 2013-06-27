@@ -390,15 +390,28 @@ public:
   }
 };
 
+class FormatItemList;
+
 /// FormatStmt -
 ///
 class FormatStmt : public Stmt {
-  FormatSpec *FS;
+  FormatItemList *Items;
+  FormatItemList *UnlimitedItems;
 
-  FormatStmt(SourceLocation Loc, FormatSpec *fs, Expr *StmtLabel);
+  FormatStmt(SourceLocation Loc, FormatItemList *ItemList,
+             FormatItemList *UnlimitedItemList, Expr *StmtLabel);
 public:
-  static FormatStmt *Create(ASTContext &C, SourceLocation Loc, FormatSpec *fs,
+  static FormatStmt *Create(ASTContext &C, SourceLocation Loc,
+                            FormatItemList *ItemList,
+                            FormatItemList *UnlimitedItemList,
                             Expr *StmtLabel);
+
+  FormatItemList *getItemList() const {
+    return Items;
+  }
+  FormatItemList *getUnlimitedItemList() const {
+    return UnlimitedItems;
+  }
 
   static bool classof(const FormatStmt*) { return true; }
   static bool classof(const Stmt *S) {

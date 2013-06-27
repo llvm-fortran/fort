@@ -30,10 +30,10 @@ Parser::StmtResult Parser::ParseFORMATStmt() {
   Lex();
 
 
-  ParseFORMATSpec();
+  auto Result =ParseFORMATSpec(Loc);
   LexFORMATTokens = false;
 
-  return StmtError();
+  return Result;
 }
 
 /// ParseFORMATSpec - Parses the FORMAT specification.
@@ -41,14 +41,15 @@ Parser::StmtResult Parser::ParseFORMATStmt() {
 ///     format-specification :=
 ///         ( [ format-items ] )
 ///      or ( [ format-items, ] unlimited-format-item )
-Parser::ExprResult Parser::ParseFORMATSpec() {
+Parser::StmtResult Parser::ParseFORMATSpec(SourceLocation Loc) {
   if (!EatIfPresentInSameStmt(tok::l_paren)) {
     Diag.Report(getExpectedLoc(),diag::err_expected_lparen);
-    return ExprError();
+    return StmtError();
   }
 
   auto Items = ParseFORMATItems(true);
-  if(Items.isInvalid()) return Items;
+  FormatItemResult UnlimitedItems;
+  if(Items.isInvalid()) return StmtError();
   if(!Items.isUsable()) {
     assert(Tok.is(tok::star));
     // FIXME: Act on unlimited
@@ -56,37 +57,43 @@ Parser::ExprResult Parser::ParseFORMATSpec() {
     Lex(); // eat '*'
     if (!EatIfPresentInSameStmt(tok::l_paren)) {
       Diag.Report(getExpectedLoc(),diag::err_expected_lparen);
-      return ExprError();
+      return StmtError();
     }
-    return ParseFORMATItems(false);
+    UnlimitedItems = ParseFORMATItems(false);
   }
-  return Items;
+  return Actions.ActOnFORMAT(Context, Loc,
+                             Items, UnlimitedItems, StmtLabel);
 }
 
 /// ParseFormatItems - Parses the FORMAT items.
-Parser::ExprResult Parser::ParseFORMATItems(bool IsOuter) {
+Parser::FormatItemResult Parser::ParseFORMATItems(bool IsOuter) {
+  SmallVector<FormatItem*, 8> FormatList;
+  auto Loc = Tok.getLocation();
+
   do {
     if(Tok.isAtStartOfStatement()) {
       Diag.Report(getExpectedLoc(), diag::err_format_expected_desc);
-      return ExprError();
+      return FormatItemResult(true);
     }
     if(IsOuter && Tok.is(tok::star))
       // Go back to the part to parse the unlimited-format-item
-      return ExprResult();
+      return FormatItemResult();
 
     auto Item = ParseFORMATItem();
-    //if(Item.isInvalid()) {
-    //  return ExprError();
-    //}
-
+    if(Item.isInvalid()) {
+      // Fixme: add error recovery
+    }
+    if(Item.isUsable()) FormatList.push_back(Item.take());
   } while(EatIfPresentInSameStmt(tok::comma));
 
   if (!EatIfPresentInSameStmt(tok::r_paren)) {
     Diag.Report(getExpectedLoc(),diag::err_expected_rparen)
       << FixItHint(getExpectedLocForFixIt(),")");
-    return ExprError();
+    return FormatItemResult(true);
   }
-  return ExprError();
+
+  return Actions.ActOnFORMATFormatItemList(Context, Loc,
+                                           nullptr, FormatList);
 }
 
 
@@ -101,7 +108,7 @@ public:
    : Context(C), Diag(D), FormatDescriptorLexer(Lex, FD) {
   }
 
-  Parser::ExprResult ParseIntExpr(const char *DiagAfter = nullptr) {
+  IntegerConstantExpr *ParseIntExpr(const char *DiagAfter = nullptr) {
     llvm::StringRef Str;
     auto Loc = getCurrentLoc();
     if(!LexIntIfPresent(Str)){
@@ -110,7 +117,7 @@ public:
           << DiagAfter;
       else
         Diag.Report(Loc, diag::err_expected_int_literal_constant);
-      return ExprResult(true);
+      return nullptr;
     }
     return IntegerConstantExpr::Create(Context, Loc,
                                        getCurrentLoc(), Str);
@@ -127,13 +134,15 @@ public:
 };
 
 /// ParseFORMATItem - Parses the FORMAT item.
-Parser::ExprResult Parser::ParseFORMATItem() {
+Parser::FormatItemResult Parser::ParseFORMATItem() {
   if(EatIfPresent(tok::l_paren))
     return ParseFORMATItems();
 
   // char-string-edit-desc
-  if(Tok.is(tok::char_literal_constant))
-    return ParsePrimaryExpr();
+  if(Tok.is(tok::char_literal_constant)) {
+    return Actions.ActOnFORMATCharacterStringDesc(Context, Tok.getLocation(),
+                                                  ParsePrimaryExpr());
+  }
 
   if(Tok.is(tok::l_paren)) {
     //FIXME: add the repeat count into account
@@ -148,7 +157,7 @@ Parser::ExprResult Parser::ParseFORMATItem() {
   }
   if(Tok.isNot(tok::format_descriptor)) {
     Diag.Report(getExpectedLoc(), diag::err_format_expected_desc);
-    return ExprError();
+    return FormatItemResult(true);
   }
 
   // the identifier token could be something like I2,
@@ -162,7 +171,7 @@ Parser::ExprResult Parser::ParseFORMATItem() {
   // possible pre integer
   // R for data-edit-desc or
   // n for X in position-edit-desc
-  ExprResult PreInt;
+  IntegerConstantExpr *PreInt = nullptr;
   if(FDParser.IsIntPresent())
     PreInt = FDParser.ParseIntExpr();
 
@@ -171,72 +180,77 @@ Parser::ExprResult Parser::ParseFORMATItem() {
   auto DescriptorStrLoc = FDParser.getCurrentLoc();
   if(!FDParser.LexIdentIfPresent(DescriptorStr)) {
     Diag.Report(DescriptorStrLoc, diag::err_format_expected_desc);
-    return ExprError();
+    return FormatItemResult(true);
   }
   auto DescIdent = Identifiers.lookupFormatSpec(DescriptorStr);
   if(!DescIdent) {
     Diag.Report(DescriptorStrLoc, diag::err_format_invalid_desc)
       << DescriptorStr
       << SourceRange(DescriptorStrLoc,FDParser.getCurrentLoc());
-    return ExprError();
+    return FormatItemResult(true);
   }
 
   // data-edit-desc or control-edit-desc
   auto Desc = DescIdent->getTokenID();
-  ExprResult W, MD, E;
+  IntegerConstantExpr *W = nullptr,
+                      *MD = nullptr,
+                      *E = nullptr;
   switch(Desc) {
   // data-edit-desc
   case tok::fs_I: case tok::fs_B:
   case tok::fs_O: case tok::fs_Z:
     W = FDParser.ParseIntExpr(DescriptorStr.data());
-    if(W.isInvalid()) break;
+    if(!W) break;
     if(FDParser.LexCharIfPresent('.')) {
       MD = FDParser.ParseIntExpr(".");
-      if(MD.isInvalid()) break;
+      if(!MD) break;
     }
     FDParser.MustBeDone();
-    return Actions.ActOnFORMATDataEditDesc(Context, Loc, Desc, PreInt,
-                                           W, MD, E);
+    return Actions.ActOnFORMATIntegerDataEditDesc(Context, Loc, Desc, PreInt,
+                                                  W, MD);
 
   case tok::fs_F:
   case tok::fs_E: case tok::fs_EN: case tok::fs_ES: case tok::fs_G:
     W = FDParser.ParseIntExpr(DescriptorStr.data());
+    if(!W) break;
     if(!FDParser.LexCharIfPresent('.')) {
       if(Desc == tok::fs_G) {
         FDParser.MustBeDone();
-        return Actions.ActOnFORMATDataEditDesc(Context, Loc, Desc, PreInt,
-                                               W, MD, E);
+        return Actions.ActOnFORMATRealDataEditDesc(Context, Loc, Desc, PreInt,
+                                                   W, MD, E);
+
       }
       Diag.Report(FDParser.getCurrentLoc(), diag::err_expected_dot);
       break;
     }
     MD = FDParser.ParseIntExpr(".");
+    if(!MD) break;
     if(Desc != tok::fs_F &&
        (FDParser.LexCharIfPresent('E') ||
         FDParser.LexCharIfPresent('e'))) {
       E = FDParser.ParseIntExpr("E");
     }
     FDParser.MustBeDone();
-    return Actions.ActOnFORMATDataEditDesc(Context, Loc, Desc, PreInt,
-                                           W, MD, E);
+    return Actions.ActOnFORMATRealDataEditDesc(Context, Loc, Desc, PreInt,
+                                               W, MD, E);
 
 
   case tok::fs_A:
     if(!FDParser.IsDone())
       W = FDParser.ParseIntExpr();
     FDParser.MustBeDone();
-    return Actions.ActOnFORMATDataEditDesc(Context, Loc, Desc, PreInt,
-                                           W, MD, E);
+    return Actions.ActOnFORMATCharacterDataEditDesc(Context, Loc, Desc,
+                                                    PreInt, W);
 
   // position-edit-desc
   case tok::fs_T: case tok::fs_TL: case tok::fs_TR:
     W = FDParser.ParseIntExpr(DescriptorStr.data());
-    if(W.isInvalid()) break;
+    if(!W) break;
     FDParser.MustBeDone();
     return Actions.ActOnFORMATPositionEditDesc(Context, Loc, Desc, W);
 
   case tok::fs_X:
-    if(!PreInt.isUsable()) {
+    if(!PreInt) {
       Diag.Report(DescriptorStrLoc, diag::err_expected_int_literal_constant_before)
         << "X";
       break;
@@ -249,7 +263,7 @@ Parser::ExprResult Parser::ParseFORMATItem() {
   case tok::fs_RU: case tok::fs_RD: case tok::fs_RZ:
   case tok::fs_RN: case tok::fs_RC: case tok::fs_RP:
   case tok::fs_DC: case tok::fs_DP:
-    if(PreInt.isUsable()) {
+    if(PreInt) {
       // FIXME: proper error.
       Diag.Report(Loc, diag::err_expected_int_literal_constant);
     }
@@ -262,7 +276,7 @@ Parser::ExprResult Parser::ParseFORMATItem() {
       << DescriptorStr;
     break;
   }
-  return ExprError();
+  return FormatItemResult(true);
 }
 
 } // end namespace flang

@@ -164,6 +164,7 @@ public:
 
   typedef flang::ExprResult ExprResult;
   typedef flang::StmtResult StmtResult;
+  typedef flang::FormatItemResult FormatItemResult;
 
   bool isaIdentifier(const llvm::StringRef &ID) const {
     return Identifiers.isaIdentifier(ID);
@@ -242,9 +243,9 @@ private:
   StmtResult ParseIMPLICITStmt();
   StmtResult ParsePARAMETERStmt();
   StmtResult ParseFORMATStmt();
-  ExprResult ParseFORMATSpec();
-  ExprResult ParseFORMATItems(bool IsOuter = false);
-  ExprResult ParseFORMATItem();
+  StmtResult ParseFORMATSpec(SourceLocation Loc);
+  FormatItemResult ParseFORMATItems(bool IsOuter = false);
+  FormatItemResult ParseFORMATItem();
   StmtResult ParseENTRYStmt();
   StmtResult ParseEND_PROGRAMStmt();
 

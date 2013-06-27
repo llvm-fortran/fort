@@ -358,14 +358,43 @@ public:
                                             ArrayRef<ExprResult> Arguments);
 
   // Format
-  ExprResult ActOnFORMATDataEditDesc(ASTContext &C, SourceLocation Loc,
-                                     tok::TokenKind Kind, ExprResult Repeat,
-                                     ExprResult W, ExprResult MD,
-                                     ExprResult E);
-  ExprResult ActOnFORMATControlEditDesc(ASTContext &C, SourceLocation Loc,
-                                        tok::TokenKind Kind);
-  ExprResult ActOnFORMATPositionEditDesc(ASTContext &C, SourceLocation Loc,
-                                         tok::TokenKind Kind, ExprResult N);
+  StmtResult ActOnFORMAT(ASTContext &C, SourceLocation Loc,
+                         FormatItemResult Items,
+                         FormatItemResult UnlimitedItems,
+                         Expr *StmtLabel, bool IsInline = false);
+
+  FormatItemResult ActOnFORMATIntegerDataEditDesc(ASTContext &C, SourceLocation Loc,
+                                                  tok::TokenKind Kind,
+                                                  IntegerConstantExpr *RepeatCount,
+                                                  IntegerConstantExpr *W,
+                                                  IntegerConstantExpr *M);
+
+  FormatItemResult ActOnFORMATRealDataEditDesc(ASTContext &C, SourceLocation Loc,
+                                               tok::TokenKind Kind,
+                                               IntegerConstantExpr *RepeatCount,
+                                               IntegerConstantExpr *W,
+                                               IntegerConstantExpr *D,
+                                               IntegerConstantExpr *E);
+
+  FormatItemResult ActOnFORMATCharacterDataEditDesc(ASTContext &C, SourceLocation Loc,
+                                                    tok::TokenKind Kind,
+                                                    IntegerConstantExpr *RepeatCount,
+                                                    IntegerConstantExpr *W);
+
+  FormatItemResult ActOnFORMATPositionEditDesc(ASTContext &C, SourceLocation Loc,
+                                               tok::TokenKind Kind,
+                                               IntegerConstantExpr *N);
+
+  FormatItemResult ActOnFORMATControlEditDesc(ASTContext &C, SourceLocation Loc,
+                                              tok::TokenKind Kind);
+
+  FormatItemResult ActOnFORMATCharacterStringDesc(ASTContext &C, SourceLocation Loc,
+                                                  ExprResult E);
+
+  FormatItemResult ActOnFORMATFormatItemList(ASTContext &C, SourceLocation Loc,
+                                             IntegerConstantExpr *RepeatCount,
+                                             ArrayRef<FormatItem*> Items);
+
 
 private:
 
