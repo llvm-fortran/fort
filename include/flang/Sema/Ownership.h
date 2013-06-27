@@ -23,6 +23,7 @@ class Decl;
 class Expr;
 class QualType;
 class Stmt;
+class FormatItem;
 
 /// OpaquePtr - This is a very simple POD type that wraps a pointer that the
 /// Parser doesn't know about but that Sema or another client does. The UID
@@ -120,6 +121,7 @@ typedef ActionResult<ParsedType> TypeResult;
 typedef ActionResult<Decl*> DeclResult;
 typedef ActionResult<Expr*> ExprResult;
 typedef ActionResult<Stmt*> StmtResult;
+typedef ActionResult<FormatItem*> FormatItemResult;
 
 } // end flang namespace
 

@@ -11,5 +11,12 @@ PROGRAM formattest
 1007 FORMAT (1X, 'String', 1X)
 1008 FORMAT (X, 'String', 2X) ! expected-error {{expected an integer literal constant before 'X'}}
 1009 FORMAT (1) ! expected-error {{expected a format descriptor}}
+1010 FORMAT (F1.1, E1.1, G1.1, E1.1E2)
+1011 FORMAT (F1) ! expected-error {{expected '.'}}
+1012 FORMAT (E12.) ! expected-error {{expected an integer literal constant after '.'}}
+1013 FORMAT (E1.4e) ! expected-error {{expected an integer literal constant after 'E'}}
+1014 FORMAT (T1, TL20, TR99)
+1015 FORMAT (T, TL2) ! expected-error {{expected an integer literal constant after 'T'}}
+1016 FORMAT ('Hello', :, I1)
 
 END PROGRAM

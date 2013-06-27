@@ -139,6 +139,13 @@ Parser::ExprResult Parser::ParseFORMATItem() {
     //FIXME: add the repeat count into account
     return ParseFORMATItems();
   }
+  if(Tok.is(tok::slash) || Tok.is(tok::colon)) {
+    // FIXME: allow preint repeat count before slash.
+    auto Loc = Tok.getLocation();
+    auto Desc = Tok.getKind();
+    Lex();
+    return Actions.ActOnFORMATControlEditDesc(Context, Loc, Desc);
+  }
   if(Tok.isNot(tok::format_descriptor)) {
     Diag.Report(getExpectedLoc(), diag::err_format_expected_desc);
     return ExprError();
@@ -190,6 +197,29 @@ Parser::ExprResult Parser::ParseFORMATItem() {
     FDParser.MustBeDone();
     return Actions.ActOnFORMATDataEditDesc(Context, Loc, Desc, PreInt,
                                            W, MD, E);
+
+  case tok::fs_F:
+  case tok::fs_E: case tok::fs_EN: case tok::fs_ES: case tok::fs_G:
+    W = FDParser.ParseIntExpr(DescriptorStr.data());
+    if(!FDParser.LexCharIfPresent('.')) {
+      if(Desc == tok::fs_G) {
+        FDParser.MustBeDone();
+        return Actions.ActOnFORMATDataEditDesc(Context, Loc, Desc, PreInt,
+                                               W, MD, E);
+      }
+      Diag.Report(FDParser.getCurrentLoc(), diag::err_expected_dot);
+      break;
+    }
+    MD = FDParser.ParseIntExpr(".");
+    if(Desc != tok::fs_F &&
+       (FDParser.LexCharIfPresent('E') ||
+        FDParser.LexCharIfPresent('e'))) {
+      E = FDParser.ParseIntExpr("E");
+    }
+    FDParser.MustBeDone();
+    return Actions.ActOnFORMATDataEditDesc(Context, Loc, Desc, PreInt,
+                                           W, MD, E);
+
 
   case tok::fs_A:
     if(!FDParser.IsDone())
