@@ -123,6 +123,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParseStopStmt();
   case tok::kw_PRINT:
     return ParsePrintStmt();
+  case tok::kw_WRITE:
+    return ParseWriteStmt();
 
   case tok::eof:
   case tok::kw_END:
@@ -407,6 +409,7 @@ Parser::StmtResult Parser::ParseAssignmentStmt() {
 ///         default-char-expr
 ///      or label
 ///      or *
+
 Parser::StmtResult Parser::ParsePrintStmt() {
   SourceLocation Loc = Tok.getLocation();
   Lex();
@@ -420,19 +423,71 @@ Parser::StmtResult Parser::ParsePrintStmt() {
   // TODO: Parse the FORMAT default-char-expr & label.
 
   if (!EatIfPresent(tok::comma)) {
-    Diag.ReportError(Tok.getLocation(),
-                     "expected ',' after format specifier in PRINT statement");
+    Diag.Report(Tok.getLocation(),
+                diag::err_expected_comma);
     return StmtResult(true);
   }
 
   SmallVector<ExprResult, 4> OutputItemList;
-  while (!Tok.isAtStartOfStatement()) {
-    OutputItemList.push_back(ParseExpression());
-    if (!EatIfPresent(tok::comma))
-      break;
-  }
+  ParseIOList(OutputItemList);
 
   return Actions.ActOnPrintStmt(Context, Loc, FS, OutputItemList, StmtLabel);
+}
+
+Parser::StmtResult Parser::ParseWriteStmt() {
+  SourceLocation Loc = Tok.getLocation();
+  Lex();
+
+  // clist
+  if(!EatIfPresentInSameStmt(tok::l_paren)) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
+  }
+
+  UnitSpec *US = nullptr;
+  FormatSpec *FS = nullptr;
+
+  US = ParseUNITSpec(false);
+  if(EatIfPresentInSameStmt(tok::comma))
+    FS = ParseFMTSpec(false);
+
+  if(!EatIfPresentInSameStmt(tok::r_paren)) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_rparen);
+  }
+
+  // iolist
+  SmallVector<ExprResult, 4> OutputItemList;
+  ParseIOList(OutputItemList);
+
+  return Actions.ActOnWriteStmt(Context, Loc, US, FS, OutputItemList, StmtLabel);
+}
+
+UnitSpec *Parser::ParseUNITSpec(bool IsLabeled) {
+  auto Loc = Tok.getLocation();
+  if(!EatIfPresentInSameStmt(tok::star)) {
+    auto E = ParseExpression();
+    if(!E.isInvalid())
+      return Actions.ActOnUnitSpec(Context, E, Loc, IsLabeled);
+  }
+  return Actions.ActOnStarUnitSpec(Context, Loc, IsLabeled);
+}
+
+FormatSpec *Parser::ParseFMTSpec(bool IsLabeled) {
+  auto Loc = Tok.getLocation();
+  if(!EatIfPresentInSameStmt(tok::star)) {
+    auto E = ParseExpression();
+    // FIXME: TODO
+    if(!E.isInvalid());
+  }
+  return Actions.ActOnStarFormatSpec(Context, Loc);
+}
+
+void Parser::ParseIOList(SmallVectorImpl<ExprResult> &List) {
+  while(!Tok.isAtStartOfStatement()) {
+    auto E = ParseExpression();
+    if(E.isUsable()) List.push_back(E);
+    if(!EatIfPresentInSameStmt(tok::comma))
+      break;
+  }
 }
 
 /// ParseEND_PROGRAMStmt - Parse the END PROGRAM statement.

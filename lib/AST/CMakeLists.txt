@@ -8,6 +8,7 @@ add_flang_library(flangAST
 	Expr.cpp
 	FormatSpec.cpp
   FormatItem.cpp
+  IOSpec.cpp
 	Stmt.cpp
 	StmtDumper.cpp
 	Type.cpp

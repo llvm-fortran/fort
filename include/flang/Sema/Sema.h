@@ -20,6 +20,7 @@
 #include "flang/AST/Stmt.h"
 #include "flang/AST/Type.h"
 #include "flang/AST/Expr.h"
+#include "flang/AST/IOSpec.h"
 #include "flang/Sema/Ownership.h"
 #include "flang/Sema/Scope.h"
 #include "llvm/ADT/StringRef.h"
@@ -289,6 +290,11 @@ public:
   LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SourceLocation Loc,
                                         ExprResult Label);
 
+  ExternalStarUnitSpec *ActOnStarUnitSpec(ASTContext &C, SourceLocation Loc,
+                                          bool IsLabeled);
+  UnitSpec *ActOnUnitSpec(ASTContext &C, ExprResult Value, SourceLocation Loc,
+                          bool IsLabeled);
+
   StmtResult ActOnBlock(ASTContext &C, SourceLocation Loc, ArrayRef<StmtResult> Body);
 
   StmtResult ActOnAssignStmt(ASTContext &C, SourceLocation Loc,
@@ -319,6 +325,11 @@ public:
   StmtResult ActOnStopStmt(ASTContext &C, SourceLocation Loc, ExprResult StopCode, Expr *StmtLabel);
 
   StmtResult ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,
+                            ArrayRef<ExprResult> OutputItemList,
+                            Expr *StmtLabel);
+
+  StmtResult ActOnWriteStmt(ASTContext &C, SourceLocation Loc,
+                            UnitSpec *US, FormatSpec *FS,
                             ArrayRef<ExprResult> OutputItemList,
                             Expr *StmtLabel);
 

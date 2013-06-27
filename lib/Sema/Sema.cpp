@@ -865,6 +865,17 @@ LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SourceLocation Loc,
   return LabelFormatSpec::Create(C, Loc, Label);
 }
 
+ExternalStarUnitSpec *Sema::ActOnStarUnitSpec(ASTContext &C, SourceLocation Loc,
+                                              bool IsLabeled) {
+  return ExternalStarUnitSpec::Create(C, Loc, IsLabeled);
+}
+
+UnitSpec *Sema::ActOnUnitSpec(ASTContext &C, ExprResult Value, SourceLocation Loc,
+                              bool IsLabeled) {
+  // FIXME: TODO
+  return nullptr;
+}
+
 StmtResult Sema::ActOnBlock(ASTContext &C, SourceLocation Loc, ArrayRef<StmtResult> Body) {
   return BlockStmt::Create(C, Loc, Body);
 }
@@ -1224,6 +1235,17 @@ StmtResult Sema::ActOnStopStmt(ASTContext &C, SourceLocation Loc, ExprResult Sto
 StmtResult Sema::ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,
                                 ArrayRef<ExprResult> OutputItemList,
                                 Expr *StmtLabel) {
+  auto Result = PrintStmt::Create(C, Loc, FS, OutputItemList, StmtLabel);
+  CurExecutableStmts.Append(Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnWriteStmt(ASTContext &C, SourceLocation Loc,
+                                UnitSpec *US, FormatSpec *FS,
+                                ArrayRef<ExprResult> OutputItemList,
+                                Expr *StmtLabel) {
+  // FIXME: TODO
   auto Result = PrintStmt::Create(C, Loc, FS, OutputItemList, StmtLabel);
   CurExecutableStmts.Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);

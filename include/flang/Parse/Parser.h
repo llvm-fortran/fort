@@ -41,6 +41,8 @@ class Expr;
 class Parser;
 class Selector;
 class Sema;
+class UnitSpec;
+class FormatSpec;
 
 /// PrettyStackTraceParserEntry - If a crash happens while the parser is active,
 /// an entry is printed for it.
@@ -299,6 +301,10 @@ private:
   StmtResult ParseStopStmt();
   StmtResult ParseAssignmentStmt();
   StmtResult ParsePrintStmt();
+  StmtResult ParseWriteStmt();
+  UnitSpec *ParseUNITSpec(bool IsLabeled);
+  FormatSpec *ParseFMTSpec(bool IsLabeled);
+  void ParseIOList(SmallVectorImpl<ExprResult> &List);
 
   // Helper functions.
   ExprResult ParseLevel5Expr();
