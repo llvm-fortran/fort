@@ -468,4 +468,18 @@ PrintStmt *PrintStmt::Create(ASTContext &C, SourceLocation L, FormatSpec *fs,
   return new (C) PrintStmt(C, L, fs, OutList, StmtLabel);
 }
 
+//===----------------------------------------------------------------------===//
+// Write Statement
+//===----------------------------------------------------------------------===//
+
+WriteStmt::WriteStmt(ASTContext &C, SourceLocation Loc, UnitSpec *us,
+                     FormatSpec *fs, ArrayRef<Expr*> OutList, Expr *StmtLabel)
+  : ListStmt(C, Write, Loc, OutList, StmtLabel), US(us), FS(fs) {
+}
+
+WriteStmt *WriteStmt::Create(ASTContext &C, SourceLocation Loc, UnitSpec *US,
+                             FormatSpec *FS, ArrayRef<Expr*> OutList, Expr *StmtLabel) {
+  return new(C) WriteStmt(C, Loc, US, FS, OutList, StmtLabel);
+}
+
 } //namespace flang

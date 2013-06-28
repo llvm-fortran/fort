@@ -51,6 +51,7 @@ private:
   VISIT(StopStmt);
   VISIT(AssignmentStmt);
   VISIT(PrintStmt);
+  VISIT(WriteStmt);
   VISIT(FormatStmt);
 #undef VISIT
 };
@@ -83,6 +84,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(StopStmt);
   HANDLE(AssignmentStmt);
   HANDLE(PrintStmt);
+  HANDLE(WriteStmt);
   HANDLE(FormatStmt);
 #undef HANDLE
 
@@ -248,7 +250,23 @@ void StmtVisitor::visit(const AssignmentStmt *S) {
   OS << ")\n";
 }
 void StmtVisitor::visit(const PrintStmt *S) {
-  OS << "(print)\n";
+  OS << "PRINT ";
+  auto OutList = S->getIDList();
+  for(size_t I = 0; I < OutList.size(); ++I) {
+    if(I) OS << ", ";
+    OutList[I].get()->print(OS);
+  }
+  OS << "\n";
+}
+
+void StmtVisitor::visit(const WriteStmt *S) {
+  OS << "WRITE ";
+  auto OutList = S->getIDList();
+  for(size_t I = 0; I < OutList.size(); ++I) {
+    if(I) OS << ", ";
+    OutList[I]->print(OS);
+  }
+  OS << "\n";
 }
 
 void StmtVisitor::visit(const FormatStmt *S) {

@@ -159,6 +159,9 @@ def err_spec_dimension_already_array : Error<
 def err_format_without_stmt_label : Error<
   "'FORMAT' statement is missing a statement label">;
 
+def err_fmt_spec_stmt_label_not_format : Error<
+  "use of statement label format specifier which doesn't label a 'FORMAT' statement">;
+
 }
 
 }

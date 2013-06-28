@@ -16,6 +16,7 @@
 #define FLANG_AST_FORMATSPEC_H__
 
 #include "flang/Basic/SourceLocation.h"
+#include "flang/AST/Stmt.h"
 #include "flang/Sema/Ownership.h"
 #include "flang/Basic/LLVM.h"
 
@@ -67,13 +68,14 @@ public:
 };
 
 class LabelFormatSpec : public FormatSpec {
-  ExprResult Label;
-  LabelFormatSpec(SourceLocation L, ExprResult Lbl);
+  StmtLabelReference StmtLabel;
+  LabelFormatSpec(SourceLocation L, StmtLabelReference Label);
 public:
   static LabelFormatSpec *Create(ASTContext &C, SourceLocation Loc,
-                                 ExprResult Lbl);
+                                 StmtLabelReference Label);
 
-  ExprResult getLabel() const { return Label; }
+  void setLabel(StmtLabelReference Label);
+  StmtLabelReference getLabel() const { return StmtLabel; }
 
   static bool classof(const LabelFormatSpec *) { return true; }
   static bool classof(const FormatSpec *F) {

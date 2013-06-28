@@ -295,6 +295,9 @@ KEYWORD(NEQV                   , KEYALL)
 KEYWORD(TRUE                   , KEYALL)
 KEYWORD(FALSE                  , KEYALL)
 
+KEYWORD(UNIT                   , KEYALL)
+KEYWORD(FMT                    , KEYALL)
+
 // FIXME: correct language versions
 // Fortran 2008 [10.3]
 // R1007: data-edit-desc

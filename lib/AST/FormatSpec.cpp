@@ -27,12 +27,18 @@ DefaultCharFormatSpec *DefaultCharFormatSpec::Create(ASTContext &C, SourceLocati
   return new (C) DefaultCharFormatSpec(Loc, Fmt);
 }
 
-LabelFormatSpec::LabelFormatSpec(SourceLocation L, ExprResult Lbl)
-  : FormatSpec(FormatSpec::FS_Label, L), Label(Lbl) {}
+LabelFormatSpec::LabelFormatSpec(SourceLocation L, StmtLabelReference Label)
+  : FormatSpec(FormatSpec::FS_Label, L), StmtLabel(Label) {}
 
 LabelFormatSpec *LabelFormatSpec::Create(ASTContext &C, SourceLocation Loc,
-                                         ExprResult Label) {
+                                         StmtLabelReference Label) {
   return new (C) LabelFormatSpec(Loc, Label);
+}
+
+void LabelFormatSpec::setLabel(StmtLabelReference Label) {
+  assert(!StmtLabel.Statement);
+  assert(Label.Statement);
+  StmtLabel = Label;
 }
 
 } //namespace flang

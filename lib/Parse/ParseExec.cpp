@@ -125,6 +125,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParsePrintStmt();
   case tok::kw_WRITE:
     return ParseWriteStmt();
+  case tok::kw_FORMAT:
+    return ParseFORMATStmt();
 
   case tok::eof:
   case tok::kw_END:
@@ -414,18 +416,12 @@ Parser::StmtResult Parser::ParsePrintStmt() {
   SourceLocation Loc = Tok.getLocation();
   Lex();
 
-  SourceLocation FormatLoc = Tok.getLocation();
-  FormatSpec *FS = 0;
-  if (EatIfPresent(tok::star)) {
-    FS = Actions.ActOnStarFormatSpec(Context, FormatLoc);
-  }
+  FormatSpec *FS = ParseFMTSpec(false);
 
-  // TODO: Parse the FORMAT default-char-expr & label.
-
-  if (!EatIfPresent(tok::comma)) {
+  if (!EatIfPresentInSameStmt(tok::comma)) {
     Diag.Report(Tok.getLocation(),
                 diag::err_expected_comma);
-    return StmtResult(true);
+    return StmtError();
   }
 
   SmallVector<ExprResult, 4> OutputItemList;
@@ -447,8 +443,18 @@ Parser::StmtResult Parser::ParseWriteStmt() {
   FormatSpec *FS = nullptr;
 
   US = ParseUNITSpec(false);
-  if(EatIfPresentInSameStmt(tok::comma))
-    FS = ParseFMTSpec(false);
+  if(EatIfPresentInSameStmt(tok::comma)) {
+    bool IsFormatLabeled = false;
+    if(EatIfPresentInSameStmt(tok::kw_FMT)) {
+      if(!EatIfPresentInSameStmt(tok::equal)) {
+        Diag.Report(getExpectedLoc(), diag::err_expected_equal);
+        return StmtError();
+      }
+      IsFormatLabeled = true;
+    }
+    FS = ParseFMTSpec(IsFormatLabeled);
+
+  }
 
   if(!EatIfPresentInSameStmt(tok::r_paren)) {
     Diag.Report(getExpectedLoc(), diag::err_expected_rparen);
@@ -474,10 +480,13 @@ UnitSpec *Parser::ParseUNITSpec(bool IsLabeled) {
 FormatSpec *Parser::ParseFMTSpec(bool IsLabeled) {
   auto Loc = Tok.getLocation();
   if(!EatIfPresentInSameStmt(tok::star)) {
-    auto E = ParseExpression();
-    // FIXME: TODO
-    if(!E.isInvalid());
+    // integer literal label
+    auto Destination = ParseStatementLabelReference();
+    if(!Destination.isInvalid())
+      return Actions.ActOnLabelFormatSpec(Context, Loc, Destination);
+    // FIXME: character expr / integer expr
   }
+
   return Actions.ActOnStarFormatSpec(Context, Loc);
 }
 

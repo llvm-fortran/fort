@@ -26,6 +26,7 @@ namespace flang {
 class Expr;
 class VarExpr;
 class FormatSpec;
+class UnitSpec;
 class IdentifierInfo;
 
 /// Stmt - The base class for all Fortran statements.
@@ -66,7 +67,8 @@ public:
     Continue,
     Stop,
     Assignment,
-    Print
+    Print,
+    Write
   };
 private:
   StmtTy StmtID;
@@ -745,6 +747,25 @@ public:
   static bool classof(const PrintStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStatementID() == Print;
+  }
+};
+
+class WriteStmt : public ListStmt<Expr*> {
+  UnitSpec *US;
+  FormatSpec *FS;
+  WriteStmt(ASTContext &C, SourceLocation Loc, UnitSpec *us,
+            FormatSpec *fs, ArrayRef<Expr*> OutList, Expr *StmtLabel);
+public:
+  static WriteStmt *Create(ASTContext &C, SourceLocation Loc, UnitSpec *US,
+                           FormatSpec *FS, ArrayRef<Expr*> OutList,
+                           Expr *StmtLabel);
+
+  UnitSpec *getUnitSpec() const { return US; }
+  FormatSpec *getFormatSpec() const { return FS; }
+
+  static bool classof(const WriteStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == Write;
   }
 };
 

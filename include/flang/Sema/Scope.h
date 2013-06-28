@@ -16,6 +16,7 @@
 
 #include "flang/Basic/Diagnostic.h"
 #include "flang/AST/Stmt.h"
+#include "flang/AST/FormatSpec.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include <map>
@@ -36,17 +37,28 @@ public:
   /// some statement.
   struct ForwardDecl {
     Expr *StmtLabel;
-    Stmt *Statement;
-    typedef void (*StmtLabelResolveFunctionTy)(const ForwardDecl &Self,
+    union {
+      Stmt *Statement;
+      FormatSpec *FS;
+    };
+    typedef void (*StmtLabelResolveFunctionTy)(DiagnosticsEngine &Diags,
+                                               const ForwardDecl &Self,
                                                Stmt *Decl);
     /// This callback gets executed when the statement label is resolved.
     StmtLabelResolveFunctionTy ResolveCallback;
     size_t ResolveCallbackData;
 
     ForwardDecl(Expr *SLabel, Stmt *S,
-                         StmtLabelResolveFunctionTy Callback,
-                         size_t CallbackData = 0)
+                StmtLabelResolveFunctionTy Callback,
+                size_t CallbackData = 0)
       : StmtLabel(SLabel), Statement(S), ResolveCallback(Callback),
+        ResolveCallbackData(CallbackData) {
+    }
+
+    ForwardDecl(Expr *SLabel, FormatSpec *fs,
+                StmtLabelResolveFunctionTy Callback,
+                size_t CallbackData = 0)
+      : StmtLabel(SLabel), FS(fs), ResolveCallback(Callback),
         ResolveCallbackData(CallbackData) {
     }
   };

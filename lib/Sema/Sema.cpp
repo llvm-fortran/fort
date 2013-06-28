@@ -100,7 +100,7 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
   auto StmtLabelForwardDecls = CurStmtLabelScope.getForwardDecls();
   for(size_t I = 0; I < StmtLabelForwardDecls.size(); ++I) {
     if(auto Decl = CurStmtLabelScope.Resolve(StmtLabelForwardDecls[I].StmtLabel))
-      StmtLabelForwardDecls[I].ResolveCallback(StmtLabelForwardDecls[I], Decl);
+      StmtLabelForwardDecls[I].ResolveCallback(Diags, StmtLabelForwardDecls[I], Decl);
     else {
       std::string Str;
       llvm::raw_string_ostream Stream(Str);
@@ -850,40 +850,14 @@ QualType Sema::ActOnArraySpec(ASTContext &C, QualType ElemTy,
   return QualType(ArrayType::Create(C, ElemTy, Dims), 0);
 }
 
-StarFormatSpec *Sema::ActOnStarFormatSpec(ASTContext &C, SourceLocation Loc) {
-  return StarFormatSpec::Create(C, Loc);
-}
-
-DefaultCharFormatSpec *Sema::ActOnDefaultCharFormatSpec(ASTContext &C,
-                                                        SourceLocation Loc,
-                                                        ExprResult Fmt) {
-  return DefaultCharFormatSpec::Create(C, Loc, Fmt);
-}
-
-LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SourceLocation Loc,
-                                      ExprResult Label) {
-  return LabelFormatSpec::Create(C, Loc, Label);
-}
-
-ExternalStarUnitSpec *Sema::ActOnStarUnitSpec(ASTContext &C, SourceLocation Loc,
-                                              bool IsLabeled) {
-  return ExternalStarUnitSpec::Create(C, Loc, IsLabeled);
-}
-
-UnitSpec *Sema::ActOnUnitSpec(ASTContext &C, ExprResult Value, SourceLocation Loc,
-                              bool IsLabeled) {
-  // FIXME: TODO
-  return nullptr;
-}
-
 StmtResult Sema::ActOnBlock(ASTContext &C, SourceLocation Loc, ArrayRef<StmtResult> Body) {
   return BlockStmt::Create(C, Loc, Body);
 }
 
-static void ResolveAssignStmtLabel(const StmtLabelScope::ForwardDecl &Self,
+static void ResolveAssignStmtLabel(DiagnosticsEngine &Diags,
+                                   const StmtLabelScope::ForwardDecl &Self,
                                    Stmt *Destination) {
-  assert(AssignStmt::classof(Self.Statement));
-  static_cast<AssignStmt*>(Self.Statement)->setAddress(StmtLabelReference(Destination));
+  cast<AssignStmt>(Self.Statement)->setAddress(StmtLabelReference(Destination));
 }
 
 StmtResult Sema::ActOnAssignStmt(ASTContext &C, SourceLocation Loc,
@@ -905,10 +879,10 @@ StmtResult Sema::ActOnAssignStmt(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
-static void ResolveAssignedGotoStmtLabel(const StmtLabelScope::ForwardDecl &Self,
+static void ResolveAssignedGotoStmtLabel(DiagnosticsEngine &Diags,
+                                         const StmtLabelScope::ForwardDecl &Self,
                                          Stmt *Destination) {
-  assert(AssignedGotoStmt::classof(Self.Statement));
-  static_cast<AssignedGotoStmt*>(Self.Statement)->
+  cast<AssignedGotoStmt>(Self.Statement)->
     setAllowedValue(Self.ResolveCallbackData,StmtLabelReference(Destination));
 }
 
@@ -936,10 +910,10 @@ StmtResult Sema::ActOnAssignedGotoStmt(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
-static void ResolveGotoStmtLabel(const StmtLabelScope::ForwardDecl &Self,
+static void ResolveGotoStmtLabel(DiagnosticsEngine &Diags,
+                                 const StmtLabelScope::ForwardDecl &Self,
                                  Stmt *Destination) {
-  assert(GotoStmt::classof(Self.Statement));
-  static_cast<GotoStmt*>(Self.Statement)->setDestination(StmtLabelReference(Destination));
+  cast<GotoStmt>(Self.Statement)->setDestination(StmtLabelReference(Destination));
 }
 
 StmtResult Sema::ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
@@ -1042,10 +1016,10 @@ StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLab
   return Result;
 }
 
-static void ResolveDoStmtLabel(const StmtLabelScope::ForwardDecl &Self,
+static void ResolveDoStmtLabel(DiagnosticsEngine &Diags,
+                               const StmtLabelScope::ForwardDecl &Self,
                                Stmt *Destination) {
-  assert(DoStmt::classof(Self.Statement));
-  static_cast<DoStmt*>(Self.Statement)->setTerminatingStmt(StmtLabelReference(Destination));
+  cast<DoStmt>(Self.Statement)->setTerminatingStmt(StmtLabelReference(Destination));
 }
 
 static int ExpectRealOrIntegerOrDoublePrec(DiagnosticsEngine &Diags, const Expr *E,
@@ -1227,26 +1201,6 @@ StmtResult Sema::ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *Stmt
 
 StmtResult Sema::ActOnStopStmt(ASTContext &C, SourceLocation Loc, ExprResult StopCode, Expr *StmtLabel) {
   auto Result = StopStmt::Create(C, Loc, StopCode.take(), StmtLabel);
-  CurExecutableStmts.Append(Result);
-  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  return Result;
-}
-
-StmtResult Sema::ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,
-                                ArrayRef<ExprResult> OutputItemList,
-                                Expr *StmtLabel) {
-  auto Result = PrintStmt::Create(C, Loc, FS, OutputItemList, StmtLabel);
-  CurExecutableStmts.Append(Result);
-  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  return Result;
-}
-
-StmtResult Sema::ActOnWriteStmt(ASTContext &C, SourceLocation Loc,
-                                UnitSpec *US, FormatSpec *FS,
-                                ArrayRef<ExprResult> OutputItemList,
-                                Expr *StmtLabel) {
-  // FIXME: TODO
-  auto Result = PrintStmt::Create(C, Loc, FS, OutputItemList, StmtLabel);
   CurExecutableStmts.Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
