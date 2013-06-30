@@ -45,7 +45,6 @@ const char *DeclSpec::getSpecifierName(DeclSpec::TST I) {
   case TST_unspecified:     return "unspecified";
   case TST_integer:         return "INTEGER";
   case TST_real:            return "REAL";
-  case TST_doubleprecision: return "DOUBLEPRECISION";
   case TST_complex:         return "COMPLEX";
   case TST_character:       return "CHARACTER";
   case TST_logical:         return "LOGICAL";

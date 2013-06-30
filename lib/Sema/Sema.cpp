@@ -252,9 +252,6 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
   case DeclSpec::TST_real:
     Result = C.RealTy;
     break;
-  case DeclSpec::TST_doubleprecision:
-    Result = C.DoublePrecisionTy;
-    break;
   case DeclSpec::TST_character:
     Result = C.CharacterTy;
     break;
@@ -269,6 +266,7 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
     break;
   }
 
+  Result.print(llvm::outs());
   if (!DS.hasAttributes())
     return Result;
 
@@ -276,12 +274,20 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
   Qualifiers Quals = Qualifiers::fromOpaqueValue(DS.getAttributeSpecs());
   Quals.setIntentAttr(DS.getIntentSpec());
   Quals.setAccessAttr(DS.getAccessSpec());
-  QualType EQs =  C.getExtQualType(TypeNode, Quals, DS.getKindSelector(),
-                                   DS.getLengthSelector());
-  if (!Quals.hasAttributeSpec(Qualifiers::AS_dimension))
-    return EQs;
+  unsigned Kind = 0;
+  // FIXME: eval DS.getKindSelector();
+  if(DS.isDoublePrecision()) {
+    assert(!Kind);
+    Kind = 8;
+  }
+  Result = C.getExtQualType(TypeNode, Quals, Kind,
+                            DS.isDoublePrecision(),
+                            DS.getLengthSelector());
 
-  return ActOnArraySpec(C, EQs, DS.getDimensions());
+  if (!Quals.hasAttributeSpec(Qualifiers::AS_dimension))
+    return Result;
+
+  return ActOnArraySpec(C, Result, DS.getDimensions());
 }
 
 VarDecl *Sema::ActOnKindSelector(ASTContext &C, SourceLocation IDLoc,
@@ -701,6 +707,7 @@ ExprResult Sema::ActOnDATAOuterImpliedDoExpr(ASTContext &C,
       else if(auto Binary = dyn_cast<BinaryExpr>(E)) {
         return BinaryExpr::Create(C, Binary->getLocation(),
                                   Binary->getOperator(),
+                                  Binary->getType(),
                                   visitLeaf(Binary->getLHS(), depth+1),
                                   visitLeaf(Binary->getRHS(), depth+1));
       }
@@ -771,66 +778,7 @@ ExprResult Sema::ActOnDATAImpliedDoExpr(ASTContext &C, SourceLocation Loc,
                                E1.take(), E2.take(), E3.take());
 }
 
-ExprResult Sema::TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
-                                     SourceLocation Loc, SourceLocation MinLoc) {
-  const Type *LHSType = LHSTypeof.getTypePtr();
-  const Type *RHSType = RHS.get()->getType().getTypePtr();
 
-  // Arithmetic assigment
-  bool IsRHSInteger = RHSType->isIntegerType();
-  bool IsRHSReal = RHSType->isRealType();
-  bool IsRHSDblPrec = RHSType->isDoublePrecisionType();
-  bool IsRHSComplex = RHSType->isComplexType();
-  bool IsRHSArithmetic = IsRHSInteger || IsRHSReal ||
-                         IsRHSDblPrec || IsRHSComplex;
-
-  if(LHSType->isIntegerType()) {
-    if(IsRHSInteger) ;
-    else if(IsRHSArithmetic)
-      RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                     intrinsic::INT, RHS.take());
-    else goto typeError;
-  } else if(LHSType->isRealType()) {
-    if(IsRHSReal) ;
-    else if(IsRHSArithmetic)
-      RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                     intrinsic::REAL, RHS.take());
-    else goto typeError;
-  } else if(LHSType->isDoublePrecisionType()) {
-    if(IsRHSDblPrec) ;
-    else if(IsRHSArithmetic)
-      RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                     intrinsic::DBLE, RHS.take());
-    else goto typeError;
-  } else if(LHSType->isComplexType()) {
-    if(IsRHSComplex) ;
-    else if(IsRHSArithmetic)
-      RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                     intrinsic::CMPLX, RHS.take());
-    else goto typeError;
-  }
-
-  // Logical assignment
-  else if(LHSType->isLogicalType()) {
-    if(!RHSType->isLogicalType()) goto typeError;
-  }
-
-  // Character assignment
-  else if(LHSType->isCharacterType()) {
-    if(!RHSType->isCharacterType()) goto typeError;
-  }
-
-  // Invalid assignment
-  else goto typeError;
-
-  return RHS;
-typeError:
-  Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
-      << LHSTypeof << RHS.get()->getType()
-      << SourceRange(MinLoc,
-                     RHS.get()->getLocEnd());
-  return ExprError();
-}
 
 StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                      ExprResult LHS,
@@ -1025,7 +973,7 @@ static void ResolveDoStmtLabel(DiagnosticsEngine &Diags,
 static int ExpectRealOrIntegerOrDoublePrec(DiagnosticsEngine &Diags, const Expr *E,
                                            unsigned DiagType = diag::err_typecheck_expected_do_expr) {
   auto T = E->getType();
-  if(T->isIntegerType() || T->isRealType() || T->isDoublePrecisionType()) return 0;
+  if(T->isIntegerType() || T->isRealType()) return 0;
   Diags.Report(E->getLocation(), DiagType)
     << E->getType() << E->getSourceRange();
   return 1;
@@ -1063,19 +1011,6 @@ static bool IsValidDoTerminatingStatement(Stmt *S) {
   }
 }
 
-static ExprResult ApplyDoConversionIfNeeded(ASTContext &C, ExprResult E, QualType T) {
-  if(T->isIntegerType()) {
-    if(E.get()->getType()->isIntegerType()) return E;
-    else return ImplicitCastExpr::Create(C, E.get()->getLocation(), intrinsic::INT, E.take());
-  } else if(T->isRealType()) {
-    if(E.get()->getType()->isRealType()) return E;
-    else return ImplicitCastExpr::Create(C, E.get()->getLocation(), intrinsic::REAL, E.take());
-  } else {
-    if(E.get()->getType()->isDoublePrecisionType()) return E;
-    else return ImplicitCastExpr::Create(C, E.get()->getLocation(), intrinsic::DBLE, E.take());
-  }
-}
-
 /// FIXME: TODO Transfer of control into the range of a DO-loop from outside the range is not permitted.
 StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult TerminatingStmt,
                              VarExpr *DoVar, ExprResult E1, ExprResult E2,
@@ -1088,10 +1023,11 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult Termi
   if(E3.isUsable())
     HasErrors |= ExpectRealOrIntegerOrDoublePrec(Diags, E3.get());
   if(HasErrors) return StmtError();
-  E1 = ApplyDoConversionIfNeeded(C, E1, DoVar->getType());
-  E2 = ApplyDoConversionIfNeeded(C, E2, DoVar->getType());
+  auto DoVarType = DoVar->getType();
+  E1 = TypecheckAssignment(DoVarType, E1);
+  E2 = TypecheckAssignment(DoVarType, E2);
   if(E3.isUsable())
-    E3 = ApplyDoConversionIfNeeded(C, E3, DoVar->getType());
+    E3 = TypecheckAssignment(DoVarType, E3);
 
   // Make sure the statement label isn't already declared
   if(TerminatingStmt.get()) {

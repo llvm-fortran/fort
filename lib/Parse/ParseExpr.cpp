@@ -518,9 +518,9 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = DoublePrecisionConstantExpr::Create(Context, Loc,
-                                            getMaxLocationOfCurrentToken(),
-                                            NumStr);
+    E = RealConstantExpr::Create(Context, Loc,
+                                 getMaxLocationOfCurrentToken(),
+                                 NumStr, RealConstantExpr::Kind8);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
 
     Lex();

@@ -381,6 +381,7 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
   //    or REAL [ kind-selector ]
   //    or DOUBLE PRECISION
   //    or COMPLEX [ kind-selector ]
+  //    or DOUBLE COMPLEX
   //    or CHARACTER [ char-selector ]
   //    or LOGICAL [ kind-selector ]
   switch (Tok.getKind()) {
@@ -403,7 +404,12 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
     DS.SetTypeSpecType(DeclSpec::TST_logical);
     break;
   case tok::kw_DOUBLEPRECISION:
-    DS.SetTypeSpecType(DeclSpec::TST_doubleprecision);
+    DS.SetTypeSpecType(DeclSpec::TST_real);
+    DS.setDoublePrecision(); // equivalent to Kind = 8
+    break;
+  case tok::kw_DOUBLECOMPLEX:
+    DS.SetTypeSpecType(DeclSpec::TST_complex);
+    DS.setDoublePrecision(); // equivalent to Kind = 8
     break;
   }
 
@@ -414,6 +420,7 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
   ExprResult Kind;
   ExprResult Len;
 
+  // FIXME: no Kind for double complex and double precision
   switch (DS.getTypeSpecType()) {
   default:
     Lex();
@@ -439,12 +446,6 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
       }
     }
 
-    break;
-  case DeclSpec::TST_doubleprecision:
-    Lex();
-    if (Tok.is(tok::l_paren))
-      return Diag.ReportError(Tok.getLocation(),
-                             "'DOUBLE PRECISION' doesn't take a kind selector");
     break;
   case DeclSpec::TST_character:
     // [R424]:

@@ -205,6 +205,7 @@ void Parser::Lex() {
     return;
   case tok::kw_DOUBLE:
     MERGE_TOKENS(DOUBLE, PRECISION);
+    MERGE_TOKENS(DOUBLE, COMPLEX);
     return;
   }
 
@@ -706,7 +707,8 @@ bool Parser::ParseDeclarationConstruct(std::vector<StmtResult> &Body) {
   case tok::kw_COMPLEX:
   case tok::kw_CHARACTER:
   case tok::kw_LOGICAL:
-  case tok::kw_DOUBLEPRECISION: {
+  case tok::kw_DOUBLEPRECISION:
+  case tok::kw_DOUBLECOMPLEX: {
     if (ParseTypeDeclarationStmt(Decls)) {
       LexToEndOfStatement();
       // FIXME:

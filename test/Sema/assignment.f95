@@ -30,10 +30,10 @@ PROGRAM assignment
   R = L ! expected-error{{assigning to 'REAL' from incompatible type 'LOGICAL'}}
   R = CHARS ! expected-error{{assigning to 'REAL' from incompatible type 'CHARACTER (LEN=10)'}}
 
-  D = I ! CHECK: D = DBLE(I)
-  D = R ! CHECK: D = DBLE(R)
+  D = I ! CHECK: D = REAL(I,Kind=8)
+  D = R ! CHECK: D = REAL(R,Kind=8)
   D = D ! CHECK: D = D
-  D = C ! CHECK: D = DBLE(C)
+  D = C ! CHECK: D = REAL(C,Kind=8)
   D = L ! expected-error{{assigning to 'DOUBLE PRECISION' from incompatible type 'LOGICAL'}}
   D = CHARS ! expected-error{{assigning to 'DOUBLE PRECISION' from incompatible type 'CHARACTER (LEN=10)'}}
 

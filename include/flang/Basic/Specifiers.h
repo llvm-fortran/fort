@@ -21,7 +21,6 @@ namespace flang {
     TST_unspecified,
     TST_integer,
     TST_real,
-    TST_doubleprecision,
     TST_complex,
     TST_character,
     TST_logical,

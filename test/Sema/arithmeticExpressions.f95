@@ -25,7 +25,7 @@ PROGRAM arithexpressions
   R = R + 1.0 ! CHECK: (R+1)
 
   R = R * I ! CHECK: R = (R*REAL(I))
-  D = D - I ! CHECK: D = (D-DBLE(I))
+  D = D - I ! CHECK: D = (D-REAL(I,Kind=8))
   C = C / I ! CHECK: C = (C/CMPLX(I))
   R = R ** I ! CHECK: R = (R**I)
   D = D ** I ! CHECK: D = (D**I)
@@ -33,11 +33,11 @@ PROGRAM arithexpressions
 
   R = I * R ! CHECK: R = (REAL(I)*R)
   R = R - R ! CHECK: R = (R-R)
-  D = D / R ! CHECK: D = (D/DBLE(R))
+  D = D / R ! CHECK: D = (D/REAL(R,Kind=8))
   C = C ** R ! CHECK: C = (C**CMPLX(R))
 
-  D = I + D ! CHECK: D = (DBLE(I)+D)
-  D = R * D ! CHECK: D = (DBLE(R)*D)
+  D = I + D ! CHECK: D = (REAL(I,Kind=8)+D)
+  D = R * D ! CHECK: D = (REAL(R,Kind=8)*D)
   D = D - 2.0D1 ! CHECK: D = (D-20)
   D = C / D ! expected-error {{invalid operands to an arithmetic binary expression ('COMPLEX' and 'DOUBLE PRECISION')}}
 

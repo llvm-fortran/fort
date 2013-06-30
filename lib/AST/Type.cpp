@@ -35,7 +35,8 @@ QualifierCollector::apply(const ASTContext &Context, const Type *T) const {
 
 ArrayType *ArrayType::Create(ASTContext &C, QualType ElemTy,
                              ArrayRef<Dimension> Dims) {
-  return new (C) ArrayType(Array, ElemTy, QualType(), Dims);
+  // forgot type alignment, what a day that was! full of debugging :/
+  return new (C, TypeAlignment) ArrayType(Array, ElemTy, QualType(), Dims);
 }
 
 void BuiltinType::print(llvm::raw_ostream &O) const {
@@ -46,9 +47,6 @@ void BuiltinType::print(llvm::raw_ostream &O) const {
     break;
   case BuiltinType::Real:
     O << "REAL";
-    break;
-  case BuiltinType::DoublePrecision:
-    O << "DOUBLE PRECISION";
     break;
   case BuiltinType::Character:
     O << "CHARACTER";
@@ -76,13 +74,18 @@ void QualType::print(raw_ostream &OS) const {
   }
 
   const ExtQuals *EQ = Value.getPointer().get<const ExtQuals*>();
-  if (const BuiltinType *BTy = dyn_cast<BuiltinType>(EQ->BaseType))
-    BTy->print(OS);
 
+  if (const BuiltinType *BTy = dyn_cast<BuiltinType>(EQ->BaseType)) {
+    if(EQ->isDoublePrecisionKind()) {
+      if(BTy->isRealType())
+        OS << "DOUBLE PRECISION";
+      else OS << "DOUBLE COMPLEX";
+    }
+    else BTy->print(OS);
+  }
   bool Comma = false;
-  if (EQ->hasKindSelector()) {
-    OS << " (KIND=";
-    EQ->getKindSelector()->print(OS);
+  if (!EQ->isDoublePrecisionKind() && EQ->hasKindSelector()) {
+    OS << " (KIND=" << EQ->getRawKindSelector();
     if (EQ->hasLengthSelector()) {
       OS << ", LEN=";
       EQ->getLengthSelector()->print(OS);

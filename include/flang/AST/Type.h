@@ -327,6 +327,8 @@ public:
   const Type *getTypePtr() const;
   const Type *getTypePtrOrNull() const;
 
+  const ExtQuals *getExtQualsPtrOnNull() const;
+
   /// \brief Retrieves a pointer to the name of the base type.
   const IdentifierInfo *getBaseTypeIdentifier() const;
 
@@ -467,7 +469,12 @@ class ExtQuals : public ExtQualsTypeCommonBase, public llvm::FoldingSetNode {
   Qualifiers Quals;
 
   /// KindSelector - The kind-selector for a type.
-  Expr *KindSelector;
+  unsigned KindSelector : 16;
+
+  /// IsDoublePrecisionKind - This assumes that a
+  /// kind-selector was applied using
+  /// DOUBLE PRECISION/DOUBLE COMPLEX statement.
+  unsigned IsDoublePrecisionKind : 1;
 
   /// LenSelector - The kind-selector for a type.
   Expr *LenSelector;
@@ -475,11 +482,17 @@ class ExtQuals : public ExtQualsTypeCommonBase, public llvm::FoldingSetNode {
   ExtQuals *this_() { return this; }
 
 public:
+  enum {
+    DefaultArithmeticKind = 4,
+    DefaultCharacterKind = 1
+  };
+
   ExtQuals(const Type *BaseTy, QualType Canon, Qualifiers Quals,
-           Expr *KS = 0, Expr *LS = 0)
+           unsigned KS = 0, bool DBL = false, Expr *LS = 0)
     : ExtQualsTypeCommonBase(BaseTy,
                              Canon.isNull() ? QualType(this_(), 0) : Canon),
-      Quals(Quals), KindSelector(KS), LenSelector(LS)
+      Quals(Quals), KindSelector(KS), IsDoublePrecisionKind(DBL?1:0),
+      LenSelector(LS)
   {}
 
   Qualifiers getQualifiers() const { return Quals; }
@@ -496,19 +509,28 @@ public:
   const Type *getBaseType() const { return BaseType; }
 
   bool hasKindSelector() const { return KindSelector != 0; }
-  Expr *getKindSelector() const { return KindSelector; }
+  unsigned getRawKindSelector() const { return KindSelector; }
+  unsigned getArithmeticKindSelector() const {
+    return KindSelector!=0? KindSelector : DefaultArithmeticKind;
+  }
+  unsigned getCharacterKindSelector() const {
+    return KindSelector!=0? KindSelector : DefaultCharacterKind;
+  }
+  bool isDoublePrecisionKind() const { return IsDoublePrecisionKind != 0; }
 
   bool hasLengthSelector() const { return LenSelector != 0; }
   Expr *getLengthSelector() const { return LenSelector; }
 
   void Profile(llvm::FoldingSetNodeID &ID) const {
-    Profile(ID, getBaseType(), Quals, KindSelector, LenSelector);
+    Profile(ID, getBaseType(), Quals, KindSelector, IsDoublePrecisionKind != 0,
+            LenSelector);
   }
   static void Profile(llvm::FoldingSetNodeID &ID,
                       const Type *BaseType, Qualifiers Quals,
-                      Expr *KS, Expr *LS) {
+                      unsigned KS, bool IsDBL, Expr *LS) {
     ID.AddPointer(BaseType);
-    ID.AddPointer(KS);
+    ID.AddInteger(KS);
+    ID.AddBoolean(IsDBL);
     ID.AddPointer(LS);
     Quals.Profile(ID);
   }
@@ -536,42 +558,22 @@ private:
   Type(const Type&);           // DO NOT IMPLEMENT.
   void operator=(const Type&); // DO NOT IMPLEMENT.
 
-  /// Bitfields required by the Type class.
-  class TypeBitfields {
-    friend class Type;
-
-    /// TypeClass bitfield - Enum that specifies what subclass this belongs to.
-    unsigned TC : 8;
-  };
-  enum { NumTypeBits = 8 };
 protected:
-  // These classes allow subclasses to somewhat cleanly pack bitfields
-  // into Type.
-
-  class BuiltinTypeBitfields {
-    friend class BuiltinType;
-
-    unsigned : NumTypeBits;
-
-    /// The kind (BuiltinType::Kind) of builtin type this is.
-    unsigned Kind : 8;
-  };
-
-  union {
-    TypeBitfields TypeBits;
-    BuiltinTypeBitfields BuiltinTypeBits;
-  };
+  /// TypeClass bitfield - Enum that specifies what subclass this belongs to.
+  unsigned TypeBitsTC : 8;
+  /// The kind (BuiltinType::Kind) of builtin type this is.
+  unsigned BuiltinTypeBitsKind : 8;
 
   Type *this_() { return this; }
   Type(TypeClass TC, QualType Canon)
     : ExtQualsTypeCommonBase(this,
                              Canon.isNull() ? QualType(this_(), 0) : Canon) {
-    TypeBits.TC = TC;
+    TypeBitsTC = TC;
   }
 
   friend class ASTContext;
 public:
-  TypeClass getTypeClass() const { return TypeClass(TypeBits.TC); }
+  TypeClass getTypeClass() const { return TypeClass(TypeBitsTC); }
 
   /// \brief Determines if this type would be canonical if it had no further
   /// qualification.
@@ -591,7 +593,6 @@ public:
   bool isIntegerType() const;
   bool isRealType() const;
   bool isCharacterType() const;
-  bool isDoublePrecisionType() const;
   bool isComplexType() const;
   bool isLogicalType() const;
 
@@ -612,7 +613,6 @@ public:
     Invalid         = -1,
     Integer         = 0,
     Real            = 1,
-    DoublePrecision = 2,
     Complex         = 3,
     Character       = 4,
     Logical         = 5
@@ -621,14 +621,14 @@ protected:
   friend class ASTContext;      // ASTContext creates these.
   BuiltinType()
     : Type(Builtin, QualType()) {
-    BuiltinTypeBits.Kind = Real;
+    BuiltinTypeBitsKind = Real;
   }
   BuiltinType(TypeSpec TS)
     : Type(Builtin, QualType()) {
-    BuiltinTypeBits.Kind = TS;
+    BuiltinTypeBitsKind = TS;
   }
 public:
-  TypeSpec getTypeSpec() const { return TypeSpec(BuiltinTypeBits.Kind); }
+  TypeSpec getTypeSpec() const { return TypeSpec(BuiltinTypeBitsKind); }
 
   void print(raw_ostream &OS) const;
 
@@ -775,6 +775,9 @@ inline const Type *QualType::getTypePtr() const {
 inline const Type *QualType::getTypePtrOrNull() const {
   return (isNull() ? 0 : getCommonPtr()->BaseType);
 }
+inline const ExtQuals *QualType::getExtQualsPtrOnNull() const {
+  return Value.getPointer().dyn_cast<const ExtQuals*>();
+}
 inline bool QualType::isCanonical() const {
   return getTypePtr()->isCanonicalUnqualified();
 }
@@ -810,11 +813,6 @@ inline bool Type::isRealType() const {
 inline bool Type::isCharacterType() const {
   if (const BuiltinType *BT = dyn_cast<BuiltinType>(CanonicalType))
     return BT->getTypeSpec() == BuiltinType::Character;
-  return false;
-}
-inline bool Type::isDoublePrecisionType() const {
-  if (const BuiltinType *BT = dyn_cast<BuiltinType>(CanonicalType))
-    return BT->getTypeSpec() == BuiltinType::DoublePrecision;
   return false;
 }
 inline bool Type::isLogicalType() const {

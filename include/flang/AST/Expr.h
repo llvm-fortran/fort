@@ -201,12 +201,21 @@ public:
 };
 
 class RealConstantExpr : public ConstantExpr {
+public:
+  enum Kind {
+    Kind4,
+    Kind8,
+    Kind16
+  };
+private:
   APFloatStorage Num;
   RealConstantExpr(ASTContext &C, SourceLocation Loc,
-                   SourceLocation MaxLoc, llvm::StringRef Data);
+                   SourceLocation MaxLoc, llvm::StringRef Data,
+                   Kind kind);
 public:
   static RealConstantExpr *Create(ASTContext &C, SourceLocation Loc,
-                                  SourceLocation MaxLoc, llvm::StringRef Data);
+                                  SourceLocation MaxLoc, llvm::StringRef Data,
+                                  Kind kind = Kind4);
 
   APFloat getValue() const { return Num.getValue(); }
 
@@ -218,32 +227,22 @@ public:
   static bool classof(const RealConstantExpr *) { return true; }
 };
 
-class DoublePrecisionConstantExpr : public ConstantExpr {
-  APFloatStorage Num;
-  DoublePrecisionConstantExpr(ASTContext &C, SourceLocation Loc,
-                              SourceLocation MaxLoc, llvm::StringRef Data);
-public:
-  static DoublePrecisionConstantExpr *Create(ASTContext &C, SourceLocation Loc,
-                                             SourceLocation MaxLoc, llvm::StringRef Data);
-
-  APFloat getValue() const { return Num.getValue(); }
-
-  virtual void print(llvm::raw_ostream&);
-
-  static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::DoublePrecisionConstant;
-  }
-  static bool classof(const DoublePrecisionConstantExpr *) { return true; }
-};
-
 class ComplexConstantExpr : public ConstantExpr {
+public:
+  enum Kind {
+    Kind4,
+    Kind8,
+    Kind16
+  };
+private:
   APFloatStorage Re, Im;
   ComplexConstantExpr(ASTContext &C, SourceLocation Loc, SourceLocation MaxLoc,
-                      const APFloat &Re, const APFloat &Im);
+                      const APFloat &Re, const APFloat &Im, Kind kind);
 public:
   static ComplexConstantExpr *Create(ASTContext &C, SourceLocation Loc,
                                      SourceLocation MaxLoc,
-                                     const APFloat &Re, const APFloat &Im);
+                                     const APFloat &Re, const APFloat &Im,
+                                     Kind kind = Kind4);
 
   APFloat getRealValue() const { return Re.getValue(); }
   APFloat getImaginaryValue() const { return Im.getValue(); }
@@ -726,7 +725,7 @@ protected:
     : Expr(ET, T, Loc), Op(op), LHS(lhs), RHS(rhs) {}
 public:
   static BinaryExpr *Create(ASTContext &C, SourceLocation Loc, Operator Op,
-                            Expr *LHS, Expr *RHS);
+                            QualType Type, Expr *LHS, Expr *RHS);
 
   Operator getOperator() const { return Op; }
 
@@ -774,16 +773,17 @@ public:
 /// conversions, which have no direct representation in the original
 /// source code.
 ///
-/// = INT(x) | REAL(x) | DBLE(x) | CMPLX(x)
+/// = INT(x, Kind) | REAL(x, Kind) | CMPLX(x, Kind)
+/// NB: For the sake of Fortran 77 compability, REAL(x, 8) can
+///     be used like DBLE.
+/// NB: Kind is specified in the expression's type.
 class ImplicitCastExpr : public Expr {
-  intrinsic::FunctionKind Op;
   Expr *E;
-  ImplicitCastExpr(ASTContext &C, SourceLocation Loc, intrinsic::FunctionKind op, Expr *e);
+  ImplicitCastExpr(SourceLocation Loc, QualType Dest, Expr *e);
 public:
   static ImplicitCastExpr *Create(ASTContext &C, SourceLocation Loc,
-                                  intrinsic::FunctionKind Op, Expr *E);
+                                  QualType Dest, Expr *E);
 
-  intrinsic::FunctionKind getIntrinsicFunction() const { return Op;  }
   Expr *getExpression() { return E; }
 
   SourceLocation getLocStart() const;

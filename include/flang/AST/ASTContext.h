@@ -64,7 +64,9 @@ class ASTContext {
 public:
   /// getExtQualType - Return a type with extended qualifiers.
   QualType getExtQualType(const Type *Base, Qualifiers Quals,
-                          Expr *KindSel, Expr *LenSel) const;
+                          unsigned KindSel, bool IsDoublePrecisionKind,
+                          Expr *LenSel) const;
+  QualType getQualTypeOtherKind(QualType Type, QualType KindType);
 private:
   QualType getTypeDeclTypeSlow(const TypeDecl *Decl) const;
 
@@ -94,6 +96,7 @@ public:
   QualType CharacterTy;
   QualType LogicalTy;
   QualType ComplexTy;
+  QualType DoubleComplexTy;
 
   /// getBuiltinQualType - Return the QualType for the specified builtin type.
   QualType getBuiltinQualType(BuiltinType::TypeSpec TS) const;
@@ -132,12 +135,12 @@ public:
   QualType getQualifiedType(QualType T, Qualifiers Qs) const {
     QualifierCollector Qc(Qs);
     const Type *Ptr = Qc.strip(T);
-    return getExtQualType(Ptr, Qc, 0, 0);
+    return getExtQualType(Ptr, Qc, 0, false, 0);
   }
 
   /// getQualifiedType - Returns a type with additional qualifiers.
   QualType getQualifiedType(const Type *T, Qualifiers Qs) const {
-    return getExtQualType(T, Qs, 0, 0);
+    return getExtQualType(T, Qs, 0, false, 0);
   }
 
   //===--------------------------------------------------------------------===//

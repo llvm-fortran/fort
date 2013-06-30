@@ -48,42 +48,31 @@ IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, SourceLocation L
 }
 
 RealConstantExpr::RealConstantExpr(ASTContext &C, SourceLocation Loc,
-                                   SourceLocation MaxLoc, llvm::StringRef Data)
-  : ConstantExpr(RealConstant, C.RealTy, Loc, MaxLoc) {
-  // FIXME: IEEEdouble?
-  APFloat Val(APFloat::IEEEsingle, Data);
+                                   SourceLocation MaxLoc, llvm::StringRef Data,
+                                   Kind kind)
+  : ConstantExpr(RealConstant, kind == Kind4? C.RealTy : C.DoublePrecisionTy, Loc, MaxLoc) {
+  APFloat Val(kind == Kind4? APFloat::IEEEsingle : APFloat::IEEEdouble, Data);
   Num.setValue(C, Val);
 }
 
 RealConstantExpr *RealConstantExpr::Create(ASTContext &C, SourceLocation Loc,
-                                           SourceLocation MaxLoc, llvm::StringRef Data) {
-  return new (C) RealConstantExpr(C, Loc, MaxLoc, Data);
-}
-
-DoublePrecisionConstantExpr::DoublePrecisionConstantExpr(ASTContext &C, SourceLocation Loc,
-                                                         SourceLocation MaxLoc, llvm::StringRef Data)
-  : ConstantExpr(RealConstant, C.DoublePrecisionTy, Loc, MaxLoc) {
-  APFloat Val(APFloat::IEEEdouble, Data);
-  Num.setValue(C, Val);
-}
-
-DoublePrecisionConstantExpr *DoublePrecisionConstantExpr::Create(ASTContext &C, SourceLocation Loc,
-                                                                 SourceLocation MaxLoc,
-                                                                 llvm::StringRef Data) {
-  return new (C) DoublePrecisionConstantExpr(C, Loc, MaxLoc, Data);
+                                           SourceLocation MaxLoc, llvm::StringRef Data,
+                                           Kind kind) {
+  return new (C) RealConstantExpr(C, Loc, MaxLoc, Data, kind);
 }
 
 ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, SourceLocation Loc, SourceLocation MaxLoc,
-                                         const APFloat &Re, const APFloat &Im)
-  : ConstantExpr(ComplexConstant, C.ComplexTy, Loc, MaxLoc) {
+                                         const APFloat &Re, const APFloat &Im, Kind kind)
+  : ConstantExpr(ComplexConstant, kind == Kind4? C.ComplexTy : C.DoubleComplexTy, Loc, MaxLoc) {
   this->Re.setValue(C, Re);
   this->Im.setValue(C, Im);
 }
 
 ComplexConstantExpr *ComplexConstantExpr::Create(ASTContext &C, SourceLocation Loc,
                                                  SourceLocation MaxLoc,
-                                                 const APFloat &Re, const APFloat &Im) {
-  return new (C) ComplexConstantExpr(C, Loc, MaxLoc, Re, Im);
+                                                 const APFloat &Re, const APFloat &Im,
+                                                 Kind kind) {
+  return new (C) ComplexConstantExpr(C, Loc, MaxLoc, Re, Im, kind);
 }
 
 CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, SourceLocation Loc,
@@ -274,26 +263,8 @@ DefinedOperatorUnaryExpr *DefinedOperatorUnaryExpr::Create(ASTContext &C,
 }
 
 BinaryExpr *BinaryExpr::Create(ASTContext &C, SourceLocation Loc, Operator Op,
-                               Expr *LHS, Expr *RHS) {
-  QualType Ty;
-
-  switch (Op) {
-  default: {
-    // FIXME: Combine two types.
-    Ty = LHS->getType();
-    break;
-  }
-  case Eqv: case Neqv: case Or: case And:
-  case Equal: case NotEqual: case LessThan: case LessThanEqual:
-  case GreaterThan: case GreaterThanEqual:
-    Ty = C.LogicalTy;
-    break;
-  case Concat:
-    Ty = C.CharacterTy;
-    break;
-  }
-
-  return new (C) BinaryExpr(Expr::Binary, Ty, Loc, Op, LHS, RHS);
+                               QualType Type, Expr *LHS, Expr *RHS) {
+  return new (C) BinaryExpr(Expr::Binary, Type, Loc, Op, LHS, RHS);
 }
 
 SourceLocation BinaryExpr::getLocStart() const {
@@ -310,25 +281,13 @@ DefinedOperatorBinaryExpr::Create(ASTContext &C, SourceLocation Loc, Expr *LHS,
   return new (C) DefinedOperatorBinaryExpr(Loc, LHS, RHS, IDInfo);
 }
 
-static inline QualType ConversionType(ASTContext &C, intrinsic::FunctionKind Op) {
-  switch(Op) {
-  case intrinsic::INT: return C.IntegerTy;
-  case intrinsic::REAL: return C.RealTy;
-  case intrinsic::DBLE: return C.DoublePrecisionTy;
-  case intrinsic::CMPLX: return C.ComplexTy;
-  default:
-    llvm_unreachable("Unknown conversion type!");
-  }
-}
-
-ImplicitCastExpr::ImplicitCastExpr(ASTContext &C, SourceLocation Loc,
-                                   intrinsic::FunctionKind op, Expr *e)
-  : Expr(ImplicitCast,ConversionType(C, op),Loc),Op(op),E(e) {
+ImplicitCastExpr::ImplicitCastExpr(SourceLocation Loc, QualType Dest, Expr *e)
+  : Expr(ImplicitCast,Dest,Loc),E(e) {
 }
 
 ImplicitCastExpr *ImplicitCastExpr::Create(ASTContext &C, SourceLocation Loc,
-                                           intrinsic::FunctionKind Op, Expr *E) {
-  return new(C) ImplicitCastExpr(C, Loc, Op, E);
+                                           QualType Dest, Expr *E) {
+  return new(C) ImplicitCastExpr(Loc, Dest, E);
 }
 
 SourceLocation ImplicitCastExpr::getLocStart() const {
@@ -437,8 +396,16 @@ void DefinedOperatorUnaryExpr::print(llvm::raw_ostream &O) {
 }
 
 void ImplicitCastExpr::print(llvm::raw_ostream &O) {
-  O << intrinsic::getFunctionName(Op) << '(';
+  auto Type = getType();
+  if(Type->isIntegerType())
+    O << "INT(";
+  else if(Type->isRealType())
+    O << "REAL(";
+  else if(Type->isComplexType())
+    O << "CMPLX(";
   E->print(O);
+  if(const ExtQuals *Ext = Type.getExtQualsPtrOnNull())
+    O << ",Kind=" << Ext->getRawKindSelector();
   O << ')';
 }
 
@@ -462,13 +429,6 @@ void IntegerConstantExpr::print(llvm::raw_ostream &O) {
 }
 
 void RealConstantExpr::print(llvm::raw_ostream &O) {
-  llvm::SmallVector<char,32> Str;
-  Num.getValue().toString(Str);
-  Str.push_back('\0');
-  O << Str.begin();
-}
-
-void DoublePrecisionConstantExpr::print(llvm::raw_ostream &O) {
   llvm::SmallVector<char,32> Str;
   Num.getValue().toString(Str);
   Str.push_back('\0');

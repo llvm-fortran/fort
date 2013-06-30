@@ -39,7 +39,6 @@ public:
   static const TST TST_unspecified = flang::TST_unspecified;
   static const TST TST_integer = flang::TST_integer;
   static const TST TST_real = flang::TST_real;
-  static const TST TST_doubleprecision = flang::TST_doubleprecision;
   static const TST TST_complex = flang::TST_complex;
   static const TST TST_character = flang::TST_character;
   static const TST TST_logical = flang::TST_logical;
@@ -82,6 +81,7 @@ private:
   /*AS*/ unsigned AttributeSpecs : 15;
   /*IS*/ unsigned IntentSpec     : 3;
   /*AC*/ unsigned AccessSpec     : 3;
+  unsigned IsDoublePrecision     : 1; // can apply to reals or complex
 
   /// \brief The kind and length selectors.
   Expr *Kind;
@@ -94,8 +94,12 @@ public:
       AttributeSpecs(AS_unspecified),
       IntentSpec(IS_unspecified),
       AccessSpec(AC_unspecified),
+      IsDoublePrecision(0),
       Kind(0), Len(0) {}
   virtual ~DeclSpec();
+
+  bool isDoublePrecision() const { return IsDoublePrecision == 1; }
+  void setDoublePrecision() { IsDoublePrecision = 1; }
 
   bool hasKindSelector() const { return Kind != 0; }
   Expr *getKindSelector() const { return Kind; }
@@ -156,7 +160,8 @@ public:
 
   bool hasAttributes() const {
     return hasKindSelector() || hasLengthSelector() ||
-      AttributeSpecs != 0 || IntentSpec != 0 || AccessSpec != 0;
+      AttributeSpecs != 0 || IntentSpec != 0 || AccessSpec != 0 ||
+      IsDoublePrecision != 0;
   }
 
   virtual void print(llvm::raw_ostream &) {}

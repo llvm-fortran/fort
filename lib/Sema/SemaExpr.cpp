@@ -19,18 +19,46 @@
 
 namespace flang {
 
-static TypeSpecifierType GetArithmeticTypeSpec(const Type *T) {
+enum {
+  // emulate real(kind=8) as double precision for fortran 77 compability.
+  TST_doubleprecision = TST_struct + 1
+};
+
+/// Returns TST_integer/TST_real/TST_complex if a given type
+/// is an arithmetic type, or TST_unspecified otherwise
+static TypeSpecifierType GetArithmeticTypeSpec(QualType T) {
   if(T->isIntegerType()) return TST_integer;
   else if(T->isRealType()) return TST_real;
-  else if(T->isDoublePrecisionType()) return TST_doubleprecision;
   else if(T->isComplexType()) return TST_complex;
   else return TST_unspecified;
 }
+
+/// Returns true if a real type is also a double precision type.
+static bool IsRealTypeDoublePrecision(QualType T) {
+  auto Ext = T.getExtQualsPtrOnNull();
+  return Ext && Ext->getArithmeticKindSelector() == 8? true : false;
+}
+
+/// Returns TST_integer/TST_real/TST_complex/TST_doubleprecision
+/// if a given type is an arithmetic type, or TST_unspecified
+/// otherwise
+static int GetArithmeticTypeSpecFortran77(QualType T) {
+  if(T->isIntegerType()) return TST_integer;
+  else if(T->isRealType()) {
+    auto Ext = T.getExtQualsPtrOnNull();
+    return Ext && Ext->getArithmeticKindSelector() == 8?
+             TST_doubleprecision : TST_real;
+  }
+  else if(T->isComplexType()) return TST_complex;
+  else return TST_unspecified;
+}
+
 
 static llvm::APFloat GetNumberConstant(DiagnosticsEngine &Diags, Expr *E) {
   if(auto Real = dyn_cast<RealConstantExpr>(E)) {
     return Real->getValue();
   } else if(auto Int = dyn_cast<IntegerConstantExpr>(E)) {
+    // FIXME: take count into account?
     llvm::APFloat result(llvm::APFloat::IEEEsingle);
     result.convertFromAPInt(Int->getValue(),true,llvm::APFloat::rmNearestTiesToEven);
     return result;
@@ -46,21 +74,161 @@ static llvm::APFloat GetNumberConstant(DiagnosticsEngine &Diags, Expr *E) {
   }
 }
 
+/// Returns true if two arithmetic type qualifiers have the same kind
+static bool ExtQualsSameKind(const ExtQuals *A, const ExtQuals *B) {
+  auto AK = A? A->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  auto BK = B? B->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  return AK == BK;
+}
+
+/// Returns the largest kind between two arithmetic type qualifiers.
+static int GetLargestKind(const ExtQuals *A, const ExtQuals *B) {
+  auto AK = A? A->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  auto BK = B? B->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  return AK >= BK ? 0 : 1;
+}
+
+/// Creates an implicit cast expression
+static Expr *ImplicitCast(ASTContext &C, QualType T, ExprResult E) {
+  return ImplicitCastExpr::Create(C, E.get()->getLocation(), T, E.take());
+}
+
+/// Selects the type with the biggest kind from two arithmetic types,
+/// applies any required conversions to that type for two expressions,
+/// and returns that type.
+static QualType SelectLargestKindApplyConversions(ASTContext &C,
+                                                  ExprResult &A, ExprResult &B,
+                                                  QualType AType, QualType BType) {
+  const ExtQuals *AExt = AType.getExtQualsPtrOnNull();
+  const ExtQuals *BExt = BType.getExtQualsPtrOnNull();
+  auto AK = AExt? AExt->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  auto BK = BExt? BExt->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  if(AK == BK) return AType;
+  else if(AK >= BK) {
+    B = ImplicitCast(C, AType, B);
+    return AType;
+  } else {
+    A = ImplicitCast(C, BType, A);
+    return BType;
+  }
+}
+
+/// Chooses a type from two arithmetic types,
+/// and if another type has larger kind, expands the
+/// chosen type to the larger kind.
+/// Applies any required conversions to the chosen type for two expressions,
+/// and returns the chosen type.
+static QualType TakeTypeSelectLargestKindApplyConversion(ASTContext &C,
+                                                         int Chosen,
+                                                         ExprResult &A, ExprResult &B,
+                                                         QualType AType, QualType BType) {
+  QualType ChosenType = Chosen == 0? AType : BType;
+  const ExtQuals *AExt = AType.getExtQualsPtrOnNull();
+  const ExtQuals *BExt = BType.getExtQualsPtrOnNull();
+  auto AK = AExt? AExt->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  auto BK = BExt? BExt->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  if(AK == BK ||
+     (Chosen == 0 && AK >= BK) ||
+     (Chosen != 0 && BK >= AK)) {
+    if(Chosen == 0)
+      B = ImplicitCast(C, ChosenType, B);
+    else
+      A = ImplicitCast(C, ChosenType, A);
+    return ChosenType;
+  }
+  auto ReturnType = C.getQualTypeOtherKind(ChosenType, Chosen == 0? BType : AType);
+  A = ImplicitCast(C, ReturnType, A);
+  B = ImplicitCast(C, ReturnType, B);
+  return ReturnType;
+}
+
+
+ExprResult Sema::TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
+                                     SourceLocation Loc, SourceLocation MinLoc) {
+  const Type *LHSType = LHSTypeof.getTypePtr();
+  const Type *RHSType = RHS.get()->getType().getTypePtr();
+  auto LHSExtQuals = LHSTypeof.getExtQualsPtrOnNull();
+  auto RHSExtQuals = RHS.get()->getType().getExtQualsPtrOnNull();
+
+  // Arithmetic assigment
+  bool IsRHSInteger = RHSType->isIntegerType();
+  bool IsRHSReal = RHSType->isRealType();
+  bool IsRHSComplex = RHSType->isComplexType();
+  bool IsRHSArithmetic = IsRHSInteger || IsRHSReal ||
+                         IsRHSComplex;
+
+  if(LHSType->isIntegerType()) {
+    if(IsRHSInteger && ExtQualsSameKind(LHSExtQuals, RHSExtQuals)) ;
+    else if(IsRHSArithmetic)
+      RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
+                                     LHSTypeof, RHS.take());
+    else goto typeError;
+  } else if(LHSType->isRealType()) {
+    if(IsRHSReal && ExtQualsSameKind(LHSExtQuals, RHSExtQuals)) ;
+    else if(IsRHSArithmetic)
+      RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
+                                     LHSTypeof, RHS.take());
+    else goto typeError;
+  } else if(LHSType->isComplexType()) {
+    if(IsRHSComplex && ExtQualsSameKind(LHSExtQuals, RHSExtQuals)) ;
+    else if(IsRHSArithmetic)
+      RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
+                                     LHSTypeof, RHS.take());
+    else goto typeError;
+  }
+
+  // Logical assignment
+  else if(LHSType->isLogicalType()) {
+    if(!RHSType->isLogicalType()) goto typeError;
+  }
+
+  // Character assignment
+  else if(LHSType->isCharacterType()) {
+    if(!RHSType->isCharacterType()) goto typeError;
+  }
+
+  // Invalid assignment
+  else goto typeError;
+
+  return RHS;
+typeError:
+  Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
+      << LHSTypeof << RHS.get()->getType()
+      << SourceRange(MinLoc,
+                     RHS.get()->getLocEnd());
+  return ExprError();
+}
+
 
 ExprResult Sema::ActOnComplexConstantExpr(ASTContext &C, SourceLocation Loc,
                                           SourceLocation MaxLoc,
                                           ExprResult RealPart, ExprResult ImPart) {
   APFloat Re = GetNumberConstant(Diags, RealPart.take()),
           Im = GetNumberConstant(Diags, ImPart.take());
+  ComplexConstantExpr::Kind Kind = ComplexConstantExpr::Kind4;
+  auto ReKind = llvm::APFloat::semanticsPrecision(Re.getSemantics());
+  auto ImKind = llvm::APFloat::semanticsPrecision(Im.getSemantics());
+  if(ReKind != ImKind) {
+    // one is double, other is single
+    bool IsExact;
+    if(ReKind > ImKind)
+      Im.convert(Re.getSemantics(), llvm::APFloat::rmNearestTiesToEven, &IsExact);
+    else
+      Re.convert(Im.getSemantics(), llvm::APFloat::rmNearestTiesToEven, &IsExact);
+    Kind = ComplexConstantExpr::Kind8;
+  } else {
+    if(ReKind == llvm::APFloat::semanticsPrecision(llvm::APFloat::IEEEdouble))
+       Kind = ComplexConstantExpr::Kind8;
+  }
   return ComplexConstantExpr::Create(C, Loc,
-                                     MaxLoc, Re, Im);
+                                     MaxLoc, Re, Im, Kind);
 }
 
 ExprResult Sema::ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,
                                 UnaryExpr::Operator Op, ExprResult E) {
   unsigned DiagType = 0;
 
-  auto EType = E.get()->getType().getTypePtr();
+  auto EType = E.get()->getType();
 
   switch(Op) {
   // Arithmetic unary expression
@@ -87,10 +255,161 @@ ExprResult Sema::ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,
 
 typecheckInvalidOperand:
   Diags.Report(Loc,DiagType)
-      << E.get()->getType()
+      << EType
       << SourceRange(Loc,
                      E.get()->getLocEnd());
   return ExprError();
+}
+
+static bool Fortran77ArithmeticBinaryTypingRules(ASTContext &C,
+                                                 BinaryExpr::Operator Op,
+                                                 QualType &ReturnType,
+                                                 ExprResult &LHS, ExprResult &RHS,
+                                                 QualType LHSType, QualType RHSType) {
+  auto LHSTypeSpec = GetArithmeticTypeSpecFortran77(LHSType);
+  auto RHSTypeSpec = GetArithmeticTypeSpecFortran77(RHSType);
+  ReturnType = LHSType;
+  switch(RHSTypeSpec) {
+  // I2:
+  // I2: I/R/D/C = I1/R1/D1/C1 ** I2
+  // OR
+  // I = I1 <op> I2
+  // R = R1 <op> REAL(I2)
+  // D = D1 <op> DBLE(I2)
+  // C = C1 <op> CMPLX(REAL(I2),0.0)
+  case TST_integer:
+    if(Op == BinaryExpr::Power)
+      break;
+    switch(LHSTypeSpec) {
+    case TST_integer:
+      break;
+    case TST_real:
+    case TST_doubleprecision:
+    case TST_complex:
+      RHS = ImplicitCast(C, ReturnType, RHS);
+      break;
+    default:
+      llvm_unreachable("Unknown Arithmetic TST");
+    }
+    break;
+
+  // R2:
+  // R = REAL(I1) <op> R2
+  // R = R1 <op> R2
+  // D = D1 <op> DBLE(R2)
+  // C = C1 <op> CMPLX(R2,0.0)
+  case TST_real:
+    switch(LHSTypeSpec) {
+    case TST_integer:
+      ReturnType = RHSType;
+      LHS = ImplicitCast(C, ReturnType, LHS);
+      break;
+    case TST_real: break;
+    case TST_doubleprecision: case TST_complex:
+      RHS = ImplicitCast(C, ReturnType, RHS);
+      break;
+    default:
+      llvm_unreachable("Unknown Arithmetic TST");
+    }
+    break;
+
+  // D2:
+  // D = DBLE(I1) <op> D2
+  // D = DBLE(R1) <op> D2
+  // D = D1 <op> D2
+  // C1 - prohibited
+  case TST_doubleprecision:
+    switch(LHSTypeSpec) {
+    case TST_integer: case TST_real:
+      ReturnType = RHSType;
+      LHS = ImplicitCast(C, ReturnType, LHS);
+      break;
+    case TST_doubleprecision: break;
+    case TST_complex:
+      goto typecheckInvalidOperands;
+    default:
+      llvm_unreachable("Unknown Arithmetic TST");
+    }
+    break;
+
+  // C2:
+  // C = CMPLX(REAL(I1),0.0) <op> C2
+  // C = CMPLX(R1,0.0) <op> C2
+  // D1 - prohibited
+  // C = C1 <op> C2
+  case TST_complex:
+    switch(LHSTypeSpec) {
+    case TST_integer: case TST_real:
+      ReturnType = RHSType;
+      LHS = ImplicitCast(C, ReturnType, LHS);
+      break;
+    case TST_doubleprecision:
+      goto typecheckInvalidOperands;
+    case TST_complex: break;
+    default:
+      llvm_unreachable("Unknown Arithmetic TST");
+    }
+    break;
+
+  default:
+    llvm_unreachable("Unknown Arithmetic TST");
+  }
+
+  return false;
+typecheckInvalidOperands:
+  return true;
+}
+
+
+// Kind selection rules:
+// where typeof(x i) == Integer and typeof(x !i) : Real/Complex, Kind = Real/Complex
+// where kindof(x i) == kindof(x !i), Kind = x i
+// where typeof(x1 and x2) == Integer, Kind = largest kind
+// where typeof(x1 and x2) == Real/Complex, Kind = largest kind
+
+// Conversion matrix:
+// LHS     RHS
+//  I  | I, R, Z => I, R, Z
+//  R  | I, R, Z => R, R, Z
+//  Z  | I, R, Z => Z, Z, Z
+//
+// x1 ** x2 where x1 is real/complex and x2 is int, x2 not converted.
+static void Fortran90ArithmeticBinaryTypingRules(ASTContext &C,
+                                                 BinaryExpr::Operator Op,
+                                                 QualType &ReturnType,
+                                                 ExprResult &LHS, ExprResult &RHS,
+                                                 QualType LHSType, QualType RHSType,
+                                                 TypeSpecifierType LHSTypeSpec,
+                                                 TypeSpecifierType RHSTypeSpec) {
+  if(LHSTypeSpec == TST_integer) {
+    if(RHSTypeSpec == TST_integer)
+      ReturnType = SelectLargestKindApplyConversions(C, LHS, RHS, LHSType, RHSType);
+    else {
+      ReturnType = RHSType;
+      LHS = ImplicitCast(C, ReturnType, LHS);
+    }
+  } else {
+    // LHS is real/complex
+    if(RHSTypeSpec == TST_integer) {
+      ReturnType = LHSType;
+      // no need for conversion when ** is used.
+      if(Op != BinaryExpr::Power) RHS = ImplicitCast(C, ReturnType, RHS);
+    }
+    else if(LHSTypeSpec == TST_real) {
+      if(RHSTypeSpec == TST_real)
+        ReturnType = SelectLargestKindApplyConversions(C, LHS, RHS, LHSType, RHSType);
+      else  // RHS is complex
+        ReturnType = TakeTypeSelectLargestKindApplyConversion(C, 1, LHS, RHS,
+                                                              LHSType, RHSType);
+    }
+    else if(LHSTypeSpec == TST_complex) {
+      if(RHSTypeSpec == TST_complex)
+        ReturnType = SelectLargestKindApplyConversions(C, LHS, RHS, LHSType, RHSType);
+      else  // RHS is real
+        ReturnType = TakeTypeSelectLargestKindApplyConversion(C, 0, LHS, RHS,
+                                                              LHSType, RHSType);
+    }
+  }
 }
 
 // FIXME: verify return type for binary expressions.
@@ -99,8 +418,9 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
                                  ExprResult LHS, ExprResult RHS) {
   unsigned DiagType = 0;
 
-  auto LHSType = LHS.get()->getType().getTypePtr();
-  auto RHSType = RHS.get()->getType().getTypePtr();
+  auto LHSType = LHS.get()->getType();
+  auto RHSType = RHS.get()->getType();
+  QualType ReturnType;
 
   switch(Op) {
   // Arithmetic binary expression
@@ -115,101 +435,9 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
     if(LHSTypeSpec == TST_unspecified || RHSTypeSpec == TST_unspecified)
       goto typecheckInvalidOperands;
 
-    switch(RHSTypeSpec) {
-    // I2:
-    // I2: I/R/D/C = I1/R1/D1/C1 ** I2
-    // OR
-    // I = I1 <op> I2
-    // R = R1 <op> REAL(I2)
-    // D = D1 <op> DBLE(I2)
-    // C = C1 <op> CMPLX(REAL(I2),0.0)
-    case TST_integer:
-      if(Op == BinaryExpr::Power) break;
-      switch(LHSTypeSpec) {
-      case TST_integer: break;
-      case TST_real:
-        RHS = ImplicitCastExpr::Create(C, RHS.get()->getLocation(),
-                                       intrinsic::REAL, RHS.take());
-        break;
-      case TST_doubleprecision:
-        RHS = ImplicitCastExpr::Create(C, RHS.get()->getLocation(),
-                                       intrinsic::DBLE, RHS.take());
-        break;
-      case TST_complex:
-        RHS = ImplicitCastExpr::Create(C, RHS.get()->getLocation(),
-                                       intrinsic::CMPLX, RHS.take());
-        break;
-      default:
-        llvm_unreachable("Unknown Arithmetic TST");
-      }
-      break;
+    if(Fortran77ArithmeticBinaryTypingRules(C, Op, ReturnType, LHS, RHS, LHSType, RHSType))
+      goto typecheckInvalidOperands;
 
-    // R2:
-    // R = REAL(I1) <op> R2
-    // R = R1 <op> R2
-    // D = D1 <op> DBLE(R2)
-    // C = C1 <op> CMPLX(R2,0.0)
-    case TST_real:
-      switch(LHSTypeSpec) {
-      case TST_integer:
-        LHS = ImplicitCastExpr::Create(C, LHS.get()->getLocation(),
-                                       intrinsic::REAL, LHS.take());
-        break;
-      case TST_real: break;
-      case TST_doubleprecision:
-        RHS = ImplicitCastExpr::Create(C, RHS.get()->getLocation(),
-                                       intrinsic::DBLE, RHS.take());
-        break;
-      case TST_complex:
-        RHS = ImplicitCastExpr::Create(C, RHS.get()->getLocation(),
-                                       intrinsic::CMPLX, RHS.take());
-        break;
-      default:
-        llvm_unreachable("Unknown Arithmetic TST");
-      }
-      break;
-
-    // D2:
-    // D = DBLE(I1) <op> D2
-    // D = DBLE(R1) <op> D2
-    // D = D1 <op> D2
-    // C1 - prohibited
-    case TST_doubleprecision:
-      switch(LHSTypeSpec) {
-      case TST_integer: case TST_real:
-        LHS = ImplicitCastExpr::Create(C, LHS.get()->getLocation(),
-                                       intrinsic::DBLE, LHS.take());
-        break;
-      case TST_doubleprecision: break;
-      case TST_complex:
-        goto typecheckInvalidOperands;
-      default:
-        llvm_unreachable("Unknown Arithmetic TST");
-      }
-      break;
-
-    // C2:
-    // C = CMPLX(REAL(I1),0.0) <op> C2
-    // C = CMPLX(R1,0.0) <op> C2
-    // D1 - prohibited
-    // C = C1 <op> C2
-    case TST_complex:
-      switch(LHSTypeSpec) {
-      case TST_integer: case TST_real:
-        LHS = ImplicitCastExpr::Create(C, LHS.get()->getLocation(),
-                                       intrinsic::CMPLX, LHS.take());
-        break;
-      case TST_doubleprecision:
-        goto typecheckInvalidOperands;
-      case TST_complex: break;
-      default:
-        llvm_unreachable("Unknown Arithmetic TST");
-      }
-      break;
-
-    default:
-      llvm_unreachable("Unknown Arithmetic TST");
-    }
     break;
   }
 
@@ -220,6 +448,7 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
 
     if(!LHSType->isLogicalType()) goto typecheckInvalidOperands;
     if(!RHSType->isLogicalType()) goto typecheckInvalidOperands;
+    ReturnType = C.LogicalTy;
     break;
   }
 
@@ -229,6 +458,7 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
 
     if(!LHSType->isCharacterType()) goto typecheckInvalidOperands;
     if(!RHSType->isCharacterType()) goto typecheckInvalidOperands;
+    ReturnType = C.CharacterTy;
     break;
   }
 
@@ -237,6 +467,7 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
   case BinaryExpr::GreaterThan: case BinaryExpr::GreaterThanEqual:
   case BinaryExpr::LessThan: case BinaryExpr::LessThanEqual: {
     DiagType = diag::err_typecheck_relational_invalid_operands;
+    ReturnType = C.LogicalTy;
 
     // Character relational expression
     if(LHSType->isCharacterType() && RHSType->isCharacterType()) break;
@@ -249,34 +480,37 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
       goto typecheckInvalidOperands;
 
     // A complex operand is permitted only when the relational operator is .EQ. or .NE.
-    // The comparison of a double precision value and a complex value is not permitted.
     if((LHSTypeSpec == TST_complex ||
         RHSTypeSpec == TST_complex)) {
       if(Op != BinaryExpr::Equal && Op != BinaryExpr::NotEqual)
         goto typecheckInvalidOperands;
-      if(LHSTypeSpec == TST_doubleprecision ||
-         RHSTypeSpec == TST_doubleprecision)
+
+      // Fortran 77: The comparison of a double precision value and a complex value is not permitted.
+      auto LHSTypeSpecF77 = GetArithmeticTypeSpecFortran77(LHSType);
+      auto RHSTypeSpecF77 = GetArithmeticTypeSpecFortran77(RHSType);
+      if(LHSTypeSpecF77 == TST_doubleprecision ||
+         RHSTypeSpecF77 == TST_doubleprecision)
         goto typecheckInvalidOperands;
     }
 
-    // typeof(e1) != typeof(e1) =>
-    //   e1 <relop> e2 = ((e1) - (e2)) <relop> 0
-    if(LHSTypeSpec != RHSTypeSpec) {
-      LHS = ActOnBinaryExpr(C, Loc, BinaryExpr::Minus, LHS, RHS);
-      switch(GetArithmeticTypeSpec(LHS.get()->getType().getTypePtr())) {
-      case TST_integer:
-        RHS = IntegerConstantExpr::Create(C, Loc, Loc, "0"); break;
-      case TST_real:
-        RHS = RealConstantExpr::Create(C, Loc, Loc, "0"); break;
-      case TST_doubleprecision:
-        RHS = DoublePrecisionConstantExpr::Create(C, Loc, Loc,"0"); break;
-      case TST_complex:
-        RHS = ComplexConstantExpr::Create(C, Loc, Loc, llvm::APFloat(0.0), llvm::APFloat(0.0));
-        break;
-      default:
-        llvm_unreachable("Unknown Arithmetic TST");
+    if(LHSTypeSpec == RHSTypeSpec) {
+      // upcast to largest kind
+      SelectLargestKindApplyConversions(C, LHS, RHS, LHSType, RHSType);
+    } else {
+      if(LHSTypeSpec == TST_integer)
+        // RHS is real/complex
+        LHS = ImplicitCast(C, RHSType, LHS);
+      else if(LHSTypeSpec == TST_real) {
+        if(RHSTypeSpec == TST_integer)
+          RHS = ImplicitCast(C, LHSType, RHS);
+        else LHS = ImplicitCast(C, RHSType, LHS);
+      } else {
+        // lhs is complex
+        // rhs is int/real
+        RHS = ImplicitCast(C, LHSType, RHS);
       }
     }
+
     break;
   }
 
@@ -284,18 +518,18 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
     llvm_unreachable("Unknown binary expression");
   }
 
-  return BinaryExpr::Create(C, Loc, Op, LHS.take(), RHS.take());
+  return BinaryExpr::Create(C, Loc, Op, ReturnType, LHS.take(), RHS.take());
 
 typecheckInvalidOperands:
   Diags.Report(Loc,DiagType)
-      << LHS.get()->getType() << RHS.get()->getType()
+      << LHSType << RHSType
       << SourceRange(LHS.get()->getLocStart(),
                      RHS.get()->getLocEnd());
   return ExprError();
 }
 
 static bool IsIntegerExpression(ExprResult E) {
-  return E.get()->getType().getTypePtr()->isIntegerType();
+  return E.get()->getType()->isIntegerType();
 }
 
 ExprResult Sema::ActOnSubstringExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
@@ -427,7 +661,7 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
 
   // Per function type checks.
   QualType ReturnType;
-  auto FirstArgArithSpec = GetArithmeticTypeSpec(Args[0]->getType().getTypePtr());
+  auto FirstArgArithSpec = GetArithmeticTypeSpecFortran77(Args[0]->getType());
   auto FirstArgLoc = Args[0]->getLocation();
   auto FirstArgSourceRange = Args[0]->getSourceRange();
 
@@ -583,12 +817,12 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
 
   // Real + double
   case ATAN2:
-    if(!Args[1]->getType()->isRealType() &&
-       !Args[1]->getType()->isDoublePrecisionType()) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[1]->getType() << C.RealTy
-        << Args[1]->getSourceRange();
-    }
+    //if(!Args[1]->getType()->isRealType() &&
+    //   !Args[1]->getType()->isDoublePrecisionType()) {
+    //  Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
+    //    << Args[1]->getType() << C.RealTy
+    //    << Args[1]->getSourceRange();
+    //}
   case AINT: case ANINT:
   case LOG10: case TAN: case ASIN:
   case ACOS: case ATAN:
@@ -621,11 +855,11 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
 
   // double
   case DATAN2:
-    if(!Args[1]->getType()->isDoublePrecisionType()) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[1]->getType() << C.DoublePrecisionTy
-        << Args[1]->getSourceRange();
-    }
+    //if(!Args[1]->getType()->isDoublePrecisionType()) {
+    //  Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
+    //    << Args[1]->getType() << C.DoublePrecisionTy
+    //    << Args[1]->getSourceRange();
+    //}
   case DINT: case DNINT:
   case DABS:
   case DSQRT: case DEXP: case DLOG:
