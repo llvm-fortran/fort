@@ -49,6 +49,13 @@ static bool IsTypeSinglePrecisionReal(QualType T) {
   return false;
 }
 
+/// Returns true if a type is a double precision complex type (Kind is 8).
+static bool IsTypeDoublePrecisionComplex(QualType T) {
+  auto Ext = T.getExtQualsPtrOnNull();
+  return T->isComplexType() &&
+           Ext && Ext->getArithmeticKindSelector() == 8? true : false;
+}
+
 static llvm::APFloat GetNumberConstant(DiagnosticsEngine &Diags, Expr *E) {
   if(auto Real = dyn_cast<RealConstantExpr>(E)) {
     return Real->getValue();
@@ -137,6 +144,14 @@ static QualType TakeTypeSelectLargestKindApplyConversion(ASTContext &C,
   return ReturnType;
 }
 
+static QualType TypeWithKind(ASTContext &C, QualType T, QualType TKind) {
+  const ExtQuals *AExt = T.getExtQualsPtrOnNull();
+  const ExtQuals *BExt = TKind.getExtQualsPtrOnNull();
+  auto AK = AExt? AExt->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  auto BK = BExt? BExt->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  if(AK == BK) return T;
+  return C.getQualTypeOtherKind(T, TKind);
+}
 
 ExprResult Sema::TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
                                      SourceLocation Loc, SourceLocation MinLoc) {
@@ -619,8 +634,15 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
         << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
         << FirstArgSourceRange;
     }
-
     ReturnType = C.ComplexTy;
+    break;
+  case DCMPLX:
+    if(FirstArgArithSpec == TST_unspecified) {
+      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
+        << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
+        << FirstArgSourceRange;
+    }
+    ReturnType = C.DoubleComplexTy;
     break;
 
   case ICHAR:
@@ -676,15 +698,23 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
         << FirstArgSourceRange;
     }
     if(FirstArgArithSpec == TST_complex)
-      ReturnType = C.RealTy;
+      ReturnType = TypeWithKind(C, C.RealTy, FirstArgType);
     else
       ReturnType = FirstArgType;
     break;
   CASE_COMPLEX_OVERLOAD(CABS)
-    ReturnType = C.RealTy;
+    ReturnType = TypeWithKind(C, C.RealTy, FirstArgType);
+    break;
+  case CDABS:
+    if(!IsTypeDoublePrecisionComplex(FirstArgType)) {
+      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
+        << FirstArgType << C.DoubleComplexTy << FirstArgSourceRange;
+    }
+    else ReturnType = C.DoublePrecisionTy;
     break;
 
   case LEN:
+  case LEN_TRIM:
     if(!FirstArgType->isCharacterType()) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
         << FirstArgType << C.CharacterTy << FirstArgSourceRange;
@@ -781,6 +811,15 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
     if(FirstArgArithSpec != TST_complex) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
         << FirstArgType << C.ComplexTy << FirstArgSourceRange;
+    }
+    else ReturnType = FirstArgType;
+    break;
+
+  // double complex(kind is 8)
+  case DCONJG:
+    if(!IsTypeDoublePrecisionComplex(FirstArgType)) {
+      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
+        << FirstArgType << C.DoubleComplexTy << FirstArgSourceRange;
     }
     else ReturnType = FirstArgType;
     break;

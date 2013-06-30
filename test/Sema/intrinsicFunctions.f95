@@ -15,7 +15,7 @@ PROGRAM intrinfuntest
 
   INTRINSIC AINT, dint, anint, DNINT, nint, IDNINT
   INTRINSIC abs, iabs, dabs, cabs
-  INTRINSIC len, index
+  INTRINSIC len, len_trim, index
   INTRINSIC aimag, conjg
 
   intrinsic sqrt, dsqrt, csqrt, exp, dexp, cexp
@@ -92,6 +92,7 @@ PROGRAM intrinfuntest
   R = CABS(C) ! CHECK: R = CABS(C)
 
   I = LEN(STRING) ! CHECK: I = LEN(STRING)
+  I = len_trim(STRING) ! CHECK: I = LEN_TRIM(STRING)
   I = LEN(22) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'CHARACTER'}}
   I = INDEX(STRING, STRING) ! CHECK: I = INDEX(STRING, STRING)
 

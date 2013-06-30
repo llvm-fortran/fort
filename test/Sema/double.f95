@@ -1,5 +1,7 @@
-! RUN: %flang < %s
-! RUN: %flang %s 2>&1 | %file_check %s
+! RUN: %flang -verify < %s
+! RUN: %flang -verify %s 2>&1 | %file_check %s
+! This is more focused on double complex support and some
+! obscure intrinsic overloads used by BLAS
 PROGRAM doubletest
   IMPLICIT NONE
 
@@ -8,6 +10,8 @@ PROGRAM doubletest
 
   REAL R
   COMPLEX C
+
+  INTRINSIC DCMPLX, CDABS, DCONJG
 
   R = DBL ! CHECK: R = REAL(DBL)
   C = DC  ! CHECK: C = CMPLX(DC)
@@ -22,5 +26,10 @@ PROGRAM doubletest
 
   DC = C + DC + R ! CHECK: DC = ((CMPLX(C,Kind=8)+DC)+CMPLX(R,Kind=8))
   DBL = R + DBL ! CHECK: DBL = (REAL(R,Kind=8)+DBL)
+
+  DC = DCMPLX(R) ! CHECK: DC = DCMPLX(R)
+  R = CDABS(DC) ! CHECK: R = REAL(CDABS(DC))
+  DC = DCONJG(DC) ! CHECK: DC = DCONJG(DC)
+  DC = DCONJG(C) ! expected-error{{passing 'COMPLEX' to parameter of incompatible type 'DOUBLE COMPLEX'}}
 
 END PROGRAM
