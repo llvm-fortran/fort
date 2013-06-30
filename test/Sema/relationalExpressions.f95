@@ -26,6 +26,7 @@ PROGRAM relexpressions
   L = C .NE. R ! CHECK: (C/=CMPLX(R))
   L = C .LE. C ! expected-error {{invalid operands to a relational binary expression ('COMPLEX' and 'COMPLEX')}}
   L = C .EQ. 2.0 ! CHECK: (C==CMPLX(2))
+  ! FIXME: make F77 only
   L = C .EQ. 2.0d-1 ! expected-error {{invalid operands to a relational binary expression ('COMPLEX' and 'DOUBLE PRECISION')}}
 
   L = 'HELLO' .EQ. 'WORLD'

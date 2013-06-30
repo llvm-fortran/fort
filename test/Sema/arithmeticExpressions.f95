@@ -38,11 +38,13 @@ PROGRAM arithexpressions
 
   D = I + D ! CHECK: D = (REAL(I,Kind=8)+D)
   D = R * D ! CHECK: D = (REAL(R,Kind=8)*D)
-  D = D - 2.0D1 ! CHECK: D = (D-20)
+  D = D - 2.0D1 ! CHECK: D = (D-20)  
+  ! FIXME: make F77 only
   D = C / D ! expected-error {{invalid operands to an arithmetic binary expression ('COMPLEX' and 'DOUBLE PRECISION')}}
 
   C = I + C ! CHECK: C = (CMPLX(I)+C)
   C = R - C ! CHECK: C = (CMPLX(R)-C)
+  ! FIXME: make F77 only
   C = D * C ! expected-error {{invalid operands to an arithmetic binary expression ('DOUBLE PRECISION' and 'COMPLEX')}}
   C = C / C ! CHECK: (C/C)
   C = C ** R ! CHECK: C = (C**CMPLX(R))

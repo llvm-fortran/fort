@@ -19,10 +19,6 @@
 
 namespace flang {
 
-enum {
-  // emulate real(kind=8) as double precision for fortran 77 compability.
-  TST_doubleprecision = TST_struct + 1
-};
 
 /// Returns TST_integer/TST_real/TST_complex if a given type
 /// is an arithmetic type, or TST_unspecified otherwise
@@ -33,26 +29,25 @@ static TypeSpecifierType GetArithmeticTypeSpec(QualType T) {
   else return TST_unspecified;
 }
 
-/// Returns true if a real type is also a double precision type.
+/// Returns true if a real type is also a double precision type (Kind is 8).
 static bool IsRealTypeDoublePrecision(QualType T) {
   auto Ext = T.getExtQualsPtrOnNull();
   return Ext && Ext->getArithmeticKindSelector() == 8? true : false;
 }
 
-/// Returns TST_integer/TST_real/TST_complex/TST_doubleprecision
-/// if a given type is an arithmetic type, or TST_unspecified
-/// otherwise
-static int GetArithmeticTypeSpecFortran77(QualType T) {
-  if(T->isIntegerType()) return TST_integer;
-  else if(T->isRealType()) {
-    auto Ext = T.getExtQualsPtrOnNull();
-    return Ext && Ext->getArithmeticKindSelector() == 8?
-             TST_doubleprecision : TST_real;
-  }
-  else if(T->isComplexType()) return TST_complex;
-  else return TST_unspecified;
+/// Returns true if a type is a double precision real type (Kind is 8).
+static bool IsTypeDoublePrecisionReal(QualType T) {
+  auto Ext = T.getExtQualsPtrOnNull();
+  return T->isRealType() &&
+           Ext && Ext->getArithmeticKindSelector() == 8? true : false;
 }
 
+/// Returns true if a type is a single precision real type (Kind is 4).
+static bool IsTypeSinglePrecisionReal(QualType T) {
+  if(T->isRealType())
+    return !IsRealTypeDoublePrecision(T);
+  return false;
+}
 
 static llvm::APFloat GetNumberConstant(DiagnosticsEngine &Diags, Expr *E) {
   if(auto Real = dyn_cast<RealConstantExpr>(E)) {
@@ -261,106 +256,6 @@ typecheckInvalidOperand:
   return ExprError();
 }
 
-static bool Fortran77ArithmeticBinaryTypingRules(ASTContext &C,
-                                                 BinaryExpr::Operator Op,
-                                                 QualType &ReturnType,
-                                                 ExprResult &LHS, ExprResult &RHS,
-                                                 QualType LHSType, QualType RHSType) {
-  auto LHSTypeSpec = GetArithmeticTypeSpecFortran77(LHSType);
-  auto RHSTypeSpec = GetArithmeticTypeSpecFortran77(RHSType);
-  ReturnType = LHSType;
-  switch(RHSTypeSpec) {
-  // I2:
-  // I2: I/R/D/C = I1/R1/D1/C1 ** I2
-  // OR
-  // I = I1 <op> I2
-  // R = R1 <op> REAL(I2)
-  // D = D1 <op> DBLE(I2)
-  // C = C1 <op> CMPLX(REAL(I2),0.0)
-  case TST_integer:
-    if(Op == BinaryExpr::Power)
-      break;
-    switch(LHSTypeSpec) {
-    case TST_integer:
-      break;
-    case TST_real:
-    case TST_doubleprecision:
-    case TST_complex:
-      RHS = ImplicitCast(C, ReturnType, RHS);
-      break;
-    default:
-      llvm_unreachable("Unknown Arithmetic TST");
-    }
-    break;
-
-  // R2:
-  // R = REAL(I1) <op> R2
-  // R = R1 <op> R2
-  // D = D1 <op> DBLE(R2)
-  // C = C1 <op> CMPLX(R2,0.0)
-  case TST_real:
-    switch(LHSTypeSpec) {
-    case TST_integer:
-      ReturnType = RHSType;
-      LHS = ImplicitCast(C, ReturnType, LHS);
-      break;
-    case TST_real: break;
-    case TST_doubleprecision: case TST_complex:
-      RHS = ImplicitCast(C, ReturnType, RHS);
-      break;
-    default:
-      llvm_unreachable("Unknown Arithmetic TST");
-    }
-    break;
-
-  // D2:
-  // D = DBLE(I1) <op> D2
-  // D = DBLE(R1) <op> D2
-  // D = D1 <op> D2
-  // C1 - prohibited
-  case TST_doubleprecision:
-    switch(LHSTypeSpec) {
-    case TST_integer: case TST_real:
-      ReturnType = RHSType;
-      LHS = ImplicitCast(C, ReturnType, LHS);
-      break;
-    case TST_doubleprecision: break;
-    case TST_complex:
-      goto typecheckInvalidOperands;
-    default:
-      llvm_unreachable("Unknown Arithmetic TST");
-    }
-    break;
-
-  // C2:
-  // C = CMPLX(REAL(I1),0.0) <op> C2
-  // C = CMPLX(R1,0.0) <op> C2
-  // D1 - prohibited
-  // C = C1 <op> C2
-  case TST_complex:
-    switch(LHSTypeSpec) {
-    case TST_integer: case TST_real:
-      ReturnType = RHSType;
-      LHS = ImplicitCast(C, ReturnType, LHS);
-      break;
-    case TST_doubleprecision:
-      goto typecheckInvalidOperands;
-    case TST_complex: break;
-    default:
-      llvm_unreachable("Unknown Arithmetic TST");
-    }
-    break;
-
-  default:
-    llvm_unreachable("Unknown Arithmetic TST");
-  }
-
-  return false;
-typecheckInvalidOperands:
-  return true;
-}
-
-
 // Kind selection rules:
 // where typeof(x i) == Integer and typeof(x !i) : Real/Complex, Kind = Real/Complex
 // where kindof(x i) == kindof(x !i), Kind = x i
@@ -435,8 +330,15 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
     if(LHSTypeSpec == TST_unspecified || RHSTypeSpec == TST_unspecified)
       goto typecheckInvalidOperands;
 
-    if(Fortran77ArithmeticBinaryTypingRules(C, Op, ReturnType, LHS, RHS, LHSType, RHSType))
-      goto typecheckInvalidOperands;
+    // Fortran 77: Disallow operations between double precision and complex
+    if((LHSTypeSpec == TST_complex ||
+        RHSTypeSpec == TST_complex)) {
+      if(IsTypeDoublePrecisionReal(LHSType) ||
+         IsTypeDoublePrecisionReal(RHSType))
+        goto typecheckInvalidOperands;
+    }
+
+    Fortran90ArithmeticBinaryTypingRules(C, Op, ReturnType, LHS, RHS, LHSType, RHSType, LHSTypeSpec, RHSTypeSpec);
 
     break;
   }
@@ -486,10 +388,8 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
         goto typecheckInvalidOperands;
 
       // Fortran 77: The comparison of a double precision value and a complex value is not permitted.
-      auto LHSTypeSpecF77 = GetArithmeticTypeSpecFortran77(LHSType);
-      auto RHSTypeSpecF77 = GetArithmeticTypeSpecFortran77(RHSType);
-      if(LHSTypeSpecF77 == TST_doubleprecision ||
-         RHSTypeSpecF77 == TST_doubleprecision)
+      if(IsTypeDoublePrecisionReal(LHSType) ||
+         IsTypeDoublePrecisionReal(RHSType))
         goto typecheckInvalidOperands;
     }
 
@@ -661,23 +561,24 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
 
   // Per function type checks.
   QualType ReturnType;
-  auto FirstArgArithSpec = GetArithmeticTypeSpecFortran77(Args[0]->getType());
+  auto FirstArgType = Args[0]->getType();
+  auto FirstArgArithSpec = GetArithmeticTypeSpec(FirstArgType);
   auto FirstArgLoc = Args[0]->getLocation();
   auto FirstArgSourceRange = Args[0]->getSourceRange();
 
   switch(Function) {
   case INT: case IFIX: case IDINT:
-    if(Function == IFIX && FirstArgArithSpec != TST_real) {
+    if(Function == IFIX && !IsTypeSinglePrecisionReal(FirstArgType)) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.RealTy << FirstArgSourceRange;
+        << FirstArgType << C.RealTy << FirstArgSourceRange;
     }
-    else if(Function == IDINT && FirstArgArithSpec != TST_doubleprecision) {
+    else if(Function == IDINT && !IsTypeDoublePrecisionReal(FirstArgType)) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.DoublePrecisionTy << FirstArgSourceRange;
+        << FirstArgType << C.DoublePrecisionTy << FirstArgSourceRange;
     }
     else if(FirstArgArithSpec == TST_unspecified) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << "'INTEGER' or 'REAL' or 'COMPLEX'"
+        << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
         << FirstArgSourceRange;
     }
 
@@ -687,15 +588,15 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
   case REAL: case FLOAT: case SNGL:
     if(Function == FLOAT && FirstArgArithSpec != TST_integer) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.IntegerTy << FirstArgSourceRange;
+        << FirstArgType << C.IntegerTy << FirstArgSourceRange;
     }
-    else if(Function == SNGL && FirstArgArithSpec != TST_doubleprecision) {
+    else if(Function == SNGL && !IsTypeDoublePrecisionReal(FirstArgType)) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.DoublePrecisionTy << FirstArgSourceRange;
+        << FirstArgType << C.DoublePrecisionTy << FirstArgSourceRange;
     }
     else if(FirstArgArithSpec == TST_unspecified) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << "'INTEGER' or 'REAL' or 'COMPLEX'"
+        << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
         << FirstArgSourceRange;
     }
 
@@ -705,7 +606,7 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
   case DBLE:
     if(FirstArgArithSpec == TST_unspecified) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << "'INTEGER' or 'REAL' or 'COMPLEX'"
+        << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
         << FirstArgSourceRange;
     }
 
@@ -715,7 +616,7 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
   case CMPLX:
     if(FirstArgArithSpec == TST_unspecified) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << "'INTEGER' or 'REAL' or 'COMPLEX'"
+        << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
         << FirstArgSourceRange;
     }
 
@@ -723,9 +624,9 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
     break;
 
   case ICHAR:
-    if(!Args[0]->getType()->isCharacterType()) {
+    if(!FirstArgType->isCharacterType()) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.CharacterTy << FirstArgSourceRange;
+        << FirstArgType << C.CharacterTy << FirstArgSourceRange;
     }
     ReturnType = C.IntegerTy;
     break;
@@ -733,31 +634,32 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
   case CHAR:
     if(FirstArgArithSpec != TST_integer) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.IntegerTy << FirstArgSourceRange;
+        << FirstArgType << C.IntegerTy << FirstArgSourceRange;
     }
     ReturnType = C.CharacterTy;
     break;
 
+// real any kind
 #define CASE_REAL_DOUBLE_OVERLOAD(NAME) \
   case NAME: \
-    if(FirstArgArithSpec != TST_real && \
-       FirstArgArithSpec != TST_doubleprecision) { \
+    if(FirstArgArithSpec != TST_real) { \
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible) \
-        << Args[0]->getType() << C.RealTy << FirstArgSourceRange; \
+        << FirstArgType << C.RealTy << FirstArgSourceRange; \
     }
 
+// real kind 8
 #define CASE_DOUBLE_OVERLOAD(NAME) \
   case NAME: \
-    if(FirstArgArithSpec != TST_doubleprecision) { \
+    if(!IsTypeDoublePrecisionReal(FirstArgType)) { \
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible) \
-        << Args[0]->getType() << C.DoublePrecisionTy << FirstArgSourceRange; \
+        << FirstArgType << C.DoublePrecisionTy << FirstArgSourceRange; \
     }
 
 #define CASE_COMPLEX_OVERLOAD(NAME) \
   case NAME: \
     if(FirstArgArithSpec != TST_complex) { \
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible) \
-        << Args[0]->getType() << C.ComplexTy << FirstArgSourceRange; \
+        << FirstArgType << C.ComplexTy << FirstArgSourceRange; \
     }
 
   CASE_REAL_DOUBLE_OVERLOAD(NINT)
@@ -770,29 +672,29 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
   case ABS:
     if(FirstArgArithSpec == TST_unspecified) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << "'INTEGER' or 'REAL' or 'COMPLEX'"
+        << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
         << FirstArgSourceRange;
     }
     if(FirstArgArithSpec == TST_complex)
       ReturnType = C.RealTy;
     else
-      ReturnType = Args[0]->getType();
+      ReturnType = FirstArgType;
     break;
   CASE_COMPLEX_OVERLOAD(CABS)
     ReturnType = C.RealTy;
     break;
 
   case LEN:
-    if(!Args[0]->getType()->isCharacterType()) {
+    if(!FirstArgType->isCharacterType()) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.CharacterTy << FirstArgSourceRange;
+        << FirstArgType << C.CharacterTy << FirstArgSourceRange;
     }
     ReturnType = C.IntegerTy;
     break;
   case INDEX:
-    if(!Args[0]->getType()->isCharacterType()) {
+    if(!FirstArgType->isCharacterType()) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.CharacterTy << FirstArgSourceRange;
+        << FirstArgType << C.CharacterTy << FirstArgSourceRange;
     }
     ReturnType = C.IntegerTy;
     break;
@@ -812,54 +714,52 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
         << Args[0]->getType() << "'REAL' or 'COMPLEX'"
         << FirstArgSourceRange;
     }
-    else ReturnType = Args[0]->getType();
+    else ReturnType = FirstArgType;
     break;
 
-  // Real + double
+  // Real + double (i.e. real any kind)
   case ATAN2:
-    //if(!Args[1]->getType()->isRealType() &&
-    //   !Args[1]->getType()->isDoublePrecisionType()) {
-    //  Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-    //    << Args[1]->getType() << C.RealTy
-    //    << Args[1]->getSourceRange();
-    //}
+    if(!Args[1]->getType()->isRealType()) {
+      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
+        << Args[1]->getType() << C.RealTy
+        << Args[1]->getSourceRange();
+    }
   case AINT: case ANINT:
   case LOG10: case TAN: case ASIN:
   case ACOS: case ATAN:
   case SINH: case COSH: case TANH:
-    if(FirstArgArithSpec != TST_real &&
-       FirstArgArithSpec != TST_doubleprecision) {
+    if(FirstArgArithSpec != TST_real) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.RealTy << FirstArgSourceRange;
+        << FirstArgType << C.RealTy << FirstArgSourceRange;
     }
-    else ReturnType = Args[0]->getType();
+    else ReturnType = FirstArgType;
     break;
 
   // int
   case IABS:
     if(FirstArgArithSpec != TST_integer) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.IntegerTy << FirstArgSourceRange;
+        << FirstArgType << C.IntegerTy << FirstArgSourceRange;
     }
-    else ReturnType = Args[0]->getType();
+    else ReturnType = FirstArgType;
     break;
 
-  // real
+  // real (kind 4 only)
   case ALOG: case ALOG10:
-    if(FirstArgArithSpec != TST_real) {
+    if(!IsTypeSinglePrecisionReal(FirstArgType)) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.RealTy << FirstArgSourceRange;
+        << FirstArgType << C.RealTy << FirstArgSourceRange;
     }
-    else ReturnType = Args[0]->getType();
+    else ReturnType = FirstArgType;
     break;
 
-  // double
+  // double (real kind 8 only)
   case DATAN2:
-    //if(!Args[1]->getType()->isDoublePrecisionType()) {
-    //  Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-    //    << Args[1]->getType() << C.DoublePrecisionTy
-    //    << Args[1]->getSourceRange();
-    //}
+    if(!IsTypeDoublePrecisionReal(Args[1]->getType())) {
+      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
+        << Args[1]->getType() << C.DoublePrecisionTy
+        << Args[1]->getSourceRange();
+    }
   case DINT: case DNINT:
   case DABS:
   case DSQRT: case DEXP: case DLOG:
@@ -867,11 +767,11 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
   case DTAN: case DASIN: case DACOS:
   case DATAN: case DSINH:
   case DCOSH: case DTANH:
-    if(FirstArgArithSpec != TST_doubleprecision) {
+    if(!IsTypeDoublePrecisionReal(FirstArgType)) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.DoublePrecisionTy << FirstArgSourceRange;
+        << FirstArgType << C.DoublePrecisionTy << FirstArgSourceRange;
     }
-    else ReturnType = Args[0]->getType();
+    else ReturnType = FirstArgType;
     break;
 
   // complex
@@ -880,19 +780,19 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
   case CSIN: case CCOS:
     if(FirstArgArithSpec != TST_complex) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.ComplexTy << FirstArgSourceRange;
+        << FirstArgType << C.ComplexTy << FirstArgSourceRange;
     }
-    else ReturnType = Args[0]->getType();
+    else ReturnType = FirstArgType;
     break;
 
   case LGE: case LGT: case LLE: case LLT:
-    if(!Args[0]->getType()->isCharacterType()) {
+    if(!FirstArgType->isCharacterType()) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << C.CharacterTy << FirstArgSourceRange;
+        << FirstArgType << C.CharacterTy << FirstArgSourceRange;
     }
     if(!Args[1]->getType()->isCharacterType()) {
       Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[1]->getType() << C.CharacterTy << FirstArgSourceRange;
+        << Args[1]->getType() << C.CharacterTy << Args[1]->getSourceRange();
     }
     ReturnType = C.LogicalTy;
     break;
