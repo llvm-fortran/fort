@@ -441,6 +441,19 @@ StopStmt *StopStmt::Create(ASTContext &C, SourceLocation Loc, Expr *stopCode, Ex
 }
 
 //===----------------------------------------------------------------------===//
+// Return Statement
+//===----------------------------------------------------------------------===//
+
+ReturnStmt::ReturnStmt(SourceLocation Loc, Expr *e, Expr *StmtLabel)
+  : Stmt(Return, Loc, StmtLabel), E(e) {
+}
+
+ReturnStmt *ReturnStmt::Create(ASTContext &C, SourceLocation Loc, Expr * E,
+                               Expr *StmtLabel) {
+  return new(C) ReturnStmt(Loc, E, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Assignment Statement
 //===----------------------------------------------------------------------===//
 

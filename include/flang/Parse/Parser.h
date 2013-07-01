@@ -302,6 +302,7 @@ private:
 
   StmtResult ParseContinueStmt();
   StmtResult ParseStopStmt();
+  StmtResult ParseReturnStmt();
   StmtResult ParseAssignmentStmt();
   StmtResult ParsePrintStmt();
   StmtResult ParseWriteStmt();

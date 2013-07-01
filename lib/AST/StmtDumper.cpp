@@ -49,6 +49,7 @@ private:
   VISIT(DoStmt);
   VISIT(ContinueStmt);
   VISIT(StopStmt);
+  VISIT(ReturnStmt);
   VISIT(AssignmentStmt);
   VISIT(PrintStmt);
   VISIT(WriteStmt);
@@ -82,6 +83,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(DoStmt);
   HANDLE(ContinueStmt);
   HANDLE(StopStmt);
+  HANDLE(ReturnStmt);
   HANDLE(AssignmentStmt);
   HANDLE(PrintStmt);
   HANDLE(WriteStmt);
@@ -240,6 +242,14 @@ void StmtVisitor::visit(const StopStmt *S) {
     OS << "\n";
   } else
     OS << "stop\n";
+}
+
+void StmtVisitor::visit(const ReturnStmt *S) {
+  if(S->getE()) {
+    OS << "return ";
+    S->getE()->print(OS);
+    OS << "\n";
+  } else OS << "return \n";
 }
 
 void StmtVisitor::visit(const AssignmentStmt *S) {

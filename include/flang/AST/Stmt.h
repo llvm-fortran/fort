@@ -66,6 +66,7 @@ public:
     EndDo,
     Continue,
     Stop,
+    Return,
     Assignment,
     Print,
     Write
@@ -711,6 +712,22 @@ public:
   static bool classof(const StopStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStatementID() == Stop;
+  }
+};
+
+/// ReturnStmt
+class ReturnStmt : public Stmt {
+  Expr *E;
+  ReturnStmt(SourceLocation Loc, Expr *e, Expr *StmtLabel);
+public:
+  static ReturnStmt *Create(ASTContext &C, SourceLocation Loc, Expr * E,
+                            Expr *StmtLabel);
+
+  Expr *getE() const { return E; }
+
+  static bool classof(const ReturnStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == Return;
   }
 };
 

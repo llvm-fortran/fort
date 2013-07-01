@@ -166,6 +166,8 @@ def err_fmt_spec_stmt_label_not_format : Error<
 
 def err_func_return_type_already_specified : Error<
   "the return type for a function %0 was already specified">;
+def err_stmt_not_in_func : Error<
+  "'%0' statement should be used inside a function or a subroutine">;
 
 }
 

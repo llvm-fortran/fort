@@ -636,12 +636,10 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
       return Actions.ActOnIntrinsicFunctionCallExpr(Context, Loc, IFunc, Arguments);
     }
     else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
-      // FIXME: make this proper.
-      if(IsLvalue) {
-        return ReturnedValueExpr::Create(Context, Loc, Func);
-      }
+      // FIXME: make this only when func is current
+      return ReturnedValueExpr::Create(Context, Loc, Func);
     }
-    // FIXME: another error
+    Diag.Report(Loc, diag::err_expected_var);
     return ExprError();
   }
 

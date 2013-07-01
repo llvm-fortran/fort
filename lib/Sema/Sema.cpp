@@ -51,6 +51,11 @@ void Sema::PopDeclContext() {
   assert(CurContext && "Popped translation unit!");
 }
 
+bool Sema::IsInsideFunctionOrSubroutine() const {
+  return isa<FunctionDecl>(CurContext) ||
+         isa<SubroutineDecl>(CurContext);
+}
+
 void Sema::PushExecutableProgramUnit() {
   // Enter new statement label scope
   assert(CurStmtLabelScope.decl_empty());
@@ -1213,6 +1218,17 @@ StmtResult Sema::ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *Stmt
 
 StmtResult Sema::ActOnStopStmt(ASTContext &C, SourceLocation Loc, ExprResult StopCode, Expr *StmtLabel) {
   auto Result = StopStmt::Create(C, Loc, StopCode.take(), StmtLabel);
+  CurExecutableStmts.Append(Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnReturnStmt(ASTContext &C, SourceLocation Loc, ExprResult E, Expr *StmtLabel) {
+  if(!IsInsideFunctionOrSubroutine()) {
+    Diags.Report(Loc, diag::err_stmt_not_in_func) << "RETURN";
+    return StmtError();
+  }
+  auto Result = ReturnStmt::Create(C, Loc, E.take(), StmtLabel);
   CurExecutableStmts.Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;

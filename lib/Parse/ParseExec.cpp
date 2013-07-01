@@ -127,6 +127,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParseWriteStmt();
   case tok::kw_FORMAT:
     return ParseFORMATStmt();
+  case tok::kw_RETURN:
+    return ParseReturnStmt();
 
   case tok::eof:
   case tok::kw_END:
@@ -381,6 +383,16 @@ Parser::StmtResult Parser::ParseStopStmt() {
 
   //FIXME: parse optional stop-code.
   return Actions.ActOnStopStmt(Context, Loc, ExprResult(), StmtLabel);
+}
+
+Parser::StmtResult Parser::ParseReturnStmt() {
+  auto Loc = Tok.getLocation();
+  Lex();
+  ExprResult E;
+  if(!Tok.isAtStartOfStatement())
+    E = ParseExpression();
+
+  return Actions.ActOnReturnStmt(Context, Loc, E, StmtLabel);
 }
 
 /// ParseAssignmentStmt

@@ -145,6 +145,8 @@ public:
   void PushDeclContext(DeclContext *DC);
   void PopDeclContext();
 
+  bool IsInsideFunctionOrSubroutine() const;
+
   void PushExecutableProgramUnit();
   void PopExecutableProgramUnit(SourceLocation Loc);
 
@@ -330,6 +332,8 @@ public:
   StmtResult ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
   StmtResult ActOnStopStmt(ASTContext &C, SourceLocation Loc, ExprResult StopCode, Expr *StmtLabel);
+
+  StmtResult ActOnReturnStmt(ASTContext &C, SourceLocation Loc, ExprResult E, Expr *StmtLabel);
 
   StmtResult ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,
                             ArrayRef<ExprResult> OutputItemList,

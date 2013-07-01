@@ -67,7 +67,8 @@ def err_expected_int_literal_constant_after : Error<
 def err_expected_int_literal_constant_before : Error<
   "expected an integer literal constant before '%0'">;
 
-
+def err_expected_var : Error<
+  "expected a variable">;
 def err_expected_do_var : Error<
   "expected a real or an integer variable">;
 def err_expected_int_var : Error<
