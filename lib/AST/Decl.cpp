@@ -308,11 +308,18 @@ VarDecl *VarDecl::Create(ASTContext &C, DeclContext *DC,
   return new (C) VarDecl(Var, DC, IdLoc, Id, T);
 }
 
+VarDecl *VarDecl::CreateArgument(ASTContext &C, DeclContext *DC,
+                                 SourceLocation IDLoc, const IdentifierInfo *ID) {
+  auto Result = new (C) VarDecl(Var, DC, IDLoc, ID, QualType());
+  Result->VariableKind = FunctionArgument;
+  return Result;
+}
+
 void VarDecl::MutateIntoParameter(Expr *Value) {
   assert(!isParameter());
   assert(!Init);
   Init = Value;
-  IsVarParameter = true;
+  VariableKind = ParameterVariable;
 }
 
 //===----------------------------------------------------------------------===//

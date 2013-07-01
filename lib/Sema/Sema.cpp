@@ -243,26 +243,46 @@ void Sema::ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo,
 
 void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLoc,
                            const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl) {
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+    return;
+  }
+
   QualType ReturnType;
   if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
     ReturnType = ActOnTypeName(C, ReturnTypeDecl);
   DeclarationNameInfo NameInfo(IDInfo, IDLoc);
+  auto ParentDC = CurContext;
   DeclContext *DC;
-  if(IsSubRoutine)
-    DC = SubroutineDecl::Create(C, C.getTranslationUnitDecl(), NameInfo);
-  else
-    DC = FunctionDecl::Create(C, C.getTranslationUnitDecl(), NameInfo, ReturnType);
+  Decl *D;
+  if(IsSubRoutine) {
+    auto Sub = SubroutineDecl::Create(C, ParentDC, NameInfo);
+    D = Sub; DC = Sub;
+  }
+  else {
+    auto Func = FunctionDecl::Create(C, ParentDC, NameInfo, ReturnType);
+    D = Func; DC = Func;
+  }
+  ParentDC->addDecl(D);
   PushDeclContext(DC);
   PushExecutableProgramUnit();
 }
 
 void Sema::ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
                                    const IdentifierInfo *IDInfo) {
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+    return;
+  }
 
+  VarDecl *VD = VarDecl::CreateArgument(C, CurContext, IDLoc, IDInfo);
+  CurContext->addDecl(VD);
 }
 
 void Sema::ActOnSubProgramStarArgument(ASTContext &C, SourceLocation Loc) {
-
+  // FIXME: TODO
 }
 
 void Sema::ActOnEndSubProgram(ASTContext &C, SourceLocation Loc) {
@@ -332,6 +352,12 @@ VarDecl *Sema::ActOnKindSelector(ASTContext &C, SourceLocation IDLoc,
 Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDLoc,
                             const IdentifierInfo *IDInfo) {
   if (auto Prev = LookupIdentifier(IDInfo)) {
+    if(auto VD = dyn_cast<VarDecl>(Prev)) {
+      if(VD->isArgument() && VD->getType().isNull()) {
+        VD->setType(T);
+        return VD;
+      }
+    }
     Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
     Diags.Report(Prev->getLocation(), diag::note_previous_definition);
     return nullptr;

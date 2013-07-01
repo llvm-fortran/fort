@@ -120,14 +120,13 @@ private:
 
 protected:
 
-  /// IsVarParameter - Is the variable declaration a parameter
-  /// (costant variable declared in PARAMETER statement)?
-  unsigned IsVarParameter : 1;
+  /// the kind of a variable this is
+  unsigned VariableKind : 4;
 
   Decl(Kind DK, DeclContext *DC, SourceLocation L)
     : NextDeclInContext(0), DeclCtx(DC), Loc(L), DeclKind(DK),
       InvalidDecl(false), HasAttrs(false), Implicit(false),
-      IsVarParameter(false) {}
+      VariableKind(0) {}
 
   virtual ~Decl();
 
@@ -831,6 +830,13 @@ public:
 /// VarDecl - An instance of this class is created to represent a variable
 /// declaration or definition.
 class VarDecl : public DeclaratorDecl {
+public:
+  enum VarKind {
+    LocalVariable,
+    FunctionArgument,
+    ParameterVariable
+  };
+private:
   /// \brief The initializer for this variable.
   mutable Expr *Init; // FIXME: This should be a different type?
 
@@ -845,6 +851,8 @@ public:
   static VarDecl *Create(ASTContext &C, DeclContext *DC,
                          SourceLocation IDLoc, const IdentifierInfo *ID,
                          QualType T);
+  static VarDecl *CreateArgument(ASTContext &C, DeclContext *DC,
+                                 SourceLocation IDLoc, const IdentifierInfo *ID);
 
   void Profile(llvm::FoldingSetNodeID &ID) {
     Profile(ID, getIdentifier());
@@ -854,7 +862,8 @@ public:
   }
 
   inline Expr *getInit() const { return Init; }
-  inline bool isParameter() const { return IsVarParameter; }
+  inline bool isParameter() const { return VariableKind == ParameterVariable; }
+  inline bool isArgument() const { return VariableKind == FunctionArgument; }
 
   void MutateIntoParameter(Expr *Value);
 
