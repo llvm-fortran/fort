@@ -123,10 +123,13 @@ protected:
   /// the kind of a variable this is
   unsigned VariableKind : 4;
 
+  /// IsTheType of this declaration set?
+  unsigned IsTypeSet : 1;
+
   Decl(Kind DK, DeclContext *DC, SourceLocation L)
     : NextDeclInContext(0), DeclCtx(DC), Loc(L), DeclKind(DK),
       InvalidDecl(false), HasAttrs(false), Implicit(false),
-      VariableKind(0) {}
+      VariableKind(0),IsTypeSet(0) {}
 
   virtual ~Decl();
 
@@ -598,7 +601,7 @@ protected:
     : NamedDecl(DK, DC, L, N), DeclType(T) {}
 public:
   QualType getType() const { return DeclType; }
-  void setType(QualType newType) { DeclType = newType; }
+  void setType(QualType newType) { IsTypeSet = 1; DeclType = newType; }
 
   virtual void print(raw_ostream &OS) const;
 
@@ -695,6 +698,8 @@ public:
   static FunctionDecl *Create(ASTContext &C, DeclContext *DC,
                               const DeclarationNameInfo &NameInfo,
                               QualType ReturnType);
+
+  inline bool isTypeSet() const { return IsTypeSet; }
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }

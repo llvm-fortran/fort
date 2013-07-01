@@ -35,3 +35,11 @@ REAL FUNCTION FUNC4()
   FUNC4 = 22
   FUNC4 = .false. ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
 END
+
+FUNCTION FUNC5()
+  FUNC5 = 1.0
+END
+
+FUNCTION FUNC6()
+  FUNC6 = .true. ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
+END

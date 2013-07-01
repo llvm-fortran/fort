@@ -250,9 +250,6 @@ void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLo
     Declare = false;
   }
 
-  QualType ReturnType;
-  if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
-    ReturnType = ActOnTypeName(C, ReturnTypeDecl);
   DeclarationNameInfo NameInfo(IDInfo, IDLoc);
   auto ParentDC = CurContext;
   DeclContext *DC;
@@ -262,7 +259,14 @@ void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLo
     D = Sub; DC = Sub;
   }
   else {
+    QualType ReturnType;
+    if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
+      ReturnType = ActOnTypeName(C, ReturnTypeDecl);
+    else ReturnType = C.RealTy;
+
     auto Func = FunctionDecl::Create(C, ParentDC, NameInfo, ReturnType);
+    if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
+      Func->setType(ReturnType);
     D = Func; DC = Func;
   }
   if(Declare)
@@ -361,7 +365,7 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDL
         return VD;
       }
     } else if(auto FD = dyn_cast<FunctionDecl>(Prev)) {
-      if(FD->getType().isNull()) {
+      if(!FD->isTypeSet()) {
         // FIXME: check type.
         FD->setType(T);
         return FD;
