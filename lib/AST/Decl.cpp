@@ -229,19 +229,11 @@ MainProgramDecl *MainProgramDecl::Create(ASTContext &C, DeclContext *DC,
 // FunctionDecl Implementation
 //===----------------------------------------------------------------------===//
 
-FunctionDecl *FunctionDecl::Create(ASTContext &C, DeclContext *DC,
+FunctionDecl *FunctionDecl::Create(ASTContext &C, FunctionKind FK,
+                                   DeclContext *DC,
                                    const DeclarationNameInfo &NameInfo,
                                    QualType ReturnType) {
-  return new(C) FunctionDecl(Function, DC, NameInfo, ReturnType);
-}
-
-//===----------------------------------------------------------------------===//
-// SubroutineDecl Implementation
-//===----------------------------------------------------------------------===//
-
-SubroutineDecl *SubroutineDecl::Create(ASTContext &C, DeclContext *DC,
-                                       const DeclarationNameInfo &NameInfo) {
-  return new(C) SubroutineDecl(Subroutine, DC, NameInfo, QualType());
+  return new(C) FunctionDecl(Function, FK, DC, NameInfo, ReturnType);
 }
 
 //===----------------------------------------------------------------------===//
@@ -311,7 +303,7 @@ VarDecl *VarDecl::Create(ASTContext &C, DeclContext *DC,
 VarDecl *VarDecl::CreateArgument(ASTContext &C, DeclContext *DC,
                                  SourceLocation IDLoc, const IdentifierInfo *ID) {
   auto Result = new (C) VarDecl(Var, DC, IDLoc, ID, QualType());
-  Result->VariableKind = FunctionArgument;
+  Result->SubDeclKind = FunctionArgument;
   return Result;
 }
 
@@ -319,7 +311,7 @@ void VarDecl::MutateIntoParameter(Expr *Value) {
   assert(!isParameter());
   assert(!Init);
   Init = Value;
-  VariableKind = ParameterVariable;
+  SubDeclKind = ParameterVariable;
 }
 
 //===----------------------------------------------------------------------===//
@@ -372,6 +364,14 @@ void ValueDecl::print(raw_ostream &OS) const {
 
 void DeclaratorDecl::print(raw_ostream &OS) const {
   ValueDecl::print(OS);
+}
+
+void FunctionDecl::print(raw_ostream &OS) const {
+  if(!getType().isNull()) {
+    getType().print(OS);
+    OS << ' ';
+  }
+  OS << getName();
 }
 
 void VarDecl::print(raw_ostream &OS) const {

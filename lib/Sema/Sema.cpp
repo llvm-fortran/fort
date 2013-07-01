@@ -52,8 +52,8 @@ void Sema::PopDeclContext() {
 }
 
 bool Sema::IsInsideFunctionOrSubroutine() const {
-  return isa<FunctionDecl>(CurContext) ||
-         isa<SubroutineDecl>(CurContext);
+  auto FD = dyn_cast<FunctionDecl>(CurContext);
+  return FD && (FD->isNormalFunction() || FD->isSubroutine());
 }
 
 void Sema::PushExecutableProgramUnit() {
@@ -260,25 +260,20 @@ void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLo
 
   DeclarationNameInfo NameInfo(IDInfo, IDLoc);
   auto ParentDC = CurContext;
-  DeclContext *DC;
-  Decl *D;
-  if(IsSubRoutine) {
-    auto Sub = SubroutineDecl::Create(C, ParentDC, NameInfo);
-    D = Sub; DC = Sub;
-  }
-  else {
-    QualType ReturnType;
-    if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
-      ReturnType = ActOnTypeName(C, ReturnTypeDecl);
 
-    auto Func = FunctionDecl::Create(C, ParentDC, NameInfo, ReturnType);
-    D = Func; DC = Func;
-  }
+  QualType ReturnType;
+  if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
+    ReturnType = ActOnTypeName(C, ReturnTypeDecl);
+  auto Func = FunctionDecl::Create(C, IsSubRoutine? FunctionDecl::Subroutine :
+                                                    FunctionDecl::NormalFunction,
+                                   ParentDC, NameInfo, ReturnType);
+
+  DeclContext *DC = Func;
   if(Declare)
-    ParentDC->addDecl(D);
+    ParentDC->addDecl(Func);
   PushDeclContext(DC);
   PushExecutableProgramUnit();
-  DC->addDecl(D);
+  DC->addDecl(Func);
 }
 
 void Sema::ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
@@ -370,13 +365,15 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDL
         return VD;
       }
     } else if(auto FD = dyn_cast<FunctionDecl>(Prev)) {
-      if(FD->getType().isNull()) {
-        // FIXME: check type.
-        FD->setType(T);
-        return FD;
-      } else {
-        Diags.Report(IDLoc, diag::err_func_return_type_already_specified) << IDInfo;
-        return nullptr;
+      if(FD->isNormalFunction()) {
+        if(FD->getType().isNull()) {
+          // FIXME: check type.
+          FD->setType(T);
+          return FD;
+        } else {
+          Diags.Report(IDLoc, diag::err_func_return_type_already_specified) << IDInfo;
+          return nullptr;
+        }
       }
     }
     Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
@@ -629,7 +626,27 @@ StmtResult Sema::ActOnENDPROGRAM(ASTContext &C,
 StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
                                SourceLocation IDLoc, const IdentifierInfo *IDInfo,
                                Expr *StmtLabel) {
-  return StmtError();//FIXME: TODO
+  QualType Type;
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    auto VD = dyn_cast<VarDecl>(Prev);
+    if(VD && VD->isLocalVariable()) {
+        Type = VD->getType();
+        CurContext->removeDecl(VD);
+    } else {
+      Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+      Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+      return StmtError();
+    }
+  }
+
+  DeclarationNameInfo DeclName(IDInfo,IDLoc);
+  auto Decl = FunctionDecl::Create(C, FunctionDecl::External, CurContext,
+                                   DeclName, Type);
+  CurContext->addDecl(Decl);
+
+  auto Result = DeclStmt::Create(C, Loc, Decl, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,

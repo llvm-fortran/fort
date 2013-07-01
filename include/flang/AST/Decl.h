@@ -120,13 +120,13 @@ private:
 
 protected:
 
-  /// the kind of a variable this is
-  unsigned VariableKind : 4;
+  /// the kind of a sub declaration this is
+  unsigned SubDeclKind : 4;
 
   Decl(Kind DK, DeclContext *DC, SourceLocation L)
     : NextDeclInContext(0), DeclCtx(DC), Loc(L), DeclKind(DK),
       InvalidDecl(false), HasAttrs(false), Implicit(false),
-      VariableKind(0) {}
+      SubDeclKind(0) {}
 
   virtual ~Decl();
 
@@ -268,7 +268,6 @@ public:
   bool isTranslationUnit() const { return DeclKind == Decl::TranslationUnit; }
   bool isMainProgram() const { return DeclKind == Decl::MainProgram; }
   bool isFunction() const { return DeclKind == Decl::Function; }
-  bool isSubroutine() const { return DeclKind == Decl::Subroutine; }
   bool isModule() const { return DeclKind == Decl::Module; }
   bool isSubmodule() const { return DeclKind == Decl::Submodule; }
   bool isRecord() const { return DeclKind == Decl::Record; }
@@ -685,16 +684,32 @@ public:
 };
 
 class FunctionDecl : public DeclaratorDecl, public DeclContext {
+public:
+  enum FunctionKind {
+    NormalFunction,
+    StatementFunction,
+    Subroutine,
+    External
+  };
 protected:
-  FunctionDecl(Kind DK, DeclContext *DC, const DeclarationNameInfo &NameInfo,
-               QualType T)
+  FunctionDecl(Kind DK, FunctionKind FK, DeclContext *DC,
+               const DeclarationNameInfo &NameInfo, QualType T)
     : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
       DeclContext(DK) {
+    SubDeclKind = FK;
   }
 public:
-  static FunctionDecl *Create(ASTContext &C, DeclContext *DC,
+  static FunctionDecl *Create(ASTContext &C, FunctionKind FK,
+                              DeclContext *DC,
                               const DeclarationNameInfo &NameInfo,
                               QualType ReturnType);
+
+  bool isNormalFunction() const { return SubDeclKind == NormalFunction; }
+  bool isStatementFunction() const { return SubDeclKind == StatementFunction; }
+  bool isSubroutine() const { return SubDeclKind == Subroutine; }
+  bool isExternal() const { return SubDeclKind == External; }
+
+  virtual void print(raw_ostream &OS) const;
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
@@ -730,29 +745,6 @@ public:
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
   static bool classof(const IntrinsicFunctionDecl *D) { return true; }
   static bool classofKind(Kind K) { return K == IntrinsicFunction; }
-};
-
-class SubroutineDecl : public DeclaratorDecl, public DeclContext {
-protected:
-  SubroutineDecl(Kind DK, DeclContext *DC, const DeclarationNameInfo &NameInfo,
-                 QualType T)
-    : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
-      DeclContext(DK) {
-  }
-public:
-  static SubroutineDecl *Create(ASTContext &C, DeclContext *DC,
-                                const DeclarationNameInfo &NameInfo);
-
-  // Implement isa/cast/dyncast/etc.
-  static bool classof(const Decl *D) { return classofKind(D->getKind()); }
-  static bool classof(const SubroutineDecl *D) { return true; }
-  static bool classofKind(Kind K) { return K == Subroutine; }
-  static DeclContext *castToDeclContext(const SubroutineDecl *D) {
-    return static_cast<DeclContext *>(const_cast<SubroutineDecl*>(D));
-  }
-  static SubroutineDecl *castFromDeclContext(const DeclContext *DC) {
-    return static_cast<SubroutineDecl *>(const_cast<DeclContext*>(DC));
-  }
 };
 
 class ModuleDecl : public DeclaratorDecl, public DeclContext {
@@ -832,7 +824,7 @@ public:
 class VarDecl : public DeclaratorDecl {
 public:
   enum VarKind {
-    LocalVariable,
+    LocalVariable = 0,
     FunctionArgument,
     ParameterVariable
   };
@@ -862,8 +854,10 @@ public:
   }
 
   inline Expr *getInit() const { return Init; }
-  inline bool isParameter() const { return VariableKind == ParameterVariable; }
-  inline bool isArgument() const { return VariableKind == FunctionArgument; }
+
+  inline bool isLocalVariable() const { return SubDeclKind == LocalVariable; }
+  inline bool isParameter() const { return SubDeclKind == ParameterVariable; }
+  inline bool isArgument() const { return SubDeclKind == FunctionArgument; }
 
   void MutateIntoParameter(Expr *Value);
 

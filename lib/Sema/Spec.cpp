@@ -44,14 +44,16 @@ void Sema::ActOnSpecificationPart(ArrayRef<StmtResult> Body) {
 
   /// If necessary, apply the implicit typing rules to the current function and its arguments.
   if(auto FD = dyn_cast<FunctionDecl>(CurContext)) {
-    if(FD->getType().isNull()) {
-      auto Type = ResolveImplicitType(FD->getIdentifier());
-      if(Type.isNull()) {
-        Diags.Report(FD->getLocation(), diag::err_func_no_implicit_type)
-          << FD->getIdentifier();
-        // FIXME: add note implicit none was applied here.
+    if(FD->isNormalFunction()) {
+      if(FD->getType().isNull()) {
+        auto Type = ResolveImplicitType(FD->getIdentifier());
+        if(Type.isNull()) {
+          Diags.Report(FD->getLocation(), diag::err_func_no_implicit_type)
+            << FD->getIdentifier();
+          // FIXME: add note implicit none was applied here.
+        }
+        else FD->setType(Type);
       }
-      else FD->setType(Type);
     }
   }
   // FIXME: arg

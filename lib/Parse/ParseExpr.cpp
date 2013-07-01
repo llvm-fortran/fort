@@ -637,7 +637,8 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
     }
     else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
       // FIXME: make this only when func is current
-      return ReturnedValueExpr::Create(Context, Loc, Func);
+      if(Func->isNormalFunction())
+        return ReturnedValueExpr::Create(Context, Loc, Func);
     }
     Diag.Report(Loc, diag::err_expected_var);
     return ExprError();
