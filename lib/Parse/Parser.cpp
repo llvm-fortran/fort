@@ -398,6 +398,14 @@ bool Parser::ParseProgramUnit() {
     ParseMainProgram(Body);
     break;
 
+  case tok::kw_REAL:
+  case tok::kw_INTEGER:
+  case tok::kw_COMPLEX:
+  case tok::kw_CHARACTER:
+  case tok::kw_LOGICAL:
+  case tok::kw_DOUBLEPRECISION:
+  case tok::kw_DOUBLECOMPLEX:
+    ParseTypedExternalSubprogram(Body);
   case tok::kw_FUNCTION:
   case tok::kw_SUBROUTINE:
     ParseExternalSubprogram(Body);
@@ -562,16 +570,21 @@ bool Parser::ParseSpecificationPart(std::vector<StmtResult> &Body) {
 ///           end-function-stmt
 bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body) {
   DeclSpec ReturnType;
-  if(Tok.isNot(tok::kw_FUNCTION) &&
-     Tok.isNot(tok::kw_SUBROUTINE)) {
-    // FIXME: type for a function.
-    Lex();
-    if(Tok.isNot(tok::kw_FUNCTION)) {
-      Diag.Report(getExpectedLoc(), diag::err_expected_kw)
-        << "FUNCTION";
-      return true;
-    }
+  return ParseExternalSubprogram(Body, ReturnType);
+}
+
+bool Parser::ParseTypedExternalSubprogram(std::vector<StmtResult> &Body) {
+  DeclSpec ReturnType;
+  ParseDeclarationTypeSpec(ReturnType);
+  if(Tok.isNot(tok::kw_FUNCTION)) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_kw)
+      << "FUNCTION";
+    return true;
   }
+  return ParseExternalSubprogram(Body, ReturnType);
+}
+
+bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body, DeclSpec &ReturnType) {
   bool IsSubroutine = Tok.is(tok::kw_SUBROUTINE);
   Lex();
 
@@ -642,6 +655,8 @@ bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body) {
 
   return false;
 }
+
+
 
 /// ParseModule - Parse a module.
 ///

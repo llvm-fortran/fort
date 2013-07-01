@@ -206,6 +206,9 @@ private:
   bool ParseProgramUnit();
   bool ParseMainProgram(std::vector<StmtResult> &Body);
   bool ParseExternalSubprogram(std::vector<StmtResult> &Body);
+  bool ParseExternalSubprogram(std::vector<StmtResult> &Body,
+                               DeclSpec &ReturnType);
+  bool ParseTypedExternalSubprogram(std::vector<StmtResult> &Body);
   bool ParseExecutableSubprogramBody(std::vector<StmtResult> &Body,
                                      tok::TokenKind EndKw);
   bool ParseModule();
