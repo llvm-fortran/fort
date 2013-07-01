@@ -37,9 +37,24 @@ REAL FUNCTION FUNC4()
   FUNC4 = .false. ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
 END
 
-FUNCTION FUNC5()
+FUNCTION FUNC5(ARG, IARG)
   FUNC5 = 1.0 ! CHECK: FUNC5 = 1
   if(FUNC5 .EQ. 1.0) FUNC5 = 2.0
+
+  !FIXME:
+  !FUNC5 = ARG ! HECK: FUNC5 = ARG
+  !FUNC5 = IARG ! HECK: FUNC5 = IARG
+END
+
+FUNCTION IFUNC()
+  IFUNC = 22 ! CHECK: IFUNC = 22
+END
+
+FUNCTION OFUNC(ZZ) ! expected-error {{the function 'OFUNC' requires a type specifier}}
+  IMPLICIT NONE
+  INTEGER I
+  OFUNC = 22
+  !FIXME: I = ZZ !
 END
 
 FUNCTION FUNC6()

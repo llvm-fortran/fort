@@ -112,7 +112,7 @@ class ImplicitTypingScope {
   llvm::StringMap<QualType> Rules;
   bool None;
 public:
-  ImplicitTypingScope();
+  ImplicitTypingScope(ImplicitTypingScope *Prev = nullptr);
 
   enum RuleType {
     DefaultRule,
@@ -135,6 +135,9 @@ public:
 
   /// \brief Returns a rule and possibly a type associated with this identifier.
   std::pair<RuleType, QualType> Resolve(const IdentifierInfo *IdInfo);
+
+  /// \brief Resets the scope.
+  void Reset();
 };
 
 /// InnerScope - This is a scope which assists with resolving identifiers

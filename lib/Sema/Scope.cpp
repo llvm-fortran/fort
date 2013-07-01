@@ -70,8 +70,8 @@ void StmtLabelScope::reset() {
   ForwardStmtLabelDeclsInScope.clear();
 }
 
-ImplicitTypingScope::ImplicitTypingScope()
-  : Parent(nullptr), None(false) {
+ImplicitTypingScope::ImplicitTypingScope(ImplicitTypingScope *Prev)
+  : Parent(Prev), None(false) {
 }
 
 bool ImplicitTypingScope::Apply(const ImplicitStmt::LetterSpecTy &Spec, QualType T) {
@@ -111,6 +111,11 @@ ImplicitTypingScope::Resolve(const IdentifierInfo *IdInfo) {
   else if(Parent)
     return Parent->Resolve(IdInfo);
   else return std::make_pair(DefaultRule, QualType());
+}
+
+void ImplicitTypingScope::Reset() {
+  Rules.clear();
+  None = false;
 }
 
 InnerScope::InnerScope(InnerScope *Prev)

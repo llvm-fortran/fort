@@ -168,6 +168,10 @@ def err_func_return_type_already_specified : Error<
   "the return type for a function %0 was already specified">;
 def err_stmt_not_in_func : Error<
   "'%0' statement should be used inside a function or a subroutine">;
+def err_func_no_implicit_type : Error<
+  "the function %0 requires a type specifier">;
+def err_arg_no_implicit_type : Error<
+  "the argument %0 requires a type specifier">;
 
 }
 

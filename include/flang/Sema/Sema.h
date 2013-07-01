@@ -183,6 +183,8 @@ public:
   Decl *ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
                         const IdentifierInfo *IDInfo);
 
+  QualType ResolveImplicitType(const IdentifierInfo *IDInfo);
+
   Decl *ActOnImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo);
 

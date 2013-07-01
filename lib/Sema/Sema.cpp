@@ -127,6 +127,9 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
     ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc, false);
   }
   CurExecutableStmts.Reset();
+
+  //FIXME: Implicit typing scope stacking in internal functions
+  CurImplicitTypingScope.Reset();
 }
 
 void ExecutableProgramUnitStmts::Reset() {
@@ -267,11 +270,8 @@ void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLo
     QualType ReturnType;
     if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
       ReturnType = ActOnTypeName(C, ReturnTypeDecl);
-    else ReturnType = C.RealTy;
 
     auto Func = FunctionDecl::Create(C, ParentDC, NameInfo, ReturnType);
-    if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
-      Func->setType(ReturnType);
     D = Func; DC = Func;
   }
   if(Declare)
@@ -370,7 +370,7 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDL
         return VD;
       }
     } else if(auto FD = dyn_cast<FunctionDecl>(Prev)) {
-      if(!FD->isTypeSet()) {
+      if(FD->getType().isNull()) {
         // FIXME: check type.
         FD->setType(T);
         return FD;
@@ -401,31 +401,30 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
   return ActOnEntityDecl(C, T, IDLoc, IDInfo);
 }
 
-Decl *Sema::ActOnImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
-                                    const IdentifierInfo *IDInfo) {
+QualType Sema::ResolveImplicitType(const IdentifierInfo *IDInfo) {
   auto Result = getCurrentImplicitTypingScope().Resolve(IDInfo);
-  if(Result.first == ImplicitTypingScope::NoneRule) {
-    Diags.Report(IDLoc, diag::err_undeclared_var_use)
-      << IDInfo;
-    return nullptr;
-  } else if(Result.first == ImplicitTypingScope::DefaultRule) {
-    DeclSpec DS;
+  if(Result.first == ImplicitTypingScope::NoneRule) return QualType();
+  else if(Result.first == ImplicitTypingScope::DefaultRule) {
     char letter = toupper(IDInfo->getNameStart()[0]);
-
     // IMPLICIT statement:
     // `If a mapping is not specified for a letter, the default for a
     //  program unit or an interface body is default integer if the
     //  letter is I, K, ..., or N and default real otherwise`
     if(letter >= 'I' && letter <= 'N')
-      DS.SetTypeSpecType(DeclSpec::TST_integer);
-    else DS.SetTypeSpecType(DeclSpec::TST_real);
+      return Context.IntegerTy;
+    else return Context.RealTy;
+  } else return Result.second;
+}
 
-    // FIXME: default for an internal or module procedure is the mapping in
-    // the host scoping unit.
-    return ActOnEntityDecl(C, DS, IDLoc, IDInfo);
-  } else {
-    return ActOnEntityDecl(C, Result.second, IDLoc, IDInfo);
+Decl *Sema::ActOnImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
+                                    const IdentifierInfo *IDInfo) {
+  auto Type = ResolveImplicitType(IDInfo);
+  if(Type.isNull()) {
+    Diags.Report(IDLoc, diag::err_undeclared_var_use)
+      << IDInfo;
+    return nullptr;
   }
+  return ActOnEntityDecl(C, Type, IDLoc, IDInfo);
 }
 
 Decl *Sema::LookupIdentifier(const IdentifierInfo *IDInfo) {
@@ -864,6 +863,9 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
     Diags.Report(Loc,diag::err_expr_not_assignable) << LHS.get()->getSourceRange();
     return StmtError();
   }
+  if(LHS.get()->getType().isNull() ||
+     RHS.get()->getType().isNull())
+    return StmtError();
   RHS = TypecheckAssignment(LHS.get()->getType(), RHS,
                             Loc, LHS.get()->getLocStart());
   if(RHS.isInvalid()) return StmtError();
