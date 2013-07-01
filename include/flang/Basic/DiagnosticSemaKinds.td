@@ -25,6 +25,8 @@ def err_expected_integer_or_real_constant_expr : Error<
 def err_expected_integer_constant_expr : Error<
   "expected an integer constant expression">;
 
+def err_expr_not_assignable : Error<
+  "expression is not assignable">;
 def err_typecheck_assign_incompatible : Error<
   "assigning to %0 from incompatible type %1">;
 def err_typecheck_passing_incompatible : Error<
@@ -161,6 +163,9 @@ def err_format_without_stmt_label : Error<
 
 def err_fmt_spec_stmt_label_not_format : Error<
   "use of statement label format specifier which doesn't label a 'FORMAT' statement">;
+
+def err_func_return_type_already_specified : Error<
+  "the return type for a function %0 was already specified">;
 
 }
 

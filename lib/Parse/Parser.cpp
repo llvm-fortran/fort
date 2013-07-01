@@ -406,6 +406,7 @@ bool Parser::ParseProgramUnit() {
   case tok::kw_DOUBLEPRECISION:
   case tok::kw_DOUBLECOMPLEX:
     ParseTypedExternalSubprogram(Body);
+    break;
   case tok::kw_FUNCTION:
   case tok::kw_SUBROUTINE:
     ParseExternalSubprogram(Body);

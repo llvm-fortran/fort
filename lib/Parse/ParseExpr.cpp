@@ -634,7 +634,15 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
       if(Result.isInvalid())
         return ExprError();
       return Actions.ActOnIntrinsicFunctionCallExpr(Context, Loc, IFunc, Arguments);
-    } else return ExprError();//FIXME
+    }
+    else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
+      // FIXME: make this proper.
+      if(IsLvalue) {
+        return ReturnedValueExpr::Create(Context, Loc, Func);
+      }
+    }
+    // FIXME: another error
+    return ExprError();
   }
 
   ExprResult E = VarExpr::Create(Context, Tok.getLocation(), VD);

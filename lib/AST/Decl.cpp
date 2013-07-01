@@ -90,7 +90,7 @@ void DeclContext::buildLookup(DeclContext *DCtx) {
     // semantically in its decl context.  During non-lazy lookup building, this
     // is implicitly enforced by addDecl.
     if (NamedDecl *ND = dyn_cast<NamedDecl>(*D))
-      if (D->getDeclContext() == DCtx)
+      //if (D->getDeclContext() == DCtx)
         makeDeclVisibleInContextImpl(ND);
 }
 

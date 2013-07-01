@@ -30,6 +30,8 @@ class ASTContext;
 class IdentifierInfo;
 class Decl;
 class VarDecl;
+class FunctionDecl;
+class SubroutineDecl;
 
 /// Expr - Top-level class for expressions.
 class Expr {
@@ -52,6 +54,7 @@ protected:
 
     Variable,
     UnresolvedIdentifier,
+    ReturnedValue,
     Unary,
     DefinedUnaryOperator,
 
@@ -604,6 +607,25 @@ public:
     return E->getDesignatorType() == DesignatorExpr::ObjectName;
   }
   static bool classof(const VarExpr *) { return true; }
+};
+
+/// ReturnedValueExpr - used to assign to a return value
+/// in functions.
+class ReturnedValueExpr : public Expr {
+  FunctionDecl *Func;
+  ReturnedValueExpr(SourceLocation Loc, FunctionDecl *F);
+public:
+  static ReturnedValueExpr *Create(ASTContext &C, SourceLocation Loc,
+                                   FunctionDecl *Func);
+
+  SourceLocation getLocEnd() const;
+
+  virtual void print(llvm::raw_ostream&);
+
+  static bool classof(const Expr *E) {
+    return E->getExpressionID() == ReturnedValue;
+  }
+  static bool classof(const ReturnedValueExpr *) { return true; }
 };
 
 /// UnresolvedIdentifierExpr - this is an probably a variable reference

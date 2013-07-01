@@ -221,6 +221,20 @@ SourceLocation VarExpr::getLocEnd() const {
                                Variable->getIdentifier()->getLength());
 }
 
+ReturnedValueExpr::ReturnedValueExpr(SourceLocation Loc, FunctionDecl *F)
+  : Expr(ReturnedValue, F->getType(), Loc),Func(F) {
+}
+
+ReturnedValueExpr *ReturnedValueExpr::Create(ASTContext &C, SourceLocation Loc,
+                                             FunctionDecl *Func) {
+  return new(C) ReturnedValueExpr(Loc, Func);
+}
+
+SourceLocation ReturnedValueExpr::getLocEnd() const {
+  return SourceLocation::getFromPointer(getLocation().getPointer() +
+                               Func->getIdentifier()->getLength());
+}
+
 UnresolvedIdentifierExpr::UnresolvedIdentifierExpr(ASTContext &C,
                                                    SourceLocation Loc,
                                                    const IdentifierInfo *ID)
@@ -460,6 +474,10 @@ void RepeatedConstantExpr::print(llvm::raw_ostream &O) {
 
 void VarExpr::print(llvm::raw_ostream &O) {
   O << *Variable;
+}
+
+void ReturnedValueExpr::print(llvm::raw_ostream &O) {
+  O << Func->getIdentifier()->getName();
 }
 
 void UnresolvedIdentifierExpr::print(llvm::raw_ostream &O) {

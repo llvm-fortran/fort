@@ -243,10 +243,11 @@ void Sema::ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo,
 
 void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLoc,
                            const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl) {
+  bool Declare = true;
   if (auto Prev = LookupIdentifier(IDInfo)) {
     Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
     Diags.Report(Prev->getLocation(), diag::note_previous_definition);
-    return;
+    Declare = false;
   }
 
   QualType ReturnType;
@@ -264,9 +265,11 @@ void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLo
     auto Func = FunctionDecl::Create(C, ParentDC, NameInfo, ReturnType);
     D = Func; DC = Func;
   }
-  ParentDC->addDecl(D);
+  if(Declare)
+    ParentDC->addDecl(D);
   PushDeclContext(DC);
   PushExecutableProgramUnit();
+  DC->addDecl(D);
 }
 
 void Sema::ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
@@ -356,6 +359,15 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDL
       if(VD->isArgument() && VD->getType().isNull()) {
         VD->setType(T);
         return VD;
+      }
+    } else if(auto FD = dyn_cast<FunctionDecl>(Prev)) {
+      if(FD->getType().isNull()) {
+        // FIXME: check type.
+        FD->setType(T);
+        return FD;
+      } else {
+        Diags.Report(IDLoc, diag::err_func_return_type_already_specified) << IDInfo;
+        return nullptr;
       }
     }
     Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
@@ -838,6 +850,11 @@ ExprResult Sema::ActOnDATAImpliedDoExpr(ASTContext &C, SourceLocation Loc,
 StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                      ExprResult LHS,
                                      ExprResult RHS, Expr *StmtLabel) {
+  if(!isa<VarExpr>(LHS.get()) && !isa<ArrayElementExpr>(LHS.get()) &&
+     !isa<SubstringExpr>(LHS.get()) && !isa<ReturnedValueExpr>(LHS.get())) {
+    Diags.Report(Loc,diag::err_expr_not_assignable) << LHS.get()->getSourceRange();
+    return StmtError();
+  }
   RHS = TypecheckAssignment(LHS.get()->getType(), RHS,
                             Loc, LHS.get()->getLocStart());
   if(RHS.isInvalid()) return StmtError();
