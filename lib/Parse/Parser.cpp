@@ -133,7 +133,7 @@ void Parser::Lex() {
   ClassifyToken(NextTok);
 
 #define MERGE_TOKENS(A, B)                      \
-  if (NextTok.is(tok::kw_ ## B)) {              \
+  if (!NextTok.isAtStartOfStatement() && NextTok.is(tok::kw_ ## B)) {              \
     Tok.setKind(tok::kw_ ## A ## B);            \
     break;                                      \
   }                                             \
@@ -161,6 +161,7 @@ void Parser::Lex() {
     MERGE_TOKENS(END, IF);
     MERGE_TOKENS(END, DO);
     MERGE_TOKENS(END, FUNCTION);
+    MERGE_TOKENS(END, SUBROUTINE);
     MERGE_TOKENS(END, FORALL);
     MERGE_TOKENS(END, WHERE);
     MERGE_TOKENS(END, ENUM);
@@ -398,8 +399,8 @@ bool Parser::ParseProgramUnit() {
     break;
 
   case tok::kw_FUNCTION:
-  case tok::kw_SUBPROGRAM:
-    ParseExternalSubprogram();
+  case tok::kw_SUBROUTINE:
+    ParseExternalSubprogram(Body);
     break;
 
   case tok::kw_MODULE:
@@ -446,23 +447,7 @@ bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
 
   Actions.ActOnMainProgram(IDInfo, NameLoc);
 
-  // FIXME: Check for the specific keywords and not just absence of END or
-  //        ENDPROGRAM.
-  ParseStatementLabel();
-  if (Tok.isNot(tok::kw_END) && Tok.isNot(tok::kw_ENDPROGRAM))
-    ParseSpecificationPart(Body);
-
-  // Apply specification statements.
-  Actions.ActOnSpecificationPart(Body);
-
-  // FIXME: Check for the specific keywords and not just absence of END or
-  //        ENDPROGRAM.
-  ParseStatementLabel();
-  if (Tok.isNot(tok::kw_END) && Tok.isNot(tok::kw_ENDPROGRAM))
-    ParseExecutionPart(Body);
-
-  // FIXME: Debugging support.
-  dump(Body);
+  ParseExecutableSubprogramBody(Body, tok::kw_ENDPROGRAM);
 
   ParseStatementLabel();
   StmtResult EndProgStmt = ParseEND_PROGRAMStmt();
@@ -480,6 +465,27 @@ bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
 
   Actions.ActOnEndMainProgram(Loc, IDInfo, NameLoc);
   return EndProgStmt.isInvalid();
+}
+
+bool Parser::ParseExecutableSubprogramBody(std::vector<StmtResult> &Body,
+                                           tok::TokenKind EndKw) {
+  // FIXME: Check for the specific keywords and not just absence of END or
+  //        ENDPROGRAM.
+  ParseStatementLabel();
+  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw))
+    ParseSpecificationPart(Body);
+
+  // Apply specification statements.
+  Actions.ActOnSpecificationPart(Body);
+
+  // FIXME: Check for the specific keywords and not just absence of END or
+  //        ENDPROGRAM.
+  ParseStatementLabel();
+  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw))
+    ParseExecutionPart(Body);
+
+  // FIXME: Debugging support.
+  dump(Body);
 }
 
 /// ParseSpecificationPart - Parse the specification part.
@@ -538,24 +544,6 @@ bool Parser::ParseSpecificationPart(std::vector<StmtResult> &Body) {
 ///     external-subprogram :=
 ///         function-subprogram
 ///      or subroutine-subprogram
-bool Parser::ParseExternalSubprogram() {
-  return false;
-}
-
-/// ParseFunctionSubprogram - Parse a function subprogram.
-///
-///   [R1223]:
-///     function-subprogram :=
-///         function-stmt
-///           [specification-part]
-///           [execution-part]
-///           [internal-subprogram-part]
-///           end-function-stmt
-bool Parser::ParseFunctionSubprogram() {
-  return false;
-}
-
-/// ParseSubroutineSubprogram - Parse a subroutine subprogram.
 ///
 ///   [R1231]:
 ///     subroutine-subprogram :=
@@ -564,7 +552,94 @@ bool Parser::ParseFunctionSubprogram() {
 ///           [execution-part]
 ///           [internal-subprogram-part]
 ///           end-subroutine-stmt
-bool Parser::ParseSubroutineSubprogram() {
+///
+///   [R1223]:
+///     function-subprogram :=
+///         function-stmt
+///           [specification-part]
+///           [execution-part]
+///           [internal-subprogram-part]
+///           end-function-stmt
+bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body) {
+  DeclSpec ReturnType;
+  if(Tok.isNot(tok::kw_FUNCTION) &&
+     Tok.isNot(tok::kw_SUBROUTINE)) {
+    // FIXME: type for a function.
+    Lex();
+    if(Tok.isNot(tok::kw_FUNCTION)) {
+      Diag.Report(getExpectedLoc(), diag::err_expected_kw)
+        << "FUNCTION";
+      return true;
+    }
+  }
+  bool IsSubroutine = Tok.is(tok::kw_SUBROUTINE);
+  Lex();
+
+  if (Tok.isAtStartOfStatement() ||
+      !(Tok.is(tok::identifier) ||
+       (Tok.getIdentifierInfo() &&
+        isaKeyword(Tok.getIdentifierInfo()->getName()))
+      )) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_ident);
+    return true;
+  }
+
+  auto IDLoc = Tok.getLocation();
+  auto II = Tok.getIdentifierInfo();
+  Lex();
+
+  Actions.ActOnSubProgram(Context, IsSubroutine, IDLoc, II, ReturnType);
+
+  if(EatIfPresentInSameStmt(tok::l_paren)) {
+
+    // argument list
+    if(!Tok.isAtStartOfStatement() && Tok.isNot(tok::r_paren)) {
+      do {
+        if(Tok.isAtStartOfStatement()) break;
+        if(IsSubroutine && Tok.is(tok::star)) {
+          Actions.ActOnSubProgramStarArgument(Context, Tok.getLocation());
+          Lex();
+          continue;
+        } else if(!(Tok.is(tok::identifier) ||
+                  (Tok.getIdentifierInfo() &&
+                   isaKeyword(Tok.getIdentifierInfo()->getName()))
+                 )) {
+          Diag.Report(getExpectedLoc(), diag::err_expected_ident);
+          break;
+        }
+
+        Actions.ActOnSubProgramArgument(Context, Tok.getLocation(),
+                                        Tok.getIdentifierInfo());
+        Lex();
+      } while(EatIfPresentInSameStmt(tok::comma));
+    }
+
+    // closing ')'
+    if(!EatIfPresentInSameStmt(tok::r_paren)) {
+      Diag.Report(getExpectedLoc(), diag::err_expected_rparen)
+        << FixItHint(getExpectedLocForFixIt(),")");
+      if(!Tok.isAtStartOfStatement())
+        LexToEndOfStatement();
+    }
+  } else if(!IsSubroutine) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
+    if(!Tok.isAtStartOfStatement())
+      LexToEndOfStatement();
+  }
+
+  ParseExecutableSubprogramBody(Body, IsSubroutine? tok::kw_ENDSUBROUTINE :
+                                                    tok::kw_ENDFUNCTION);
+
+  if(!Tok.isAtStartOfStatement())
+    LexToEndOfStatement();
+  ParseStatementLabel();
+  auto EndLoc = Tok.getLocation();
+  if(Tok.is(tok::kw_END) || Tok.is(tok::kw_ENDSUBROUTINE) ||
+     Tok.is(tok::kw_ENDFUNCTION))
+    Lex();//End..
+  StmtLabel = nullptr;
+  Actions.ActOnEndSubProgram(Context, EndLoc);
+
   return false;
 }
 

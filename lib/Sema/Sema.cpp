@@ -241,6 +241,35 @@ void Sema::ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo,
   PopExecutableProgramUnit(Loc);
 }
 
+void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLoc,
+                           const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl) {
+  QualType ReturnType;
+  if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
+    ReturnType = ActOnTypeName(C, ReturnTypeDecl);
+  DeclarationNameInfo NameInfo(IDInfo, IDLoc);
+  DeclContext *DC;
+  if(IsSubRoutine)
+    DC = SubroutineDecl::Create(C, C.getTranslationUnitDecl(), NameInfo);
+  else
+    DC = FunctionDecl::Create(C, C.getTranslationUnitDecl(), NameInfo, ReturnType);
+  PushDeclContext(DC);
+  PushExecutableProgramUnit();
+}
+
+void Sema::ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
+                                   const IdentifierInfo *IDInfo) {
+
+}
+
+void Sema::ActOnSubProgramStarArgument(ASTContext &C, SourceLocation Loc) {
+
+}
+
+void Sema::ActOnEndSubProgram(ASTContext &C, SourceLocation Loc) {
+  PopDeclContext();
+  PopExecutableProgramUnit(Loc);
+}
+
 /// \brief Convert the specified DeclSpec to the appropriate type object.
 QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
   QualType Result;

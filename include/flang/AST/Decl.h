@@ -693,6 +693,9 @@ protected:
       DeclContext(DK) {
   }
 public:
+  static FunctionDecl *Create(ASTContext &C, DeclContext *DC,
+                              const DeclarationNameInfo &NameInfo,
+                              QualType ReturnType);
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
@@ -738,6 +741,8 @@ protected:
       DeclContext(DK) {
   }
 public:
+  static SubroutineDecl *Create(ASTContext &C, DeclContext *DC,
+                                const DeclarationNameInfo &NameInfo);
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }

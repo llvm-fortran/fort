@@ -226,6 +226,25 @@ MainProgramDecl *MainProgramDecl::Create(ASTContext &C, DeclContext *DC,
 }
 
 //===----------------------------------------------------------------------===//
+// FunctionDecl Implementation
+//===----------------------------------------------------------------------===//
+
+FunctionDecl *FunctionDecl::Create(ASTContext &C, DeclContext *DC,
+                                   const DeclarationNameInfo &NameInfo,
+                                   QualType ReturnType) {
+  return new(C) FunctionDecl(Function, DC, NameInfo, ReturnType);
+}
+
+//===----------------------------------------------------------------------===//
+// SubroutineDecl Implementation
+//===----------------------------------------------------------------------===//
+
+SubroutineDecl *SubroutineDecl::Create(ASTContext &C, DeclContext *DC,
+                                       const DeclarationNameInfo &NameInfo) {
+  return new(C) SubroutineDecl(Subroutine, DC, NameInfo, QualType());
+}
+
+//===----------------------------------------------------------------------===//
 // RecordDecl Implementation
 //===----------------------------------------------------------------------===//
 

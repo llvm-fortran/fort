@@ -157,6 +157,13 @@ public:
   void ActOnMainProgram(const IdentifierInfo *IDInfo, SourceLocation NameLoc);
   void ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo, SourceLocation NameLoc);
 
+  void ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLoc,
+                       const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl);
+  void ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
+                               const IdentifierInfo *IDInfo);
+  void ActOnSubProgramStarArgument(ASTContext &C, SourceLocation Loc);
+  void ActOnEndSubProgram(ASTContext &C, SourceLocation Loc);
+
   void ActOnSpecificationPart(ArrayRef<StmtResult> Body);
   VarDecl *GetVariableForSpecification(const IdentifierInfo *IDInfo,
                                        SourceLocation ErrorLoc,
