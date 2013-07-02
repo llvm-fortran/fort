@@ -153,23 +153,16 @@ ImplicitStmt *ImplicitStmt::Create(ASTContext &C, SourceLocation Loc, QualType T
 
 DimensionStmt::DimensionStmt(ASTContext &C, SourceLocation Loc,
                              const IdentifierInfo* IDInfo,
-                             ArrayRef<ArrayType::Dimension> Dims,
+                             ArrayRef<ArraySpec*> Dims,
                              Expr *StmtLabel)
   : ListStmt(C, Dimension, Loc, Dims, StmtLabel) , VarName(IDInfo) {
 }
 
 DimensionStmt *DimensionStmt::Create(ASTContext &C, SourceLocation Loc,
                                      const IdentifierInfo* IDInfo,
-                                     ArrayRef<ArrayType::Dimension> Dims,
+                                     ArrayRef<ArraySpec*> Dims,
                                      Expr *StmtLabel) {
   return new (C) DimensionStmt(C, Loc, IDInfo, Dims, StmtLabel);
-}
-
-SourceLocation DimensionStmt::getLocEnd() const {
-  auto LastDim = getIDList().back();
-  if(LastDim.second.isUsable())
-    return LastDim.second.get()->getLocEnd();
-  return LastDim.first.get()->getLocEnd();
 }
 
 //===----------------------------------------------------------------------===//

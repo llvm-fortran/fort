@@ -103,7 +103,7 @@ bool Sema::ApplySpecification(const DimensionStmt *Stmt) {
     return true;
   }
   else
-    VD->setType(Context.getArrayType(VD->getType(), Stmt->getIDList()));
+    VD->setType(ActOnArraySpec(Context, VD->getType(), Stmt->getIDList()));
   return false;
 }
 

@@ -482,6 +482,8 @@ protected:
 public:
   ArraySpecKind getKind() const { return Kind; }
 
+  virtual void print(llvm::raw_ostream &);
+
   static bool classof(const ArraySpec *) { return true; }
 };
 
@@ -491,18 +493,20 @@ public:
 ///     explicit-shape-spec :=
 ///         [ lower-bound : ] upper-bound
 class ExplicitShapeSpec : public ArraySpec {
-  ExprResult LowerBound;
-  ExprResult UpperBound;
+  Expr *LowerBound;
+  Expr *UpperBound;
 
-  ExplicitShapeSpec(ExprResult LB, ExprResult UB);
-  ExplicitShapeSpec(ExprResult UB);
+  ExplicitShapeSpec(Expr *LB, Expr *UB);
+  ExplicitShapeSpec(Expr *UB);
 public:
-  static ExplicitShapeSpec *Create(ASTContext &C, ExprResult UB);
-  static ExplicitShapeSpec *Create(ASTContext &C, ExprResult LB,
-                                   ExprResult UB);
+  static ExplicitShapeSpec *Create(ASTContext &C, Expr *UB);
+  static ExplicitShapeSpec *Create(ASTContext &C, Expr *LB,
+                                   Expr *UB);
 
-  ExprResult getLowerBound() const { return LowerBound; }
-  ExprResult getUpperBound() const { return UpperBound; }
+  Expr *getLowerBound() const { return LowerBound; }
+  Expr *getUpperBound() const { return UpperBound; }
+
+  virtual void print(llvm::raw_ostream &);
 
   static bool classof(const ExplicitShapeSpec *) { return true; }
   static bool classof(const ArraySpec *AS) {
@@ -517,15 +521,15 @@ public:
 ///     assumed-shape-spec :=
 ///         [ lower-bound ] :
 class AssumedShapeSpec : public ArraySpec {
-  ExprResult LowerBound;
+  Expr *LowerBound;
 
   AssumedShapeSpec();
-  AssumedShapeSpec(ExprResult LB);
+  AssumedShapeSpec(Expr *LB);
 public:
   static AssumedShapeSpec *Create(ASTContext &C);
-  static AssumedShapeSpec *Create(ASTContext &C, ExprResult LB);
+  static AssumedShapeSpec *Create(ASTContext &C, Expr *LB);
 
-  ExprResult getLowerBound() const { return LowerBound; }
+  Expr *getLowerBound() const { return LowerBound; }
 
   static bool classof(const AssumedShapeSpec *) { return true; }
   static bool classof(const ArraySpec *AS) {
@@ -572,13 +576,19 @@ public:
 ///     implied-shape-spec :=
 ///         [ lower-bound : ] *
 class ImpliedShapeSpec : public ArraySpec {
-  ExprResult LowerBound;
+  SourceLocation Loc; // of *
+  Expr *LowerBound;
 
-  ImpliedShapeSpec();
-  ImpliedShapeSpec(ExprResult LB);
+  ImpliedShapeSpec(SourceLocation L);
+  ImpliedShapeSpec(SourceLocation L, Expr *LB);
 public:
-  static ImpliedShapeSpec *Create(ASTContext &C);
-  static ImpliedShapeSpec *Create(ASTContext &C, ExprResult LB);
+  static ImpliedShapeSpec *Create(ASTContext &C, SourceLocation Loc);
+  static ImpliedShapeSpec *Create(ASTContext &C, SourceLocation Loc, Expr *LB);
+
+  SourceLocation getLocation() const { return Loc; }
+  Expr *getLowerBound() const { return LowerBound; }
+
+  virtual void print(llvm::raw_ostream &);
 
   static bool classof(const ImpliedShapeSpec *) { return true; }
   static bool classof(const ArraySpec *AS) {

@@ -571,30 +571,30 @@ void ImpliedDoExpr::print(llvm::raw_ostream &O) {
 ArraySpec::ArraySpec(ArraySpecKind K)
   : Kind(K) {}
 
-ExplicitShapeSpec::ExplicitShapeSpec(ExprResult UB)
-  : ArraySpec(k_ExplicitShape), LowerBound(), UpperBound(UB) {}
-ExplicitShapeSpec::ExplicitShapeSpec(ExprResult LB, ExprResult UB)
+ExplicitShapeSpec::ExplicitShapeSpec(Expr *UB)
+  : ArraySpec(k_ExplicitShape), LowerBound(nullptr), UpperBound(UB) {}
+ExplicitShapeSpec::ExplicitShapeSpec(Expr *LB, Expr *UB)
   : ArraySpec(k_ExplicitShape), LowerBound(LB), UpperBound(UB) {}
 
-ExplicitShapeSpec *ExplicitShapeSpec::Create(ASTContext &C, ExprResult UB) {
+ExplicitShapeSpec *ExplicitShapeSpec::Create(ASTContext &C, Expr *UB) {
   return new (C) ExplicitShapeSpec(UB);
 }
 
 ExplicitShapeSpec *ExplicitShapeSpec::Create(ASTContext &C,
-                                             ExprResult LB, ExprResult UB) {
+                                             Expr *LB, Expr *UB) {
   return new (C) ExplicitShapeSpec(LB, UB);
 }
 
 AssumedShapeSpec::AssumedShapeSpec()
   : ArraySpec(k_AssumedShape), LowerBound() {}
-AssumedShapeSpec::AssumedShapeSpec(ExprResult LB)
+AssumedShapeSpec::AssumedShapeSpec(Expr *LB)
   : ArraySpec(k_AssumedShape), LowerBound(LB) {}
 
 AssumedShapeSpec *AssumedShapeSpec::Create(ASTContext &C) {
   return new (C) AssumedShapeSpec();
 }
 
-AssumedShapeSpec *AssumedShapeSpec::Create(ASTContext &C, ExprResult LB) {
+AssumedShapeSpec *AssumedShapeSpec::Create(ASTContext &C, Expr *LB) {
   return new (C) AssumedShapeSpec(LB);
 }
 
@@ -605,17 +605,35 @@ DeferredShapeSpec *DeferredShapeSpec::Create(ASTContext &C) {
   return new (C) DeferredShapeSpec();
 }
 
-ImpliedShapeSpec::ImpliedShapeSpec()
-  : ArraySpec(k_ImpliedShape), LowerBound() {}
-ImpliedShapeSpec::ImpliedShapeSpec(ExprResult LB)
-  : ArraySpec(k_ImpliedShape), LowerBound(LB) {}
+ImpliedShapeSpec::ImpliedShapeSpec(SourceLocation L)
+  : ArraySpec(k_ImpliedShape), Loc(L), LowerBound() {}
+ImpliedShapeSpec::ImpliedShapeSpec(SourceLocation L, Expr *LB)
+  : ArraySpec(k_ImpliedShape), Loc(L), LowerBound(LB) {}
 
-ImpliedShapeSpec *ImpliedShapeSpec::Create(ASTContext &C) {
-  return new (C) ImpliedShapeSpec();
+ImpliedShapeSpec *ImpliedShapeSpec::Create(ASTContext &C, SourceLocation Loc) {
+  return new (C) ImpliedShapeSpec(Loc);
 }
 
-ImpliedShapeSpec *ImpliedShapeSpec::Create(ASTContext &C, ExprResult LB) {
-  return new (C) ImpliedShapeSpec(LB);
+ImpliedShapeSpec *ImpliedShapeSpec::Create(ASTContext &C, SourceLocation Loc, Expr *LB) {
+  return new (C) ImpliedShapeSpec(Loc, LB);
+}
+
+void ArraySpec::print(llvm::raw_ostream &) {}
+
+void ExplicitShapeSpec::print(llvm::raw_ostream &O) {
+  if(getLowerBound()) {
+    getLowerBound()->print(O);
+    O << ':';
+  }
+  getUpperBound()->print(O);
+}
+
+void ImpliedShapeSpec::print(llvm::raw_ostream &O) {
+  if(getLowerBound()) {
+    getLowerBound()->print(O);
+    O << ':';
+  }
+  O << '*';
 }
 
 } //namespace flang

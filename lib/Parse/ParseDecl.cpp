@@ -65,7 +65,7 @@ bool Parser::ParseTypeDeclarationList(DeclSpec &DS,
     Lex();
 
     if(Tok.is(tok::l_paren)){
-      llvm::SmallVector<std::pair<ExprResult,ExprResult>, 4> Dimensions;
+      llvm::SmallVector<ArraySpec*, 4> Dimensions;
       if(ParseArraySpec(Dimensions)) {
         return true;
       }
@@ -105,7 +105,7 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
   if (ParseDeclarationTypeSpec(DS))
     return true;
 
-  llvm::SmallVector<std::pair<ExprResult,ExprResult>, 4> Dimensions;
+  llvm::SmallVector<ArraySpec*, 4> Dimensions;
   while (EatIfPresent(tok::comma)) {
     // [R502]:
     //   attr-spec :=

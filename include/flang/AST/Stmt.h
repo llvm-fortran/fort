@@ -371,23 +371,21 @@ public:
 
 /// DimensionStmt - Specifies the DIMENSION attribute for a named constant.
 ///
-class DimensionStmt : public ListStmt<ArrayType::Dimension> {
+class DimensionStmt : public ListStmt<ArraySpec*> {
   const IdentifierInfo *VarName;
 
   DimensionStmt(ASTContext &C, SourceLocation Loc, const IdentifierInfo* IDInfo,
-                 ArrayRef<ArrayType::Dimension> Dims,
-                 Expr *StmtLabel);
+                ArrayRef<ArraySpec*> Dims,
+                Expr *StmtLabel);
 public:
   static DimensionStmt *Create(ASTContext &C, SourceLocation Loc,
                                const IdentifierInfo* IDInfo,
-                               ArrayRef<ArrayType::Dimension> Dims,
+                               ArrayRef<ArraySpec*> Dims,
                                Expr *StmtLabel);
 
   const IdentifierInfo *getVariableName() const {
     return VarName;
   }
-
-  SourceLocation getLocEnd() const;
 
   static bool classof(const DimensionStmt*) { return true; }
   static bool classof(const Stmt *S) {

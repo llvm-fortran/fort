@@ -38,6 +38,7 @@ class VarExpr;
 class ConstantExpr;
 class DeclGroupRef;
 class Expr;
+class ArraySpec;
 class Parser;
 class Selector;
 class Sema;
@@ -347,7 +348,7 @@ private:
   bool ParseTypeOrClassDeclTypeSpec(DeclSpec &DS);
   ExprResult ParseSelector(bool IsKindSel);
   bool ParseDerivedTypeSpec(DeclSpec &DS);
-  bool ParseArraySpec(llvm::SmallVectorImpl<std::pair<ExprResult,ExprResult> > &Dims);
+  bool ParseArraySpec(llvm::SmallVectorImpl<ArraySpec*> &Dims);
   bool ParseTypeDeclarationList(DeclSpec &DS,
                                 SmallVectorImpl<DeclResult> &Decls);
 

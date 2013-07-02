@@ -28,6 +28,7 @@ namespace llvm {
 namespace flang {
 
 class Expr;
+class ArraySpec;
 
 //===----------------------------------------------------------------------===//
 /// DeclSpec - A declaration type specifier is the type -- intrinsic, TYPE, or
@@ -86,7 +87,7 @@ private:
   /// \brief The kind and length selectors.
   Expr *Kind;
   Expr *Len;
-  SmallVector<std::pair<ExprResult,ExprResult>, 4> Dimensions;
+  SmallVector<ArraySpec*, 4> Dimensions;
 
 public:
   explicit DeclSpec()
@@ -110,11 +111,11 @@ public:
   void setLengthSelector(Expr *L) { Len = L; }
 
   bool hasDimensions() const { return !Dimensions.empty(); }
-  void setDimensions(ArrayRef<std::pair<ExprResult,ExprResult> > Dims);
-  ArrayRef<std::pair<ExprResult,ExprResult> > getDimensions() const { return Dimensions; }
+  void setDimensions(ArrayRef<ArraySpec*> Dims);
+  ArrayRef<ArraySpec*> getDimensions() const { return Dimensions; }
 
-  typedef SmallVectorImpl<std::pair<ExprResult,ExprResult> >::iterator       dim_iterator;
-  typedef SmallVectorImpl<std::pair<ExprResult,ExprResult> >::const_iterator const_dim_iterator;
+  typedef SmallVectorImpl<ArraySpec*>::iterator       dim_iterator;
+  typedef SmallVectorImpl<ArraySpec*>::const_iterator const_dim_iterator;
   dim_iterator begin() { return Dimensions.begin(); }
   dim_iterator end()   { return Dimensions.end();   }
   const_dim_iterator begin() const { return Dimensions.begin(); }

@@ -107,7 +107,7 @@ public:
 
   /// getArrayType - Return the unique reference to the type for an array of the
   /// specified element type.
-  QualType getArrayType(QualType EltTy, ArrayRef<ArrayType::Dimension> Dims) const;
+  QualType getArrayType(QualType EltTy, ArrayRef<ArraySpec*> Dims) const;
 
   /// getRecordType - Return the uniqued reference to the type for a structure
   /// of the specified type.

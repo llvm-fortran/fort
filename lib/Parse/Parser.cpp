@@ -836,7 +836,7 @@ bool Parser::ParseForAllConstruct() {
 ///      or assumed-shape-spec-list
 ///      or deferred-shape-spec-list
 ///      or assumed-size-spec
-bool Parser::ParseArraySpec(SmallVectorImpl<std::pair<ExprResult,ExprResult> > &Dims) {
+bool Parser::ParseArraySpec(SmallVectorImpl<ArraySpec*> &Dims) {
   if(!EatIfPresentInSameStmt(tok::l_paren)) {
     Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
     goto error;
@@ -860,14 +860,27 @@ bool Parser::ParseArraySpec(SmallVectorImpl<std::pair<ExprResult,ExprResult> > &
   //
   //   C708: int-expr shall be of type integer.
   do {
-    ExprResult E = ParseExpression();
-    if (E.isInvalid()) goto error;
-    if(EatIfPresentInSameStmt(tok::colon)){
-      ExprResult E2 = ParseExpression();
-      if(E2.isInvalid()) goto error;
-      Dims.push_back(std::make_pair(E,E2));
+    if(Tok.is(tok::star)) {
+      Dims.push_back(ImpliedShapeSpec::Create(Context, Tok.getLocation()));
+      Lex();
     }
-    else Dims.push_back(std::make_pair(ExprResult(),E));
+    else {
+      ExprResult E = ParseExpression();
+      if (E.isInvalid()) goto error;
+      if(EatIfPresentInSameStmt(tok::colon)) {
+        if(Tok.is(tok::star)) {
+          Dims.push_back(ImpliedShapeSpec::Create(Context, Tok.getLocation(),
+                                                  E.take()));
+          Lex();
+        }
+        else {
+          ExprResult E2 = ParseExpression();
+          if(E2.isInvalid()) goto error;
+          Dims.push_back(ExplicitShapeSpec::Create(Context, E.take(), E2.take()));
+        }
+      }
+      else Dims.push_back(ExplicitShapeSpec::Create(Context, E.take()));
+    }
   } while (EatIfPresentInSameStmt(tok::comma));
 
   if (!EatIfPresentInSameStmt(tok::r_paren)) {
@@ -1568,7 +1581,7 @@ Parser::StmtResult Parser::ParseDIMENSIONStmt() {
   EatIfPresent(tok::coloncolon);
 
   SmallVector<Stmt*,8> StmtList;
-  SmallVector<std::pair<ExprResult, ExprResult>, 4> Dimensions;
+  SmallVector<ArraySpec*, 4> Dimensions;
   while (true) {
     if (!(Tok.is(tok::identifier) ||
          (Tok.getIdentifierInfo() &&

@@ -641,7 +641,7 @@ StmtResult Sema::ActOnASYNCHRONOUS(ASTContext &C, SourceLocation Loc,
 StmtResult Sema::ActOnDIMENSION(ASTContext &C, SourceLocation Loc,
                                 SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo,
-                                ArrayRef<std::pair<ExprResult,ExprResult> > Dims,
+                                ArrayRef<ArraySpec*> Dims,
                                 Expr *StmtLabel) {
   auto Result = DimensionStmt::Create(C, IDLoc, IDInfo, Dims, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
@@ -932,8 +932,50 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
 }
 
 QualType Sema::ActOnArraySpec(ASTContext &C, QualType ElemTy,
-                              ArrayRef<std::pair<ExprResult,ExprResult> > Dims) {
+                              ArrayRef<ArraySpec*> Dims) {
+  for(size_t I = 0; I < Dims.size(); ++I) {
+    auto Shape = Dims[I];
+    if(auto Explicit = dyn_cast<ExplicitShapeSpec>(Shape)) {
+      CheckArrayBoundValue(Explicit->getUpperBound());
+      auto Lower = Explicit->getLowerBound();
+      if(Lower) {
+        CheckArrayBoundValue(Lower);
+        // FIXME: check lower bound <= upper bound
+      }
+    } else {
+      auto Implied = cast<ImpliedShapeSpec>(Shape);
+      if(I != (Dims.size() - 1)) {
+        // Implied spec must always be last.
+        Diags.Report(Implied->getLocation(),
+                     diag::err_array_implied_shape_must_be_last);
+      }
+      if(Implied->getLowerBound())
+        CheckArrayBoundValue(Implied->getLowerBound());
+    }
+  }
+
   return QualType(ArrayType::Create(C, ElemTy, Dims), 0);
+}
+
+bool Sema::CheckArrayBoundValue(Expr *E) {
+  // Make sure it's an integer expression
+  auto Type = E->getType();
+  if(Type.isNull()) return false;// just an error.
+  if(!Type->isIntegerType()) {
+    Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
+      << E->getSourceRange();
+    return false;
+  }
+
+  // Make sure the value is a constant expression.
+  NonConstantExprASTSearch Visitor;
+  Visitor.visit(E);
+  if(!Visitor.Results.empty()) {
+    Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
+      << E->getSourceRange();
+    return false;
+  }
+  return true;
 }
 
 StmtResult Sema::ActOnBlock(ASTContext &C, SourceLocation Loc, ArrayRef<StmtResult> Body) {

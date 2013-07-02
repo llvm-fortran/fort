@@ -662,33 +662,30 @@ public:
   static bool classof(const PointerType *) { return true; }
 };
 
+class ArraySpec;
+
 /// ArrayType - Array types.
 class ArrayType : public Type, public llvm::FoldingSetNode {
-public:
-  /// An dimension of an array includes both lower and upper bound.
-  /// Lower bound can be null.
-  typedef std::pair<ExprResult,ExprResult> Dimension;
-
 private:
   QualType ElementType;
-  SmallVector<Dimension, 4> Dims;
+  SmallVector<ArraySpec*, 4> Dims;
 protected:
   ArrayType(TypeClass tc, QualType et, QualType can)
     : Type(tc, can), ElementType(et) {}
   ArrayType(TypeClass tc, QualType et, QualType can,
-            ArrayRef<Dimension> dims)
+            ArrayRef<ArraySpec*> dims)
     : Type(tc, can), ElementType(et), Dims(dims.begin(), dims.end()) {}
 
   friend class ASTContext;  // ASTContext creates these.
 public:
 
   static ArrayType *Create(ASTContext &C, QualType ElemTy,
-                           ArrayRef<Dimension> Dims);
+                           ArrayRef<ArraySpec*> Dims);
 
   QualType getElementType() const { return ElementType; }
 
-  typedef SmallVectorImpl<Dimension>::iterator       dim_iterator;
-  typedef SmallVectorImpl<Dimension>::const_iterator const_dim_iterator;
+  typedef SmallVectorImpl<ArraySpec*>::iterator       dim_iterator;
+  typedef SmallVectorImpl<ArraySpec*>::const_iterator const_dim_iterator;
 
   dim_iterator begin() { return Dims.begin(); }
   dim_iterator end()   { return Dims.end(); }
@@ -696,21 +693,10 @@ public:
   const_dim_iterator end() const   { return Dims.end(); }
   size_t getDimensionCount() const { return Dims.size(); }
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
-    Profile(ID, getElementType(), Dims);
-  }
-  static void Profile(llvm::FoldingSetNodeID &ID, QualType ET,
-                      ArrayRef<Dimension> Dims) {
-    ID.AddPointer(ET.getAsOpaquePtr());
-    for (ArrayRef<Dimension>::iterator
-           I = Dims.begin(), E = Dims.end(); I != E; ++I){
-      //FIXME: The arrays declared as Integer a(3) and Integer a(1:3) are different in this situation!!!
-      ID.AddPointer(I->first.get());
-      ID.AddPointer(I->second.get());
-    }
-  }
-
   void print(llvm::raw_ostream &OS) const;
+
+  void Profile(llvm::FoldingSetNodeID &ID) const {
+  }
 
   static bool classof(const Type *T) {
     return T->getTypeClass() == Array;

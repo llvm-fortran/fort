@@ -235,7 +235,7 @@ public:
   // The source code statement is split into multiple ones in the parsing stage.
   StmtResult ActOnDIMENSION(ASTContext &C, SourceLocation Loc, SourceLocation IDLoc,
                             const IdentifierInfo *IDInfo,
-                            ArrayRef<std::pair<ExprResult,ExprResult> > Dims,
+                            ArrayRef<ArraySpec*> Dims,
                             Expr *StmtLabel);
 
   // PARAMETER statement:
@@ -294,7 +294,7 @@ public:
                                  ExprResult RHS, Expr *StmtLabel);
 
   QualType ActOnArraySpec(ASTContext &C, QualType ElemTy,
-                          ArrayRef<std::pair<ExprResult,ExprResult> > Dims);
+                          ArrayRef<ArraySpec *> Dims);
 
   StarFormatSpec *ActOnStarFormatSpec(ASTContext &C, SourceLocation Loc);
   DefaultCharFormatSpec *ActOnDefaultCharFormatSpec(ASTContext &C,
@@ -440,6 +440,8 @@ private:
   bool CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Arguments,
                               SourceLocation Loc);
 
+  /// Returns true if the array shape bound is valid
+  bool CheckArrayBoundValue(Expr *E);
 
   /// Performs assignment typechecking.
   ExprResult TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
