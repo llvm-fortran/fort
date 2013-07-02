@@ -36,6 +36,7 @@ class DeclSpec;
 class IdentifierInfo;
 class StoredDeclsMap;
 class TypeLoc;
+class BlockStmt;
 
 // Decls
 class DeclContext;
@@ -662,14 +663,19 @@ public:
 };
 
 class MainProgramDecl : public DeclaratorDecl, public DeclContext {
-protected:
+  BlockStmt *Body;
+
   MainProgramDecl(DeclContext *DC, const DeclarationNameInfo &NameInfo)
     : DeclaratorDecl(MainProgram, DC, NameInfo.getLoc(), NameInfo.getName(),
                      QualType()),
-      DeclContext(MainProgram) {}
+      DeclContext(MainProgram),
+      Body(nullptr) {}
 public:
   static MainProgramDecl *Create(ASTContext &C, DeclContext *DC,
                                  const DeclarationNameInfo &NameInfo);
+
+  void setBody(BlockStmt *S);
+  BlockStmt *getBody() const { return Body; }
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
@@ -694,13 +700,15 @@ public:
 private:
   unsigned ArgumentCount;
   VarDecl **Arguments;
+  BlockStmt *Body;
 
   FunctionDecl(Kind DK, FunctionKind FK, DeclContext *DC,
                const DeclarationNameInfo &NameInfo, QualType T)
     : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
-      DeclContext(DK), ArgumentCount(0), Arguments(nullptr) {
-    SubDeclKind = FK;
-  }
+      DeclContext(DK), ArgumentCount(0), Arguments(nullptr),
+      Body(nullptr) {
+      SubDeclKind = FK;
+    }
 public:
   static FunctionDecl *Create(ASTContext &C, FunctionKind FK,
                               DeclContext *DC,
@@ -716,6 +724,9 @@ public:
     return ArrayRef<VarDecl*>(Arguments, ArgumentCount);
   }
   void setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList);
+
+  void setBody(BlockStmt *S);
+  BlockStmt *getBody() const { return Body; }
 
   virtual void print(raw_ostream &OS) const;
 

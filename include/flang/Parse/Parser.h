@@ -218,7 +218,7 @@ private:
   bool ParseSpecificationPart(std::vector<StmtResult> &Body);
   bool ParseImplicitPartList(std::vector<StmtResult> &Body);
   StmtResult ParseImplicitPart();
-  bool ParseExecutionPart(std::vector<StmtResult> &Body);
+  bool ParseExecutionPart();
 
   bool ParseDeclarationConstructList(std::vector<StmtResult> &Body);
   bool ParseDeclarationConstruct(std::vector<StmtResult> &Body);
@@ -288,7 +288,6 @@ private:
   StmtResult ParseEND_FORALLStmt();
 
   // Executable statements
-  StmtResult ParseBlockStmt();
   StmtResult ParseAssignStmt();
   StmtResult ParseGotoStmt();
 

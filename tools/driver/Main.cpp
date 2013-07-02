@@ -58,6 +58,9 @@ namespace {
   cl::opt<bool>
   RunVerifier("verify", cl::desc("Run the verifier"), cl::init(false));
 
+  cl::opt<bool>
+  SyntaxOnly("fsyntax-only", cl::desc("Do not compile code"), cl::init(false));
+
 } // end anonymous namespace
 
 static bool ParseFile(const std::string &Filename,

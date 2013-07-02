@@ -225,6 +225,11 @@ MainProgramDecl *MainProgramDecl::Create(ASTContext &C, DeclContext *DC,
   return new (C) MainProgramDecl(DC, NameInfo);
 }
 
+void MainProgramDecl::setBody(BlockStmt *S) {
+  assert(!Body);
+  Body = S;
+}
+
 //===----------------------------------------------------------------------===//
 // FunctionDecl Implementation
 //===----------------------------------------------------------------------===//
@@ -234,6 +239,11 @@ FunctionDecl *FunctionDecl::Create(ASTContext &C, FunctionKind FK,
                                    const DeclarationNameInfo &NameInfo,
                                    QualType ReturnType) {
   return new(C) FunctionDecl(Function, FK, DC, NameInfo, ReturnType);
+}
+
+void FunctionDecl::setBody(BlockStmt *S) {
+  assert(!Body);
+  Body = S;
 }
 
 void FunctionDecl::setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList) {

@@ -454,7 +454,7 @@ bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
     dump(PS);
   }
 
-  Actions.ActOnMainProgram(IDInfo, NameLoc);
+  auto Program = Actions.ActOnMainProgram(IDInfo, NameLoc);
 
   ParseExecutableSubprogramBody(Body, tok::kw_ENDPROGRAM);
 
@@ -473,6 +473,9 @@ bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
   }
 
   Actions.ActOnEndMainProgram(Loc, IDInfo, NameLoc);
+
+  dump(Program->getBody());
+
   return EndProgStmt.isInvalid();
 }
 
@@ -487,14 +490,14 @@ bool Parser::ParseExecutableSubprogramBody(std::vector<StmtResult> &Body,
   // Apply specification statements.
   Actions.ActOnSpecificationPart(Body);
 
+  // FIXME: Debugging support.
+  dump(Body);
+
   // FIXME: Check for the specific keywords and not just absence of END or
   //        ENDPROGRAM.
   ParseStatementLabel();
   if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw))
-    ParseExecutionPart(Body);
-
-  // FIXME: Debugging support.
-  dump(Body);
+    ParseExecutionPart();
 }
 
 /// ParseSpecificationPart - Parse the specification part.
@@ -602,7 +605,7 @@ bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body, DeclSpec &Re
   auto II = Tok.getIdentifierInfo();
   Lex();
 
-  Actions.ActOnSubProgram(Context, IsSubroutine, IDLoc, II, ReturnType);
+  auto Function = Actions.ActOnSubProgram(Context, IsSubroutine, IDLoc, II, ReturnType);
   SmallVector<VarDecl* ,8> ArgumentList;
 
   if(EatIfPresentInSameStmt(tok::l_paren)) {
@@ -658,6 +661,8 @@ bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body, DeclSpec &Re
     Lex();//End..
   StmtLabel = nullptr;
   Actions.ActOnEndSubProgram(Context, EndLoc);
+
+  dump(Function->getBody());
 
   return false;
 }
@@ -741,7 +746,7 @@ StmtResult Parser::ParseImplicitPart() {
 ///     execution-part :=
 ///         executable-construct
 ///           [ execution-part-construct ] ...
-bool Parser::ParseExecutionPart(std::vector<StmtResult> &Body) {
+bool Parser::ParseExecutionPart() {
   bool HadError = false;
   while (true) {
     StmtResult SR = ParseExecutableConstruct();
@@ -751,7 +756,6 @@ bool Parser::ParseExecutionPart(std::vector<StmtResult> &Body) {
     } else if (!SR.isUsable()) {
       break;
     }
-    Body.push_back(SR);
   }
 
   return HadError;

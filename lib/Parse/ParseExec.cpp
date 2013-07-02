@@ -146,19 +146,6 @@ Parser::StmtResult Parser::ParseActionStmt() {
   return SR;
 }
 
-/// ParseBlockStmt
-///   [R801]:
-///     block :=
-///       execution-part-construct ..
-StmtResult Parser::ParseBlockStmt() {
-  SourceLocation Loc = Tok.getLocation();
-
-  std::vector<StmtResult> body;
-  if(ParseExecutionPart(body))
-    return StmtResult(true);
-  return Actions.ActOnBlock(Context, Loc, body);
-}
-
 Parser::StmtResult Parser::ParseAssignStmt() {
   SourceLocation Loc = Tok.getLocation();
   Lex();

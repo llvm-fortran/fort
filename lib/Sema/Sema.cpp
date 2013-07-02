@@ -131,6 +131,11 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
     // was already reported as undeclared label use.
     ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc, false);
   }
+  auto Body = CurExecutableStmts.LeaveOuterBody(Context, cast<Decl>(CurContext)->getLocation());
+  if(auto FD = dyn_cast<FunctionDecl>(CurContext))
+    FD->setBody(Body);
+  else
+    cast<MainProgramDecl>(CurContext)->setBody(Body);
   CurExecutableStmts.Reset();
 
   //FIXME: Implicit typing scope stacking in internal functions
@@ -157,10 +162,10 @@ Stmt *ExecutableProgramUnitStmts::CreateBody(ASTContext &C,
 
 void ExecutableProgramUnitStmts::LeaveIfThen(ASTContext &C) {
   auto Last = ControlFlowStack.back();
-  assert(IfStmt::classof(Last));
+  assert(isa<IfStmt>(Last));
 
   auto Body = CreateBody(C, Last);
-  static_cast<IfStmt*>(Last.Statement)->setThenStmt(Body);
+  cast<IfStmt>(Last.Statement)->setThenStmt(Body);
   StmtList.erase(StmtList.begin() + Last.BeginOffset, StmtList.end());
 }
 
@@ -175,8 +180,12 @@ void ExecutableProgramUnitStmts::Leave(ASTContext &C) {
       Parent->setElseStmt(Body);
     else Parent->setThenStmt(Body);
   } else
-    static_cast<CFBlockStmt*>(Last.Statement)->setBody(Body);
+    cast<CFBlockStmt>(Last.Statement)->setBody(Body);
   StmtList.erase(StmtList.begin() + Last.BeginOffset, StmtList.end());
+}
+
+BlockStmt *ExecutableProgramUnitStmts::LeaveOuterBody(ASTContext &C, SourceLocation Loc) {
+  return BlockStmt::Create(C, Loc, StmtList);
 }
 
 bool ExecutableProgramUnitStmts::HasEntered(Stmt::StmtTy StmtType) const {
@@ -218,13 +227,15 @@ void Sema::ActOnEndProgramUnit() {
   PopDeclContext();
 }
 
-void Sema::ActOnMainProgram(const IdentifierInfo *IDInfo, SourceLocation NameLoc) {
+MainProgramDecl *Sema::ActOnMainProgram(const IdentifierInfo *IDInfo, SourceLocation NameLoc) {
   DeclarationName DN(IDInfo);
   DeclarationNameInfo NameInfo(DN, NameLoc);
-  PushDeclContext(MainProgramDecl::Create(Context,
-                                          Context.getTranslationUnitDecl(),
-                                          NameInfo));
+  auto Program = MainProgramDecl::Create(Context,
+                                         Context.getTranslationUnitDecl(),
+                                         NameInfo);
+  PushDeclContext(Program);
   PushExecutableProgramUnit();
+  return Program;
 }
 
 void Sema::ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo, SourceLocation NameLoc) {
@@ -235,8 +246,8 @@ void Sema::ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo,
 
   StringRef ProgName = cast<MainProgramDecl>(CurContext)->getName();
   if (ProgName.empty()) {
-    PopDeclContext();
     PopExecutableProgramUnit(Loc);
+    PopDeclContext();
     return;
   }
 
@@ -250,8 +261,8 @@ void Sema::ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo,
   }
 
  exit:
-  PopDeclContext();
   PopExecutableProgramUnit(Loc);
+  PopDeclContext();
 }
 
 bool Sema::IsValidFunctionType(QualType Type) {
@@ -270,8 +281,8 @@ void Sema::SetFunctionType(FunctionDecl *Function, QualType Type,
   Function->setType(Type);
 }
 
-void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLoc,
-                           const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl) {
+FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLoc,
+                                    const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl) {
   bool Declare = true;
   if (auto Prev = LookupIdentifier(IDInfo)) {
     Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
@@ -296,6 +307,7 @@ void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLo
   PushDeclContext(DC);
   PushExecutableProgramUnit();
   DC->addDecl(Func);
+  return Func;
 }
 
 VarDecl *Sema::ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
@@ -321,8 +333,8 @@ void Sema::ActOnSubProgramArgumentList(ASTContext &C, ArrayRef<VarDecl*> Argumen
 }
 
 void Sema::ActOnEndSubProgram(ASTContext &C, SourceLocation Loc) {
-  PopDeclContext();
   PopExecutableProgramUnit(Loc);
+  PopDeclContext();
 }
 
 /// \brief Convert the specified DeclSpec to the appropriate type object.

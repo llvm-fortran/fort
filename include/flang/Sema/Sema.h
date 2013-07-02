@@ -84,6 +84,7 @@ public:
   void Enter(ControlFlowStmt S);
   void LeaveIfThen(ASTContext &C);
   void Leave(ASTContext &C);
+  BlockStmt *LeaveOuterBody(ASTContext &C, SourceLocation Loc);
 
   inline const ControlFlowStmt &LastEntered() const {
     return ControlFlowStack.back();
@@ -157,11 +158,11 @@ public:
   void ActOnTranslationUnit();
   void ActOnEndProgramUnit();
 
-  void ActOnMainProgram(const IdentifierInfo *IDInfo, SourceLocation NameLoc);
+  MainProgramDecl *ActOnMainProgram(const IdentifierInfo *IDInfo, SourceLocation NameLoc);
   void ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo, SourceLocation NameLoc);
 
-  void ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLoc,
-                       const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl);
+  FunctionDecl *ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLoc,
+                                const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl);
   VarDecl *ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
                                    const IdentifierInfo *IDInfo);
   void ActOnSubProgramStarArgument(ASTContext &C, SourceLocation Loc);
