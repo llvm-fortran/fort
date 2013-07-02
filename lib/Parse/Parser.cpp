@@ -223,7 +223,7 @@ void Parser::ClassifyToken(Token &T) {
   // Set the identifier info for this token.
   llvm::SmallVector<llvm::StringRef, 2> Spelling;
   TheLexer.getSpelling(T, Spelling);
-  std::string NameStr = Tok.CleanLiteral(Spelling);
+  std::string NameStr = T.CleanLiteral(Spelling);
 
   // We assume that the "common case" is that if an identifier is also a
   // keyword, it will most likely be used as a keyword. I.e., most programs are

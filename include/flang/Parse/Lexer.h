@@ -67,6 +67,8 @@ class Lexer {
     /// lines with only comments.
     bool SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin);
 
+    void SkipFixedFormBlankLinesAndComments(unsigned &I, const char *&LineBegin);
+
     /// GetCharacterLiteral - A character literal has to be treated specially
     /// because an ampersand may exist within it.
     void GetCharacterLiteral(unsigned &I, const char *&LineBegin);

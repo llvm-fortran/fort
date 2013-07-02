@@ -77,8 +77,7 @@ SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
   while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
     ++I, ++BufPtr;
 
-  if ((LanguageOptions.FixedForm  && I == 0 && (*BufPtr == 'C' || *BufPtr == 'c' || *BufPtr == '*')) ||
-      (!LanguageOptions.FixedForm && (I != 132 && *BufPtr == '!'))) {
+  if (I != 132 && *BufPtr == '!') {
     do {
       ++BufPtr;
     } while (!isVerticalWhitespace(*BufPtr));
@@ -105,6 +104,39 @@ SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
   }
 
   return false;
+}
+
+void Lexer::LineOfText::
+SkipFixedFormBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
+  // Skip blank lines and lines with only comments.
+  while (isVerticalWhitespace(*BufPtr) && *BufPtr != '\0')
+    ++BufPtr;
+
+  while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
+    ++I, ++BufPtr;
+
+  // this was a continuation line.
+  if(I == 5 && *BufPtr != '\0' && !isHorizontalWhitespace(*BufPtr) && *BufPtr != '0') {
+    ++I, ++BufPtr;
+    while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
+      ++I, ++BufPtr;
+
+    LineBegin = BufPtr;
+  }
+
+  if(I == 0 && (*BufPtr == 'C' || *BufPtr == 'c' || *BufPtr == '*')) {
+    do {
+      ++BufPtr;
+    } while (!isVerticalWhitespace(*BufPtr));
+
+    while (isVerticalWhitespace(*BufPtr))
+      ++BufPtr;
+
+    // Save a pointer to the beginning of the line.
+    LineBegin = BufPtr;
+    I = 0;
+    SkipFixedFormBlankLinesAndComments(I, LineBegin);
+  }
 }
 
 /// GetCharacterLiteral - A character literal has to be treated specially
@@ -226,48 +258,77 @@ void Lexer::LineOfText::GetNextLine() {
   // Fill the line buffer with the current line.
   unsigned I = 0;
 
-  // Skip blank lines and lines with only comments.
-  bool BeginsWithAmp = SkipBlankLinesAndComments(I, LineBegin);
+  bool BeginsWithAmp = true;
 
   const char *AmpersandPos = 0;
-  while (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
-    if (*BufPtr == '\'' || *BufPtr == '"') {
-      // TODO: A BOZ constant doesn't get parsed like a character literal.
-      GetCharacterLiteral(I, LineBegin);
-      if (I == 132 || isVerticalWhitespace(*BufPtr))
-        break;
-    } else if (*BufPtr == '&') {
-      AmpersandPos = BufPtr;
-      do {
-        ++I, ++BufPtr;
-      } while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr!='\0');
+  if(LanguageOptions.FixedForm) {
+    SkipFixedFormBlankLinesAndComments(I, LineBegin);
 
-      // We should be either at the end of the line, at column 132, or at the
-      // beginning of a comment. If not, the '&' is invalid. Report and ignore
-      // it.
-      if (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '!') {
-        Diags.ReportError(SourceLocation::getFromPointer(AmpersandPos),
-                          "continuation character not at end of line");
-        AmpersandPos = 0;     // Pretend nothing's wrong.
+    // Fixed form
+    while (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
+      if (*BufPtr == '\'' || *BufPtr == '"') {
+        // TODO: A BOZ constant doesn't get parsed like a character literal.
+        GetCharacterLiteral(I, LineBegin);
+        if (I == 132 || isVerticalWhitespace(*BufPtr))
+          break;
       }
-
-      if (*BufPtr == '!') {
-        // Eat the comment after a continuation.
-        while (!isVerticalWhitespace(*BufPtr) && *BufPtr != '\0')
-          ++BufPtr;
-
-        break;
-      }
-
-      if (I == 132 || isVerticalWhitespace(*BufPtr))
-        break;
-    } else if(*BufPtr == '!') {
-      while (!isVerticalWhitespace(*BufPtr) && *BufPtr != '\0')
-        ++BufPtr;
-      break;
+      ++I, ++BufPtr;
     }
 
-    ++I, ++BufPtr;
+    // Increment the buffer pointer to the start of the next line.
+    auto TempPtr = BufPtr;
+    while (*TempPtr != '\0' && !isVerticalWhitespace(*TempPtr))
+      ++TempPtr;
+    while (*TempPtr != '\0' && isVerticalWhitespace(*TempPtr))
+      ++TempPtr;
+    I = 0;
+    while (I != 5 && TempPtr[I] != '\0' && isHorizontalWhitespace(TempPtr[I]))
+      ++I;
+    if(I == 5 && TempPtr[I] != '\0' && !isHorizontalWhitespace(TempPtr[I]) && TempPtr[I] != '0')
+      AmpersandPos = BufPtr;
+  } else {
+    // Skip blank lines and lines with only comments.
+    BeginsWithAmp = SkipBlankLinesAndComments(I, LineBegin);
+    // Free form
+    while (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
+      if (*BufPtr == '\'' || *BufPtr == '"') {
+        // TODO: A BOZ constant doesn't get parsed like a character literal.
+        GetCharacterLiteral(I, LineBegin);
+        if (I == 132 || isVerticalWhitespace(*BufPtr))
+          break;
+      } else if (*BufPtr == '&') {
+        AmpersandPos = BufPtr;
+        do {
+          ++I, ++BufPtr;
+        } while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr!='\0');
+
+        // We should be either at the end of the line, at column 132, or at the
+        // beginning of a comment. If not, the '&' is invalid. Report and ignore
+        // it.
+        if (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '!') {
+          Diags.ReportError(SourceLocation::getFromPointer(AmpersandPos),
+                            "continuation character not at end of line");
+          AmpersandPos = 0;     // Pretend nothing's wrong.
+        }
+
+        if (*BufPtr == '!') {
+          // Eat the comment after a continuation.
+          while (!isVerticalWhitespace(*BufPtr) && *BufPtr != '\0')
+            ++BufPtr;
+
+          break;
+        }
+
+        if (I == 132 || isVerticalWhitespace(*BufPtr))
+          break;
+      } else if(*BufPtr == '!') {
+        while (!isVerticalWhitespace(*BufPtr) && *BufPtr != '\0')
+          ++BufPtr;
+        break;
+      }
+
+      ++I, ++BufPtr;
+    }
   }
 
   if (AmpersandPos) {
@@ -286,8 +347,10 @@ void Lexer::LineOfText::GetNextLine() {
   while (*BufPtr != '\0' && isVerticalWhitespace(*BufPtr))
     ++BufPtr;
 
+  dump();
   if (AmpersandPos)
     GetNextLine();
+
 }
 
 char Lexer::LineOfText::GetNextChar() {
@@ -574,6 +637,43 @@ void Lexer::getSpelling(const Token &Tok,
   const char *CurPtr = TokStart;
   const char *Start = TokStart;
   unsigned Len = 0;
+
+  if(Text.LanguageOptions.FixedForm) {
+    while (true) {
+      while (Len != TokLen) {
+        if(!isVerticalWhitespace(*CurPtr)) {
+          ++CurPtr, ++Len;
+          continue;
+        }
+        break;
+      }
+
+      Spelling.push_back(llvm::StringRef(Start, CurPtr - Start));
+
+      if (Len >= TokLen)
+        break;
+      Start = ++CurPtr; ++Len;
+
+      while (true) {
+        // Skip blank lines...
+        while (Len != TokLen && isWhitespace(*CurPtr))
+          ++CurPtr, ++Len;
+
+        if (*CurPtr != 'C' && *CurPtr != 'c' && *CurPtr != '*')
+          break;
+
+        // ...and lines with only comments.
+        while (Len != TokLen && *CurPtr != '\n' && *CurPtr != '\r')
+          ++CurPtr, ++Len;
+      }
+
+      if(Len >= TokLen)
+        break;
+
+      Start = ++CurPtr; ++Len;
+    }
+    return;
+  }
 
   while (true) {
     while (Len != TokLen) {
