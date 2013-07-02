@@ -117,35 +117,35 @@ def err_undeclared_var_use : Error<"use of undeclared identifier %0">;
 
 def err_typecheck_call_too_few_args : Error<
   "too few arguments to "
-  "%select{intrinsic function|function|subprogram}0 call, "
+  "%select{intrinsic function|function|subroutine}0 call, "
   "expected %1, have %2">;
 def err_typecheck_call_too_few_args_one : Error<
   "too few arguments to "
-  "%select{intrinsic function|function|subprogram}0 call, "
+  "%select{intrinsic function|function|subroutine}0 call, "
   "single argument %1 was not specified">;
 def err_typecheck_call_too_few_args_at_least : Error<
   "too few arguments to "
-  "%select{intrinsic function|function|subprogram}0 call, "
+  "%select{intrinsic function|function|subroutine}0 call, "
   "expected at least %1, have %2">;
 def err_typecheck_call_too_few_args_at_least_one : Error<
   "too few arguments to "
-  "%select{intrinsic function|function|subprogram}0 call, "
+  "%select{intrinsic function|function|subroutine}0 call, "
   "at least argument %1 must be specified">;
 def err_typecheck_call_too_many_args : Error<
   "too many arguments to "
-  "%select{intrinsic function|function|subprogram}0 call, "
+  "%select{intrinsic function|function|subroutine}0 call, "
   "expected %1, have %2">;
 def err_typecheck_call_too_many_args_one : Error<
   "too many arguments to "
-  "%select{intrinsic function|function|subprogram}0 call, "
+  "%select{intrinsic function|function|subroutine}0 call, "
   "expected single argument %1, have %2 arguments">;
 def err_typecheck_call_too_many_args_at_most : Error<
   "too many arguments to "
-  "%select{intrinsic function|function|subprogram}0 call, "
+  "%select{intrinsic function|function|subroutine}0 call, "
   "expected at most %1, have %2">;
 def err_typecheck_call_too_many_args_at_most_one : Error<
   "too many arguments to "
-  "%select{intrinsic function|function|subprogram}0 call, "
+  "%select{intrinsic function|function|subroutine}0 call, "
   "expected at most single argument %1, have %2 arguments">;
 
 def err_spec_not_applicable_undeclared_ident : Error<

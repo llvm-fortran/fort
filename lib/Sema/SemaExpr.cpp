@@ -509,6 +509,38 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResul
   return ArrayElementExpr::Create(C, Loc, Target.take(), Subs);
 }
 
+bool Sema::CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Arguments, SourceLocation Loc) {
+  if(!Function->isExternal()) {
+    // check the arguments.
+    auto FunctionArgs = Function->getArguments();
+    if(Arguments.size() != FunctionArgs.size()) {
+      unsigned ArgCountDiag;
+      if(Arguments.size() < FunctionArgs.size())
+        ArgCountDiag = diag::err_typecheck_call_too_few_args;
+      else
+        ArgCountDiag = diag::err_typecheck_call_too_many_args;
+      Diags.Report(Loc, ArgCountDiag)
+          << /*function=*/ (Function->isSubroutine()? 2 : 1) << unsigned(FunctionArgs.size())
+          << unsigned(Arguments.size());
+      return false;
+    }
+  }
+  return true;
+}
+
+ExprResult Sema::ActOnCallExpr(ASTContext &C, SourceLocation Loc, FunctionDecl *Function,
+                               ArrayRef<ExprResult> Arguments) {
+  assert(!Function->isSubroutine());
+
+  SmallVector<Expr*, 8> Args(Arguments.size());
+  for(size_t I = 0; I < Arguments.size(); ++I)
+    Args[I] = Arguments[I].take();
+
+  CheckCallArgumentCount(Function, Args, Loc);
+
+  return CallExpr::Create(C, Loc, Function, Args);
+}
+
 ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
                                                 const IntrinsicFunctionDecl *FunctionDecl,
                                                 ArrayRef<ExprResult> Arguments) {

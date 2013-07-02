@@ -56,6 +56,11 @@ bool Sema::IsInsideFunctionOrSubroutine() const {
   return FD && (FD->isNormalFunction() || FD->isSubroutine());
 }
 
+FunctionDecl *Sema::CurrentContextAsFunction() const {
+  return dyn_cast<FunctionDecl>(CurContext);
+}
+
+
 void Sema::PushExecutableProgramUnit() {
   // Enter new statement label scope
   assert(CurStmtLabelScope.decl_empty());
@@ -388,7 +393,7 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDL
         return VD;
       }
     } else if(auto FD = dyn_cast<FunctionDecl>(Prev)) {
-      if(FD->isNormalFunction()) {
+      if(FD->isNormalFunction() || FD->isExternal()) {
         if(FD->getType().isNull()) {
           SetFunctionType(FD, T, IDLoc, SourceRange()); //Fixme: proper loc and range
           return FD;
@@ -454,7 +459,14 @@ Decl *Sema::LookupIdentifier(const IdentifierInfo *IDInfo) {
 }
 
 Decl *Sema::ResolveIdentifier(const IdentifierInfo *IDInfo) {
-  return LookupIdentifier(IDInfo);
+  for(auto Context = CurContext; Context; Context = Context->getParent()) {
+    auto Result = Context->lookup(IDInfo);
+    if(Result.first < Result.second) {
+      assert(Result.first + 1 >= Result.second);
+      return *Result.first;
+    }
+  }
+  return nullptr;
 }
 
 StmtResult Sema::ActOnBundledCompoundStmt(ASTContext &C, SourceLocation Loc,
@@ -649,10 +661,12 @@ StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
                                SourceLocation IDLoc, const IdentifierInfo *IDInfo,
                                Expr *StmtLabel) {
   QualType Type;
+  SourceLocation TypeLoc;
   if (auto Prev = LookupIdentifier(IDInfo)) {
     auto VD = dyn_cast<VarDecl>(Prev);
     if(VD && VD->isLocalVariable()) {
         Type = VD->getType();
+        TypeLoc = VD->getLocation();
         CurContext->removeDecl(VD);
     } else {
       Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
@@ -664,6 +678,8 @@ StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
   DeclarationNameInfo DeclName(IDInfo,IDLoc);
   auto Decl = FunctionDecl::Create(C, FunctionDecl::External, CurContext,
                                    DeclName, Type);
+  if(!Type.isNull())
+    SetFunctionType(Decl, Type, TypeLoc, SourceRange()); //FIXME: proper loc, and range
   CurContext->addDecl(Decl);
 
   auto Result = DeclStmt::Create(C, Loc, Decl, StmtLabel);
@@ -1270,6 +1286,20 @@ StmtResult Sema::ActOnReturnStmt(ASTContext &C, SourceLocation Loc, ExprResult E
     return StmtError();
   }
   auto Result = ReturnStmt::Create(C, Loc, E.take(), StmtLabel);
+  CurExecutableStmts.Append(Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc, FunctionDecl *Function,
+                               ArrayRef<ExprResult> Arguments, Expr *StmtLabel) {
+  SmallVector<Expr*, 8> Args(Arguments.size());
+  for(size_t I = 0; I < Arguments.size(); ++I)
+    Args[I] = Arguments[I].take();
+
+  CheckCallArgumentCount(Function, Args, Loc);
+
+  auto Result = CallStmt::Create(C, Loc, Function, Args, StmtLabel);
   CurExecutableStmts.Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;

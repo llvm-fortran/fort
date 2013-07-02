@@ -454,6 +454,22 @@ ReturnStmt *ReturnStmt::Create(ASTContext &C, SourceLocation Loc, Expr * E,
 }
 
 //===----------------------------------------------------------------------===//
+// Call Statement
+//===----------------------------------------------------------------------===//
+
+CallStmt::CallStmt(ASTContext &C, SourceLocation Loc,
+                   FunctionDecl *Func, ArrayRef<Expr*> Args, Expr *StmtLabel)
+  : Stmt(Call, Loc, StmtLabel), MultiArgumentExpr(C, Args),
+    Function(Func) {
+}
+
+CallStmt *CallStmt::Create(ASTContext &C, SourceLocation Loc,
+                           FunctionDecl *Func, ArrayRef<Expr*> Args,
+                           Expr *StmtLabel) {
+  return new(C) CallStmt(C, Loc, Func, Args, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Assignment Statement
 //===----------------------------------------------------------------------===//
 

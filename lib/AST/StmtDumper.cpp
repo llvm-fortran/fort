@@ -50,6 +50,7 @@ private:
   VISIT(ContinueStmt);
   VISIT(StopStmt);
   VISIT(ReturnStmt);
+  VISIT(CallStmt);
   VISIT(AssignmentStmt);
   VISIT(PrintStmt);
   VISIT(WriteStmt);
@@ -84,6 +85,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(ContinueStmt);
   HANDLE(StopStmt);
   HANDLE(ReturnStmt);
+  HANDLE(CallStmt);
   HANDLE(AssignmentStmt);
   HANDLE(PrintStmt);
   HANDLE(WriteStmt);
@@ -250,6 +252,16 @@ void StmtVisitor::visit(const ReturnStmt *S) {
     S->getE()->print(OS);
     OS << "\n";
   } else OS << "return \n";
+}
+
+void StmtVisitor::visit(const CallStmt *S) {
+  OS << "call " << S->getFunction()->getName() << '(';
+  auto Args = S->getArguments();
+  for(size_t I = 0; I < Args.size(); ++I) {
+    if(I) OS << ", ";
+    Args[I]->print(OS);
+  }
+  OS << ")\n";
 }
 
 void StmtVisitor::visit(const AssignmentStmt *S) {

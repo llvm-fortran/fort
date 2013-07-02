@@ -146,6 +146,7 @@ public:
   void PopDeclContext();
 
   bool IsInsideFunctionOrSubroutine() const;
+  FunctionDecl *CurrentContextAsFunction() const;
 
   void PushExecutableProgramUnit();
   void PopExecutableProgramUnit(SourceLocation Loc);
@@ -338,6 +339,9 @@ public:
 
   StmtResult ActOnReturnStmt(ASTContext &C, SourceLocation Loc, ExprResult E, Expr *StmtLabel);
 
+  StmtResult ActOnCallStmt(ASTContext &C, SourceLocation Loc, FunctionDecl *Function,
+                           ArrayRef<ExprResult> Arguments, Expr *StmtLabel);
+
   StmtResult ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,
                             ArrayRef<ExprResult> OutputItemList,
                             Expr *StmtLabel);
@@ -377,6 +381,9 @@ public:
 
   ExprResult ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
                                 llvm::ArrayRef<ExprResult> Subscripts);
+
+  ExprResult ActOnCallExpr(ASTContext &C, SourceLocation Loc, FunctionDecl *Function,
+                           ArrayRef<ExprResult> Arguments);
 
   ExprResult ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
                                             const IntrinsicFunctionDecl *FunctionDecl,
@@ -428,6 +435,10 @@ private:
   /// Sets a type for a function
   void SetFunctionType(FunctionDecl *Function, QualType Type,
                        SourceLocation DiagLoc, SourceRange DiagRange);
+
+  /// Returns true if the call expression has the right amount of arguments
+  bool CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Arguments,
+                              SourceLocation Loc);
 
 
   /// Performs assignment typechecking.

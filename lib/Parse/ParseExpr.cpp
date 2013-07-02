@@ -636,9 +636,19 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
       return Actions.ActOnIntrinsicFunctionCallExpr(Context, Loc, IFunc, Arguments);
     }
     else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
-      // FIXME: make this only when func is current
-      if(Func->isNormalFunction())
-        return ReturnedValueExpr::Create(Context, Loc, Func);
+      if(Func == Actions.CurrentContextAsFunction()) {
+        if(Func->isNormalFunction())
+          return ReturnedValueExpr::Create(Context, Loc, Func);
+      }
+      else {
+        if(!Func->isSubroutine()) {
+          SmallVector<ExprResult, 8> Arguments;
+          auto Result = ParseFunctionCallArgumentList(Arguments);
+          if(Result.isInvalid())
+            return ExprError();
+          return Actions.ActOnCallExpr(Context, Loc, Func, Arguments);
+        }
+      }
     }
     Diag.Report(Loc, diag::err_expected_var);
     return ExprError();

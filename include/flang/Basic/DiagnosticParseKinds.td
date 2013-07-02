@@ -76,6 +76,8 @@ def err_expected_int_var : Error<
 
 def err_expected_fn_body : Error<
   "expected function body after function declarator">;
+def err_expected_func_after : Error<
+  "expected a function after '%0'">;
 
 def err_format_invalid_desc : Error<
   "'%0' isn't a valid format descriptor">;

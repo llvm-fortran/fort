@@ -129,6 +129,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParseFORMATStmt();
   case tok::kw_RETURN:
     return ParseReturnStmt();
+  case tok::kw_CALL:
+    return ParseCallStmt();
 
   case tok::eof:
   case tok::kw_END:
@@ -393,6 +395,40 @@ Parser::StmtResult Parser::ParseReturnStmt() {
     E = ParseExpression();
 
   return Actions.ActOnReturnStmt(Context, Loc, E, StmtLabel);
+}
+
+Parser::StmtResult Parser::ParseCallStmt() {
+  auto Loc = Tok.getLocation();
+  Lex();
+
+  if(Tok.isAtStartOfStatement() ||
+     !(Tok.is(tok::identifier) ||
+     (Tok.getIdentifierInfo() &&
+     isaKeyword(Tok.getIdentifierInfo()->getName())))) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_ident);
+    return StmtError();
+  }
+  auto Decl = Actions.ResolveIdentifier(Tok.getIdentifierInfo());
+  auto FD = dyn_cast_or_null<FunctionDecl>(Decl);
+  if(!FD) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_func_after)
+      << "CALL";
+    return StmtError();
+  }
+  Lex();
+
+  SmallVector<ExprResult, 8> Arguments;
+  if(!Tok.isAtStartOfStatement()) {
+    if(Tok.is(tok::l_paren)) {
+      if(ParseFunctionCallArgumentList(Arguments).isInvalid())
+        LexToEndOfStatement();
+    } else {
+      Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
+      LexToEndOfStatement();
+    }
+  }
+
+  return Actions.ActOnCallStmt(Context, Loc, FD, Arguments, StmtLabel);
 }
 
 /// ParseAssignmentStmt

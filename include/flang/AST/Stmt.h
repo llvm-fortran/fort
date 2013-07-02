@@ -15,6 +15,7 @@
 #define FLANG_AST_STMT_H__
 
 #include "flang/AST/ASTContext.h"
+#include "flang/AST/Expr.h"
 #include "flang/Sema/Ownership.h"
 #include "flang/Basic/Token.h"
 #include "flang/Basic/SourceLocation.h"
@@ -67,6 +68,7 @@ public:
     Continue,
     Stop,
     Return,
+    Call,
     Assignment,
     Print,
     Write
@@ -729,6 +731,24 @@ public:
   static bool classof(const Stmt *S) {
     return S->getStatementID() == Return;
   }
+};
+
+/// CallStmt
+class CallStmt : public Stmt, public MultiArgumentExpr {
+  FunctionDecl *Function;
+  CallStmt(ASTContext &C, SourceLocation Loc,
+           FunctionDecl *Func, ArrayRef<Expr*> Args, Expr *StmtLabel);
+public:
+  static CallStmt *Create(ASTContext &C, SourceLocation Loc,
+                          FunctionDecl *Func, ArrayRef<Expr*> Args,
+                          Expr *StmtLabel);
+
+  FunctionDecl *getFunction() const { return Function; }
+
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == Call;
+  }
+  static bool classof(const CallStmt *) { return true; }
 };
 
 /// AssignmentStmt

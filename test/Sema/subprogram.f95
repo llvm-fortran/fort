@@ -62,4 +62,11 @@ END
 
 FUNCTION FUNC7()
   INTEGER FUNC7(10) ! expected-error {{invalid type for a function 'FUNC7'}}
+  INTEGER I
+  REAL R
+  I = IFUNC() + FUNC3() ! CHECK: I = (IFUNC()+FUNC3())
+  R = FUNC5(1.0, I) * FUNC4() ! CHECK: R = (FUNC5(1, I)*FUNC4())
+
+  R = FUNC5(1.0) ! expected-error {{too few arguments to function call, expected 2, have 1}}
+  R = FUNC5(1.0, I, I) ! expected-error {{too many arguments to function call, expected 2, have 3}}
 END

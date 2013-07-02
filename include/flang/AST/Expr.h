@@ -63,6 +63,7 @@ protected:
     DefinedBinaryOperator,
 
     // Call Expressions
+    Call,
     IntrinsicFunctionCall,
 
     //Other
@@ -817,6 +818,27 @@ public:
     return E->getExpressionID() == Expr::ImplicitCast;
   }
   static bool classof(const ImplicitCastExpr *) { return true; }
+};
+
+/// CallExpr - represents a call to a function.
+class CallExpr : public Expr, public MultiArgumentExpr {
+  FunctionDecl *Function;
+  CallExpr(ASTContext &C, SourceLocation Loc,
+           FunctionDecl *Func, ArrayRef<Expr*> Args);
+public:
+  static CallExpr *Create(ASTContext &C, SourceLocation Loc,
+                          FunctionDecl *Func, ArrayRef<Expr*> Args);
+
+  FunctionDecl *getFunction() const { return Function; }
+
+  SourceLocation getLocEnd() const;
+
+  virtual void print(llvm::raw_ostream&);
+
+  static bool classof(const Expr *E) {
+    return E->getExpressionID() == Call;
+  }
+  static bool classof(const CallExpr *) { return true; }
 };
 
 /// IntrinsicFunctionCallExpr - represents a call to an intrinsic function

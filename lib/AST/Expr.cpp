@@ -312,6 +312,21 @@ SourceLocation ImplicitCastExpr::getLocEnd() const {
   return E->getLocEnd();
 }
 
+CallExpr::CallExpr(ASTContext &C, SourceLocation Loc,
+                   FunctionDecl *Func, ArrayRef<Expr*> Args)
+  : Expr(Call, Func->getType(), Loc), MultiArgumentExpr(C, Args),
+    Function(Func) {
+}
+
+CallExpr *CallExpr::Create(ASTContext &C, SourceLocation Loc,
+                           FunctionDecl *Func, ArrayRef<Expr*> Args) {
+  return new(C) CallExpr(C, Loc, Func, Args);
+}
+
+SourceLocation CallExpr::getLocEnd() const {
+  return getArguments().back()->getLocEnd();
+}
+
 IntrinsicFunctionCallExpr::
 IntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
                           intrinsic::FunctionKind Func,
@@ -420,6 +435,16 @@ void ImplicitCastExpr::print(llvm::raw_ostream &O) {
   E->print(O);
   if(const ExtQuals *Ext = Type.getExtQualsPtrOnNull())
     O << ",Kind=" << Ext->getRawKindSelector();
+  O << ')';
+}
+
+void CallExpr::print(llvm::raw_ostream &O) {
+  O << Function->getName() << '(';
+  auto Args = getArguments();
+  for(size_t I = 0; I < Args.size(); ++I) {
+    if(I) O << ", ";
+    Args[I]->print(O);
+  }
   O << ')';
 }
 
