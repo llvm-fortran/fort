@@ -115,15 +115,6 @@ SkipFixedFormBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
   while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
     ++I, ++BufPtr;
 
-  // this was a continuation line.
-  if(I == 5 && *BufPtr != '\0' && !isHorizontalWhitespace(*BufPtr) && *BufPtr != '0') {
-    ++I, ++BufPtr;
-    while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
-      ++I, ++BufPtr;
-
-    LineBegin = BufPtr;
-  }
-
   if(I == 0 && (*BufPtr == 'C' || *BufPtr == 'c' || *BufPtr == '*')) {
     do {
       ++BufPtr;
@@ -274,18 +265,28 @@ void Lexer::LineOfText::GetNextLine() {
       }
       ++I, ++BufPtr;
     }
+    Atoms.push_back(StringRef(LineBegin, BufPtr - LineBegin));
 
     // Increment the buffer pointer to the start of the next line.
-    auto TempPtr = BufPtr;
-    while (*TempPtr != '\0' && !isVerticalWhitespace(*TempPtr))
-      ++TempPtr;
-    while (*TempPtr != '\0' && isVerticalWhitespace(*TempPtr))
-      ++TempPtr;
+    while (*BufPtr != '\0' && !isVerticalWhitespace(*BufPtr))
+      ++BufPtr;
+    while (*BufPtr != '\0' && isVerticalWhitespace(*BufPtr))
+      ++BufPtr;
+
     I = 0;
-    while (I != 5 && TempPtr[I] != '\0' && isHorizontalWhitespace(TempPtr[I]))
-      ++I;
-    if(I == 5 && TempPtr[I] != '\0' && !isHorizontalWhitespace(TempPtr[I]) && TempPtr[I] != '0')
-      AmpersandPos = BufPtr;
+    LineBegin = BufPtr;
+    SkipFixedFormBlankLinesAndComments(I, LineBegin);
+
+    // this was a continuation line.
+    bool IsContinuation = false;
+    if(I == 5 && *BufPtr != '\0' && !isWhitespace(*BufPtr) && *BufPtr != '0') {
+      ++I, ++BufPtr;
+      IsContinuation = true;
+    }
+
+    if(IsContinuation)
+      GetNextLine();
+    return;
   } else {
     // Skip blank lines and lines with only comments.
     BeginsWithAmp = SkipBlankLinesAndComments(I, LineBegin);
@@ -347,10 +348,8 @@ void Lexer::LineOfText::GetNextLine() {
   while (*BufPtr != '\0' && isVerticalWhitespace(*BufPtr))
     ++BufPtr;
 
-  dump();
   if (AmpersandPos)
     GetNextLine();
-
 }
 
 char Lexer::LineOfText::GetNextChar() {
