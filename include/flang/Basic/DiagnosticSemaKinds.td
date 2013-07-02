@@ -172,6 +172,8 @@ def err_func_no_implicit_type : Error<
   "the function %0 requires a type specifier">;
 def err_arg_no_implicit_type : Error<
   "the argument %0 requires a type specifier">;
+def err_func_invalid_type : Error<
+  "invalid type for a function %0">;
 
 }
 

@@ -691,11 +691,14 @@ public:
     Subroutine,
     External
   };
-protected:
+private:
+  unsigned ArgumentCount;
+  VarDecl **Arguments;
+
   FunctionDecl(Kind DK, FunctionKind FK, DeclContext *DC,
                const DeclarationNameInfo &NameInfo, QualType T)
     : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
-      DeclContext(DK) {
+      DeclContext(DK), ArgumentCount(0), Arguments(nullptr) {
     SubDeclKind = FK;
   }
 public:
@@ -708,6 +711,11 @@ public:
   bool isStatementFunction() const { return SubDeclKind == StatementFunction; }
   bool isSubroutine() const { return SubDeclKind == Subroutine; }
   bool isExternal() const { return SubDeclKind == External; }
+
+  ArrayRef<VarDecl*> getArguments() const {
+    return ArrayRef<VarDecl*>(Arguments, ArgumentCount);
+  }
+  void setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList);
 
   virtual void print(raw_ostream &OS) const;
 

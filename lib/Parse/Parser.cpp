@@ -603,6 +603,7 @@ bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body, DeclSpec &Re
   Lex();
 
   Actions.ActOnSubProgram(Context, IsSubroutine, IDLoc, II, ReturnType);
+  SmallVector<VarDecl* ,8> ArgumentList;
 
   if(EatIfPresentInSameStmt(tok::l_paren)) {
 
@@ -622,8 +623,10 @@ bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body, DeclSpec &Re
           break;
         }
 
-        Actions.ActOnSubProgramArgument(Context, Tok.getLocation(),
-                                        Tok.getIdentifierInfo());
+        auto Arg = Actions.ActOnSubProgramArgument(Context, Tok.getLocation(),
+                                                   Tok.getIdentifierInfo());
+        if(Arg)
+          ArgumentList.push_back(Arg);
         Lex();
       } while(EatIfPresentInSameStmt(tok::comma));
     }
@@ -640,6 +643,8 @@ bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body, DeclSpec &Re
     if(!Tok.isAtStartOfStatement())
       LexToEndOfStatement();
   }
+
+  Actions.ActOnSubProgramArgumentList(Context, ArgumentList);
 
   ParseExecutableSubprogramBody(Body, IsSubroutine? tok::kw_ENDSUBROUTINE :
                                                     tok::kw_ENDFUNCTION);

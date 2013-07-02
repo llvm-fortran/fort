@@ -161,9 +161,10 @@ public:
 
   void ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLoc,
                        const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl);
-  void ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
-                               const IdentifierInfo *IDInfo);
+  VarDecl *ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
+                                   const IdentifierInfo *IDInfo);
   void ActOnSubProgramStarArgument(ASTContext &C, SourceLocation Loc);
+  void ActOnSubProgramArgumentList(ASTContext &C, ArrayRef<VarDecl*> Arguments);
   void ActOnEndSubProgram(ASTContext &C, SourceLocation Loc);
 
   void ActOnSpecificationPart(ArrayRef<StmtResult> Body);
@@ -421,6 +422,13 @@ public:
 
 
 private:
+
+  bool IsValidFunctionType(QualType Type);
+
+  /// Sets a type for a function
+  void SetFunctionType(FunctionDecl *Function, QualType Type,
+                       SourceLocation DiagLoc, SourceRange DiagRange);
+
 
   /// Performs assignment typechecking.
   ExprResult TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,

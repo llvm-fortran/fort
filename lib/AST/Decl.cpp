@@ -236,6 +236,16 @@ FunctionDecl *FunctionDecl::Create(ASTContext &C, FunctionKind FK,
   return new(C) FunctionDecl(Function, FK, DC, NameInfo, ReturnType);
 }
 
+void FunctionDecl::setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList) {
+  assert(!Arguments);
+  if(ArgumentList.size()) {
+    ArgumentCount = ArgumentList.size();
+    Arguments = new(C) VarDecl*[ArgumentCount];
+    for(unsigned I = 0; I < ArgumentCount; ++I)
+      Arguments[I] = ArgumentList[I];
+  }
+}
+
 //===----------------------------------------------------------------------===//
 // RecordDecl Implementation
 //===----------------------------------------------------------------------===//

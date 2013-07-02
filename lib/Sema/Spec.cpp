@@ -44,6 +44,7 @@ void Sema::ActOnSpecificationPart(ArrayRef<StmtResult> Body) {
 
   /// If necessary, apply the implicit typing rules to the current function and its arguments.
   if(auto FD = dyn_cast<FunctionDecl>(CurContext)) {
+    // function type
     if(FD->isNormalFunction()) {
       if(FD->getType().isNull()) {
         auto Type = ResolveImplicitType(FD->getIdentifier());
@@ -52,11 +53,22 @@ void Sema::ActOnSpecificationPart(ArrayRef<StmtResult> Body) {
             << FD->getIdentifier();
           // FIXME: add note implicit none was applied here.
         }
-        else FD->setType(Type);
+        else SetFunctionType(FD, Type, FD->getLocation(), SourceRange()); //FIXME: proper loc and range
+      }
+    }
+
+    // arguments
+    for(auto Arg : FD->getArguments()) {
+      if(Arg->getType().isNull()) {
+        auto Type = ResolveImplicitType(Arg->getIdentifier());
+        if(Type.isNull()) {
+          Diags.Report(Arg->getLocation(), diag::err_arg_no_implicit_type)
+            << Arg->getIdentifier();
+        } else Arg->setType(Type);
       }
     }
   }
-  // FIXME: arg
+
 }
 
 VarDecl *Sema::GetVariableForSpecification(const IdentifierInfo *IDInfo,

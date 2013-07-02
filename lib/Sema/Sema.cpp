@@ -249,6 +249,22 @@ void Sema::ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo,
   PopExecutableProgramUnit(Loc);
 }
 
+bool Sema::IsValidFunctionType(QualType Type) {
+  if(Type->isIntegerType() || Type->isRealType() || Type->isComplexType() ||
+     Type->isCharacterType() || Type->isLogicalType()) return true;
+  return false;
+}
+
+void Sema::SetFunctionType(FunctionDecl *Function, QualType Type,
+                           SourceLocation DiagLoc, SourceRange DiagRange) {
+  if(!IsValidFunctionType(Type)) {
+    Diags.Report(DiagLoc, diag::err_func_invalid_type)
+      << Function->getIdentifier(); // FIXME: add diag range.
+    return;
+  }
+  Function->setType(Type);
+}
+
 void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLoc,
                            const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl) {
   bool Declare = true;
@@ -267,7 +283,8 @@ void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLo
   auto Func = FunctionDecl::Create(C, IsSubRoutine? FunctionDecl::Subroutine :
                                                     FunctionDecl::NormalFunction,
                                    ParentDC, NameInfo, ReturnType);
-
+  if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
+    SetFunctionType(Func, ReturnType, IDLoc, SourceRange());//FIXME: proper loc and range
   DeclContext *DC = Func;
   if(Declare)
     ParentDC->addDecl(Func);
@@ -276,20 +293,26 @@ void Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLo
   DC->addDecl(Func);
 }
 
-void Sema::ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
-                                   const IdentifierInfo *IDInfo) {
+VarDecl *Sema::ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
+                                       const IdentifierInfo *IDInfo) {
   if (auto Prev = LookupIdentifier(IDInfo)) {
     Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
     Diags.Report(Prev->getLocation(), diag::note_previous_definition);
-    return;
+    return nullptr;
   }
 
   VarDecl *VD = VarDecl::CreateArgument(C, CurContext, IDLoc, IDInfo);
   CurContext->addDecl(VD);
+  return VD;
 }
 
 void Sema::ActOnSubProgramStarArgument(ASTContext &C, SourceLocation Loc) {
   // FIXME: TODO
+}
+
+void Sema::ActOnSubProgramArgumentList(ASTContext &C, ArrayRef<VarDecl*> Arguments) {
+  assert(isa<FunctionDecl>(CurContext));
+  cast<FunctionDecl>(CurContext)->setArguments(C, Arguments);
 }
 
 void Sema::ActOnEndSubProgram(ASTContext &C, SourceLocation Loc) {
@@ -367,8 +390,7 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDL
     } else if(auto FD = dyn_cast<FunctionDecl>(Prev)) {
       if(FD->isNormalFunction()) {
         if(FD->getType().isNull()) {
-          // FIXME: check type.
-          FD->setType(T);
+          SetFunctionType(FD, T, IDLoc, SourceRange()); //Fixme: proper loc and range
           return FD;
         } else {
           Diags.Report(IDLoc, diag::err_func_return_type_already_specified) << IDInfo;
