@@ -411,6 +411,11 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDL
   VarDecl *VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, T);
   CurContext->addDecl(VD);
 
+  if(!T.isNull()) {
+    if(T->isArrayType())
+      CheckArrayTypeDeclarationCompability(T->asArrayType(), VD);
+  }
+
   // FIXME: For debugging:
   llvm::outs() << "(declaration\n  '";
   VD->print(llvm::outs());
@@ -957,14 +962,25 @@ QualType Sema::ActOnArraySpec(ASTContext &C, QualType ElemTy,
   return QualType(ArrayType::Create(C, ElemTy, Dims), 0);
 }
 
+// FIXME: what about the case of SUBROUTINE F(X,A) { REAL A(X) }
 bool Sema::CheckArrayBoundValue(Expr *E) {
   // Make sure it's an integer expression
   auto Type = E->getType();
-  if(Type.isNull()) return false;// just an error.
-  if(!Type->isIntegerType()) {
+  if(!Type.isNull() && !Type->isIntegerType()) {
     Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
       << E->getSourceRange();
     return false;
+  }
+
+  if(auto VE = dyn_cast<VarExpr>(E)) {
+    if(VE->getVarDecl()->isArgument()) {
+      if(Type.isNull()) {
+        Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
+          << E->getSourceRange();
+        return false;
+      }
+      return true;
+    }
   }
 
   // Make sure the value is a constant expression.
@@ -974,6 +990,27 @@ bool Sema::CheckArrayBoundValue(Expr *E) {
     Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
       << E->getSourceRange();
     return false;
+  }
+  return true;
+}
+
+bool Sema::CheckArrayTypeDeclarationCompability(const ArrayType *T, VarDecl *VD) {
+  if(VD->isParameter())
+    return false;
+  for(auto I = T->begin(); I != T->end(); ++I) {
+    auto Shape = *I;
+    if(auto Explicit = dyn_cast<ExplicitShapeSpec>(Shape)) {
+    } else {
+      // implied
+      auto Implied = cast<ImpliedShapeSpec>(Shape);
+      if(!VD->isArgument()) {
+        Diags.Report(Implied->getLocation(), diag::err_array_implied_shape_incompatible)
+          << VD->getIdentifier();
+        Diags.Report(VD->getLocation(), diag::note_declared_at)
+          << VD->getSourceRange();
+        return false;
+      }
+    }
   }
   return true;
 }

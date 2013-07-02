@@ -55,8 +55,13 @@ def err_typecheck_expected_do_expr : Error<
 
 def err_array_implied_shape_must_be_last : Error<
   "the dimension declarator '*' must be used only in the last dimension">;
+def err_array_implied_shape_incompatible : Error<
+  "use of dimension declarator '*' for a local variable %0">;
+def err_array_explicit_arg_shape_incompatible : Error<
+  "use of argument dimension for a local variable %0">;
 def err_array_subscript_dimension_count_mismatch : Error<
   "array subscript must have %0 subscript %plural{1:expression|:expressions}0">;
+
 
 def warn_array_index_precedes_bounds : Warning<
   "array index %0 is before the beginning of the array">,

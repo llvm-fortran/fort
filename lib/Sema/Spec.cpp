@@ -26,22 +26,6 @@ namespace flang {
 
 /// Applies the specification statements to the declarations.
 void Sema::ActOnSpecificationPart(ArrayRef<StmtResult> Body) {
-  for(ArrayRef<StmtResult>::iterator I = Body.begin(), End = Body.end();
-      I != End; ++I) {
-    if(!I->isUsable()) continue;
-
-    ArrayRef<Stmt*> StmtList;
-
-    if (const BundledCompoundStmt *BundledStmt = dyn_cast<BundledCompoundStmt>(I->get()))
-      StmtList = BundledStmt->getBody();
-    else StmtList = ArrayRef<Stmt*>(I->get());
-    for(auto S : StmtList) {
-      if (const DimensionStmt *DimStmt = dyn_cast<DimensionStmt>(S)){
-        ApplySpecification(DimStmt);
-      }
-    }
-  }
-
   /// If necessary, apply the implicit typing rules to the current function and its arguments.
   if(auto FD = dyn_cast<FunctionDecl>(CurContext)) {
     // function type
@@ -69,6 +53,21 @@ void Sema::ActOnSpecificationPart(ArrayRef<StmtResult> Body) {
     }
   }
 
+  for(ArrayRef<StmtResult>::iterator I = Body.begin(), End = Body.end();
+      I != End; ++I) {
+    if(!I->isUsable()) continue;
+
+    ArrayRef<Stmt*> StmtList;
+
+    if (const BundledCompoundStmt *BundledStmt = dyn_cast<BundledCompoundStmt>(I->get()))
+      StmtList = BundledStmt->getBody();
+    else StmtList = ArrayRef<Stmt*>(I->get());
+    for(auto S : StmtList) {
+      if (const DimensionStmt *DimStmt = dyn_cast<DimensionStmt>(S)){
+        ApplySpecification(DimStmt);
+      }
+    }
+  }
 }
 
 VarDecl *Sema::GetVariableForSpecification(const IdentifierInfo *IDInfo,
@@ -102,8 +101,12 @@ bool Sema::ApplySpecification(const DimensionStmt *Stmt) {
       << Stmt->getVariableName() << Stmt->getSourceRange();
     return true;
   }
-  else
-    VD->setType(ActOnArraySpec(Context, VD->getType(), Stmt->getIDList()));
+  else {
+    auto T = ActOnArraySpec(Context, VD->getType(), Stmt->getIDList());
+    VD->setType(T);
+    if(T->isArrayType())
+      CheckArrayTypeDeclarationCompability(T->asArrayType(), VD);
+  }
   return false;
 }
 

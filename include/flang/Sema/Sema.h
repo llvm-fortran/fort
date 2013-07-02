@@ -443,6 +443,9 @@ private:
   /// Returns true if the array shape bound is valid
   bool CheckArrayBoundValue(Expr *E);
 
+  /// Returns true if the given array type can be applied to a declaration.
+  bool CheckArrayTypeDeclarationCompability(const ArrayType *T, VarDecl *VD);
+
   /// Performs assignment typechecking.
   ExprResult TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
                                  SourceLocation Loc = SourceLocation(),
