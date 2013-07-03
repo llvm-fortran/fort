@@ -348,12 +348,13 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
     // Fortran 77: Disallow operations between double precision and complex
     if((LHSTypeSpec == TST_complex ||
         RHSTypeSpec == TST_complex)) {
-      if(IsTypeDoublePrecisionReal(LHSType) ||
-         IsTypeDoublePrecisionReal(RHSType))
+      if((IsTypeDoublePrecisionReal(LHSType) && !IsTypeDoublePrecisionComplex(RHSType)) ||
+         (IsTypeDoublePrecisionReal(RHSType) && !IsTypeDoublePrecisionComplex(LHSType)))
         goto typecheckInvalidOperands;
     }
 
-    Fortran90ArithmeticBinaryTypingRules(C, Op, ReturnType, LHS, RHS, LHSType, RHSType, LHSTypeSpec, RHSTypeSpec);
+    Fortran90ArithmeticBinaryTypingRules(C, Op, ReturnType, LHS, RHS,
+                                         LHSType, RHSType, LHSTypeSpec, RHSTypeSpec);
 
     break;
   }
@@ -763,6 +764,13 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
 
   CASE_COMPLEX_OVERLOAD(AIMAG)
     ReturnType = C.RealTy;
+    break;
+  case DIMAG:
+    if(!IsTypeDoublePrecisionComplex(FirstArgType)) {
+      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
+        << FirstArgType << C.DoubleComplexTy << FirstArgSourceRange;
+    }
+    ReturnType = C.DoublePrecisionTy;
     break;
 
   // FIXME: add the rest.

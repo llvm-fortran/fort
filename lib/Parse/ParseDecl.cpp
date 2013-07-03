@@ -454,6 +454,11 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
   switch (DS.getTypeSpecType()) {
   default:
     Lex();
+    if (EatIfPresentInSameStmt(tok::star)) {
+      // FIXME: proper obsolete COMPLEX*16 support
+      Lex();
+      DS.setDoublePrecision();
+    }
 
     if (Tok.is(tok::l_paren)) {
       if(Tok.isAtStartOfStatement()) return false;

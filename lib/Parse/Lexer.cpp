@@ -760,6 +760,7 @@ void Lexer::FormDefinedOperatorTokenWithChars(Token &Result) {
     for(auto Part: Spelling)
       CleanedOp += Part;
     FullOp = CleanedOp;
+    TokLen = Result.getLength();
   } else {
     TokLen = getCurrentPtr() - TokStart;
     FullOp = llvm::StringRef(TokStart, TokLen);
