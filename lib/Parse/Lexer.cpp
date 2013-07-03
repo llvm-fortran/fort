@@ -265,6 +265,8 @@ void Lexer::LineOfText::GetNextLine() {
       }
       ++I, ++BufPtr;
     }
+    if(!Atoms.empty())
+      Atoms.push_back(StringRef(Padding));
     Atoms.push_back(StringRef(LineBegin, BufPtr - LineBegin));
 
     // Increment the buffer pointer to the start of the next line.
@@ -747,7 +749,21 @@ void Lexer::FormTokenWithChars(Token &Result, tok::TokenKind Kind) {
 /// will see if the defined operator is an intrinsic operator. If so, it will
 /// set the token's kind to that value.
 void Lexer::FormDefinedOperatorTokenWithChars(Token &Result) {
-  unsigned TokLen = getCurrentPtr() - TokStart;
+  std::string CleanedOp;
+  unsigned TokLen;
+  llvm::StringRef FullOp;
+
+  if (!Text.IsInCurrentAtom(TokStart)) {
+    llvm::SmallVector<llvm::StringRef, 2> Spelling;
+    FormTokenWithChars(Result, tok::unknown);
+    getSpelling(Result, Spelling);
+    for(auto Part: Spelling)
+      CleanedOp += Part;
+    FullOp = CleanedOp;
+  } else {
+    TokLen = getCurrentPtr() - TokStart;
+    FullOp = llvm::StringRef(TokStart, TokLen);
+  }
   assert(TokLen >= 2 && "Malformed defined operator!");
 
   if (TokLen - 2 > 63){
@@ -755,8 +771,6 @@ void Lexer::FormDefinedOperatorTokenWithChars(Token &Result) {
                  diag::err_defined_operator_too_long);
     return FormTokenWithChars(Result, tok::unknown);
   }
-
-  llvm::StringRef FullOp(TokStart, TokLen);
   size_t Under = FullOp.find('_');
   llvm::StringRef Op = FullOp;
 
@@ -846,7 +860,7 @@ void Lexer::LexStatementLabel(Token &Result) {
 ///         digit [ digit ] ...
 bool Lexer::LexIntegerLiteralConstant() {
   bool IntPresent = false;
-  char C = getNextChar();
+  char C = getCurrentChar();
   if (C == '-' || C == '+')
     C = getNextChar();
 
@@ -874,6 +888,7 @@ void Lexer::LexNumericConstant(Token &Result) {
   char PrevChar = getCurrentChar();
   if (PrevChar == '.') {
     IsReal = true;
+    getNextChar();
     if (LexIntegerLiteralConstant())
       PrevChar = '\0';
   }
