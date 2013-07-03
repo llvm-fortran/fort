@@ -332,6 +332,10 @@ public:
   StmtResult ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult TerminatingStmt,
                          VarExpr *DoVar, ExprResult E1, ExprResult E2,
                          ExprResult E3, Expr *StmtLabel);
+
+  StmtResult ActOnDoWhileStmt(ASTContext &C, SourceLocation Loc, ExprResult Condition,
+                              Expr *StmtLabel);
+
   StmtResult ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
   StmtResult ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);

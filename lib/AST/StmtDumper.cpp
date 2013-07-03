@@ -47,6 +47,7 @@ private:
   VISIT(GotoStmt);
   VISIT(IfStmt);
   VISIT(DoStmt);
+  VISIT(DoWhileStmt);
   VISIT(ContinueStmt);
   VISIT(StopStmt);
   VISIT(ReturnStmt);
@@ -82,6 +83,7 @@ void StmtVisitor::visit(StmtResult S) {
   HANDLE(GotoStmt);
   HANDLE(IfStmt);
   HANDLE(DoStmt);
+  HANDLE(DoWhileStmt);
   HANDLE(ContinueStmt);
   HANDLE(StopStmt);
   HANDLE(ReturnStmt);
@@ -237,6 +239,17 @@ void StmtVisitor::visit(const DoStmt *S) {
     OS << ", ";
     S->getIncrementationParameter()->print(OS);
   }
+  OS << ")\n";
+  if(S->getBody()){
+    OS << "{\n";
+    visit(S->getBody());
+    OS << "}\n";
+  }
+}
+
+void StmtVisitor::visit(const DoWhileStmt *S) {
+  OS << "do while(";
+  S->getCondition()->print(OS);
   OS << ")\n";
   if(S->getBody()){
     OS << "{\n";

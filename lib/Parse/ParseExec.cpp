@@ -115,6 +115,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParseEndIfStmt();
   case tok::kw_DO:
     return ParseDoStmt();
+  case tok::kw_DOWHILE:
+    return ParseDoWhileStmt();
   case tok::kw_ENDDO:
     return ParseEndDoStmt();
   case tok::kw_CONTINUE:
@@ -339,6 +341,14 @@ Parser::StmtResult Parser::ParseDoStmt() {
 
   return Actions.ActOnDoStmt(Context, Loc, TerminalStmt,
                              DoVar, E1, E2, E3, StmtLabel);
+}
+
+Parser::StmtResult Parser::ParseDoWhileStmt() {
+  auto Loc = Tok.getLocation();
+  Lex();
+  auto Condition = ParseExpectedConditionExpression("WHILE");
+  if(Condition.isInvalid()) return StmtError();
+  return Actions.ActOnDoWhileStmt(Context, Loc, Condition, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseEndDoStmt() {

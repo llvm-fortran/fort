@@ -412,6 +412,19 @@ void DoStmt::setTerminatingStmt(StmtLabelReference Stmt) {
 }
 
 //===----------------------------------------------------------------------===//
+// Do while statement
+//===----------------------------------------------------------------------===//
+
+DoWhileStmt::DoWhileStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel)
+  : CFBlockStmt(DoWhile, Loc, StmtLabel), Condition(Cond) {
+}
+
+DoWhileStmt *DoWhileStmt::Create(ASTContext &C, SourceLocation Loc,
+                                 Expr *Condition, Expr *StmtLabel) {
+  return new(C) DoWhileStmt(Loc, Condition, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Continue Statement
 //===----------------------------------------------------------------------===//
 

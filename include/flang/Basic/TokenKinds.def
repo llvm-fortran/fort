@@ -130,6 +130,7 @@ KEYWORD(IF                     , KEYALL)
 KEYWORD(THEN                   , KEYALL)
 KEYWORD(ELSE                   , KEYALL)
 KEYWORD(DO                     , KEYALL)
+KEYWORD(WHILE                  , KEYALL)
 KEYWORD(INTEGER                , KEYALL)
 KEYWORD(CHARACTER              , KEYALL)
 KEYWORD(REAL                   , KEYALL) // A function based on context.
@@ -225,6 +226,8 @@ KEYWORD(PRINT                  , KEYF90)    // R912: print-stmt
 KEYWORD(BLOCKDATA              , KEYALL)
 // ELSE IF: 
 KEYWORD(ELSEIF                 , KEYALL)
+// DO WHILE
+KEYWORD(DOWHILE                , KEYALL)
 // END ASSOCIATE:
 KEYWORD(ENDASSOCIATE           , KEYALL)
 // END DO:

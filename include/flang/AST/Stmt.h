@@ -64,6 +64,7 @@ public:
     Else,
     EndIf,
     Do,
+    DoWhile,
     EndDo,
     Continue,
     Stop,
@@ -684,6 +685,23 @@ public:
   static bool classof(const DoStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStatementID() == Do;
+  }
+};
+
+/// DoWhileStmt
+class DoWhileStmt : public CFBlockStmt {
+  Expr *Condition;
+
+  DoWhileStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel);
+public:
+  static DoWhileStmt *Create(ASTContext &C, SourceLocation Loc,
+                             Expr *Condition, Expr *StmtLabel);
+
+  Expr *getCondition() const { return Condition; }
+
+  static bool classof(const DoWhileStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStatementID() == DoWhile;
   }
 };
 

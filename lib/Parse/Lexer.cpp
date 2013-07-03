@@ -885,18 +885,21 @@ void Lexer::LexNumericConstant(Token &Result) {
 
   bool IsReal = false;
   bool IsDoublePrecision = false;
+  bool IsExp = false;
   char PrevChar = getCurrentChar();
   if (PrevChar == '.') {
     IsReal = true;
-    getNextChar();
-    if (LexIntegerLiteralConstant())
+    char C = getNextChar();
+    if(C == 'E' || C == 'e' || C == 'D' || C == 'd')
+      IsExp = true;
+    else if (LexIntegerLiteralConstant())
       PrevChar = '\0';
   }
 
   // Could be part of a defined operator. Form numeric constant from what we now
   // have.
   char C = getCurrentChar();
-  if (PrevChar == '.' && isLetter(C)) {
+  if (!IsExp && PrevChar == '.' && isLetter(C)) {
     C = getCurrentChar();
     if (isLetter(C)) {
       if (!BeginsWithDot)

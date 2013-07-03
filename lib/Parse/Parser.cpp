@@ -194,6 +194,9 @@ void Parser::Lex() {
   case tok::kw_ENDBLOCK:
     MERGE_TOKENS(ENDBLOCK, DATA);
     return;
+  case tok::kw_DO:
+    MERGE_TOKENS(DO, WHILE);
+    return;
   case tok::kw_GO:
     MERGE_TOKENS(GO, TO);
     return;

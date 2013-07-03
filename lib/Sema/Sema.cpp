@@ -1338,10 +1338,10 @@ void Sema::CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S) {
   size_t LastUnterminated = 0;
   do {
     I--;
-    if(!CurExecutableStmts.ControlFlowStack[I].is(Stmt::Do)) {
+    if(!isa<DoStmt>(CurExecutableStmts.ControlFlowStack[I].Statement)) {
       if(!LastUnterminated) LastUnterminated = I;
     } else {
-      auto ParentDo = static_cast<DoStmt*>(CurExecutableStmts.ControlFlowStack[I].Statement);
+      auto ParentDo = cast<DoStmt>(CurExecutableStmts.ControlFlowStack[I].Statement);
       auto ParentDoExpectedLabel = CurExecutableStmts.ControlFlowStack[I].ExpectedEndDoLabel;
       if(!ParentDoExpectedLabel) {
         if(!LastUnterminated) LastUnterminated = I;
@@ -1366,13 +1366,28 @@ void Sema::CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S) {
   } while(I>0);
 }
 
+StmtResult Sema::ActOnDoWhileStmt(ASTContext &C, SourceLocation Loc, ExprResult Condition,
+                                  Expr *StmtLabel) {
+  if(!IsLogicalExpression(Condition)) {
+    ReportExpectedLogical(Diags, Condition);
+  }
+
+  auto Result = DoWhileStmt::Create(C, Loc, Condition.take(), StmtLabel);
+  CurExecutableStmts.Append(Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  CurExecutableStmts.Enter(Result);
+  return Result;
+}
+
 StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   // Report begin .. end mismatch
   if(!CurExecutableStmts.HasEntered() ||
-     !CurExecutableStmts.LastEntered().is(Stmt::Do)) {
+     (!isa<DoStmt>(CurExecutableStmts.LastEntered().Statement) &&
+      !isa<DoWhileStmt>(CurExecutableStmts.LastEntered().Statement))) {
     bool HasMatchingDo = false;
     for(auto I : CurExecutableStmts.ControlFlowStack) {
-      if(I.is(Stmt::Do) && !I.ExpectedEndDoLabel) {
+      if(isa<DoWhileStmt>(I.Statement) ||
+        (isa<DoStmt>(I.Statement) && !I.ExpectedEndDoLabel)) {
         HasMatchingDo = true;
         break;
       }
@@ -1383,10 +1398,14 @@ StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLab
     return StmtError();
   }
 
-  // If last loop was a DO with terminating label, we expect it to finish before this loop
-  if(CurExecutableStmts.LastEntered().ExpectedEndDoLabel) {
-    ReportUnterminatedLabeledDoStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
-    return StmtError();
+  auto Last = CurExecutableStmts.LastEntered();
+
+  if(isa<DoStmt>(Last.Statement)) {
+    // If last loop was a DO with terminating label, we expect it to finish before this loop
+    if(CurExecutableStmts.LastEntered().ExpectedEndDoLabel) {
+      ReportUnterminatedLabeledDoStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
+      return StmtError();
+    }
   }
 
   auto Result = Stmt::Create(C, Stmt::EndDo, Loc, StmtLabel);
