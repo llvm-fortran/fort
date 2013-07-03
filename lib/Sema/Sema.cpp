@@ -88,9 +88,10 @@ static void ReportUnterminatedStmt(DiagnosticsEngine &Diags,
                                    SourceLocation Loc,
                                    bool ReportUnterminatedLabeledDo = true) {
   const char * Keyword;
-  switch(S.Statement->getStatementID()) {
-  case Stmt::If: Keyword = "END IF"; break;
-  case Stmt::Do: {
+  switch(S.Statement->getStmtClass()) {
+  case Stmt::IfStmtClass: Keyword = "END IF"; break;
+  case Stmt::DoWhileStmtClass:
+  case Stmt::DoStmtClass: {
     if(S.ExpectedEndDoLabel) {
       if(ReportUnterminatedLabeledDo)
         ReportUnterminatedLabeledDoStmt(Diags, S, Loc);
@@ -188,7 +189,7 @@ BlockStmt *ExecutableProgramUnitStmts::LeaveOuterBody(ASTContext &C, SourceLocat
   return BlockStmt::Create(C, Loc, StmtList);
 }
 
-bool ExecutableProgramUnitStmts::HasEntered(Stmt::StmtTy StmtType) const {
+bool ExecutableProgramUnitStmts::HasEntered(Stmt::StmtClass StmtType) const {
   for(auto I : ControlFlowStack) {
     if(I.is(StmtType)) return true;
   }
@@ -362,7 +363,6 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
     break;
   }
 
-  Result.print(llvm::outs());
   if (!DS.hasAttributes())
     return Result;
 
@@ -435,11 +435,6 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDL
     else if(SubT->isCharacterType())
       CheckCharacterLengthDeclarationCompability(SubT, VD);
   }
-
-  // FIXME: For debugging:
-  llvm::outs() << "(declaration\n  '";
-  VD->print(llvm::outs());
-  llvm::outs() << "')\n";
 
   return VD;
 }
@@ -1175,8 +1170,8 @@ StmtResult Sema::ActOnIfStmt(ASTContext &C, SourceLocation Loc,
 StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
                                  ExprResult Condition, Expr *StmtLabel) {
   if(!CurExecutableStmts.HasEntered() ||
-     !CurExecutableStmts.LastEntered().is(Stmt::If)) {
-    if(CurExecutableStmts.HasEntered(Stmt::If))
+     !CurExecutableStmts.LastEntered().is(Stmt::IfStmtClass)) {
+    if(CurExecutableStmts.HasEntered(Stmt::IfStmtClass))
       ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
     else
       Diags.Report(Loc, diag::err_stmt_not_in_if) << "ELSE IF";
@@ -1200,14 +1195,14 @@ StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
 
 StmtResult Sema::ActOnElseStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   if(!CurExecutableStmts.HasEntered() ||
-     !CurExecutableStmts.LastEntered().is(Stmt::If)) {
-    if(CurExecutableStmts.HasEntered(Stmt::If))
+     !CurExecutableStmts.LastEntered().is(Stmt::IfStmtClass)) {
+    if(CurExecutableStmts.HasEntered(Stmt::IfStmtClass))
       ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
     else
       Diags.Report(Loc, diag::err_stmt_not_in_if) << "ELSE";
     return StmtError();
   }
-  auto Result = Stmt::Create(C, Stmt::Else, Loc, StmtLabel);
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::ElseStmtClass, Loc, nullptr, StmtLabel);
   CurExecutableStmts.Append(Result);
   CurExecutableStmts.LeaveIfThen(C);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
@@ -1217,15 +1212,15 @@ StmtResult Sema::ActOnElseStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabe
 StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   // Report begin .. end mismatch
   if(!CurExecutableStmts.HasEntered() ||
-     !CurExecutableStmts.LastEntered().is(Stmt::If)) {
-    if(CurExecutableStmts.HasEntered(Stmt::If))
+     !CurExecutableStmts.LastEntered().is(Stmt::IfStmtClass)) {
+    if(CurExecutableStmts.HasEntered(Stmt::IfStmtClass))
       ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
     else
       Diags.Report(Loc, diag::err_stmt_not_in_if) << "END IF";
     return StmtError();
   }
 
-  auto Result = Stmt::Create(C, Stmt::EndIf, Loc, StmtLabel);
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndIfStmtClass, Loc, nullptr, StmtLabel);
   CurExecutableStmts.Append(Result);
   CurExecutableStmts.Leave(C);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
@@ -1255,9 +1250,9 @@ static int ExpectRealOrIntegerOrDoublePrec(DiagnosticsEngine &Diags, const Expr 
 ///
 /// FIXME: TODO full
 static bool IsValidDoLogicalIfThenStatement(Stmt *S) {
-  switch(S->getStatementID()) {
-  case Stmt::Do: case Stmt::If:
-  case Stmt::Else: case Stmt::EndIf:
+  switch(S->getStmtClass()) {
+  case Stmt::DoStmtClass: case Stmt::IfStmtClass: case Stmt::DoWhileStmtClass:
+  case Stmt::ConstructPartStmtClass:
     return false;
   default:
     return true;
@@ -1265,12 +1260,13 @@ static bool IsValidDoLogicalIfThenStatement(Stmt *S) {
 }
 
 static bool IsValidDoTerminatingStatement(Stmt *S) {
-  switch(S->getStatementID()) {
-  case Stmt::Goto: case Stmt::AssignedGoto:
-  case Stmt::Stop: case Stmt::Do: case Stmt::EndDo:
-  case Stmt::Else: case Stmt::EndIf:
+  switch(S->getStmtClass()) {
+  case Stmt::GotoStmtClass: case Stmt::AssignedGotoStmtClass:
+  case Stmt::StopStmtClass: case Stmt::DoStmtClass:
+  case Stmt::DoWhileStmtClass:
+  case Stmt::ConstructPartStmtClass:
     return false;
-  case Stmt::If: {
+  case Stmt::IfStmtClass: {
     auto NextStmt = static_cast<IfStmt*>(S)->getThenStmt();
     return NextStmt && IsValidDoLogicalIfThenStatement(NextStmt);
   }
@@ -1408,7 +1404,7 @@ StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLab
     }
   }
 
-  auto Result = Stmt::Create(C, Stmt::EndDo, Loc, StmtLabel);
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndDoStmtClass, Loc, nullptr, StmtLabel);
   CurExecutableStmts.Append(Result);
   CurExecutableStmts.Leave(C);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);

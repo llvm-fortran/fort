@@ -69,8 +69,8 @@ public:
     ControlFlowStmt(IfStmt *S)
       : Statement(S), BeginOffset(0) {
     }
-    inline bool is(Stmt::StmtTy StmtType) const {
-      return Statement->getStatementID() == StmtType;
+    inline bool is(Stmt::StmtClass StmtType) const {
+      return Statement->getStmtClass() == StmtType;
     }
   };
 
@@ -92,7 +92,7 @@ public:
   inline bool HasEntered() const {
     return ControlFlowStack.size() != 0;
   }
-  bool HasEntered(Stmt::StmtTy StmtType) const;
+  bool HasEntered(Stmt::StmtClass StmtType) const;
 
   void Append(Stmt *S);
 private:

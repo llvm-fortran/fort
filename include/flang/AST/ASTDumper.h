@@ -1,4 +1,4 @@
-//===--- StmtDumper.h - Dump Fortran Statements -----------------*- C++ -*-===//
+//===--- ASTDumper.h - Dump Fortran AST ------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-//  This file declares the functions that dump statements.
+//  This file declares the functions that dump the AST.
 //
 //===----------------------------------------------------------------------===//
 

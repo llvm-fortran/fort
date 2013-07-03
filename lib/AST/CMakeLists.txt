@@ -10,7 +10,7 @@ add_flang_library(flangAST
   FormatItem.cpp
   IOSpec.cpp
 	Stmt.cpp
-	StmtDumper.cpp
+  ASTDumper.cpp
 	Type.cpp
   IntrinsicFunctions.cpp
   )
@@ -18,6 +18,7 @@ add_flang_library(flangAST
 add_dependencies(flangAST
   FlangDiagnosticCommon
   FlangDeclNodes
+  FlangStmtNodes
   )
 
 target_link_libraries(flangAST

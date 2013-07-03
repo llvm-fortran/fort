@@ -34,48 +34,19 @@ class IdentifierInfo;
 ///
 class Stmt {
 public:
-  enum StmtTy {
-    DeclStmtKind,
-    BundledCompound,
-    Program,
-
-    // Specification Part
-    Use,
-    Import,
-    Dimension,
-
-    // Implicit Part
-    Implicit,
-    Format,
-    Entry,
-
-    Asynchronous,
-    External,
-    Intrinsic,
-    Data,
-    EndProgram,
-
-    // Action Statements
-    Block,
-    Assign,
-    AssignedGoto,
-    Goto,
-    If,
-    Else,
-    EndIf,
-    Do,
-    DoWhile,
-    EndDo,
-    Continue,
-    Stop,
-    Return,
-    Call,
-    Assignment,
-    Print,
-    Write
+  enum StmtClass {
+    NoStmtClass = 0,
+#define STMT(CLASS, PARENT) CLASS##Class,
+#define STMT_RANGE(BASE, FIRST, LAST) \
+        first##BASE##Constant=FIRST##Class, last##BASE##Constant=LAST##Class,
+#define LAST_STMT_RANGE(BASE, FIRST, LAST) \
+        first##BASE##Constant=FIRST##Class, last##BASE##Constant=LAST##Class
+#define ABSTRACT_STMT(STMT)
+#include "flang/AST/StmtNodes.inc"
   };
+
 private:
-  StmtTy StmtID;
+  StmtClass StmtID;
   SourceLocation Loc;
   Expr *StmtLabel;
 
@@ -91,17 +62,13 @@ protected:
     assert(0 && "Stmts cannot be released with regular 'delete'.");
   }
 
-  Stmt(StmtTy ID, SourceLocation L, Expr *SLT)
+  Stmt(StmtClass ID, SourceLocation L, Expr *SLT)
     : StmtID(ID), Loc(L), StmtLabel(SLT) {}
 public:
   virtual ~Stmt();
 
-  /// Creates a statement that does nothing
-  static Stmt *Create(ASTContext &C, StmtTy StmtType,
-                      SourceLocation Loc, Expr *StmtLabel);
-
-  /// getStatementID - Get the ID of the statement.
-  StmtTy getStatementID() const { return StmtID; }
+  /// getStmtClass - Get the Class of the statement.
+  StmtClass getStmtClass() const { return StmtID; }
 
   /// getLocation - Get the location of the statement.
   SourceLocation getLocation() const { return Loc; }
@@ -146,6 +113,41 @@ public:
   void operator delete(void*, void*) throw() { }
 };
 
+/// ConstructPartStmt - Represents a part of a construct
+/// like END, END DO, ELSE
+///
+class ConstructPartStmt : public Stmt {
+public:
+  enum ConstructStmtClass {
+    EndDoStmtClass,
+    ElseStmtClass,
+    EndIfStmtClass
+  };
+  ConstructStmtClass ConstructId;
+  const IdentifierInfo* ConstructName;
+
+private:
+  ConstructPartStmt(ConstructStmtClass StmtType, SourceLocation Loc,
+                    const IdentifierInfo *Construct,
+                    Expr *StmtLabel);
+public:
+  static ConstructPartStmt *Create(ASTContext &C, ConstructStmtClass StmtType,
+                                   SourceLocation Loc,
+                                   const IdentifierInfo *Construct,
+                                   Expr *StmtLabel);
+
+  ConstructStmtClass getConstructStmtClass() const {
+    return ConstructId;
+  }
+  const IdentifierInfo *getConstructName() const {
+    return ConstructName;
+  }
+
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == ConstructPartStmtClass;
+  }
+};
+
 /// DeclStmt - Adaptor class for mixing declarations with statements and
 /// expressions.
 ///
@@ -163,7 +165,7 @@ public:
 
   static bool classof(const DeclStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == DeclStmtKind;
+    return S->getStmtClass() == DeclStmtClass;
   }
 };
 
@@ -174,7 +176,7 @@ class ListStmt : public Stmt {
   unsigned NumIDs;
   T *IDList;
 protected:
-  ListStmt(ASTContext &C, Stmt::StmtTy ID, SourceLocation L, ArrayRef<T> IDs,
+  ListStmt(ASTContext &C, Stmt::StmtClass ID, SourceLocation L, ArrayRef<T> IDs,
            Expr *SLT)
     : Stmt(ID, L, SLT) {
     NumIDs = IDs.size();
@@ -219,7 +221,7 @@ public:
 
   static bool classof(const BundledCompoundStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == BundledCompound;
+    return S->getStmtClass() == BundledCompoundStmtClass;
   }
 };
 
@@ -231,7 +233,7 @@ class ProgramStmt : public Stmt {
 
   ProgramStmt(const IdentifierInfo *progName, SourceLocation Loc,
               SourceLocation NameL, Expr *SLT)
-    : Stmt(Program, Loc, SLT), ProgName(progName), NameLoc(NameL) {}
+    : Stmt(ProgramStmtClass, Loc, SLT), ProgName(progName), NameLoc(NameL) {}
   ProgramStmt(const ProgramStmt &); // Do not implement!
 public:
   static ProgramStmt *Create(ASTContext &C, const IdentifierInfo *ProgName,
@@ -246,7 +248,7 @@ public:
 
   static bool classof(const ProgramStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Program;
+    return S->getStmtClass() == ProgramStmtClass;
   }
 };
 
@@ -258,7 +260,7 @@ class EndProgramStmt : public Stmt {
 
   EndProgramStmt(const IdentifierInfo *progName, SourceLocation Loc,
                  SourceLocation NameL, Expr *SLT)
-    : Stmt(EndProgram, Loc, SLT), ProgName(progName), NameLoc(NameL) {}
+    : Stmt(EndProgramStmtClass, Loc, SLT), ProgName(progName), NameLoc(NameL) {}
   EndProgramStmt(const EndProgramStmt &); // Do not implement!
 public:
   static EndProgramStmt *Create(ASTContext &C, const IdentifierInfo *ProgName,
@@ -273,7 +275,7 @@ public:
 
   static bool classof(const EndProgramStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == EndProgram;
+    return S->getStmtClass() == EndProgramStmtClass;
   }
 };
 
@@ -289,7 +291,7 @@ class UseStmt : public ListStmt<std::pair<const IdentifierInfo *,
 public:
   enum ModuleNature {
     None,
-    Intrinsic,
+    IntrinsicStmtClass,
     NonIntrinsic
   };
   typedef std::pair<const IdentifierInfo *, const IdentifierInfo *> RenamePair;
@@ -317,7 +319,7 @@ public:
 
   static bool classof(const UseStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Use;
+    return S->getStmtClass() == UseStmtClass;
   }
 };
 
@@ -334,7 +336,7 @@ public:
 
   static bool classof(const ImportStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Import;
+    return S->getStmtClass() == ImportStmtClass;
   }
 };
 
@@ -366,7 +368,7 @@ public:
 
   static bool classof(const ImplicitStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Implicit;
+    return S->getStmtClass() == ImplicitStmtClass;
   }
 };
 
@@ -390,7 +392,7 @@ public:
 
   static bool classof(const DimensionStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Dimension;
+    return S->getStmtClass() == DimensionStmtClass;
   }
 };
 
@@ -419,7 +421,7 @@ public:
 
   static bool classof(const FormatStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Format;
+    return S->getStmtClass() == FormatStmtClass;
   }
 };
 
@@ -432,7 +434,7 @@ public:
 
   static bool classof(const EntryStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Entry;
+    return S->getStmtClass() == EntryStmtClass;
   }
 };
 
@@ -450,7 +452,7 @@ public:
 
   static bool classof(const AsynchronousStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Asynchronous;
+    return S->getStmtClass() == AsynchronousStmtClass;
   }
 };
 
@@ -467,7 +469,7 @@ public:
 
   static bool classof(const ExternalStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == External;
+    return S->getStmtClass() == ExternalStmtClass;
   }
 };
 
@@ -485,7 +487,7 @@ public:
 
   static bool classof(const IntrinsicStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Intrinsic;
+    return S->getStmtClass() == IntrinsicStmtClass;
   }
 };
 
@@ -514,7 +516,7 @@ public:
 
   static bool classof(const DataStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Data;
+    return S->getStmtClass() == DataStmtClass;
   }
 };
 
@@ -532,7 +534,7 @@ public:
 
   static bool classof(const BlockStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Block;
+    return S->getStmtClass() == BlockStmtClass;
   }
 };
 
@@ -575,7 +577,7 @@ public:
 
   static bool classof(const AssignStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Assign;
+    return S->getStmtClass() == AssignStmtClass;
   }
 };
 
@@ -602,7 +604,7 @@ public:
 
   static bool classof(const AssignedGotoStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == AssignedGoto;
+    return S->getStmtClass() == AssignedGotoStmtClass;
   }
 };
 
@@ -622,7 +624,7 @@ public:
 
   static bool classof(const GotoStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Goto;
+    return S->getStmtClass() == GotoStmtClass;
   }
 };
 
@@ -645,7 +647,7 @@ public:
 
   static bool classof(const IfStmt*) { return true; }
   static bool classof(const Stmt *S){
-    return S->getStatementID() == If;
+    return S->getStmtClass() == IfStmtClass;
   }
 };
 
@@ -654,10 +656,15 @@ public:
 class CFBlockStmt : public Stmt {
   Stmt *Body;
 protected:
-  CFBlockStmt(StmtTy Type, SourceLocation Loc, Expr *StmtLabel);
+  CFBlockStmt(StmtClass Type, SourceLocation Loc, Expr *StmtLabel);
 public:
   Stmt *getBody() const { return Body; }
   void setBody(Stmt *Body);
+
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() >= firstCFBlockStmtConstant &&
+           S->getStmtClass() <= lastCFBlockStmtConstant;
+  }
 };
 
 /// DoStmt
@@ -684,7 +691,7 @@ public:
 
   static bool classof(const DoStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Do;
+    return S->getStmtClass() == DoStmtClass;
   }
 };
 
@@ -701,7 +708,7 @@ public:
 
   static bool classof(const DoWhileStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == DoWhile;
+    return S->getStmtClass() == DoWhileStmtClass;
   }
 };
 
@@ -713,7 +720,7 @@ public:
 
   static bool classof(const ContinueStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Continue;
+    return S->getStmtClass() == ContinueStmtClass;
   }
 };
 
@@ -729,7 +736,7 @@ public:
 
   static bool classof(const StopStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Stop;
+    return S->getStmtClass() == StopStmtClass;
   }
 };
 
@@ -745,7 +752,7 @@ public:
 
   static bool classof(const ReturnStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Return;
+    return S->getStmtClass() == ReturnStmtClass;
   }
 };
 
@@ -762,7 +769,7 @@ public:
   FunctionDecl *getFunction() const { return Function; }
 
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Call;
+    return S->getStmtClass() == CallStmtClass;
   }
   static bool classof(const CallStmt *) { return true; }
 };
@@ -782,7 +789,7 @@ public:
 
   static bool classof(const AssignmentStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Assignment;
+    return S->getStmtClass() == AssignmentStmtClass;
   }
 };
 
@@ -799,7 +806,7 @@ public:
 
   static bool classof(const PrintStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Print;
+    return S->getStmtClass() == PrintStmtClass;
   }
 };
 
@@ -818,7 +825,7 @@ public:
 
   static bool classof(const WriteStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStatementID() == Write;
+    return S->getStmtClass() == WriteStmtClass;
   }
 };
 

@@ -18,7 +18,7 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
-#include "flang/AST/StmtDumper.h"
+#include "flang/AST/ASTDumper.h"
 #include "flang/Basic/TokenKinds.h"
 #include "flang/Sema/DeclSpec.h"
 #include "flang/Sema/Sema.h"
@@ -947,7 +947,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
   UseStmt::ModuleNature MN = UseStmt::None;
   if (EatIfPresent(tok::comma)) {
     if (EatIfPresent(tok::kw_INTRINSIC)) {
-      MN = UseStmt::Intrinsic;
+      MN = UseStmt::IntrinsicStmtClass;
     } else if (EatIfPresent(tok::kw_NONINTRINSIC)) {
       MN = UseStmt::NonIntrinsic;
     } else {

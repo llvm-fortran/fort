@@ -27,7 +27,8 @@ enum ActionType {
   GenFlangDiagGroups,
   GenFlangDiagsIndexName,
   GenFlangDeclNodes,
-  GenFlangStmtNodes
+  GenFlangStmtNodes,
+  GenFlangExprNodes
 };
 
 namespace {
@@ -44,6 +45,8 @@ namespace {
                                "Generate Flang AST declaration nodes"),
                     clEnumValN(GenFlangStmtNodes, "gen-flang-stmt-nodes",
                                "Generate Flang AST statement nodes"),
+                    clEnumValN(GenFlangExprNodes, "gen-flang-expr-nodes",
+                               "Generate Flang AST expression nodes"),
                     clEnumValEnd));
 
   cl::opt<std::string>
@@ -68,6 +71,9 @@ bool FlangTableGenMain(raw_ostream &OS, RecordKeeper &Records) {
     break;
   case GenFlangStmtNodes:
     EmitFlangASTNodes(Records, OS, "Stmt", "");
+    break;
+  case GenFlangExprNodes:
+    EmitFlangASTNodes(Records, OS, "Expr", "");
     break;
   }
 
