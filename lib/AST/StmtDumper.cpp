@@ -209,11 +209,18 @@ void StmtVisitor::visit(const GotoStmt *S) {
 void StmtVisitor::visit(const IfStmt* S) {
   OS << "(if ";
   S->getCondition()->print(OS);
-  if(S->getThenStmt()) {
-    OS << ") ";
-    visit(S->getThenStmt());
-  }
   OS << ")\n";
+
+  if(S->getThenStmt()) {
+    OS << "{\n";
+    visit(S->getThenStmt());
+    OS << "}\n";
+  }
+  if(S->getElseStmt()) {
+    OS << "{\n";
+    visit(S->getElseStmt());
+    OS << "}\n";
+  }
 }
 
 void StmtVisitor::visit(const DoStmt *S) {
@@ -231,6 +238,11 @@ void StmtVisitor::visit(const DoStmt *S) {
     S->getIncrementationParameter()->print(OS);
   }
   OS << ")\n";
+  if(S->getBody()){
+    OS << "{\n";
+    visit(S->getBody());
+    OS << "}\n";
+  }
 }
 
 void StmtVisitor::visit(const ContinueStmt *S) {

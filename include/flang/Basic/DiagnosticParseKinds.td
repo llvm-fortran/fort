@@ -18,6 +18,8 @@ let CategoryName = "Parse Issue" in {
 // Generic errors
 def err_parse_error : Error<"parse error">;
 def err_duplicate_declspec : Error<"duplicate '%0' declaration specifier">;
+def err_duplicate_len_selector : Error<
+  "duplicate character length declaration specifier">;
 def err_unexpected_lparen : Error<"unexpected '('">;
 
 def err_expected_expression : Error<"expected an expression">;
@@ -31,6 +33,7 @@ def err_expected_type : Error<"expected a type">;
 def err_expected_external_declaration : Error<"expected external declaration">;
 def err_extraneous_closing_brace : Error<"extraneous closing brace ('}')">;
 def err_expected_ident : Error<"expected identifier">;
+def err_expected_ident_after : Error<"expected identifier after '%0'">;
 def err_expected_ident_lparen : Error<"expected identifier or '('">;
 def err_expected_ident_lbrace : Error<"expected identifier or '{'">;
 def err_expected_lbrace : Error<"expected '{'">;

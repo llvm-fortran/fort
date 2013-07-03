@@ -59,10 +59,14 @@ bool Parser::ParseTypeDeclarationList(DeclSpec &DS,
   while (!Tok.isAtStartOfStatement()) {
     SourceLocation IDLoc = Tok.getLocation();
     const IdentifierInfo *ID = Tok.getIdentifierInfo();
-    if (!ID)
-      return Diag.ReportError(IDLoc,
-                              "expected an identifier in TYPE list");
+    if (!ID) {
+      Diag.Report(getExpectedLoc(), diag::err_expected_ident);
+      return true;
+    }
+
     Lex();
+
+    DeclSpec MDS(DS);
 
     if(Tok.is(tok::l_paren)){
       llvm::SmallVector<ArraySpec*, 4> Dimensions;
@@ -70,26 +74,34 @@ bool Parser::ParseTypeDeclarationList(DeclSpec &DS,
         return true;
       }
       //Array declaration.
-      DeclSpec ADS(DS);
-      if(!ADS.hasAttributeSpec(DeclSpec::AS_dimension))
-        ADS.setAttributeSpec(DeclSpec::AS_dimension);
-      ADS.setDimensions(Dimensions);
-      Decls.push_back(Actions.ActOnEntityDecl(Context, ADS, IDLoc, ID));
+      if(!MDS.hasAttributeSpec(DeclSpec::AS_dimension))
+        MDS.setAttributeSpec(DeclSpec::AS_dimension);
+      MDS.setDimensions(Dimensions);
     }
-    else Decls.push_back(Actions.ActOnEntityDecl(Context, DS, IDLoc, ID));
+    else
 
-    SourceLocation CommaLoc = Tok.getLocation();
+    if(MDS.getTypeSpecType() == TST_character && EatIfPresentInSameStmt(tok::star)) {
+      if (MDS.hasLengthSelector())
+        Diag.Report(getExpectedLoc(), diag::err_duplicate_len_selector);
+      ParseCharacterStarLengthSpec(MDS);
+    }
+
+    Decls.push_back(Actions.ActOnEntityDecl(Context, MDS, IDLoc, ID));
+
     if (!EatIfPresent(tok::comma)) {
-      if (!Tok.isAtStartOfStatement())
-        return Diag.ReportError(Tok.getLocation(),
-                                "expected a ',' in TYPE list");
-
+      if (!Tok.isAtStartOfStatement()) {
+        Diag.Report(getExpectedLoc(), diag::err_expected_comma)
+          << FixItHint(getExpectedLocForFixIt(), ",");
+        return true;
+      }
       break;
     }
 
-    if (Tok.isAtStartOfStatement())
-      return Diag.ReportError(CommaLoc,
-                              "expected an identifier after ',' in TYPE list");
+    if (Tok.isAtStartOfStatement()) {
+      Diag.Report(getExpectedLoc(), diag::err_expected_ident_after)
+        << ",";
+      return true;
+    }
   }
 
   return false;
@@ -299,6 +311,24 @@ ExprResult Parser::ParseSelector(bool IsKindSel) {
   return ParseExpression();
 }
 
+bool Parser::ParseCharacterStarLengthSpec(DeclSpec &DS) {
+  ExprResult Len;
+  if(EatIfPresentInSameStmt(tok::l_paren)) {
+    if(EatIfPresentInSameStmt(tok::star)) {
+      DS.setStartLengthSelector();
+    } else Len = ParseExpectedFollowupExpression("*");
+    if(!EatIfPresentInSameStmt(tok::r_paren)) {
+      Diag.Report(getExpectedLoc(), diag::err_expected_rparen)
+        << FixItHint(getExpectedLocForFixIt(), ")");
+      return true;
+    }
+  }
+  else Len = ParseExpectedFollowupExpression("*");
+  if(Len.isInvalid()) return true;
+  if(Len.isUsable())  DS.setLengthSelector(Len.take());
+  return false;
+}
+
 /// ParseDerivedTypeSpec - Parse the type declaration specifier.
 ///
 ///   [R455]:
@@ -473,10 +503,9 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
     //    or :
     Lex();
 
-    if (Tok.is(tok::star)) {
-      Lex();
-      ExprResult KindExpr = ParseExpression();
-      Len = KindExpr;
+    if(EatIfPresentInSameStmt(tok::star)) {
+      ParseCharacterStarLengthSpec(DS);
+      EatIfPresentInSameStmt(tok::comma);
     } else {
       if (Tok.is(tok::l_paren)) {
         Lex(); // Eat '('.
@@ -531,8 +560,8 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
   }
 
   // Set the selectors for declspec.
-  DS.setKindSelector(Kind.get());
-  DS.setLengthSelector(Len.get());
+  if(Kind.isUsable()) DS.setKindSelector(Kind.get());
+  if(Len.isUsable())  DS.setLengthSelector(Len.get());
   return false;
 }
 

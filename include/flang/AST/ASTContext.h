@@ -65,6 +65,7 @@ public:
   /// getExtQualType - Return a type with extended qualifiers.
   QualType getExtQualType(const Type *Base, Qualifiers Quals,
                           unsigned KindSel, bool IsDoublePrecisionKind,
+                          bool IsStarLength,
                           Expr *LenSel) const;
   QualType getQualTypeOtherKind(QualType Type, QualType KindType);
 private:
@@ -135,12 +136,12 @@ public:
   QualType getQualifiedType(QualType T, Qualifiers Qs) const {
     QualifierCollector Qc(Qs);
     const Type *Ptr = Qc.strip(T);
-    return getExtQualType(Ptr, Qc, 0, false, 0);
+    return getExtQualType(Ptr, Qc, 0, false, false, 0);
   }
 
   /// getQualifiedType - Returns a type with additional qualifiers.
   QualType getQualifiedType(const Type *T, Qualifiers Qs) const {
-    return getExtQualType(T, Qs, 0, false, 0);
+    return getExtQualType(T, Qs, 0, false, false, 0);
   }
 
   //===--------------------------------------------------------------------===//

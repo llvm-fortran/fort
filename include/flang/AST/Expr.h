@@ -67,7 +67,7 @@ protected:
     IntrinsicFunctionCall,
 
     //Other
-    ImpliedDo
+    ImpliedDo,
   };
 private:
   QualType Ty;
@@ -348,7 +348,6 @@ public:
   }
   static bool classof(const RepeatedConstantExpr *) { return true; }
 };
-
 
 /// An expression with multiple arguments.
 class MultiArgumentExpr {
@@ -817,7 +816,7 @@ public:
   static ImplicitCastExpr *Create(ASTContext &C, SourceLocation Loc,
                                   QualType Dest, Expr *E);
 
-  Expr *getExpression() { return E; }
+  Expr *getExpression() const { return E; }
 
   SourceLocation getLocStart() const;
   SourceLocation getLocEnd() const;

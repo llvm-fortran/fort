@@ -83,6 +83,7 @@ private:
   /*IS*/ unsigned IntentSpec     : 3;
   /*AC*/ unsigned AccessSpec     : 3;
   unsigned IsDoublePrecision     : 1; // can apply to reals or complex
+  unsigned IsStarLength          : 1; // LEN = *
 
   /// \brief The kind and length selectors.
   Expr *Kind;
@@ -95,7 +96,7 @@ public:
       AttributeSpecs(AS_unspecified),
       IntentSpec(IS_unspecified),
       AccessSpec(AC_unspecified),
-      IsDoublePrecision(0),
+      IsDoublePrecision(0), IsStarLength(0),
       Kind(0), Len(0) {}
   virtual ~DeclSpec();
 
@@ -106,9 +107,11 @@ public:
   Expr *getKindSelector() const { return Kind; }
   void setKindSelector(Expr *K) { Kind = K; }
 
-  bool hasLengthSelector() const { return Len != 0; }
+  bool hasLengthSelector() const { return Len != 0 || IsStarLength != 0; }
+  bool isStarLengthSelector() const { return IsStarLength != 0; }
   Expr *getLengthSelector() const { return Len; }
   void setLengthSelector(Expr *L) { Len = L; }
+  void setStartLengthSelector() { IsStarLength = 1; }
 
   bool hasDimensions() const { return !Dimensions.empty(); }
   void setDimensions(ArrayRef<ArraySpec*> Dims);

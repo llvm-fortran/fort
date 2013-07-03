@@ -348,6 +348,7 @@ private:
   ExprResult ParseSelector(bool IsKindSel);
   bool ParseDerivedTypeSpec(DeclSpec &DS);
   bool ParseArraySpec(llvm::SmallVectorImpl<ArraySpec*> &Dims);
+  bool ParseCharacterStarLengthSpec(DeclSpec &DS);
   bool ParseTypeDeclarationList(DeclSpec &DS,
                                 SmallVectorImpl<DeclResult> &Decls);
 

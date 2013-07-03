@@ -275,6 +275,7 @@ void Lexer::LineOfText::GetNextLine() {
 
     I = 0;
     LineBegin = BufPtr;
+    auto PrevBufPtr = BufPtr;
     SkipFixedFormBlankLinesAndComments(I, LineBegin);
 
     // this was a continuation line.
@@ -286,6 +287,7 @@ void Lexer::LineOfText::GetNextLine() {
 
     if(IsContinuation)
       GetNextLine();
+    else BufPtr = PrevBufPtr;
     return;
   } else {
     // Skip blank lines and lines with only comments.

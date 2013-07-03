@@ -20,6 +20,8 @@ PROGRAM iftest
 
   IF(.true.) THEN
     I = 1
+  ELSE IF(3 == 4) THEN
+    I = 0
   ELSE IF(2.0) THEN ! expected-error {{expected a logical expression instead of an expression with type 'REAL'}}
     I = 2
   ELSE

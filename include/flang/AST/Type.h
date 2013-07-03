@@ -476,6 +476,9 @@ class ExtQuals : public ExtQualsTypeCommonBase, public llvm::FoldingSetNode {
   /// DOUBLE PRECISION/DOUBLE COMPLEX statement.
   unsigned IsDoublePrecisionKind : 1;
 
+  /// LEN = *
+  unsigned IsStarLengthSelector : 1;
+
   /// LenSelector - The kind-selector for a type.
   Expr *LenSelector;
 
@@ -488,11 +491,11 @@ public:
   };
 
   ExtQuals(const Type *BaseTy, QualType Canon, Qualifiers Quals,
-           unsigned KS = 0, bool DBL = false, Expr *LS = 0)
+           unsigned KS = 0, bool DBL = false, bool StarLS = false, Expr *LS = 0)
     : ExtQualsTypeCommonBase(BaseTy,
                              Canon.isNull() ? QualType(this_(), 0) : Canon),
       Quals(Quals), KindSelector(KS), IsDoublePrecisionKind(DBL?1:0),
-      LenSelector(LS)
+      IsStarLengthSelector(StarLS?1:0), LenSelector(LS)
   {}
 
   Qualifiers getQualifiers() const { return Quals; }
@@ -518,19 +521,21 @@ public:
   }
   bool isDoublePrecisionKind() const { return IsDoublePrecisionKind != 0; }
 
-  bool hasLengthSelector() const { return LenSelector != 0; }
+  bool hasLengthSelector() const { return LenSelector != 0 || IsStarLengthSelector != 0; }
+  bool isStarLengthSelector() const { return IsStarLengthSelector != 0; }
   Expr *getLengthSelector() const { return LenSelector; }
 
   void Profile(llvm::FoldingSetNodeID &ID) const {
     Profile(ID, getBaseType(), Quals, KindSelector, IsDoublePrecisionKind != 0,
-            LenSelector);
+            IsStarLengthSelector != 0, LenSelector);
   }
   static void Profile(llvm::FoldingSetNodeID &ID,
                       const Type *BaseType, Qualifiers Quals,
-                      unsigned KS, bool IsDBL, Expr *LS) {
+                      unsigned KS, bool IsDBL, bool StarLS, Expr *LS) {
     ID.AddPointer(BaseType);
     ID.AddInteger(KS);
     ID.AddBoolean(IsDBL);
+    ID.AddBoolean(StarLS);
     ID.AddPointer(LS);
     Quals.Profile(ID);
   }

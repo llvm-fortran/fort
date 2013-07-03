@@ -87,16 +87,22 @@ void QualType::print(raw_ostream &OS) const {
   if (!EQ->isDoublePrecisionKind() && EQ->hasKindSelector()) {
     OS << " (KIND=" << EQ->getRawKindSelector();
     if (EQ->hasLengthSelector()) {
-      OS << ", LEN=";
-      EQ->getLengthSelector()->print(OS);
+      if(EQ->isStarLengthSelector()) OS << ", LEN=*";
+      else {
+        OS << ", LEN=";
+        EQ->getLengthSelector()->print(OS);
+      }
     }
     OS << ")";
     Comma = true;
   } else if (EQ->hasLengthSelector()) {
-    OS << " (LEN=";
-    EQ->getLengthSelector()->print(OS);
-    OS << ")";
-    Comma = true;
+    if(EQ->isStarLengthSelector()) OS << "(LEN=*)";
+    else {
+      OS << " (LEN=";
+      EQ->getLengthSelector()->print(OS);
+      OS << ")";
+      Comma = true;
+    }
   }
 
 #define PRINT_QUAL(Q, QNAME) \

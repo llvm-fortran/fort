@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Sema/DeclSpec.h"
+#include "flang/Parse/ParseDiagnostic.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Type.h"
 #include "llvm/Support/raw_ostream.h"
@@ -19,15 +20,6 @@
 #include "llvm/Support/ErrorHandling.h"
 
 namespace flang {
-  namespace diag {
-    enum {
-#define DIAG(ENUM,FLAGS,DEFAULT_MAPPING,DESC,GROUP,\
-             SFINAE,ACCESS,CATEGORY,X,Y) ENUM,
-#include "flang/Basic/DiagnosticParseKinds.inc"
-#undef DIAG
-      NUM_BUILTIN_PARSE_DIAGNOSTICS
-    };
-  }  // end namespace diag
 
 DeclSpec::~DeclSpec() {}
 

@@ -41,10 +41,10 @@ void ASTContext::InitBuiltinTypes() {
   InitBuiltinType(IntegerTy,         BuiltinType::Integer);
   InitBuiltinType(RealTy,            BuiltinType::Real);
   DoublePrecisionTy = getExtQualType(RealTy.getTypePtr(), Qualifiers(),
-                                     8, true, nullptr);
+                                     8, true, false, nullptr);
   InitBuiltinType(ComplexTy,         BuiltinType::Complex);
   DoubleComplexTy = getExtQualType(ComplexTy.getTypePtr(), Qualifiers(),
-                                   8, true, nullptr);
+                                   8, true, false, nullptr);
   InitBuiltinType(CharacterTy,       BuiltinType::Character);
   InitBuiltinType(LogicalTy,         BuiltinType::Logical);
 }
@@ -67,10 +67,11 @@ QualType ASTContext::getBuiltinQualType(BuiltinType::TypeSpec TS) const {
 
 QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals,
                                     unsigned KindSel, bool IsDoublePrecisionKind,
+                                    bool IsStarLength,
                                     Expr *LenSel) const {
   // Check if we've already instantiated this type.
   llvm::FoldingSetNodeID ID;
-  ExtQuals::Profile(ID, BaseType, Quals, KindSel, IsDoublePrecisionKind, LenSel);
+  ExtQuals::Profile(ID, BaseType, Quals, KindSel, IsDoublePrecisionKind, IsStarLength, LenSel);
   void *InsertPos = 0;
   if (ExtQuals *EQ = ExtQualNodes.FindNodeOrInsertPos(ID, InsertPos)) {
     assert(EQ->getQualifiers() == Quals);
@@ -83,7 +84,7 @@ QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals,
     SplitQualType CanonSplit = BaseType->getCanonicalTypeInternal().split();
     CanonSplit.second.addConsistentQualifiers(Quals);
     Canon = getExtQualType(CanonSplit.first, CanonSplit.second, KindSel,
-                           IsDoublePrecisionKind, LenSel);
+                           IsDoublePrecisionKind, IsStarLength, LenSel);
 
     // Re-find the insert position.
     (void) ExtQualNodes.FindNodeOrInsertPos(ID, InsertPos);
@@ -91,7 +92,7 @@ QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals,
 
   ExtQuals *EQ = new (*this, TypeAlignment) ExtQuals(BaseType, Canon, Quals,
                                                      KindSel, IsDoublePrecisionKind,
-                                                     LenSel);
+                                                     IsStarLength, LenSel);
   ExtQualNodes.InsertNode(EQ, InsertPos);
   return QualType(EQ, 0);
 }
@@ -105,6 +106,7 @@ QualType ASTContext::getQualTypeOtherKind(QualType Type, QualType KindType) {
                         ExtQuals? ExtQuals->getQualifiers() : Qualifiers(),
                         DesiredExtQuals->getRawKindSelector(),
                         DesiredExtQuals->isDoublePrecisionKind(),
+                        ExtQuals? ExtQuals->isStarLengthSelector() : false,
                         ExtQuals? ExtQuals->getLengthSelector() : nullptr);
 }
 

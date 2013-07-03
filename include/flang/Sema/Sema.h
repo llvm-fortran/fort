@@ -447,6 +447,12 @@ private:
   /// Returns true if the given array type can be applied to a declaration.
   bool CheckArrayTypeDeclarationCompability(const ArrayType *T, VarDecl *VD);
 
+  /// Returns true if the character length spec is valid
+  bool CheckCharacterLengthSpec(const Expr *E);
+
+  /// Returns true if the given character length can be applied to a declaration.
+  bool CheckCharacterLengthDeclarationCompability(QualType T, VarDecl *VD);
+
   /// Performs assignment typechecking.
   ExprResult TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
                                  SourceLocation Loc = SourceLocation(),

@@ -376,8 +376,11 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
     assert(!Kind);
     Kind = 8;
   }
+  if(DS.hasLengthSelector() && !DS.isStarLengthSelector())
+    CheckCharacterLengthSpec(DS.getLengthSelector());
   Result = C.getExtQualType(TypeNode, Quals, Kind,
                             DS.isDoublePrecision(),
+                            DS.isStarLengthSelector(),
                             DS.getLengthSelector());
 
   if (!Quals.hasAttributeSpec(Qualifiers::AS_dimension))
@@ -424,8 +427,13 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDL
   CurContext->addDecl(VD);
 
   if(!T.isNull()) {
-    if(T->isArrayType())
+    auto SubT = T;
+    if(T->isArrayType()) {
       CheckArrayTypeDeclarationCompability(T->asArrayType(), VD);
+      SubT = T->asArrayType()->getElementType();
+    }
+    else if(SubT->isCharacterType())
+      CheckCharacterLengthDeclarationCompability(SubT, VD);
   }
 
   // FIXME: For debugging:
@@ -581,18 +589,18 @@ StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, Expr *StmtLabe
 
 class NonConstantExprASTSearch {
 public:
-  SmallVector<Expr *,8> Results;
+  SmallVector<const Expr *,8> Results;
 
-  void visit(Expr *E) {
-    if(ConstantExpr::classof(E)) ;
-    else if(UnaryExpr *Unary = dyn_cast<UnaryExpr>(E)) {
+  void visit(const Expr *E) {
+    if(isa<ConstantExpr>(E)) ;
+    else if(const UnaryExpr *Unary = dyn_cast<UnaryExpr>(E)) {
       visit(Unary->getExpression());
-    } else if(BinaryExpr *Binary = dyn_cast<BinaryExpr>(E)) {
+    } else if(const BinaryExpr *Binary = dyn_cast<BinaryExpr>(E)) {
       visit(Binary->getLHS());
       visit(Binary->getRHS());
-    } else if(ImplicitCastExpr *Cast = dyn_cast<ImplicitCastExpr>(E)) {
+    } else if(const ImplicitCastExpr *Cast = dyn_cast<ImplicitCastExpr>(E)) {
       visit(Cast->getExpression());
-    } else if(VarExpr *Var = dyn_cast<VarExpr>(E)) {
+    } else if(const VarExpr *Var = dyn_cast<VarExpr>(E)) {
       if(!Var->getVarDecl()->isParameter())
         Results.push_back(E);
     }
@@ -1022,6 +1030,37 @@ bool Sema::CheckArrayTypeDeclarationCompability(const ArrayType *T, VarDecl *VD)
           << VD->getSourceRange();
         return false;
       }
+    }
+  }
+  return true;
+}
+
+bool Sema::CheckCharacterLengthSpec(const Expr *E) {
+  auto Type = E->getType();
+  if(!Type.isNull() && !Type->isIntegerType()) {
+    Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
+      << E->getSourceRange();
+    return false;
+  }
+
+  // Make sure the value is a constant expression.
+  NonConstantExprASTSearch Visitor;
+  Visitor.visit(E);
+  if(!Visitor.Results.empty()) {
+    Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
+      << E->getSourceRange();
+    return false;
+  }
+  return true;
+}
+
+bool Sema::CheckCharacterLengthDeclarationCompability(QualType T, VarDecl *VD) {
+  auto Ext = T.getExtQualsPtrOnNull();
+  if(Ext) {
+    if(Ext->isStarLengthSelector() && !VD->isArgument()) {
+      Diags.Report(VD->getLocation(), diag::err_char_star_length_incompatible)
+        << (VD->isParameter()? 1 : 0) << VD->getIdentifier()
+        << VD->getSourceRange();
     }
   }
   return true;

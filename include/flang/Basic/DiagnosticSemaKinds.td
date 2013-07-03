@@ -53,6 +53,10 @@ def err_typecheck_expected_do_var : Error<
 def err_typecheck_expected_do_expr : Error<
   "expected a real or an integer expression">;
 
+def err_char_star_length_incompatible : Error<
+  "use of character length declarator '*' for a "
+  "%select{local variable|parameter}0 %1">;
+
 def err_array_implied_shape_must_be_last : Error<
   "the dimension declarator '*' must be used only in the last dimension">;
 def err_array_implied_shape_incompatible : Error<
