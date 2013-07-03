@@ -16,8 +16,12 @@
 
 #include "flang/Sema/Ownership.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace flang {
+
+  /// print - Prints an expression.
+  void print(llvm::raw_ostream &OS, const Expr *E);
 
   /// dump - Dump a statement.
   void dump(StmtResult S);

@@ -14,6 +14,7 @@
 #include "flang/AST/Type.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Expr.h"
+#include "flang/AST/ASTDumper.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -90,7 +91,7 @@ void QualType::print(raw_ostream &OS) const {
       if(EQ->isStarLengthSelector()) OS << ", LEN=*";
       else {
         OS << ", LEN=";
-        EQ->getLengthSelector()->print(OS);
+        flang::print(OS, EQ->getLengthSelector());
       }
     }
     OS << ")";
@@ -99,7 +100,7 @@ void QualType::print(raw_ostream &OS) const {
     if(EQ->isStarLengthSelector()) OS << "(LEN=*)";
     else {
       OS << " (LEN=";
-      EQ->getLengthSelector()->print(OS);
+      flang::print(OS, EQ->getLengthSelector());
       OS << ")";
       Comma = true;
     }
@@ -159,7 +160,7 @@ void ArrayType::print(raw_ostream &OS) const {
   for (SmallVectorImpl<ArraySpec*>::const_iterator
          I = Dims.begin(), E = Dims.end(); I != E; ++I) {
     if (I != Dims.begin()) OS << ", ";
-    (*I)->print(OS);
+    //FIXME: (*I)->print(OS);
   }
 
   OS << ")";

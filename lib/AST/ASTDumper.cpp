@@ -14,6 +14,7 @@
 #include "flang/AST/ASTDumper.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
+#include "flang/AST/ExprVisitor.h"
 #include "flang/AST/StmtVisitor.h"
 #include "flang/AST/Type.h"
 #include "flang/AST/FormatItem.h"
@@ -23,7 +24,8 @@ using namespace flang;
 
 namespace {
 
-class ASTDumper : public ConstStmtVisitor<ASTDumper> {
+class ASTDumper : public ConstStmtVisitor<ASTDumper>,
+  public ConstExprVisitor<ASTDumper> {
   raw_ostream &OS;
 
   int indent;
@@ -59,6 +61,38 @@ public:
   void VisitPrintStmt(const PrintStmt *S);
   void VisitWriteStmt(const WriteStmt *S);
   void VisitFormatStmt(const FormatStmt *S);
+
+  // expressions
+  void dumpExpr(const Expr *E);
+  void dumpExprList(ArrayRef<Expr*> List);
+  void dumpExprOrNull(const Expr *E) {
+    if(E) dumpExpr(E);
+  }
+
+  void VisitIntegerConstantExpr(const IntegerConstantExpr *E);
+  void VisitRealConstantExpr(const RealConstantExpr *E);
+  void VisitComplexConstantExpr(const ComplexConstantExpr *E);
+  void VisitCharacterConstantExpr(const CharacterConstantExpr *E);
+  void VisitBOZConstantExpr(const BOZConstantExpr *E);
+  void VisitLogicalConstantExpr(const LogicalConstantExpr *E);
+  void VisitRepeatedConstantExpr(const RepeatedConstantExpr *E);
+  void VisitVarExpr(const VarExpr *E);
+  void VisitUnresolvedIdentifierExpr(const UnresolvedIdentifierExpr *E);
+  void VisitReturnedValueExpr(const ReturnedValueExpr *E);
+  void VisitUnaryExpr(const UnaryExpr *E);
+  void VisitDefinedUnaryOperatorExpr(const DefinedUnaryOperatorExpr *E);
+  void VisitImplicitCastExpr(const ImplicitCastExpr *E);
+  void VisitBinaryExpr(const BinaryExpr *E);
+  void VisitDefinedBinaryOperatorExpr(const DefinedBinaryOperatorExpr *E);
+  void VisitSubstringExpr(const SubstringExpr *E);
+  void VisitArrayElementExpr(const ArrayElementExpr *E);
+  void VisitCallExpr(const CallExpr *E);
+  void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
+  void VisitImpliedDoExpr(const ImpliedDoExpr *E);
+
+  // array specification
+  void dumpArraySpec(const ArraySpec *S);
+
 };
 
 } // end anonymous namespace
@@ -66,7 +100,7 @@ public:
 void ASTDumper::dumpStmt(const Stmt *S) {
   for(int i = 0; i < indent; ++i)
     OS << "  ";
-  Visit(S);
+  ConstStmtVisitor<ASTDumper>::Visit(S);
 }
 
 void ASTDumper::VisitConstructPartStmt(const ConstructPartStmt *S) {
@@ -131,17 +165,9 @@ void ASTDumper::VisitDimensionStmt(const DimensionStmt *S) {
 
 void ASTDumper::VisitDataStmt(const DataStmt *S) {
   OS << "data ";
-  auto Names = S->getNames();
-  for(size_t I = 0; I < Names.size(); ++I) {
-    if(I) OS << ", ";
-    Names[I]->print(OS);
-  }
+  dumpExprList(S->getNames());
   OS << " / ";
-  auto Values = S->getValues();
-  for(size_t I = 0; I < Values.size(); ++I) {
-    if(I) OS << ", ";
-    Values[I]->print(OS);
-  }
+  dumpExprList(S->getValues());
   OS << " /\n";
 }
 
@@ -163,28 +189,28 @@ void ASTDumper::VisitBlockStmt(const BlockStmt *S) {
 void ASTDumper::VisitAssignStmt(const AssignStmt *S) {
   OS << "assign ";
   if(S->getAddress().Statement)
-    S->getAddress().Statement->getStmtLabel()->print(OS);
+    dumpExpr(S->getAddress().Statement->getStmtLabel());
   OS << " to ";
-  S->getDestination()->print(OS);
+  dumpExpr(S->getDestination());
   OS << "\n";
 }
 
 void ASTDumper::VisitAssignedGotoStmt(const AssignedGotoStmt *S) {
   OS << "goto ";
-  S->getDestination()->print(OS);
+  dumpExpr(S->getDestination());
   OS << "\n";
 }
 
 void ASTDumper::VisitGotoStmt(const GotoStmt *S) {
   OS << "goto ";
   if(S->getDestination().Statement)
-    S->getDestination().Statement->getStmtLabel()->print(OS);
+    dumpExpr(S->getDestination().Statement->getStmtLabel());
   OS << "\n";
 }
 
 void ASTDumper::VisitIfStmt(const IfStmt* S) {
   OS << "if ";
-  S->getCondition()->print(OS);
+  dumpExpr(S->getCondition());
   OS << "\n";
 
   if(S->getThenStmt())
@@ -196,16 +222,16 @@ void ASTDumper::VisitIfStmt(const IfStmt* S) {
 void ASTDumper::VisitDoStmt(const DoStmt *S) {
   OS<<"do ";
   if(S->getTerminatingStmt().Statement)
-    S->getTerminatingStmt().Statement->getStmtLabel()->print(OS);
+    dumpExpr(S->getTerminatingStmt().Statement->getStmtLabel());
   OS << " ";
-  S->getDoVar()->print(OS);
+  dumpExpr(S->getDoVar());
   OS << " = ";
-  S->getInitialParameter()->print(OS);
+  dumpExpr(S->getInitialParameter());
   OS << ", ";
-  S->getTerminalParameter()->print(OS);
+  dumpExpr(S->getTerminalParameter());
   if(S->getIncrementationParameter()) {
     OS << ", ";
-    S->getIncrementationParameter()->print(OS);
+    dumpExpr(S->getIncrementationParameter());
   }
   OS << "\n";
   if(S->getBody())
@@ -214,7 +240,7 @@ void ASTDumper::VisitDoStmt(const DoStmt *S) {
 
 void ASTDumper::VisitDoWhileStmt(const DoWhileStmt *S) {
   OS << "do while(";
-  S->getCondition()->print(OS);
+  dumpExpr(S->getCondition());
   OS << ")\n";
   if(S->getBody())
     dumpSubStmt(S->getBody());
@@ -225,36 +251,27 @@ void ASTDumper::VisitContinueStmt(const ContinueStmt *S) {
 }
 
 void ASTDumper::VisitStopStmt(const StopStmt *S) {
-  if(S->getStopCode()){
-    OS << "stop ";
-    S->getStopCode()->print(OS);
-    OS << "\n";
-  } else
-    OS << "stop\n";
+  OS << "stop ";
+  dumpExprOrNull(S->getStopCode());
+  OS << "\n";
 }
 
 void ASTDumper::VisitReturnStmt(const ReturnStmt *S) {
-  if(S->getE()) {
-    OS << "return ";
-    S->getE()->print(OS);
-    OS << "\n";
-  } else OS << "return \n";
+  OS << "return ";
+  dumpExprOrNull(S->getE());
+  OS << "\n";
 }
 
 void ASTDumper::VisitCallStmt(const CallStmt *S) {
   OS << "call " << S->getFunction()->getName() << '(';
-  auto Args = S->getArguments();
-  for(size_t I = 0; I < Args.size(); ++I) {
-    if(I) OS << ", ";
-    Args[I]->print(OS);
-  }
+  dumpExprList(S->getArguments());
   OS << ")\n";
 }
 
 void ASTDumper::VisitAssignmentStmt(const AssignmentStmt *S) {
-  if(S->getLHS()) S->getLHS()->print(OS);
+  dumpExprOrNull(S->getLHS());
   OS << " = ";
-  if(S->getRHS()) S->getRHS()->print(OS);
+  dumpExprOrNull(S->getRHS());
   OS << "\n";
 }
 
@@ -263,18 +280,14 @@ void ASTDumper::VisitPrintStmt(const PrintStmt *S) {
   auto OutList = S->getIDList();
   for(size_t I = 0; I < OutList.size(); ++I) {
     if(I) OS << ", ";
-    OutList[I].get()->print(OS);
+    dumpExpr(OutList[I].get());
   }
   OS << "\n";
 }
 
 void ASTDumper::VisitWriteStmt(const WriteStmt *S) {
   OS << "write ";
-  auto OutList = S->getIDList();
-  for(size_t I = 0; I < OutList.size(); ++I) {
-    if(I) OS << ", ";
-    OutList[I]->print(OS);
-  }
+  dumpExprList(S->getIDList());
   OS << "\n";
 }
 
@@ -284,6 +297,204 @@ void ASTDumper::VisitFormatStmt(const FormatStmt *S) {
   if(S->getUnlimitedItemList())
     S->getUnlimitedItemList()->print(OS);
   OS << "\n";
+}
+
+// expressions
+
+void ASTDumper::dumpExpr(const Expr *E) {
+  ConstExprVisitor<ASTDumper>::Visit(E);
+}
+
+void ASTDumper::dumpExprList(ArrayRef<Expr*> List) {
+  for(size_t I = 0; I < List.size(); ++I) {
+    if(I) OS << ", ";
+    dumpExpr(List[I]);
+  }
+}
+
+void ASTDumper::VisitIntegerConstantExpr(const IntegerConstantExpr *E) {
+  OS << E->getValue();
+}
+
+void ASTDumper::VisitRealConstantExpr(const RealConstantExpr *E)  {
+  llvm::SmallVector<char, 32> Str;
+  E->getValue().toString(Str);
+  Str.push_back('\0');
+  OS << Str.begin();
+}
+
+void ASTDumper::VisitComplexConstantExpr(const ComplexConstantExpr *E)  {
+  llvm::SmallVector<char,32> ReStr;
+  E->getRealValue().toString(ReStr);
+  ReStr.push_back('\0');
+  llvm::SmallVector<char,32> ImStr;
+  E->getImaginaryValue().toString(ImStr);
+  ImStr.push_back('\0');
+  OS << '(' << ReStr.begin() << ',' << ImStr.begin() << ')';
+}
+
+void ASTDumper::VisitCharacterConstantExpr(const CharacterConstantExpr *E)  {
+  OS << E->getValue();
+}
+
+void ASTDumper::VisitBOZConstantExpr(const BOZConstantExpr *E) {
+
+}
+
+void ASTDumper::VisitLogicalConstantExpr(const LogicalConstantExpr *E)  {
+  OS << (E->isTrue()? "true" : "false");
+}
+
+void ASTDumper::VisitRepeatedConstantExpr(const RepeatedConstantExpr *E)  {
+  OS << E->getRepeatCount() << "*";
+  dumpExpr(E->getExpression());
+}
+
+void ASTDumper::VisitVarExpr(const VarExpr *E) {
+  OS << E->getVarDecl()->getName();
+}
+
+void ASTDumper::VisitUnresolvedIdentifierExpr(const UnresolvedIdentifierExpr *E) {
+  OS << E->getIdentifier()->getName();
+}
+
+void ASTDumper::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
+  OS << E->getFuncDecl()->getName();
+}
+
+void ASTDumper::VisitUnaryExpr(const UnaryExpr *E) {
+  OS << '(';
+  const char *op = "";
+  switch (E->getOperator()) {
+  default: break;
+  case UnaryExpr::Not:   op = ".NOT."; break;
+  case UnaryExpr::Plus:  op = "+";     break;
+  case UnaryExpr::Minus: op = "-";     break;
+  }
+  OS << op;
+  dumpExpr(E->getExpression());
+  OS << ')';
+}
+
+void ASTDumper::VisitDefinedUnaryOperatorExpr(const DefinedUnaryOperatorExpr *E) {
+  OS << '(' << E->getIdentifierInfo()->getName();
+  dumpExpr(E->getExpression());
+  OS << ')';
+}
+
+void ASTDumper::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
+  auto Type = E->getType();
+  if(Type->isIntegerType())
+    OS << "INT(";
+  else if(Type->isRealType())
+    OS << "REAL(";
+  else if(Type->isComplexType())
+    OS << "CMPLX(";
+  dumpExpr(E->getExpression());
+  if(const ExtQuals *Ext = Type.getExtQualsPtrOnNull())
+    OS << ",Kind=" << Ext->getRawKindSelector();
+  OS << ')';
+}
+
+void ASTDumper::VisitBinaryExpr(const BinaryExpr *E) {
+  OS << '(';
+  dumpExpr(E->getLHS());
+  const char *op = 0;
+  switch (E->getOperator()) {
+  default: break;
+  case BinaryExpr::Eqv:              op = ".EQV.";  break;
+  case BinaryExpr::Neqv:             op = ".NEQV."; break;
+  case BinaryExpr::Or:               op = ".OR.";   break;
+  case BinaryExpr::And:              op = ".AND.";  break;
+  case BinaryExpr::Equal:            op = "==";     break;
+  case BinaryExpr::NotEqual:         op = "/=";     break;
+  case BinaryExpr::LessThan:         op = "<";      break;
+  case BinaryExpr::LessThanEqual:    op = "<=";     break;
+  case BinaryExpr::GreaterThan:      op = ">";      break;
+  case BinaryExpr::GreaterThanEqual: op = ">=";     break;
+  case BinaryExpr::Concat:           op = "//";     break;
+  case BinaryExpr::Plus:             op = "+";      break;
+  case BinaryExpr::Minus:            op = "-";      break;
+  case BinaryExpr::Multiply:         op = "*";      break;
+  case BinaryExpr::Divide:           op = "/";      break;
+  case BinaryExpr::Power:            op = "**";     break;
+  }
+  OS << op;
+  dumpExpr(E->getRHS());
+  OS << ')';
+}
+
+void ASTDumper::VisitDefinedBinaryOperatorExpr(const DefinedBinaryOperatorExpr *E) {
+  OS << '(';
+  dumpExpr(E->getLHS());
+  OS << E->getIdentifierInfo()->getName();
+  dumpExpr(E->getRHS());
+  OS << ')';
+}
+
+void ASTDumper::VisitSubstringExpr(const SubstringExpr *E) {
+  dumpExpr(E->getTarget());
+  OS << '(';
+  dumpExprOrNull(E->getStartingPoint());
+  OS << ':';
+  dumpExprOrNull(E->getEndPoint());
+  OS << ')';
+}
+
+void ASTDumper::VisitArrayElementExpr(const ArrayElementExpr *E) {
+  dumpExpr(E->getTarget());
+  OS << '(';
+  dumpExprList(E->getArguments());
+  OS << ')';
+}
+
+void ASTDumper::VisitCallExpr(const CallExpr *E) {
+  OS << E->getFunction()->getName() << '(';
+  dumpExprList(E->getArguments());
+  OS << ')';
+}
+
+void ASTDumper::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
+  OS << intrinsic::getFunctionName(E->getIntrinsicFunction()) << '(';
+  dumpExprList(E->getArguments());
+  OS << ')';
+}
+
+void ASTDumper::VisitImpliedDoExpr(const ImpliedDoExpr *E) {
+  OS << '(';
+  dumpExprList(E->getBody());
+  OS << ", " << E->getVarDecl()->getIdentifier()->getName();
+  OS << " = ";
+  dumpExpr(E->getInitialParameter());
+  OS << ", ";
+  dumpExpr(E->getTerminalParameter());
+  if(E->getIncrementationParameter()) {
+     OS << ", ";
+     dumpExpr(E->getIncrementationParameter());
+  }
+  OS << ')';
+}
+
+// array specification
+void ASTDumper::dumpArraySpec(const ArraySpec *S) {
+  if(auto Explicit = dyn_cast<ExplicitShapeSpec>(S)) {
+    if(Explicit->getLowerBound()) {
+      dumpExpr(Explicit->getLowerBound());
+      OS << ':';
+    }
+    dumpExpr(Explicit->getUpperBound());
+  } else if(auto Implied = dyn_cast<ImpliedShapeSpec>(S)) {
+    if(Implied->getLowerBound()) {
+      dumpExpr(Implied ->getLowerBound());
+      OS << ':';
+    }
+    OS << '*';
+  } else OS << "<unknown array spec>";
+}
+
+void flang::print(llvm::raw_ostream &OS, const Expr *E) {
+  ASTDumper Dumper(OS);
+  Dumper.dumpExpr(E);
 }
 
 void flang::dump(StmtResult S) {

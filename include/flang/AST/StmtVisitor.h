@@ -14,16 +14,13 @@
 #ifndef LLVM_FLANG_AST_STMTVISITOR_H
 #define LLVM_FLANG_AST_STMTVISITOR_H
 
+#include "flang/Basic/MakePtr.h"
 #include "flang/AST/Stmt.h"
 
 namespace flang {
 
-template <typename T> struct make_ptr       { typedef       T *type; };
-template <typename T> struct make_const_ptr { typedef const T *type; };
-
 /// StmtVisitorBase - This class implements a simple visitor for Stmt
-/// subclasses. Since Expr derives from Stmt, this also includes support for
-/// visiting Exprs.
+/// subclasses.
 template<template <typename> class Ptr, typename ImplClass, typename RetTy=void>
 class StmtVisitorBase {
 public:
@@ -59,7 +56,6 @@ public:
 };
 
 /// StmtVisitor - This class implements a simple visitor for Stmt subclasses.
-/// Since Expr derives from Stmt, this also includes support for visiting Exprs.
 ///
 /// This class does not preserve constness of Stmt pointers (see also
 /// ConstStmtVisitor).
@@ -68,8 +64,7 @@ class StmtVisitor
  : public StmtVisitorBase<make_ptr, ImplClass, RetTy> {};
 
 /// ConstStmtVisitor - This class implements a simple visitor for Stmt
-/// subclasses. Since Expr derives from Stmt, this also includes support for
-/// visiting Exprs.
+/// subclasses.
 ///
 /// This class preserves constness of Stmt pointers (see also StmtVisitor).
 template<typename ImplClass, typename RetTy=void>

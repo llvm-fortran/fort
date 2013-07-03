@@ -37,7 +37,7 @@ SourceLocation ConstantExpr::getLocEnd() const {
 
 IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, SourceLocation Loc,
                                          SourceLocation MaxLoc, llvm::StringRef Data)
-  : ConstantExpr(IntegerConstant, C.IntegerTy,  Loc, MaxLoc) {
+  : ConstantExpr(IntegerConstantExprClass, C.IntegerTy,  Loc, MaxLoc) {
   llvm::APInt Val(64,Data,10);
   Num.setValue(C, Val);
 }
@@ -50,7 +50,7 @@ IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, SourceLocation L
 RealConstantExpr::RealConstantExpr(ASTContext &C, SourceLocation Loc,
                                    SourceLocation MaxLoc, llvm::StringRef Data,
                                    Kind kind)
-  : ConstantExpr(RealConstant, kind == Kind4? C.RealTy : C.DoublePrecisionTy, Loc, MaxLoc) {
+  : ConstantExpr(RealConstantExprClass, kind == Kind4? C.RealTy : C.DoublePrecisionTy, Loc, MaxLoc) {
   APFloat Val(kind == Kind4? APFloat::IEEEsingle : APFloat::IEEEdouble, Data);
   Num.setValue(C, Val);
 }
@@ -63,7 +63,7 @@ RealConstantExpr *RealConstantExpr::Create(ASTContext &C, SourceLocation Loc,
 
 ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, SourceLocation Loc, SourceLocation MaxLoc,
                                          const APFloat &Re, const APFloat &Im, Kind kind)
-  : ConstantExpr(ComplexConstant, kind == Kind4? C.ComplexTy : C.DoubleComplexTy, Loc, MaxLoc) {
+  : ConstantExpr(ComplexConstantExprClass, kind == Kind4? C.ComplexTy : C.DoubleComplexTy, Loc, MaxLoc) {
   this->Re.setValue(C, Re);
   this->Im.setValue(C, Im);
 }
@@ -77,7 +77,7 @@ ComplexConstantExpr *ComplexConstantExpr::Create(ASTContext &C, SourceLocation L
 
 CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, SourceLocation Loc,
                                              SourceLocation MaxLoc, llvm::StringRef data)
-  : ConstantExpr(CharacterConstant, C.CharacterTy, Loc, MaxLoc) {
+  : ConstantExpr(CharacterConstantExprClass, C.CharacterTy, Loc, MaxLoc) {
   // TODO: A 'kind' on a character literal constant.
   Data = new (C) char[data.size() + 1];
   std::strncpy(Data, data.data(), data.size());
@@ -92,11 +92,11 @@ CharacterConstantExpr *CharacterConstantExpr::Create(ASTContext &C, SourceLocati
 
 BOZConstantExpr::BOZConstantExpr(ASTContext &C, SourceLocation Loc,
                                  SourceLocation MaxLoc, llvm::StringRef Data)
-  : ConstantExpr(BOZConstant, C.IntegerTy, Loc, MaxLoc) {
+  : ConstantExpr(BOZConstantExprClass, C.IntegerTy, Loc, MaxLoc) {
   unsigned Radix = 0;
   switch (Data[0]) {
   case 'B':
-    Kind = Binary;
+    Kind = BinaryExprClass;
     Radix = 2;
     break;
   case 'O':
@@ -124,7 +124,7 @@ BOZConstantExpr *BOZConstantExpr::Create(ASTContext &C, SourceLocation Loc,
 
 LogicalConstantExpr::LogicalConstantExpr(ASTContext &C, SourceLocation Loc,
                                          SourceLocation MaxLoc, llvm::StringRef Data)
-  : ConstantExpr(LogicalConstant, C.LogicalTy, Loc, MaxLoc) {
+  : ConstantExpr(LogicalConstantExprClass, C.LogicalTy, Loc, MaxLoc) {
   Val = (Data.compare_lower(".TRUE.") == 0);
 }
 
@@ -136,7 +136,7 @@ LogicalConstantExpr *LogicalConstantExpr::Create(ASTContext &C, SourceLocation L
 RepeatedConstantExpr::RepeatedConstantExpr(SourceLocation Loc,
                                            IntegerConstantExpr *Repeat,
                                            Expr *Expression)
-  : Expr(RepeatedConstant, Expression->getType(), Loc),
+  : Expr(RepeatedConstantExprClass, Expression->getType(), Loc),
     RepeatCount(Repeat), E(Expression) {
 }
 
@@ -165,10 +165,14 @@ MultiArgumentExpr::MultiArgumentExpr(ASTContext &C, ArrayRef<Expr*> Args) {
   }
 }
 
+SourceLocation DesignatorExpr::getLocStart() const {
+  return Target->getLocStart();
+}
+
 SubstringExpr::SubstringExpr(ASTContext &C, SourceLocation Loc, Expr *E,
                              Expr *Start, Expr *End)
-  : DesignatorExpr(Loc,C.CharacterTy,DesignatorExpr::Substring),
-    Target(E), StartingPoint(Start), EndPoint(End) {
+  : DesignatorExpr(SubstringExprClass, C.CharacterTy, Loc, E),
+    StartingPoint(Start), EndPoint(End) {
 }
 
 SubstringExpr *SubstringExpr::Create(ASTContext &C, SourceLocation Loc,
@@ -177,9 +181,6 @@ SubstringExpr *SubstringExpr::Create(ASTContext &C, SourceLocation Loc,
   return new(C) SubstringExpr(C, Loc, Target, StartingPoint, EndPoint);
 }
 
-SourceLocation SubstringExpr::getLocStart() const {
-  return Target->getLocStart();
-}
 
 SourceLocation SubstringExpr::getLocEnd() const {
   if(EndPoint) return EndPoint->getLocEnd();
@@ -189,9 +190,10 @@ SourceLocation SubstringExpr::getLocEnd() const {
 
 ArrayElementExpr::ArrayElementExpr(ASTContext &C, SourceLocation Loc, Expr *E,
                                    llvm::ArrayRef<Expr *> Subs)
-  : DesignatorExpr(Loc, E->getType()->asArrayType()->getElementType(),
-                   DesignatorExpr::ArrayElement),
-    MultiArgumentExpr(C, Subs), Target(E) {
+  : DesignatorExpr(ArrayElementExprClass,
+                   E->getType()->asArrayType()->getElementType(),
+                   Loc, E),
+    MultiArgumentExpr(C, Subs) {
 }
 
 ArrayElementExpr *ArrayElementExpr::Create(ASTContext &C, SourceLocation Loc,
@@ -200,16 +202,12 @@ ArrayElementExpr *ArrayElementExpr::Create(ASTContext &C, SourceLocation Loc,
   return new(C) ArrayElementExpr(C, Loc, Target, Subscripts);
 }
 
-SourceLocation ArrayElementExpr::getLocStart() const {
-  return Target->getLocStart();
-}
-
 SourceLocation ArrayElementExpr::getLocEnd() const {
   return getArguments().back()->getLocEnd();
 }
 
 VarExpr::VarExpr(SourceLocation Loc, const VarDecl *Var)
-  : DesignatorExpr(Loc, Var->getType(), DesignatorExpr::ObjectName),
+  : Expr(VarExprClass, Var->getType(), Loc),
     Variable(Var) {}
 
 VarExpr *VarExpr::Create(ASTContext &C, SourceLocation Loc, const VarDecl *VD) {
@@ -222,7 +220,7 @@ SourceLocation VarExpr::getLocEnd() const {
 }
 
 ReturnedValueExpr::ReturnedValueExpr(SourceLocation Loc, FunctionDecl *F)
-  : Expr(ReturnedValue, F->getType(), Loc),Func(F) {
+  : Expr(ReturnedValueExprClass, F->getType(), Loc),Func(F) {
 }
 
 ReturnedValueExpr *ReturnedValueExpr::Create(ASTContext &C, SourceLocation Loc,
@@ -238,7 +236,7 @@ SourceLocation ReturnedValueExpr::getLocEnd() const {
 UnresolvedIdentifierExpr::UnresolvedIdentifierExpr(ASTContext &C,
                                                    SourceLocation Loc,
                                                    const IdentifierInfo *ID)
-  : Expr(UnresolvedIdentifier, C.IntegerTy, Loc), IDInfo(ID) {
+  : Expr(UnresolvedIdentifierExprClass, C.IntegerTy, Loc), IDInfo(ID) {
 }
 
 UnresolvedIdentifierExpr *UnresolvedIdentifierExpr::Create(ASTContext &C,
@@ -255,7 +253,7 @@ SourceLocation UnresolvedIdentifierExpr::getLocEnd() const {
 
 UnaryExpr *UnaryExpr::Create(ASTContext &C, SourceLocation Loc, Operator Op,
                              Expr *E) {
-  return new (C) UnaryExpr(Expr::Unary,
+  return new (C) UnaryExpr(Expr::UnaryExprClass,
                            (Op != Not) ? E->getType() : C.LogicalTy,
                            Loc, Op, E);
 }
@@ -264,21 +262,21 @@ SourceLocation UnaryExpr::getLocEnd() const {
   return E->getLocEnd();
 }
 
-DefinedOperatorUnaryExpr::DefinedOperatorUnaryExpr(SourceLocation Loc, Expr *E,
+DefinedUnaryOperatorExpr::DefinedUnaryOperatorExpr(SourceLocation Loc, Expr *E,
                                                    IdentifierInfo *IDInfo)
-  : UnaryExpr(Expr::DefinedUnaryOperator, E->getType(), Loc, Defined, E),
+  : UnaryExpr(Expr::DefinedUnaryOperatorExprClass, E->getType(), Loc, Defined, E),
     II(IDInfo) {}
 
-DefinedOperatorUnaryExpr *DefinedOperatorUnaryExpr::Create(ASTContext &C,
+DefinedUnaryOperatorExpr *DefinedUnaryOperatorExpr::Create(ASTContext &C,
                                                            SourceLocation Loc,
                                                            Expr *E,
                                                            IdentifierInfo *IDInfo) {
-  return new (C) DefinedOperatorUnaryExpr(Loc, E, IDInfo);
+  return new (C) DefinedUnaryOperatorExpr(Loc, E, IDInfo);
 }
 
 BinaryExpr *BinaryExpr::Create(ASTContext &C, SourceLocation Loc, Operator Op,
                                QualType Type, Expr *LHS, Expr *RHS) {
-  return new (C) BinaryExpr(Expr::Binary, Type, Loc, Op, LHS, RHS);
+  return new (C) BinaryExpr(Expr::BinaryExprClass, Type, Loc, Op, LHS, RHS);
 }
 
 SourceLocation BinaryExpr::getLocStart() const {
@@ -289,14 +287,14 @@ SourceLocation BinaryExpr::getLocEnd() const {
   return RHS->getLocEnd();
 }
 
-DefinedOperatorBinaryExpr *
-DefinedOperatorBinaryExpr::Create(ASTContext &C, SourceLocation Loc, Expr *LHS,
+DefinedBinaryOperatorExpr *
+DefinedBinaryOperatorExpr::Create(ASTContext &C, SourceLocation Loc, Expr *LHS,
                                   Expr *RHS, IdentifierInfo *IDInfo) {
-  return new (C) DefinedOperatorBinaryExpr(Loc, LHS, RHS, IDInfo);
+  return new (C) DefinedBinaryOperatorExpr(Loc, LHS, RHS, IDInfo);
 }
 
 ImplicitCastExpr::ImplicitCastExpr(SourceLocation Loc, QualType Dest, Expr *e)
-  : Expr(ImplicitCast,Dest,Loc),E(e) {
+  : Expr(ImplicitCastExprClass,Dest,Loc),E(e) {
 }
 
 ImplicitCastExpr *ImplicitCastExpr::Create(ASTContext &C, SourceLocation Loc,
@@ -314,7 +312,7 @@ SourceLocation ImplicitCastExpr::getLocEnd() const {
 
 CallExpr::CallExpr(ASTContext &C, SourceLocation Loc,
                    FunctionDecl *Func, ArrayRef<Expr*> Args)
-  : Expr(Call, Func->getType(), Loc), MultiArgumentExpr(C, Args),
+  : Expr(CallExprClass, Func->getType(), Loc), MultiArgumentExpr(C, Args),
     Function(Func) {
 }
 
@@ -327,25 +325,25 @@ SourceLocation CallExpr::getLocEnd() const {
   return getArguments().back()->getLocEnd();
 }
 
-IntrinsicFunctionCallExpr::
-IntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
+IntrinsicCallExpr::
+IntrinsicCallExpr(ASTContext &C, SourceLocation Loc,
                           intrinsic::FunctionKind Func,
                           ArrayRef<Expr*> Args,
                           QualType ReturnType)
-  : Expr(IntrinsicFunctionCall, ReturnType, Loc),
+  : Expr(IntrinsicCallExprClass, ReturnType, Loc),
     MultiArgumentExpr(C, Args), Function(Func) {
 }
 
-IntrinsicFunctionCallExpr *IntrinsicFunctionCallExpr::
+IntrinsicCallExpr *IntrinsicCallExpr::
 Create(ASTContext &C, SourceLocation Loc,
        intrinsic::FunctionKind Func,
        ArrayRef<Expr*> Arguments,
        QualType ReturnType) {
-  return new(C) IntrinsicFunctionCallExpr(C, Loc, Func, Arguments,
+  return new(C) IntrinsicCallExpr(C, Loc, Func, Arguments,
                                           ReturnType);
 }
 
-SourceLocation IntrinsicFunctionCallExpr::getLocEnd() const {
+SourceLocation IntrinsicCallExpr::getLocEnd() const {
   return getArguments().back()->getLocEnd();
 }
 
@@ -353,7 +351,7 @@ ImpliedDoExpr::ImpliedDoExpr(ASTContext &C, SourceLocation Loc,
                              VarDecl *Var, ArrayRef<Expr*> Body,
                              Expr *InitialParam, Expr *TerminalParam,
                              Expr *IncrementationParam)
-  : Expr(ImpliedDo, QualType(), Loc), DoVar(Var),
+  : Expr(ImpliedDoExprClass, QualType(), Loc), DoVar(Var),
     DoList(C, Body), Init(InitialParam), Terminate(TerminalParam),
     Increment(IncrementationParam) {
 }
@@ -368,200 +366,6 @@ ImpliedDoExpr *ImpliedDoExpr::Create(ASTContext &C, SourceLocation Loc,
 
 SourceLocation ImpliedDoExpr::getLocEnd() const {
   return Terminate->getLocEnd();
-}
-
-//===----------------------------------------------------------------------===//
-// Expression Print Statements
-//===----------------------------------------------------------------------===//
-
-void Expr::dump() {
-  this->print(llvm::outs());
-}
-
-void Expr::print(llvm::raw_ostream &O) {
-}
-
-void DesignatorExpr::print(llvm::raw_ostream &O) {
-}
-
-void SubstringExpr::print(llvm::raw_ostream &O) {
-  Target->print(O);
-  O << '(';
-  if(StartingPoint) StartingPoint->print(O);
-  O << ':';
-  if(EndPoint) EndPoint->print(O);
-  O << ')';
-}
-
-void ArrayElementExpr::print(llvm::raw_ostream &O) {
-  Target->print(O);
-  O << '(';
-  auto Subscripts = getArguments();
-  for(size_t I = 0; I < Subscripts.size(); ++I) {
-    if(I) O << ", ";
-    Subscripts[I]->print(O);
-  }
-  O << ')';
-}
-
-void UnaryExpr::print(llvm::raw_ostream &O) {
-  O << '(';
-  const char *op = "";
-  switch (Op) {
-  default: break;
-  case Not:   op = ".NOT."; break;
-  case Plus:  op = "+";     break;
-  case Minus: op = "-";     break;
-  }
-  O << op;
-  E->print(O);
-  O << ')';
-}
-
-void DefinedOperatorUnaryExpr::print(llvm::raw_ostream &O) {
-  O << '(' << II->getName();
-  E->print(O);
-  O << ')';
-}
-
-void ImplicitCastExpr::print(llvm::raw_ostream &O) {
-  auto Type = getType();
-  if(Type->isIntegerType())
-    O << "INT(";
-  else if(Type->isRealType())
-    O << "REAL(";
-  else if(Type->isComplexType())
-    O << "CMPLX(";
-  E->print(O);
-  if(const ExtQuals *Ext = Type.getExtQualsPtrOnNull())
-    O << ",Kind=" << Ext->getRawKindSelector();
-  O << ')';
-}
-
-void CallExpr::print(llvm::raw_ostream &O) {
-  O << Function->getName() << '(';
-  auto Args = getArguments();
-  for(size_t I = 0; I < Args.size(); ++I) {
-    if(I) O << ", ";
-    Args[I]->print(O);
-  }
-  O << ')';
-}
-
-void IntrinsicFunctionCallExpr::print(llvm::raw_ostream &O) {
-  O << intrinsic::getFunctionName(Function) << '(';
-  auto Args = getArguments();
-  for(size_t I = 0; I < Args.size(); ++I) {
-    if(I) O << ", ";
-    Args[I]->print(O);
-  }
-  O << ')';
-}
-
-void ConstantExpr::print(llvm::raw_ostream &O) {
-  if (Kind)
-    O << '_' << Kind; 
-}
-
-void IntegerConstantExpr::print(llvm::raw_ostream &O) {
-  O << Num.getValue();
-}
-
-void RealConstantExpr::print(llvm::raw_ostream &O) {
-  llvm::SmallVector<char,32> Str;
-  Num.getValue().toString(Str);
-  Str.push_back('\0');
-  O << Str.begin();
-}
-
-void ComplexConstantExpr::print(llvm::raw_ostream &O) {
-  llvm::SmallVector<char,32> ReStr;
-  Re.getValue().toString(ReStr);
-  ReStr.push_back('\0');
-  llvm::SmallVector<char,32> ImStr;
-  Im.getValue().toString(ImStr);
-  ImStr.push_back('\0');
-  O << '(' << ReStr.begin() << ',' << ImStr.begin() << ')';
-}
-
-void CharacterConstantExpr::print(llvm::raw_ostream &O) {
-  O << getValue();
-}
-
-void LogicalConstantExpr::print(llvm::raw_ostream &O) {
-  O << (isTrue()? "true" : "false");
-}
-
-void RepeatedConstantExpr::print(llvm::raw_ostream &O) {
-  O << getRepeatCount() << "*";
-  getExpression()->print(O);
-}
-
-void VarExpr::print(llvm::raw_ostream &O) {
-  O << *Variable;
-}
-
-void ReturnedValueExpr::print(llvm::raw_ostream &O) {
-  O << Func->getIdentifier()->getName();
-}
-
-void UnresolvedIdentifierExpr::print(llvm::raw_ostream &O) {
-  O << getIdentifier();
-}
-
-void BinaryExpr::print(llvm::raw_ostream &O) {
-  O << '(';
-  LHS->print(O);
-  const char *op = 0;
-  switch (Op) {
-  default: break;
-  case Eqv:              op = ".EQV.";  break;
-  case Neqv:             op = ".NEQV."; break;
-  case Or:               op = ".OR.";   break;
-  case And:              op = ".AND.";  break;
-  case Equal:            op = "==";     break;
-  case NotEqual:         op = "/=";     break;
-  case LessThan:         op = "<";      break;
-  case LessThanEqual:    op = "<=";     break;
-  case GreaterThan:      op = ">";      break;
-  case GreaterThanEqual: op = ">=";     break;
-  case Concat:           op = "//";     break;
-  case Plus:             op = "+";      break;
-  case Minus:            op = "-";      break;
-  case Multiply:         op = "*";      break;
-  case Divide:           op = "/";      break;
-  case Power:            op = "**";     break;
-  }
-  O << op;
-  RHS->print(O);
-  O << ')';
-}
-
-void DefinedOperatorBinaryExpr::print(llvm::raw_ostream &O) {
-  O << '(';
-  LHS->print(O);
-  II->getName();
-  RHS->print(O);
-  O << ')';
-}
-
-void ImpliedDoExpr::print(llvm::raw_ostream &O) {
-  O << '(';
-  auto Body = getBody();
-  for(size_t I = 0; I < Body.size(); ++I) {
-    if(I) O << ", ";
-    Body[I]->print(O);
-  }
-  O << ", " << getVarDecl()->getIdentifier()->getName();
-  O << " = ";
-  getInitialParameter()->print(O);
-  O << ", ";
-  getTerminalParameter()->print(O);
-  if(getIncrementationParameter()) {
-     O << ", ";
-     getIncrementationParameter()->print(O);
-  }
-  O << ')';
 }
 
 //===----------------------------------------------------------------------===//
@@ -616,24 +420,6 @@ ImpliedShapeSpec *ImpliedShapeSpec::Create(ASTContext &C, SourceLocation Loc) {
 
 ImpliedShapeSpec *ImpliedShapeSpec::Create(ASTContext &C, SourceLocation Loc, Expr *LB) {
   return new (C) ImpliedShapeSpec(Loc, LB);
-}
-
-void ArraySpec::print(llvm::raw_ostream &) {}
-
-void ExplicitShapeSpec::print(llvm::raw_ostream &O) {
-  if(getLowerBound()) {
-    getLowerBound()->print(O);
-    O << ':';
-  }
-  getUpperBound()->print(O);
-}
-
-void ImpliedShapeSpec::print(llvm::raw_ostream &O) {
-  if(getLowerBound()) {
-    getLowerBound()->print(O);
-    O << ':';
-  }
-  O << '*';
 }
 
 } //namespace flang

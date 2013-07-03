@@ -20,6 +20,7 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
+#include "flang/AST/ASTDumper.h"
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 #include <sstream>
@@ -78,7 +79,7 @@ static void ReportUnterminatedLabeledDoStmt(DiagnosticsEngine &Diags,
                                             SourceLocation Loc) {
   std::string Str;
   llvm::raw_string_ostream Stream(Str);
-  S.ExpectedEndDoLabel->print(Stream);
+  flang::print(Stream, S.ExpectedEndDoLabel);
   Diags.Report(Loc, diag::err_expected_stmt_label_end_do) << Stream.str();
 }
 
@@ -115,7 +116,7 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
     else {
       std::string Str;
       llvm::raw_string_ostream Stream(Str);
-      StmtLabelForwardDecls[I].StmtLabel->print(Stream);
+      flang::print(Stream, StmtLabelForwardDecls[I].StmtLabel);
       Diags.Report(StmtLabelForwardDecls[I].StmtLabel->getLocation(),
                    diag::err_undeclared_stmt_label_use)
           << Stream.str()
@@ -205,7 +206,7 @@ void Sema::DeclareStatementLabel(Expr *StmtLabel, Stmt *S) {
   if(auto Decl = getCurrentStmtLabelScope().Resolve(StmtLabel)) {
     std::string Str;
     llvm::raw_string_ostream Stream(Str);
-    StmtLabel->print(Stream);
+    flang::print(Stream, StmtLabel);
     Diags.Report(StmtLabel->getLocation(),
                  diag::err_redefinition_of_stmt_label)
         << Stream.str() << StmtLabel->getSourceRange();
@@ -1298,7 +1299,7 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult Termi
     if(auto Decl = getCurrentStmtLabelScope().Resolve(TerminatingStmt.get())) {
       std::string String;
       llvm::raw_string_ostream Stream(String);
-      TerminatingStmt.get()->print(Stream);
+      flang::print(Stream, TerminatingStmt.get());
       Diags.Report(TerminatingStmt.get()->getLocation(),
                    diag::err_stmt_label_must_decl_after)
           << Stream.str() << "DO"

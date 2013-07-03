@@ -881,7 +881,7 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
     ReturnType = C.RealTy; //An error occurred.
   }
 
-  return IntrinsicFunctionCallExpr::Create(C, Loc, Function,
+  return IntrinsicCallExpr::Create(C, Loc, Function,
                                            Args, ReturnType);
 }
 

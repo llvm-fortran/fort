@@ -35,54 +35,32 @@ class SubroutineDecl;
 
 /// Expr - Top-level class for expressions.
 class Expr {
-protected:
-  enum ExprType {
-    // Primary Expressions
-    Designator,
-
-    // Unary Expressions
-    Constant,
-    IntegerConstant,
-    RealConstant,
-    DoublePrecisionConstant,
-    ComplexConstant,
-    CharacterConstant,
-    BOZConstant,
-    LogicalConstant,
-    RepeatedConstant,
-    ImplicitCast,
-
-    Variable,
-    UnresolvedIdentifier,
-    ReturnedValue,
-    Unary,
-    DefinedUnaryOperator,
-
-    // Binary Expressions
-    Binary,
-    DefinedBinaryOperator,
-
-    // Call Expressions
-    Call,
-    IntrinsicFunctionCall,
-
-    //Other
-    ImpliedDo,
+public:
+  enum ExprClass {
+    NoExprClass = 0,
+#define EXPR(CLASS, PARENT) CLASS##Class,
+#define EXPR_RANGE(BASE, FIRST, LAST) \
+        first##BASE##Constant=FIRST##Class, last##BASE##Constant=LAST##Class,
+#define LAST_EXPR_RANGE(BASE, FIRST, LAST) \
+        first##BASE##Constant=FIRST##Class, last##BASE##Constant=LAST##Class
+#define ABSTRACT_EXPR(STMT)
+#include "flang/AST/ExprNodes.inc"
   };
+
 private:
   QualType Ty;
-  ExprType ExprID;
+  ExprClass ExprID;
   SourceLocation Loc;
   friend class ASTContext;
 protected:
-  Expr(ExprType ET, QualType T, SourceLocation L) : ExprID(ET), Loc(L) {
+  Expr(ExprClass ET, QualType T, SourceLocation L) : ExprID(ET), Loc(L) {
     setType(T);
   }
 public:
   QualType getType() const { return Ty; }
   void setType(QualType T) { Ty = T; }
 
-  ExprType getExpressionID() const { return ExprID; }
+  ExprClass getExprClass() const { return ExprID; }
   SourceLocation getLocation() const { return Loc; }
 
   virtual SourceLocation getLocStart() const { return Loc; }
@@ -92,9 +70,6 @@ public:
     return SourceRange(getLocStart(), getLocEnd());
   }
 
-  virtual void print(raw_ostream&);
-  void dump();
-
   static bool classof(const Expr *) { return true; }
 };
 
@@ -103,7 +78,7 @@ class ConstantExpr : public Expr {
   Expr *Kind;                   // Optional Kind Selector
   SourceLocation MaxLoc;
 protected:
-  ConstantExpr(ExprType Ty, QualType T, SourceLocation Loc, SourceLocation MLoc)
+  ConstantExpr(ExprClass Ty, QualType T, SourceLocation Loc, SourceLocation MLoc)
     : Expr(Ty, T, Loc), MaxLoc(MLoc), Kind(0) {}
 public:
   Expr *getKindSelector() const { return Kind; }
@@ -111,14 +86,12 @@ public:
 
   virtual SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    ExprType ETy = E->getExpressionID();
-    return ETy == Expr::Constant || ETy == Expr::CharacterConstant ||
-      ETy == Expr::IntegerConstant || ETy == Expr::RealConstant ||
-      ETy == Expr::DoublePrecisionConstant || ETy == Expr::ComplexConstant ||
-      ETy == Expr::BOZConstant || ETy == Expr::LogicalConstant;
+    ExprClass ETy = E->getExprClass();
+    return ETy == Expr::ConstantExprClass || ETy == Expr::CharacterConstantExprClass ||
+      ETy == Expr::IntegerConstantExprClass || ETy == Expr::RealConstantExprClass ||
+      ETy == Expr::ComplexConstantExprClass ||
+      ETy == Expr::BOZConstantExprClass || ETy == Expr::LogicalConstantExprClass;
   }
   static bool classof(const ConstantExpr *) { return true; }
 };
@@ -196,10 +169,8 @@ public:
 
   APInt getValue() const { return Num.getValue(); }
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::IntegerConstant;
+    return E->getExprClass() == Expr::IntegerConstantExprClass;
   }
   static bool classof(const IntegerConstantExpr *) { return true; }
 };
@@ -223,10 +194,8 @@ public:
 
   APFloat getValue() const { return Num.getValue(); }
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::RealConstant;
+    return E->getExprClass() == Expr::RealConstantExprClass;
   }
   static bool classof(const RealConstantExpr *) { return true; }
 };
@@ -251,10 +220,8 @@ public:
   APFloat getRealValue() const { return Re.getValue(); }
   APFloat getImaginaryValue() const { return Im.getValue(); }
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::ComplexConstant;
+    return E->getExprClass() == Expr::ComplexConstantExprClass;
   }
   static bool classof(const ComplexConstantExpr *) { return true; }
 };
@@ -269,17 +236,15 @@ public:
 
   const char *getValue() const { return Data; }
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::CharacterConstant;
+    return E->getExprClass() == Expr::CharacterConstantExprClass;
   }
   static bool classof(const CharacterConstantExpr *) { return true; }
 };
 
 class BOZConstantExpr : public ConstantExpr {
 public:
-  enum BOZKind { Hexadecimal, Octal, Binary };
+  enum BOZKind { Hexadecimal, Octal, BinaryExprClass };
 private:
   APIntStorage Num;
   BOZKind Kind;
@@ -293,12 +258,12 @@ public:
 
   BOZKind getBOZKind() const { return Kind; }
 
-  bool isBinaryKind() const { return Kind == Binary; }
+  bool isBinaryKind() const { return Kind == BinaryExprClass; }
   bool isOctalKind() const { return Kind == Octal; }
   bool isHexKind() const { return Kind == Hexadecimal; }
 
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::BOZConstant;
+    return E->getExprClass() == Expr::BOZConstantExprClass;
   }
   static bool classof(const BOZConstantExpr *) { return true; }
 };
@@ -314,10 +279,8 @@ public:
   bool isTrue() const { return Val; }
   bool isFalse() const { return !Val; }
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::LogicalConstant;
+    return E->getExprClass() == Expr::LogicalConstantExprClass;
   }
   static bool classof(const LogicalConstantExpr *) { return true; }
 };
@@ -341,10 +304,8 @@ public:
   SourceLocation getLocStart() const;
   SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::RepeatedConstant;
+    return E->getExprClass() == Expr::RepeatedConstantExprClass;
   }
   static bool classof(const RepeatedConstantExpr *) { return true; }
 };
@@ -369,28 +330,21 @@ public:
 //===----------------------------------------------------------------------===//
 /// DesignatorExpr -
 class DesignatorExpr : public Expr {
-public:
-  enum DesignatorTy {
-    ObjectName,
-    ArrayElement,
-    ArraySection,
-    CoindexedNamedObject,
-    ComplexPartDesignator,
-    StructureComponent,
-    Substring
-  };
-private:
-  DesignatorTy Ty;
 protected:
-  DesignatorExpr(SourceLocation loc, QualType T, DesignatorTy ty)
-    : Expr(Designator, T, loc), Ty(ty) {}
-public:
-  DesignatorTy getDesignatorType() const { return Ty; }
+  Expr *Target;
 
-  virtual void print(llvm::raw_ostream&);
+  DesignatorExpr(ExprClass EClass,QualType T,SourceLocation Loc,
+                 Expr *E)
+    : Expr(EClass, T, Loc), Target(E) {}
+public:
+
+  Expr *getTarget() const { return Target; }
+
+  SourceLocation getLocStart() const;
 
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::Designator;
+    return E->getExprClass() >= firstDesignatorExprConstant &&
+           E->getExprClass() <= lastDesignatorExprConstant;
   }
   static bool classof(const DesignatorExpr *) { return true; }
 };
@@ -399,7 +353,7 @@ public:
 /// SubstringExpr - Returns a substring.
 class SubstringExpr : public DesignatorExpr {
 private:
-  Expr *Target, *StartingPoint, *EndPoint;
+  Expr *StartingPoint, *EndPoint;
   SubstringExpr(ASTContext &C, SourceLocation Loc, Expr *E,
                 Expr *Start, Expr *End);
 public:
@@ -407,22 +361,13 @@ public:
                                Expr *Target, Expr *StartingPoint,
                                Expr *EndPoint);
 
-  Expr *getTarget() const { return Target; }
   Expr *getStartingPoint() const { return StartingPoint; }
   Expr *getEndPoint() const { return EndPoint; }
 
-  SourceLocation getLocStart() const;
   SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream &);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::Designator &&
-      llvm::cast<DesignatorExpr>(E)->getDesignatorType() ==
-      DesignatorExpr::Substring;
-  }
-  static bool classof(const DesignatorExpr *E) {
-    return E->getDesignatorType() == DesignatorExpr::Substring;
+    return E->getExprClass() == Expr::SubstringExprClass;
   }
   static bool classof(const SubstringExpr *) { return true; }
 };
@@ -431,8 +376,6 @@ public:
 /// ArrayElementExpr - Returns an element of an array.
 class ArrayElementExpr : public DesignatorExpr, public MultiArgumentExpr {
 private:
-  Expr *Target;
-
   ArrayElementExpr(ASTContext &C, SourceLocation Loc, Expr *E,
                    llvm::ArrayRef<Expr*> Subs);
 public:
@@ -440,23 +383,14 @@ public:
                                   Expr *Target,
                                   llvm::ArrayRef<Expr*> Subscripts);
 
-  Expr *getTarget() const { return Target; }
   llvm::ArrayRef<Expr*> getSubscriptList() const {
     return getArguments();
   }
 
-  SourceLocation getLocStart() const;
   SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream &);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::Designator &&
-      llvm::cast<DesignatorExpr>(E)->getDesignatorType() ==
-      DesignatorExpr::ArrayElement;
-  }
-  static bool classof(const DesignatorExpr *E) {
-    return E->getDesignatorType() == DesignatorExpr::ArrayElement;
+    return E->getExprClass() == Expr::ArrayElementExprClass;
   }
   static bool classof(const ArrayElementExpr *) { return true; }
 };
@@ -481,8 +415,6 @@ protected:
 public:
   ArraySpecKind getKind() const { return Kind; }
 
-  virtual void print(llvm::raw_ostream &);
-
   static bool classof(const ArraySpec *) { return true; }
 };
 
@@ -504,8 +436,6 @@ public:
 
   Expr *getLowerBound() const { return LowerBound; }
   Expr *getUpperBound() const { return UpperBound; }
-
-  virtual void print(llvm::raw_ostream &);
 
   static bool classof(const ExplicitShapeSpec *) { return true; }
   static bool classof(const ArraySpec *AS) {
@@ -587,8 +517,6 @@ public:
   SourceLocation getLocation() const { return Loc; }
   Expr *getLowerBound() const { return LowerBound; }
 
-  virtual void print(llvm::raw_ostream &);
-
   static bool classof(const ImpliedShapeSpec *) { return true; }
   static bool classof(const ArraySpec *AS) {
     return AS->getKind() == k_ImpliedShape;
@@ -596,7 +524,7 @@ public:
 };
 
 /// VarExpr -
-class VarExpr : public DesignatorExpr {
+class VarExpr : public Expr {
   const VarDecl *Variable;
   VarExpr(SourceLocation Loc, const VarDecl *Var);
 public:
@@ -606,15 +534,8 @@ public:
 
   SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::Designator &&
-      llvm::cast<DesignatorExpr>(E)->getDesignatorType() ==
-      DesignatorExpr::ObjectName;
-  }
-  static bool classof(const DesignatorExpr *E) {
-    return E->getDesignatorType() == DesignatorExpr::ObjectName;
+    return E->getExprClass() == Expr::VarExprClass;
   }
   static bool classof(const VarExpr *) { return true; }
 };
@@ -628,12 +549,12 @@ public:
   static ReturnedValueExpr *Create(ASTContext &C, SourceLocation Loc,
                                    FunctionDecl *Func);
 
+  FunctionDecl *getFuncDecl() const { return Func; }
+
   SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == ReturnedValue;
+    return E->getExprClass() == ReturnedValueExprClass;
   }
   static bool classof(const ReturnedValueExpr *) { return true; }
 };
@@ -653,10 +574,8 @@ public:
 
   SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::UnresolvedIdentifier;
+    return E->getExprClass() == Expr::UnresolvedIdentifierExprClass;
   }
   static bool classof(const UnresolvedIdentifierExpr *) { return true; }
 };
@@ -679,7 +598,7 @@ public:
 protected:
   Operator Op;
   Expr *E;
-  UnaryExpr(ExprType ET, QualType T, SourceLocation Loc, Operator op, Expr *e)
+  UnaryExpr(ExprClass ET, QualType T, SourceLocation Loc, Operator op, Expr *e)
     : Expr(ET, T, Loc), Op(op), E(e) {}
 public:
   static UnaryExpr *Create(ASTContext &C, SourceLocation Loc, Operator Op, Expr *E);
@@ -691,31 +610,27 @@ public:
 
   SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::Unary;
+    return E->getExprClass() == Expr::UnaryExprClass;
   }
   static bool classof(const UnaryExpr *) { return true; }
 };
 
 /// DefinedOperatorUnaryExpr -
-class DefinedOperatorUnaryExpr : public UnaryExpr {
+class DefinedUnaryOperatorExpr : public UnaryExpr {
   IdentifierInfo *II;
-  DefinedOperatorUnaryExpr(SourceLocation Loc, Expr *E, IdentifierInfo *IDInfo);
+  DefinedUnaryOperatorExpr(SourceLocation Loc, Expr *E, IdentifierInfo *IDInfo);
 public:
-  static DefinedOperatorUnaryExpr *Create(ASTContext &C, SourceLocation Loc,
+  static DefinedUnaryOperatorExpr *Create(ASTContext &C, SourceLocation Loc,
                                           Expr *E, IdentifierInfo *IDInfo);
 
   const IdentifierInfo *getIdentifierInfo() const { return II; }
   IdentifierInfo *getIdentifierInfo() { return II; }
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::DefinedUnaryOperator;
+    return E->getExprClass() == Expr::DefinedUnaryOperatorExprClass;
   }
-  static bool classof(const DefinedOperatorUnaryExpr *) { return true; }
+  static bool classof(const DefinedUnaryOperatorExpr *) { return true; }
 };
 
 /// BinaryExpr -
@@ -752,7 +667,7 @@ public:
 protected:
   Operator Op;
   Expr *LHS, *RHS;
-  BinaryExpr(ExprType ET, QualType T, SourceLocation Loc, Operator op,
+  BinaryExpr(ExprClass ET, QualType T, SourceLocation Loc, Operator op,
              Expr *lhs, Expr *rhs)
     : Expr(ET, T, Loc), Op(op), LHS(lhs), RHS(rhs) {}
 public:
@@ -769,36 +684,32 @@ public:
   SourceLocation getLocStart() const;
   SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::Binary;
+    return E->getExprClass() == Expr::BinaryExprClass;
   }
   static bool classof(const BinaryExpr *) { return true; }
 };
 
 /// DefinedOperatorBinaryExpr -
-class DefinedOperatorBinaryExpr : public BinaryExpr {
+class DefinedBinaryOperatorExpr : public BinaryExpr {
   IdentifierInfo *II;
-  DefinedOperatorBinaryExpr(SourceLocation Loc, Expr *LHS, Expr *RHS,
+  DefinedBinaryOperatorExpr(SourceLocation Loc, Expr *LHS, Expr *RHS,
                             IdentifierInfo *IDInfo)
     // FIXME: The type here needs to be calculated.
-    : BinaryExpr(Expr::DefinedBinaryOperator, QualType(), Loc, Defined,
+    : BinaryExpr(Expr::DefinedBinaryOperatorExprClass, QualType(), Loc, Defined,
                  LHS, RHS), II(IDInfo) {}
 public:
-  static DefinedOperatorBinaryExpr *Create(ASTContext &C, SourceLocation Loc,
+  static DefinedBinaryOperatorExpr *Create(ASTContext &C, SourceLocation Loc,
                                            Expr *LHS, Expr *RHS,
                                            IdentifierInfo *IDInfo);
 
   const IdentifierInfo *getIdentifierInfo() const { return II; }
   IdentifierInfo *getIdentifierInfo() { return II; }
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::DefinedBinaryOperator;
+    return E->getExprClass() == Expr::DefinedBinaryOperatorExprClass;
   }
-  static bool classof(const DefinedOperatorBinaryExpr *) { return true; }
+  static bool classof(const DefinedBinaryOperatorExpr *) { return true; }
 };
 
 /// ImplicitCastExpr - Allows us to explicitly represent implicit type
@@ -821,10 +732,8 @@ public:
   SourceLocation getLocStart() const;
   SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::ImplicitCast;
+    return E->getExprClass() == Expr::ImplicitCastExprClass;
   }
   static bool classof(const ImplicitCastExpr *) { return true; }
 };
@@ -842,23 +751,21 @@ public:
 
   SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Call;
+    return E->getExprClass() == CallExprClass;
   }
   static bool classof(const CallExpr *) { return true; }
 };
 
-/// IntrinsicFunctionCallExpr - represents a call to an intrinsic function
-class IntrinsicFunctionCallExpr : public Expr, public MultiArgumentExpr {
+/// IntrinsicCallExpr - represents a call to an intrinsic function
+class IntrinsicCallExpr : public Expr, public MultiArgumentExpr {
   intrinsic::FunctionKind Function;
-  IntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
+  IntrinsicCallExpr(ASTContext &C, SourceLocation Loc,
                             intrinsic::FunctionKind Func,
                             ArrayRef<Expr*> Args,
                             QualType ReturnType);
 public:
-  static IntrinsicFunctionCallExpr *Create(ASTContext &C, SourceLocation Loc,
+  static IntrinsicCallExpr *Create(ASTContext &C, SourceLocation Loc,
                                            intrinsic::FunctionKind Func,
                                            ArrayRef<Expr*> Arguments,
                                            QualType ReturnType);
@@ -867,12 +774,10 @@ public:
 
   SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream&);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == Expr::IntrinsicFunctionCall;
+    return E->getExprClass() == Expr::IntrinsicCallExprClass;
   }
-  static bool classof(const IntrinsicFunctionCallExpr *) { return true; }
+  static bool classof(const IntrinsicCallExpr *) { return true; }
 };
 
 /// ImpliedDoExpr - represents an implied do in a DATA statement
@@ -899,12 +804,10 @@ public:
 
   SourceLocation getLocEnd() const;
 
-  virtual void print(llvm::raw_ostream &);
-
   static bool classof(const Expr *E) {
-    return E->getExpressionID() == ImpliedDo;
+    return E->getExprClass() == ImpliedDoExprClass;
   }
-  static bool classof(const IntrinsicFunctionCallExpr *) { return true; }
+  static bool classof(const IntrinsicCallExpr *) { return true; }
 };
 
 } // end flang namespace

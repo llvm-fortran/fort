@@ -19,6 +19,7 @@ add_dependencies(flangAST
   FlangDiagnosticCommon
   FlangDeclNodes
   FlangStmtNodes
+  FlangExprNodes
   )
 
 target_link_libraries(flangAST
