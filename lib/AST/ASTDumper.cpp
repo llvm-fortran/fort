@@ -16,6 +16,7 @@
 #include "flang/AST/Stmt.h"
 #include "flang/AST/ExprVisitor.h"
 #include "flang/AST/StmtVisitor.h"
+#include "flang/AST/DeclVisitor.h"
 #include "flang/AST/Type.h"
 #include "flang/AST/FormatItem.h"
 #include "flang/Basic/LLVM.h"
@@ -25,12 +26,22 @@ using namespace flang;
 namespace {
 
 class ASTDumper : public ConstStmtVisitor<ASTDumper>,
-  public ConstExprVisitor<ASTDumper> {
+  public ConstExprVisitor<ASTDumper>,
+  public ConstDeclVisitor<ASTDumper> {
   raw_ostream &OS;
 
   int indent;
 public:
   ASTDumper(raw_ostream &os) : OS(os), indent(0) {}
+
+  // utilities
+  void dumpIndent();
+
+  // declarations
+  void dumpDecl(const Decl *D);
+  void VisitMainProgramDecl(const MainProgramDecl *D);
+  void VisitFunctionDecl(const FunctionDecl *D);
+  void VisitVarDecl(const VarDecl *D);
 
   // statements
   void dumpStmt(const Stmt *S);
@@ -97,9 +108,47 @@ public:
 
 } // end anonymous namespace
 
-void ASTDumper::dumpStmt(const Stmt *S) {
+// utilities
+
+void ASTDumper::dumpIndent() {
   for(int i = 0; i < indent; ++i)
     OS << "  ";
+}
+
+// declarations
+
+void ASTDumper::dumpDecl(const Decl *D) {
+  dumpIndent();
+  ConstDeclVisitor<ASTDumper>::Visit(D);
+}
+
+void ASTDumper::VisitMainProgramDecl(const MainProgramDecl *D) {
+  if(D->getBody())
+    dumpStmt(D->getBody());
+}
+
+void ASTDumper::VisitFunctionDecl(const FunctionDecl *D) {
+  if(!D->getType().isNull()) {
+    D->getType().print(OS);
+    OS << ' ';
+  }
+  OS << D->getName() << "\n";
+  if(D->getBody())
+    dumpStmt(D->getBody());
+}
+
+void ASTDumper::VisitVarDecl(const VarDecl *D) {
+  if(!D->getType().isNull()) {
+    D->getType().print(OS);
+    OS << ' ';
+  }
+  OS << D->getName() << "\n";
+}
+
+// statements
+
+void ASTDumper::dumpStmt(const Stmt *S) {
+  dumpIndent();
   ConstStmtVisitor<ASTDumper>::Visit(S);
 }
 
@@ -115,7 +164,7 @@ void ASTDumper::VisitConstructPartStmt(const ConstructPartStmt *S) {
 }
 
 void ASTDumper::VisitDeclStmt(const DeclStmt *S) {
-  S->getDeclaration()->print(OS);
+  dumpDecl(S->getDeclaration());
   OS << "\n";
 }
 

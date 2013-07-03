@@ -173,10 +173,6 @@ public:
   static bool classof(const Decl *) { return true; }
   static DeclContext *castToDeclContext(const Decl *);
   static Decl *castFromDeclContext(const DeclContext *);
-
-  virtual void print(raw_ostream &OS) const;
-
-  void dump() const;
 };
 
 /// PrettyStackTraceDecl - If a crash occurs, indicate that it happened when
@@ -457,8 +453,6 @@ public:
   /// \brief Set the name of this declaration.
   void setDeclName(DeclarationName N) { Name = N; }
 
-  virtual void print(raw_ostream &OS) const;
-
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
   static bool classof(const NamedDecl *D) { return true; }
@@ -600,8 +594,6 @@ public:
   QualType getType() const { return DeclType; }
   void setType(QualType newType) { DeclType = newType; }
 
-  virtual void print(raw_ostream &OS) const;
-
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
   static bool classof(const ValueDecl *D) { return true; }
@@ -651,8 +643,6 @@ public:
     // TODO
     return SourceRange();
   }
-
-  virtual void print(raw_ostream &OS) const;
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
@@ -727,8 +717,6 @@ public:
 
   void setBody(BlockStmt *S);
   BlockStmt *getBody() const { return Body; }
-
-  virtual void print(raw_ostream &OS) const;
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
@@ -879,8 +867,6 @@ public:
   inline bool isArgument() const { return SubDeclKind == FunctionArgument; }
 
   void MutateIntoParameter(Expr *Value);
-
-  virtual void print(raw_ostream &OS) const;
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }

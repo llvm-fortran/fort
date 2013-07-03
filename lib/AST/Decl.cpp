@@ -365,44 +365,4 @@ void StoredDeclsMap::DestroyAll(StoredDeclsMap *Map) {
   }
 }
 
-void Decl::dump() const {
-  print(llvm::errs());
-  llvm::errs() << '\n';
-}
-
-void Decl::print(raw_ostream &) const {
-}
-
-void NamedDecl::print(raw_ostream &OS) const {
-  Decl::print(OS);
-  Name.printName(OS);
-}
-
-void ValueDecl::print(raw_ostream &OS) const {
-  DeclType.print(OS);
-  OS << " :: ";
-  NamedDecl::print(OS);
-}
-
-void DeclaratorDecl::print(raw_ostream &OS) const {
-  ValueDecl::print(OS);
-}
-
-void FunctionDecl::print(raw_ostream &OS) const {
-  if(!getType().isNull()) {
-    getType().print(OS);
-    OS << ' ';
-  }
-  OS << getName();
-  if(getBody()) {
-    OS << "\n{\n";
-    flang::dump(getBody());
-    OS << "}\n";
-  }
-}
-
-void VarDecl::print(raw_ostream &OS) const {
-  DeclaratorDecl::print(OS);
-}
-
 } //namespace flang
