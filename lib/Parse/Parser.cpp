@@ -18,7 +18,6 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
-#include "flang/AST/ASTDumper.h"
 #include "flang/Basic/TokenKinds.h"
 #include "flang/Sema/DeclSpec.h"
 #include "flang/Sema/Sema.h"
@@ -453,8 +452,6 @@ bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
     ProgramStmt *PS = ProgStmt.takeAs<ProgramStmt>();
     IDInfo = PS->getProgramName();
     NameLoc = PS->getNameLocation();
-    // FIXME: Debugging
-    dump(PS);
   }
 
   auto Program = Actions.ActOnMainProgram(IDInfo, NameLoc);
@@ -477,8 +474,6 @@ bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
 
   Actions.ActOnEndMainProgram(Loc, IDInfo, NameLoc);
 
-  dump(Program->getBody());
-
   return EndProgStmt.isInvalid();
 }
 
@@ -492,9 +487,6 @@ bool Parser::ParseExecutableSubprogramBody(std::vector<StmtResult> &Body,
 
   // Apply specification statements.
   Actions.ActOnSpecificationPart(Body);
-
-  // FIXME: Debugging support.
-  dump(Body);
 
   // FIXME: Check for the specific keywords and not just absence of END or
   //        ENDPROGRAM.
@@ -664,8 +656,6 @@ bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body, DeclSpec &Re
     Lex();//End..
   StmtLabel = nullptr;
   Actions.ActOnEndSubProgram(Context, EndLoc);
-
-  dump(Function->getBody());
 
   return false;
 }

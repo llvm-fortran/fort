@@ -230,11 +230,19 @@ void Sema::ActOnEndProgramUnit() {
 }
 
 MainProgramDecl *Sema::ActOnMainProgram(const IdentifierInfo *IDInfo, SourceLocation NameLoc) {
+  bool Declare = true;
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    Diags.Report(NameLoc, diag::err_redefinition) << IDInfo;
+    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+    Declare = false;
+  }
+
   DeclarationName DN(IDInfo);
   DeclarationNameInfo NameInfo(DN, NameLoc);
-  auto Program = MainProgramDecl::Create(Context,
-                                         Context.getTranslationUnitDecl(),
-                                         NameInfo);
+  auto ParentDC = Context.getTranslationUnitDecl();
+  auto Program = MainProgramDecl::Create(Context, ParentDC, NameInfo);
+  if(Declare)
+    ParentDC->addDecl(Program);
   PushDeclContext(Program);
   PushExecutableProgramUnit();
   return Program;
@@ -303,12 +311,11 @@ FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLoca
                                    ParentDC, NameInfo, ReturnType);
   if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
     SetFunctionType(Func, ReturnType, IDLoc, SourceRange());//FIXME: proper loc and range
-  DeclContext *DC = Func;
   if(Declare)
     ParentDC->addDecl(Func);
-  PushDeclContext(DC);
+  PushDeclContext(Func);
   PushExecutableProgramUnit();
-  DC->addDecl(Func);
+  CurContext->addDecl(Func);
   return Func;
 }
 

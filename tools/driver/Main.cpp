@@ -13,6 +13,8 @@
 
 #include "flang/Frontend/TextDiagnosticPrinter.h"
 #include "flang/Frontend/VerifyDiagnosticConsumer.h"
+#include "flang/AST/ASTConsumer.h"
+#include "flang/Frontend/ASTConsumers.h"
 #include "flang/Parse/Parser.h"
 #include "flang/Sema/Sema.h"
 #include "llvm/Support/CommandLine.h"
@@ -104,6 +106,9 @@ static bool ParseFile(const std::string &Filename,
   Diag.getClient()->BeginSourceFile(Opts, &P.getLexer());
   bool result = P.ParseProgramUnits();
   Diag.getClient()->EndSourceFile();
+  // dump
+  auto Dumper = CreateASTDumper("");
+  Dumper->HandleTranslationUnit(Context);
   return Diag.hadErrors() || Diag.hadWarnings();
 }
 

@@ -20,6 +20,9 @@
 
 namespace flang {
 
+  class Decl;
+  class Expr;
+
   /// print - Prints an expression.
   void print(llvm::raw_ostream &OS, const Expr *E);
 
@@ -28,6 +31,9 @@ namespace flang {
 
   /// dump - Dump an array of statements.
   void dump(llvm::ArrayRef<StmtResult> S);
+
+  /// dump - Dump a declaration
+  void dump(const Decl *D);
 
 } // end flang namespace
 

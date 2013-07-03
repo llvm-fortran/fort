@@ -39,6 +39,8 @@ public:
 
   // declarations
   void dumpDecl(const Decl *D);
+  void dumpDeclContext(const DeclContext *Ctx, const Decl *D);
+  void VisitTranslationUnitDecl(const TranslationUnitDecl *D);
   void VisitMainProgramDecl(const MainProgramDecl *D);
   void VisitFunctionDecl(const FunctionDecl *D);
   void VisitVarDecl(const VarDecl *D);
@@ -122,7 +124,23 @@ void ASTDumper::dumpDecl(const Decl *D) {
   ConstDeclVisitor<ASTDumper>::Visit(D);
 }
 
+void ASTDumper::dumpDeclContext(const DeclContext *Ctx, const Decl *D) {
+  auto I = Ctx->decls_begin();
+  for(auto E = Ctx->decls_end(); I!=E; ++I) {
+    if(*I != D && (*I)->getDeclContext() == Ctx)
+      dumpDecl(*I);
+  }
+}
+
+void ASTDumper::VisitTranslationUnitDecl(const TranslationUnitDecl *D) {
+  dumpDeclContext(D, D);
+}
+
 void ASTDumper::VisitMainProgramDecl(const MainProgramDecl *D) {
+  OS << "program " << D->getName() << "\n";
+  indent++;
+  dumpDeclContext(D, D);
+  indent--;
   if(D->getBody())
     dumpStmt(D->getBody());
 }
@@ -132,7 +150,17 @@ void ASTDumper::VisitFunctionDecl(const FunctionDecl *D) {
     D->getType().print(OS);
     OS << ' ';
   }
-  OS << D->getName() << "\n";
+  OS << (D->isNormalFunction()? "function " : "subroutine ")
+     << D->getName() << "(";
+  auto Args = D->getArguments();
+  for(size_t I = 0; I < Args.size(); ++I) {
+    if(I) OS << ", ";
+    OS << cast<VarDecl>(Args[I])->getName();
+  }
+  OS << ")\n";
+  indent++;
+  dumpDeclContext(D, D);
+  indent--;
   if(D->getBody())
     dumpStmt(D->getBody());
 }
@@ -559,4 +587,9 @@ void flang::dump(ArrayRef<StmtResult> S) {
     if (!isa<ProgramStmt>(I->get()))
       SV.dumpStmt((*I).get());
   }
+}
+
+void flang::dump(const Decl *D) {
+  ASTDumper SV(llvm::errs());
+  SV.dumpDecl(D);
 }
