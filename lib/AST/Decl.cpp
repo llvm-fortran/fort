@@ -91,7 +91,7 @@ void DeclContext::buildLookup(DeclContext *DCtx) {
     // semantically in its decl context.  During non-lazy lookup building, this
     // is implicitly enforced by addDecl.
     if (NamedDecl *ND = dyn_cast<NamedDecl>(*D))
-      //if (D->getDeclContext() == DCtx)
+      if (D->getDeclContext() == DCtx)
         makeDeclVisibleInContextImpl(ND);
 }
 
@@ -226,7 +226,7 @@ MainProgramDecl *MainProgramDecl::Create(ASTContext &C, DeclContext *DC,
   return new (C) MainProgramDecl(DC, NameInfo);
 }
 
-void MainProgramDecl::setBody(BlockStmt *S) {
+void MainProgramDecl::setBody(Stmt *S) {
   assert(!Body);
   Body = S;
 }
@@ -242,7 +242,7 @@ FunctionDecl *FunctionDecl::Create(ASTContext &C, FunctionKind FK,
   return new(C) FunctionDecl(Function, FK, DC, NameInfo, ReturnType);
 }
 
-void FunctionDecl::setBody(BlockStmt *S) {
+void FunctionDecl::setBody(Stmt *S) {
   assert(!Body);
   Body = S;
 }
@@ -333,6 +333,16 @@ void VarDecl::MutateIntoParameter(Expr *Value) {
   assert(!Init);
   Init = Value;
   SubDeclKind = ParameterVariable;
+}
+
+//===----------------------------------------------------------------------===//
+// ReturnVarDecl Implementation
+//===----------------------------------------------------------------------===//
+
+ReturnVarDecl *ReturnVarDecl::Create(ASTContext &C, DeclContext *DC,
+                                     SourceLocation IDLoc,
+                                     const IdentifierInfo *ID) {
+  return new(C) ReturnVarDecl(ReturnVar, DC, IDLoc, ID);
 }
 
 //===----------------------------------------------------------------------===//

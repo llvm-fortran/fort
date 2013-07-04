@@ -27,7 +27,9 @@
 namespace flang {
 
 Sema::Sema(ASTContext &ctxt, DiagnosticsEngine &D)
-  : Context(ctxt), Diags(D), CurContext(0), IntrinsicFunctionMapping(LangOptions()) {
+  : Context(ctxt), Diags(D), CurContext(0), IntrinsicFunctionMapping(LangOptions()),
+    CurExecutableStmts(nullptr),
+    CurStmtLabelScope(nullptr), CurImplicitTypingScope(nullptr) {
 }
 
 Sema::~Sema() {}
@@ -61,20 +63,23 @@ FunctionDecl *Sema::CurrentContextAsFunction() const {
 }
 
 
-void Sema::PushExecutableProgramUnit() {
+void Sema::PushExecutableProgramUnit(ExecutableProgramUnitScope &Scope) {
   // Enter new statement label scope
-  assert(CurStmtLabelScope.decl_empty());
-  assert(CurStmtLabelScope.getForwardDecls().size() == 0);
+  Scope.StmtLabels.setParent(CurStmtLabelScope);
+  CurStmtLabelScope = &Scope.StmtLabels;
 
-  assert(!CurExecutableStmts.StmtList.size());
-  assert(!CurExecutableStmts.ControlFlowStack.size());
+  // Enter new implicit typing scope
+  Scope.ImplicitTypingRules.setParent(CurImplicitTypingScope);
+  CurImplicitTypingScope = &Scope.ImplicitTypingRules;
+
+  CurExecutableStmts = &Scope.Body;
 }
 
 static bool IsValidDoTerminatingStatement(Stmt *S);
 
 // Unterminated labeled do statement
 static void ReportUnterminatedLabeledDoStmt(DiagnosticsEngine &Diags,
-                                            const ExecutableProgramUnitStmts::ControlFlowStmt &S,
+                                            const BlockStmtBuilder::Entry &S,
                                             SourceLocation Loc) {
   std::string Str;
   llvm::raw_string_ostream Stream(Str);
@@ -84,7 +89,7 @@ static void ReportUnterminatedLabeledDoStmt(DiagnosticsEngine &Diags,
 
 // Unterminated if/do statement
 static void ReportUnterminatedStmt(DiagnosticsEngine &Diags,
-                                   const ExecutableProgramUnitStmts::ControlFlowStmt &S,
+                                   const BlockStmtBuilder::Entry &S,
                                    SourceLocation Loc,
                                    bool ReportUnterminatedLabeledDo = true) {
   const char * Keyword;
@@ -108,9 +113,9 @@ static void ReportUnterminatedStmt(DiagnosticsEngine &Diags,
 
 void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
   // Fix the forward statement label references
-  auto StmtLabelForwardDecls = CurStmtLabelScope.getForwardDecls();
+  auto StmtLabelForwardDecls = CurStmtLabelScope->getForwardDecls();
   for(size_t I = 0; I < StmtLabelForwardDecls.size(); ++I) {
-    if(auto Decl = CurStmtLabelScope.Resolve(StmtLabelForwardDecls[I].StmtLabel))
+    if(auto Decl = CurStmtLabelScope->Resolve(StmtLabelForwardDecls[I].StmtLabel))
       StmtLabelForwardDecls[I].ResolveCallback(Diags, StmtLabelForwardDecls[I], Decl);
     else {
       std::string Str;
@@ -124,44 +129,37 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
   }
   // FIXME: TODO warning unused statement labels.
   // Clear the statement labels scope
-  CurStmtLabelScope.reset();
+  CurStmtLabelScope = CurStmtLabelScope->getParent();
 
   // Report unterminated statements.
-  if(CurExecutableStmts.HasEntered()) {
+  if(CurExecutableStmts->HasEntered()) {
     // If do ends with statement label, the error
     // was already reported as undeclared label use.
-    ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc, false);
+    ReportUnterminatedStmt(Diags, CurExecutableStmts->LastEntered(), Loc, false);
   }
-  auto Body = CurExecutableStmts.LeaveOuterBody(Context, cast<Decl>(CurContext)->getLocation());
+  auto Body = CurExecutableStmts->LeaveOuterBody(Context, cast<Decl>(CurContext)->getLocation());
   if(auto FD = dyn_cast<FunctionDecl>(CurContext))
     FD->setBody(Body);
   else
     cast<MainProgramDecl>(CurContext)->setBody(Body);
-  CurExecutableStmts.Reset();
 
-  //FIXME: Implicit typing scope stacking in internal functions
-  CurImplicitTypingScope.Reset();
+  CurImplicitTypingScope = CurImplicitTypingScope->getParent();
 }
 
-void ExecutableProgramUnitStmts::Reset() {
-  ControlFlowStack.clear();
-  StmtList.clear();
-}
-
-void ExecutableProgramUnitStmts::Enter(ControlFlowStmt S) {
+void BlockStmtBuilder::Enter(Entry S) {
   S.BeginOffset = StmtList.size();
   ControlFlowStack.push_back(S);
 }
 
-Stmt *ExecutableProgramUnitStmts::CreateBody(ASTContext &C,
-                                             const ControlFlowStmt &Last) {
-  auto Ref = ArrayRef<StmtResult>(StmtList);
+Stmt *BlockStmtBuilder::CreateBody(ASTContext &C,
+                                             const Entry &Last) {
+  auto Ref = ArrayRef<Stmt*>(StmtList);
   return BlockStmt::Create(C, Last.Statement->getLocation(),
-                           ArrayRef<StmtResult>(Ref.begin() + Last.BeginOffset,
-                                                Ref.end()));
+                           ArrayRef<Stmt*>(Ref.begin() + Last.BeginOffset,
+                                           Ref.end()));
 }
 
-void ExecutableProgramUnitStmts::LeaveIfThen(ASTContext &C) {
+void BlockStmtBuilder::LeaveIfThen(ASTContext &C) {
   auto Last = ControlFlowStack.back();
   assert(isa<IfStmt>(Last));
 
@@ -170,7 +168,7 @@ void ExecutableProgramUnitStmts::LeaveIfThen(ASTContext &C) {
   StmtList.erase(StmtList.begin() + Last.BeginOffset, StmtList.end());
 }
 
-void ExecutableProgramUnitStmts::Leave(ASTContext &C) {
+void BlockStmtBuilder::Leave(ASTContext &C) {
   assert(ControlFlowStack.size());
   auto Last = ControlFlowStack.pop_back_val();
 
@@ -185,24 +183,25 @@ void ExecutableProgramUnitStmts::Leave(ASTContext &C) {
   StmtList.erase(StmtList.begin() + Last.BeginOffset, StmtList.end());
 }
 
-BlockStmt *ExecutableProgramUnitStmts::LeaveOuterBody(ASTContext &C, SourceLocation Loc) {
+Stmt *BlockStmtBuilder::LeaveOuterBody(ASTContext &C, SourceLocation Loc) {
+  if(StmtList.size() == 1) return StmtList[0];
   return BlockStmt::Create(C, Loc, StmtList);
 }
 
-bool ExecutableProgramUnitStmts::HasEntered(Stmt::StmtClass StmtType) const {
+bool BlockStmtBuilder::HasEntered(Stmt::StmtClass StmtType) const {
   for(auto I : ControlFlowStack) {
     if(I.is(StmtType)) return true;
   }
   return false;
 }
 
-void ExecutableProgramUnitStmts::Append(Stmt *S) {
+void BlockStmtBuilder::Append(Stmt *S) {
   assert(S);
-  StmtList.push_back(StmtResult(S));
+  StmtList.push_back(S);
 }
 
 void Sema::DeclareStatementLabel(Expr *StmtLabel, Stmt *S) {
-  if(auto Decl = getCurrentStmtLabelScope().Resolve(StmtLabel)) {
+  if(auto Decl = getCurrentStmtLabelScope()->Resolve(StmtLabel)) {
     std::string Str;
     llvm::raw_string_ostream Stream(Str);
     StmtLabel->dump(Stream);
@@ -214,21 +213,25 @@ void Sema::DeclareStatementLabel(Expr *StmtLabel, Stmt *S) {
         << Decl->getStmtLabel()->getSourceRange();
   }
   else {
-    getCurrentStmtLabelScope().Declare(StmtLabel, S);
+    getCurrentStmtLabelScope()->Declare(StmtLabel, S);
     /// Check to see if it matches the last do stmt.
     CheckStatementLabelEndDo(StmtLabel, S);
   }
 }
 
-void Sema::ActOnTranslationUnit() {
+void Sema::ActOnTranslationUnit(TranslationUnitScope &Scope) {
   PushDeclContext(Context.getTranslationUnitDecl());
+  CurImplicitTypingScope = &Scope.ImplicitTypingRules;
+  CurStmtLabelScope = &Scope.StmtLabels;
 }
 
-void Sema::ActOnEndProgramUnit() {
-  PopDeclContext();
+void Sema::ActOnEndTranslationUnit() {
+
 }
 
-MainProgramDecl *Sema::ActOnMainProgram(const IdentifierInfo *IDInfo, SourceLocation NameLoc) {
+MainProgramDecl *Sema::ActOnMainProgram(ASTContext &C, MainProgramScope &Scope,
+                                        const IdentifierInfo *IDInfo,
+                                        SourceLocation NameLoc) {
   bool Declare = true;
   if (auto Prev = LookupIdentifier(IDInfo)) {
     Diags.Report(NameLoc, diag::err_redefinition) << IDInfo;
@@ -238,12 +241,12 @@ MainProgramDecl *Sema::ActOnMainProgram(const IdentifierInfo *IDInfo, SourceLoca
 
   DeclarationName DN(IDInfo);
   DeclarationNameInfo NameInfo(DN, NameLoc);
-  auto ParentDC = Context.getTranslationUnitDecl();
-  auto Program = MainProgramDecl::Create(Context, ParentDC, NameInfo);
+  auto ParentDC = C.getTranslationUnitDecl();
+  auto Program = MainProgramDecl::Create(C, ParentDC, NameInfo);
   if(Declare)
     ParentDC->addDecl(Program);
   PushDeclContext(Program);
-  PushExecutableProgramUnit();
+  PushExecutableProgramUnit(Scope);
   return Program;
 }
 
@@ -290,7 +293,8 @@ void Sema::SetFunctionType(FunctionDecl *Function, QualType Type,
   Function->setType(Type);
 }
 
-FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLoc,
+FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, SubProgramScope &Scope,
+                                    bool IsSubRoutine, SourceLocation IDLoc,
                                     const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl) {
   bool Declare = true;
   if (auto Prev = LookupIdentifier(IDInfo)) {
@@ -313,8 +317,9 @@ FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLoca
   if(Declare)
     ParentDC->addDecl(Func);
   PushDeclContext(Func);
-  PushExecutableProgramUnit();
-  CurContext->addDecl(Func);
+  PushExecutableProgramUnit(Scope);
+  auto RetVar = ReturnVarDecl::Create(C, CurContext, IDLoc, IDInfo);
+  CurContext->addDecl(RetVar);
   return Func;
 }
 
@@ -409,20 +414,21 @@ VarDecl *Sema::ActOnKindSelector(ASTContext &C, SourceLocation IDLoc,
 Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDLoc,
                             const IdentifierInfo *IDInfo) {
   if (auto Prev = LookupIdentifier(IDInfo)) {
+    FunctionDecl *FD = dyn_cast<FunctionDecl>(Prev);
     if(auto VD = dyn_cast<VarDecl>(Prev)) {
       if(VD->isArgument() && VD->getType().isNull()) {
         VD->setType(T);
         return VD;
       }
-    } else if(auto FD = dyn_cast<FunctionDecl>(Prev)) {
-      if(FD->isNormalFunction() || FD->isExternal()) {
-        if(FD->getType().isNull()) {
-          SetFunctionType(FD, T, IDLoc, SourceRange()); //Fixme: proper loc and range
-          return FD;
-        } else {
-          Diags.Report(IDLoc, diag::err_func_return_type_already_specified) << IDInfo;
-          return nullptr;
-        }
+    } else if(isa<ReturnVarDecl>(Prev))
+      FD = CurrentContextAsFunction();
+    if(FD && (FD->isNormalFunction() || FD->isExternal())) {
+      if(FD->getType().isNull()) {
+        SetFunctionType(FD, T, IDLoc, SourceRange()); //Fixme: proper loc and range
+        return FD;
+      } else {
+        Diags.Report(IDLoc, diag::err_func_return_type_already_specified) << IDInfo;
+        return nullptr;
       }
     }
     Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
@@ -453,7 +459,7 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
 }
 
 QualType Sema::ResolveImplicitType(const IdentifierInfo *IDInfo) {
-  auto Result = getCurrentImplicitTypingScope().Resolve(IDInfo);
+  auto Result = getCurrentImplicitTypingScope()->Resolve(IDInfo);
   if(Result.first == ImplicitTypingScope::NoneRule) return QualType();
   else if(Result.first == ImplicitTypingScope::DefaultRule) {
     char letter = toupper(IDInfo->getNameStart()[0]);
@@ -502,6 +508,7 @@ StmtResult Sema::ActOnCompoundStmt(ASTContext &C, SourceLocation Loc,
     auto Result = Body[0];
     if(StmtLabel) {
       DeclareStatementLabel(StmtLabel, Result);
+      Result->setLocation(Loc);
       Result->setStmtLabel(StmtLabel);
     }
     return Result;
@@ -559,8 +566,8 @@ StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, DeclSpec &DS,
   }
 
   // apply the rule
-  if(!getCurrentImplicitTypingScope().Apply(LetterSpec,Ty)) {
-    if(getCurrentImplicitTypingScope().isNoneInThisScope())
+  if(!getCurrentImplicitTypingScope()->Apply(LetterSpec,Ty)) {
+    if(getCurrentImplicitTypingScope()->isNoneInThisScope())
       Diags.Report(Loc, diag::err_use_implicit_stmt_after_none);
     else {
       if(LetterSpec.second)
@@ -581,7 +588,7 @@ StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, DeclSpec &DS,
 
 StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   // IMPLICIT NONE
-  if(!getCurrentImplicitTypingScope().ApplyNone())
+  if(!getCurrentImplicitTypingScope()->ApplyNone())
     Diags.Report(Loc, diag::err_use_implicit_none_stmt);
 
   auto Result = ImplicitStmt::Create(C, Loc, StmtLabel);
@@ -644,15 +651,15 @@ StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
                                 EqualLoc, IDLoc);
     if(Value.isInvalid()) return StmtError();
     // FIXME: if value is invalid, mutate into parameter givin a zero value
-    VD->MutateIntoParameter(Value.take());
+    VD->MutateIntoParameter(Value.get());
   } else {
     QualType T = Value.get()->getType();
     VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, T);
-    VD->MutateIntoParameter(Value.take());
+    VD->MutateIntoParameter(Value.get());
     CurContext->addDecl(VD);
   }
 
-  auto Result = DeclStmt::Create(C, Loc, VD, StmtLabel);
+  auto Result = ParameterStmt::Create(C, Loc, IDInfo, Value.get(), StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -709,7 +716,7 @@ StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
     SetFunctionType(Decl, Type, TypeLoc, SourceRange()); //FIXME: proper loc, and range
   CurContext->addDecl(Decl);
 
-  auto Result = DeclStmt::Create(C, Loc, Decl, StmtLabel);
+  auto Result = ExternalStmt::Create(C, IDLoc, IDInfo, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -738,7 +745,7 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
                                             C.IntegerTy, FuncResult.Function);
   CurContext->addDecl(Decl);
 
-  auto Result = DeclStmt::Create(C, Loc, Decl, StmtLabel);
+  auto Result = IntrinsicStmt::Create(C, IDLoc, IDInfo, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -953,7 +960,7 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
   if(RHS.isInvalid()) return StmtError();
 
   auto Result = AssignmentStmt::Create(C, Loc, LHS.take(), RHS.take(), StmtLabel);
-  CurExecutableStmts.Append(Result);
+  getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -1068,10 +1075,6 @@ bool Sema::CheckCharacterLengthDeclarationCompability(QualType T, VarDecl *VD) {
   return true;
 }
 
-StmtResult Sema::ActOnBlock(ASTContext &C, SourceLocation Loc, ArrayRef<StmtResult> Body) {
-  return BlockStmt::Create(C, Loc, Body);
-}
-
 static void ResolveAssignStmtLabel(DiagnosticsEngine &Diags,
                                    const StmtLabelScope::ForwardDecl &Self,
                                    Stmt *Destination) {
@@ -1082,17 +1085,17 @@ StmtResult Sema::ActOnAssignStmt(ASTContext &C, SourceLocation Loc,
                                  ExprResult Value, VarExpr* VarRef,
                                  Expr *StmtLabel) {
   Stmt *Result;
-  auto Decl = getCurrentStmtLabelScope().Resolve(Value.get());
+  auto Decl = getCurrentStmtLabelScope()->Resolve(Value.get());
   if(!Decl) {
     Result = AssignStmt::Create(C, Loc, StmtLabelReference(),VarRef, StmtLabel);
-    getCurrentStmtLabelScope().DeclareForwardReference(
+    getCurrentStmtLabelScope()->DeclareForwardReference(
       StmtLabelScope::ForwardDecl(Value.get(), Result,
                                   ResolveAssignStmtLabel));
   } else
     Result = AssignStmt::Create(C, Loc, StmtLabelReference(Decl),
                                 VarRef, StmtLabel);
 
-  CurExecutableStmts.Append(Result);
+  getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -1110,20 +1113,20 @@ StmtResult Sema::ActOnAssignedGotoStmt(ASTContext &C, SourceLocation Loc,
                                        Expr *StmtLabel) {
   SmallVector<StmtLabelReference, 4> AllowedLabels(AllowedValues.size());
   for(size_t I = 0; I < AllowedValues.size(); ++I) {
-    auto Decl = getCurrentStmtLabelScope().Resolve(AllowedValues[I].get());
+    auto Decl = getCurrentStmtLabelScope()->Resolve(AllowedValues[I].get());
     AllowedLabels[I] = Decl? StmtLabelReference(Decl): StmtLabelReference();
   }
   auto Result = AssignedGotoStmt::Create(C, Loc, VarRef, AllowedLabels, StmtLabel);
 
   for(size_t I = 0; I < AllowedValues.size(); ++I) {
     if(!AllowedLabels[I].Statement) {
-      getCurrentStmtLabelScope().DeclareForwardReference(
+      getCurrentStmtLabelScope()->DeclareForwardReference(
         StmtLabelScope::ForwardDecl(AllowedValues[I].get(), Result,
                                              ResolveAssignedGotoStmtLabel, I));
     }
   }
 
-  CurExecutableStmts.Append(Result);
+  getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -1137,16 +1140,16 @@ static void ResolveGotoStmtLabel(DiagnosticsEngine &Diags,
 StmtResult Sema::ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
                                ExprResult Destination, Expr *StmtLabel) {
   Stmt *Result;
-  auto Decl = getCurrentStmtLabelScope().Resolve(Destination.get());
+  auto Decl = getCurrentStmtLabelScope()->Resolve(Destination.get());
   if(!Decl) {
     Result = GotoStmt::Create(C, Loc, StmtLabelReference(), StmtLabel);
-    getCurrentStmtLabelScope().DeclareForwardReference(
+    getCurrentStmtLabelScope()->DeclareForwardReference(
       StmtLabelScope::ForwardDecl(Destination.get(), Result,
                                   ResolveGotoStmtLabel));
   } else
     Result = GotoStmt::Create(C, Loc, StmtLabelReference(Decl), StmtLabel);
 
-  CurExecutableStmts.Append(Result);
+  getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -1168,18 +1171,18 @@ StmtResult Sema::ActOnIfStmt(ASTContext &C, SourceLocation Loc,
   }
 
   auto Result = IfStmt::Create(C, Loc, Condition.take(), StmtLabel);
-  CurExecutableStmts.Append(Result);
+  getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  CurExecutableStmts.Enter(Result);
+  getCurrentBody()->Enter(Result);
   return Result;
 }
 
 StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
                                  ExprResult Condition, Expr *StmtLabel) {
-  if(!CurExecutableStmts.HasEntered() ||
-     !CurExecutableStmts.LastEntered().is(Stmt::IfStmtClass)) {
-    if(CurExecutableStmts.HasEntered(Stmt::IfStmtClass))
-      ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
+  if(!getCurrentBody()->HasEntered() ||
+     !getCurrentBody()->LastEntered().is(Stmt::IfStmtClass)) {
+    if(getCurrentBody()->HasEntered(Stmt::IfStmtClass))
+      ReportUnterminatedStmt(Diags, getCurrentBody()->LastEntered(), Loc);
     else
       Diags.Report(Loc, diag::err_stmt_not_in_if) << "ELSE IF";
     return StmtError();
@@ -1192,44 +1195,44 @@ StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
   }
 
   auto Result = IfStmt::Create(C, Loc, Condition.take(), StmtLabel);
-  auto ParentIf = static_cast<IfStmt*>(CurExecutableStmts.LastEntered().Statement);
-  CurExecutableStmts.Leave(C);
+  auto ParentIf = static_cast<IfStmt*>(getCurrentBody()->LastEntered().Statement);
+  getCurrentBody()->Leave(C);
   ParentIf->setElseStmt(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  CurExecutableStmts.Enter(Result);
+  getCurrentBody()->Enter(Result);
   return Result;
 }
 
 StmtResult Sema::ActOnElseStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
-  if(!CurExecutableStmts.HasEntered() ||
-     !CurExecutableStmts.LastEntered().is(Stmt::IfStmtClass)) {
-    if(CurExecutableStmts.HasEntered(Stmt::IfStmtClass))
-      ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
+  if(!getCurrentBody()->HasEntered() ||
+     !getCurrentBody()->LastEntered().is(Stmt::IfStmtClass)) {
+    if(getCurrentBody()->HasEntered(Stmt::IfStmtClass))
+      ReportUnterminatedStmt(Diags, getCurrentBody()->LastEntered(), Loc);
     else
       Diags.Report(Loc, diag::err_stmt_not_in_if) << "ELSE";
     return StmtError();
   }
   auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::ElseStmtClass, Loc, nullptr, StmtLabel);
-  CurExecutableStmts.Append(Result);
-  CurExecutableStmts.LeaveIfThen(C);
+  getCurrentBody()->Append(Result);
+  getCurrentBody()->LeaveIfThen(C);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
 StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   // Report begin .. end mismatch
-  if(!CurExecutableStmts.HasEntered() ||
-     !CurExecutableStmts.LastEntered().is(Stmt::IfStmtClass)) {
-    if(CurExecutableStmts.HasEntered(Stmt::IfStmtClass))
-      ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
+  if(!getCurrentBody()->HasEntered() ||
+     !getCurrentBody()->LastEntered().is(Stmt::IfStmtClass)) {
+    if(getCurrentBody()->HasEntered(Stmt::IfStmtClass))
+      ReportUnterminatedStmt(Diags, getCurrentBody()->LastEntered(), Loc);
     else
       Diags.Report(Loc, diag::err_stmt_not_in_if) << "END IF";
     return StmtError();
   }
 
   auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndIfStmtClass, Loc, nullptr, StmtLabel);
-  CurExecutableStmts.Append(Result);
-  CurExecutableStmts.Leave(C);
+  getCurrentBody()->Append(Result);
+  getCurrentBody()->Leave(C);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -1302,7 +1305,7 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult Termi
 
   // Make sure the statement label isn't already declared
   if(TerminatingStmt.get()) {
-    if(auto Decl = getCurrentStmtLabelScope().Resolve(TerminatingStmt.get())) {
+    if(auto Decl = getCurrentStmtLabelScope()->Resolve(TerminatingStmt.get())) {
       std::string String;
       llvm::raw_string_ostream Stream(String);
       TerminatingStmt.get()->dump(Stream);
@@ -1319,49 +1322,49 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult Termi
   auto Result = DoStmt::Create(C, Loc, StmtLabelReference(),
                                DoVar, E1.take(), E2.take(),
                                E3.take(), StmtLabel);
-  CurExecutableStmts.Append(Result);
+  getCurrentBody()->Append(Result);
   if(TerminatingStmt.get())
-    getCurrentStmtLabelScope().DeclareForwardReference(
+    getCurrentStmtLabelScope()->DeclareForwardReference(
       StmtLabelScope::ForwardDecl(TerminatingStmt.get(), Result,
                                            ResolveDoStmtLabel));
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   if(TerminatingStmt.get())
-    CurExecutableStmts.Enter(ExecutableProgramUnitStmts::ControlFlowStmt(
+    getCurrentBody()->Enter(BlockStmtBuilder::Entry(
                              Result,TerminatingStmt.get()));
-  else CurExecutableStmts.Enter(Result);
+  else getCurrentBody()->Enter(Result);
   return Result;
 }
 
 /// FIXME: Fortran 90+: make multiple do end at one label obsolete
 void Sema::CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S) {
-  if(!CurExecutableStmts.HasEntered())
+  if(!getCurrentBody()->HasEntered())
     return;
 
-  auto I = CurExecutableStmts.ControlFlowStack.size();
+  auto I = getCurrentBody()->ControlFlowStack.size();
   size_t LastUnterminated = 0;
   do {
     I--;
-    if(!isa<DoStmt>(CurExecutableStmts.ControlFlowStack[I].Statement)) {
+    if(!isa<DoStmt>(getCurrentBody()->ControlFlowStack[I].Statement)) {
       if(!LastUnterminated) LastUnterminated = I;
     } else {
-      auto ParentDo = cast<DoStmt>(CurExecutableStmts.ControlFlowStack[I].Statement);
-      auto ParentDoExpectedLabel = CurExecutableStmts.ControlFlowStack[I].ExpectedEndDoLabel;
+      auto ParentDo = cast<DoStmt>(getCurrentBody()->ControlFlowStack[I].Statement);
+      auto ParentDoExpectedLabel = getCurrentBody()->ControlFlowStack[I].ExpectedEndDoLabel;
       if(!ParentDoExpectedLabel) {
         if(!LastUnterminated) LastUnterminated = I;
       } else {
-        if(getCurrentStmtLabelScope().IsSame(ParentDoExpectedLabel, StmtLabel)) {
+        if(getCurrentStmtLabelScope()->IsSame(ParentDoExpectedLabel, StmtLabel)) {
           // END DO
-          getCurrentStmtLabelScope().RemoveForwardReference(ParentDo);
+          getCurrentStmtLabelScope()->RemoveForwardReference(ParentDo);
           if(!IsValidDoTerminatingStatement(S)) {
             Diags.Report(S->getLocation(),
                          diag::err_invalid_do_terminating_stmt);
           }
           ParentDo->setTerminatingStmt(StmtLabelReference(S));
           if(!LastUnterminated)
-            CurExecutableStmts.Leave(Context);
+            getCurrentBody()->Leave(Context);
           else
             ReportUnterminatedStmt(Diags,
-                                   CurExecutableStmts.ControlFlowStack[LastUnterminated],
+                                   getCurrentBody()->ControlFlowStack[LastUnterminated],
                                    S->getLocation());
         } else if(!LastUnterminated) LastUnterminated = I;
       }
@@ -1376,19 +1379,19 @@ StmtResult Sema::ActOnDoWhileStmt(ASTContext &C, SourceLocation Loc, ExprResult 
   }
 
   auto Result = DoWhileStmt::Create(C, Loc, Condition.take(), StmtLabel);
-  CurExecutableStmts.Append(Result);
+  getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  CurExecutableStmts.Enter(Result);
+  getCurrentBody()->Enter(Result);
   return Result;
 }
 
 StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   // Report begin .. end mismatch
-  if(!CurExecutableStmts.HasEntered() ||
-     (!isa<DoStmt>(CurExecutableStmts.LastEntered().Statement) &&
-      !isa<DoWhileStmt>(CurExecutableStmts.LastEntered().Statement))) {
+  if(!getCurrentBody()->HasEntered() ||
+     (!isa<DoStmt>(getCurrentBody()->LastEntered().Statement) &&
+      !isa<DoWhileStmt>(getCurrentBody()->LastEntered().Statement))) {
     bool HasMatchingDo = false;
-    for(auto I : CurExecutableStmts.ControlFlowStack) {
+    for(auto I : getCurrentBody()->ControlFlowStack) {
       if(isa<DoWhileStmt>(I.Statement) ||
         (isa<DoStmt>(I.Statement) && !I.ExpectedEndDoLabel)) {
         HasMatchingDo = true;
@@ -1397,37 +1400,37 @@ StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLab
     }
     if(!HasMatchingDo)
       Diags.Report(Loc, diag::err_end_do_without_do);
-    else ReportUnterminatedStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
+    else ReportUnterminatedStmt(Diags, getCurrentBody()->LastEntered(), Loc);
     return StmtError();
   }
 
-  auto Last = CurExecutableStmts.LastEntered();
+  auto Last = getCurrentBody()->LastEntered();
 
   if(isa<DoStmt>(Last.Statement)) {
     // If last loop was a DO with terminating label, we expect it to finish before this loop
-    if(CurExecutableStmts.LastEntered().ExpectedEndDoLabel) {
-      ReportUnterminatedLabeledDoStmt(Diags, CurExecutableStmts.LastEntered(), Loc);
+    if(getCurrentBody()->LastEntered().ExpectedEndDoLabel) {
+      ReportUnterminatedLabeledDoStmt(Diags, getCurrentBody()->LastEntered(), Loc);
       return StmtError();
     }
   }
 
   auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndDoStmtClass, Loc, nullptr, StmtLabel);
-  CurExecutableStmts.Append(Result);
-  CurExecutableStmts.Leave(C);
+  getCurrentBody()->Append(Result);
+  getCurrentBody()->Leave(C);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
 StmtResult Sema::ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   auto Result = ContinueStmt::Create(C, Loc, StmtLabel);
-  CurExecutableStmts.Append(Result);
+  getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
 StmtResult Sema::ActOnStopStmt(ASTContext &C, SourceLocation Loc, ExprResult StopCode, Expr *StmtLabel) {
   auto Result = StopStmt::Create(C, Loc, StopCode.take(), StmtLabel);
-  CurExecutableStmts.Append(Result);
+  getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -1438,7 +1441,7 @@ StmtResult Sema::ActOnReturnStmt(ASTContext &C, SourceLocation Loc, ExprResult E
     return StmtError();
   }
   auto Result = ReturnStmt::Create(C, Loc, E.take(), StmtLabel);
-  CurExecutableStmts.Append(Result);
+  getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -1452,7 +1455,7 @@ StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc, FunctionDecl *
   CheckCallArgumentCount(Function, Args, Loc);
 
   auto Result = CallStmt::Create(C, Loc, Function, Args, StmtLabel);
-  CurExecutableStmts.Append(Result);
+  getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }

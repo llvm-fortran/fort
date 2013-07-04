@@ -34,6 +34,8 @@ public:
   ASTDumper(raw_ostream &os) : OS(os), indent(0) {}
 
   // utilities
+  void dumpCompoundPartStart(const char *Name);
+  void dumpCompoundPartEnd();
   void dumpIndent();
 
   // declarations
@@ -43,20 +45,22 @@ public:
   void VisitMainProgramDecl(const MainProgramDecl *D);
   void VisitFunctionDecl(const FunctionDecl *D);
   void VisitVarDecl(const VarDecl *D);
+  void VisitReturnVarDecl(const ReturnVarDecl *D);
 
   // statements
   void dumpStmt(const Stmt *S);
-  void dumpSubStmt(const Stmt *S) {
-    dumpStmt(S);
-  }
+  void dumpSubStmt(const Stmt *S);
 
   void VisitConstructPartStmt(const ConstructPartStmt *S);
   void VisitDeclStmt(const DeclStmt *S);
-  void VisitBundledCompoundStmt(const CompoundStmt *S);
+  void VisitCompoundStmt(const CompoundStmt *S);
   void VisitProgramStmt(const ProgramStmt *S);
   void VisitEndProgramStmt(const EndProgramStmt *S);
+  void VisitParameterStmt(const ParameterStmt *S);
   void VisitImplicitStmt(const ImplicitStmt *S);
   void VisitDimensionStmt(const DimensionStmt *S);
+  void VisitExternalStmt(const ExternalStmt *S);
+  void VisitIntrinsicStmt(const IntrinsicStmt *S);
   void VisitDataStmt(const DataStmt *S);
   void VisitBlockStmt(const BlockStmt *S);
   void VisitAssignStmt(const AssignStmt *S);
@@ -111,6 +115,15 @@ public:
 
 // utilities
 
+
+void ASTDumper::dumpCompoundPartStart(const char *Name) {
+  OS << Name << ' ';
+}
+
+void ASTDumper::dumpCompoundPartEnd() {
+  OS << "\n";
+}
+
 void ASTDumper::dumpIndent() {
   for(int i = 0; i < indent; ++i)
     OS << "  ";
@@ -126,7 +139,7 @@ void ASTDumper::dumpDecl(const Decl *D) {
 void ASTDumper::dumpDeclContext(const DeclContext *Ctx, const Decl *D) {
   auto I = Ctx->decls_begin();
   for(auto E = Ctx->decls_end(); I!=E; ++I) {
-    if(*I != D && (*I)->getDeclContext() == Ctx)
+    if((*I)->getDeclContext() == Ctx)
       dumpDecl(*I);
   }
 }
@@ -141,7 +154,7 @@ void ASTDumper::VisitMainProgramDecl(const MainProgramDecl *D) {
   dumpDeclContext(D, D);
   indent--;
   if(D->getBody())
-    dumpStmt(D->getBody());
+    dumpSubStmt(D->getBody());
 }
 
 void ASTDumper::VisitFunctionDecl(const FunctionDecl *D) {
@@ -161,7 +174,7 @@ void ASTDumper::VisitFunctionDecl(const FunctionDecl *D) {
   dumpDeclContext(D, D);
   indent--;
   if(D->getBody())
-    dumpStmt(D->getBody());
+    dumpSubStmt(D->getBody());
 }
 
 void ASTDumper::VisitVarDecl(const VarDecl *D) {
@@ -172,11 +185,25 @@ void ASTDumper::VisitVarDecl(const VarDecl *D) {
   OS << D->getName() << "\n";
 }
 
+void ASTDumper::VisitReturnVarDecl(const ReturnVarDecl *D) {
+  OS << "return var\n";
+}
+
 // statements
 
 void ASTDumper::dumpStmt(const Stmt *S) {
   dumpIndent();
   ConstStmtVisitor<ASTDumper>::Visit(S);
+}
+
+void ASTDumper::dumpSubStmt(const Stmt *S) {
+  if(isa<BlockStmt>(S))
+    dumpStmt(S);
+  else {
+    ++indent;
+    dumpStmt(S);
+    --indent;
+  }
 }
 
 void ASTDumper::VisitConstructPartStmt(const ConstructPartStmt *S) {
@@ -195,7 +222,7 @@ void ASTDumper::VisitDeclStmt(const DeclStmt *S) {
   OS << "\n";
 }
 
-void ASTDumper::VisitBundledCompoundStmt(const CompoundStmt *S) {
+void ASTDumper::VisitCompoundStmt(const CompoundStmt *S) {
   auto Body = S->getBody();
   for(size_t I = 0; I < Body.size(); ++I) {
     if(I) OS<<"&";
@@ -215,6 +242,13 @@ void ASTDumper::VisitEndProgramStmt(const EndProgramStmt *S) {
   OS << "end program";
   if (Name) OS << ":  '" << Name->getName() << "'";
   OS << "\n";
+}
+
+void ASTDumper::VisitParameterStmt(const ParameterStmt *S) {
+  dumpCompoundPartStart("parameter");
+  OS << S->getIdentifier()->getName() << " = ";
+  dumpExpr(S->getValue());
+  dumpCompoundPartEnd();
 }
 
 void ASTDumper::VisitImplicitStmt(const ImplicitStmt *S) {
@@ -239,6 +273,18 @@ void ASTDumper::VisitDimensionStmt(const DimensionStmt *S) {
      << "\n";
 }
 
+void ASTDumper::VisitExternalStmt(const ExternalStmt *S) {
+  dumpCompoundPartStart("external");
+  OS << S->getIdentifier()->getName();
+  dumpCompoundPartEnd();
+}
+
+void ASTDumper::VisitIntrinsicStmt(const IntrinsicStmt *S) {
+  dumpCompoundPartStart("intrinsic");
+  OS << S->getIdentifier()->getName();
+  dumpCompoundPartEnd();
+}
+
 void ASTDumper::VisitDataStmt(const DataStmt *S) {
   OS << "data ";
   dumpExprList(S->getNames());
@@ -249,15 +295,15 @@ void ASTDumper::VisitDataStmt(const DataStmt *S) {
 
 void ASTDumper::VisitBlockStmt(const BlockStmt *S) {
   indent++;
-  ArrayRef<StmtResult> Body = S->getIDList();
-  for(size_t i = 0; i < Body.size(); ++i) {
-    StmtResult stmt = Body[i];
-    if(isa<ConstructPartStmt>(stmt.get()) && i == Body.size()-1){
+  auto Body = S->getStatements();
+  for(size_t I = 0; I < Body.size(); ++I) {
+    auto S = Body[I];
+    if(isa<ConstructPartStmt>(S) && I == Body.size()-1){
       indent--;
-      dumpStmt(stmt.get());
+      dumpStmt(S);
       return;
     }
-    dumpStmt(stmt.get());
+    dumpStmt(S);
   }
   indent--;
 }
@@ -353,17 +399,13 @@ void ASTDumper::VisitAssignmentStmt(const AssignmentStmt *S) {
 
 void ASTDumper::VisitPrintStmt(const PrintStmt *S) {
   OS << "print ";
-  auto OutList = S->getIDList();
-  for(size_t I = 0; I < OutList.size(); ++I) {
-    if(I) OS << ", ";
-    dumpExpr(OutList[I].get());
-  }
+  dumpExprList(S->getOutputList());
   OS << "\n";
 }
 
 void ASTDumper::VisitWriteStmt(const WriteStmt *S) {
   OS << "write ";
-  dumpExprList(S->getIDList());
+  dumpExprList(S->getOutputList());
   OS << "\n";
 }
 

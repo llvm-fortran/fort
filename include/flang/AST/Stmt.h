@@ -72,6 +72,9 @@ public:
 
   /// getLocation - Get the location of the statement.
   SourceLocation getLocation() const { return Loc; }
+  void setLocation(SourceLocation L) {
+    Loc = L;
+  }
 
   virtual SourceLocation getLocStart() const { return Loc; }
   virtual SourceLocation getLocEnd() const { return Loc; }
@@ -207,10 +210,10 @@ public:
 ///   }
 class CompoundStmt : public ListStmt<Stmt*> {
   CompoundStmt(ASTContext &C, SourceLocation Loc,
-                      ArrayRef<Stmt*> Body, Expr *StmtLabel);
+               ArrayRef<Stmt*> Body, Expr *StmtLabel);
 public:
   static CompoundStmt *Create(ASTContext &C, SourceLocation Loc,
-                                     ArrayRef<Stmt*> Body, Expr *StmtLabel);
+                              ArrayRef<Stmt*> Body, Expr *StmtLabel);
 
   ArrayRef<Stmt*> getBody() const {
     return getIDList();
@@ -343,6 +346,30 @@ public:
   }
 };
 
+/// ParameterStmt - represents a PARAMETER declaration.
+class ParameterStmt : public Stmt {
+  const IdentifierInfo *IDInfo;
+  Expr *Value;
+  ParameterStmt(SourceLocation Loc,const IdentifierInfo *Name,
+                Expr *Val, Expr *StmtLabel);
+public:
+  static ParameterStmt *Create(ASTContext &C, SourceLocation Loc,
+                               const IdentifierInfo *Name,
+                               Expr *Value, Expr *StmtLabel);
+
+  const IdentifierInfo *getIdentifier() const {
+    return IDInfo;
+  }
+  Expr *getValue() const {
+    return Value;
+  }
+
+  static bool classof(const ParameterStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == ParameterStmtClass;
+  }
+};
+
 /// ImplicitStmt - Specifies a type, and possibly type parameters, for all
 /// implicitly typed data entries whose names begin with one of the letters
 /// specified in the statement.
@@ -381,8 +408,7 @@ class DimensionStmt : public ListStmt<ArraySpec*> {
   const IdentifierInfo *VarName;
 
   DimensionStmt(ASTContext &C, SourceLocation Loc, const IdentifierInfo* IDInfo,
-                ArrayRef<ArraySpec*> Dims,
-                Expr *StmtLabel);
+                ArrayRef<ArraySpec*> Dims, Expr *StmtLabel);
 public:
   static DimensionStmt *Create(ASTContext &C, SourceLocation Loc,
                                const IdentifierInfo* IDInfo,
@@ -461,14 +487,19 @@ public:
 
 /// ExternalStmt - Specifies the external attribute for a list of objects.
 ///
-class ExternalStmt : public ListStmt<> {
-  ExternalStmt(ASTContext &C, SourceLocation Loc,
-               ArrayRef<const IdentifierInfo *> ExternalNames,
+class ExternalStmt : public Stmt {
+  const IdentifierInfo *IDInfo;
+
+  ExternalStmt(SourceLocation Loc, const IdentifierInfo *Name,
                Expr *StmtLabel);
 public:
   static ExternalStmt *Create(ASTContext &C, SourceLocation Loc,
-                              ArrayRef<const IdentifierInfo*> ExternalNames,
+                              const IdentifierInfo *Name,
                               Expr *StmtLabel);
+
+  const IdentifierInfo *getIdentifier() const {
+    return IDInfo;
+  }
 
   static bool classof(const ExternalStmt*) { return true; }
   static bool classof(const Stmt *S) {
@@ -479,14 +510,19 @@ public:
 
 /// IntrinsicStmt - Lists the intrinsic functions declared in this program unit.
 ///
-class IntrinsicStmt : public ListStmt<> {
-  IntrinsicStmt(ASTContext &C, SourceLocation Loc,
-                ArrayRef<const IdentifierInfo *> IntrinsicNames,
+class IntrinsicStmt : public Stmt {
+  const IdentifierInfo *IDInfo;
+
+  IntrinsicStmt(SourceLocation Loc, const IdentifierInfo *Name,
                 Expr *StmtLabel);
 public:
   static IntrinsicStmt *Create(ASTContext &C, SourceLocation Loc,
-                               ArrayRef<const IdentifierInfo*> IntrinsicNames,
+                               const IdentifierInfo *Name,
                                Expr *StmtLabel);
+
+  const IdentifierInfo *getIdentifier() const {
+    return IDInfo;
+  }
 
   static bool classof(const IntrinsicStmt*) { return true; }
   static bool classof(const Stmt *S) {
@@ -528,12 +564,16 @@ public:
 //===----------------------------------------------------------------------===//
 
 /// BlockStmt
-class BlockStmt : public ListStmt<StmtResult> {
+class BlockStmt : public ListStmt<Stmt*> {
   BlockStmt(ASTContext &C, SourceLocation Loc,
-            ArrayRef<StmtResult> Body);
+            ArrayRef<Stmt*> Body);
 public:
   static BlockStmt *Create(ASTContext &C, SourceLocation Loc,
-                           ArrayRef<StmtResult> Body);
+                           ArrayRef<Stmt*> Body);
+
+  ArrayRef<Stmt*> getStatements() const {
+    return getIDList();
+  }
 
   static bool classof(const BlockStmt*) { return true; }
   static bool classof(const Stmt *S) {
@@ -797,15 +837,19 @@ public:
 };
 
 /// PrintStmt
-class PrintStmt : public ListStmt<ExprResult> {
+class PrintStmt : public Stmt, protected MultiArgumentExpr {
   FormatSpec *FS;
   PrintStmt(ASTContext &C, SourceLocation L, FormatSpec *fs,
-            ArrayRef<ExprResult> OutList, Expr *StmtLabel);
+            ArrayRef<Expr*> OutList, Expr *StmtLabel);
 public:
   static PrintStmt *Create(ASTContext &C, SourceLocation L, FormatSpec *fs,
-                           ArrayRef<ExprResult> OutList, Expr *StmtLabel);
+                           ArrayRef<Expr*> OutList, Expr *StmtLabel);
 
   FormatSpec *getFormatSpec() const { return FS; }
+
+  ArrayRef<Expr*> getOutputList() const {
+    return getArguments();
+  }
 
   static bool classof(const PrintStmt*) { return true; }
   static bool classof(const Stmt *S) {
@@ -813,7 +857,8 @@ public:
   }
 };
 
-class WriteStmt : public ListStmt<Expr*> {
+/// WriteStmt
+class WriteStmt : public Stmt, protected MultiArgumentExpr {
   UnitSpec *US;
   FormatSpec *FS;
   WriteStmt(ASTContext &C, SourceLocation Loc, UnitSpec *us,
@@ -825,6 +870,10 @@ public:
 
   UnitSpec *getUnitSpec() const { return US; }
   FormatSpec *getFormatSpec() const { return FS; }
+
+  ArrayRef<Expr*> getOutputList() const {
+    return getArguments();
+  }
 
   static bool classof(const WriteStmt*) { return true; }
   static bool classof(const Stmt *S) {

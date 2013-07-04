@@ -48,10 +48,10 @@ static void ResolveLabelFormatSpecStmtLabel(DiagnosticsEngine &Diags,
 LabelFormatSpec *Sema::ActOnLabelFormatSpec(ASTContext &C, SourceLocation Loc,
                                             ExprResult Label) {
   if(isa<IntegerConstantExpr>(Label.get())) {
-    auto Decl = getCurrentStmtLabelScope().Resolve(Label.get());
+    auto Decl = getCurrentStmtLabelScope()->Resolve(Label.get());
     if(!Decl) {
       auto Result = LabelFormatSpec::Create(C, Loc, StmtLabelReference());
-      getCurrentStmtLabelScope().DeclareForwardReference(
+      getCurrentStmtLabelScope()->DeclareForwardReference(
       StmtLabelScope::ForwardDecl(Label.get(), Result,
                                   ResolveLabelFormatSpecStmtLabel));
       return Result;
@@ -79,8 +79,11 @@ UnitSpec *Sema::ActOnUnitSpec(ASTContext &C, ExprResult Value, SourceLocation Lo
 StmtResult Sema::ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,
                                 ArrayRef<ExprResult> OutputItemList,
                                 Expr *StmtLabel) {
-  auto Result = PrintStmt::Create(C, Loc, FS, OutputItemList, StmtLabel);
-  CurExecutableStmts.Append(Result);
+  SmallVector<Expr *, 8> OutputList;
+  for(auto I : OutputItemList) OutputList.push_back(I.take());
+
+  auto Result = PrintStmt::Create(C, Loc, FS, OutputList, StmtLabel);
+  getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -94,7 +97,7 @@ StmtResult Sema::ActOnWriteStmt(ASTContext &C, SourceLocation Loc,
   for(auto I : OutputItemList) OutputList.push_back(I.take());
 
   auto Result = WriteStmt::Create(C, Loc, US, FS, OutputList, StmtLabel);
-  CurExecutableStmts.Append(Result);
+  getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }

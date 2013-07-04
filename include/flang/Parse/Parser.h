@@ -205,29 +205,27 @@ private:
   // High-level parsing methods.
   bool ParseInclude();
   bool ParseProgramUnit();
-  bool ParseMainProgram(std::vector<StmtResult> &Body);
-  bool ParseExternalSubprogram(std::vector<StmtResult> &Body);
-  bool ParseExternalSubprogram(std::vector<StmtResult> &Body,
-                               DeclSpec &ReturnType);
-  bool ParseTypedExternalSubprogram(std::vector<StmtResult> &Body);
-  bool ParseExecutableSubprogramBody(std::vector<StmtResult> &Body,
-                                     tok::TokenKind EndKw);
+  bool ParseMainProgram();
+  bool ParseExternalSubprogram();
+  bool ParseExternalSubprogram(DeclSpec &ReturnType);
+  bool ParseTypedExternalSubprogram();
+  bool ParseExecutableSubprogramBody(tok::TokenKind EndKw);
   bool ParseModule();
   bool ParseBlockData();
 
-  bool ParseSpecificationPart(std::vector<StmtResult> &Body);
-  bool ParseImplicitPartList(std::vector<StmtResult> &Body);
+  bool ParseSpecificationPart();
+  bool ParseImplicitPartList();
   StmtResult ParseImplicitPart();
   bool ParseExecutionPart();
 
-  bool ParseDeclarationConstructList(std::vector<StmtResult> &Body);
-  bool ParseDeclarationConstruct(std::vector<StmtResult> &Body);
+  bool ParseDeclarationConstructList();
+  bool ParseDeclarationConstruct();
   bool ParseForAllConstruct();
   StmtResult ParseExecutableConstruct();
 
   bool ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls);
   bool ParseProcedureDeclStmt();
-  bool ParseSpecificationStmt(std::vector<StmtResult> &Body);
+  bool ParseSpecificationStmt();
   StmtResult ParseActionStmt();
 
   // Designator parsing methods.

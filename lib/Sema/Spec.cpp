@@ -25,7 +25,7 @@
 namespace flang {
 
 /// Applies the specification statements to the declarations.
-void Sema::ActOnSpecificationPart(ArrayRef<StmtResult> Body) {
+void Sema::ActOnSpecificationPart() {
   /// If necessary, apply the implicit typing rules to the current function and its arguments.
   if(auto FD = dyn_cast<FunctionDecl>(CurContext)) {
     // function type
@@ -53,15 +53,15 @@ void Sema::ActOnSpecificationPart(ArrayRef<StmtResult> Body) {
     }
   }
 
-  for(ArrayRef<StmtResult>::iterator I = Body.begin(), End = Body.end();
-      I != End; ++I) {
-    if(!I->isUsable()) continue;
+  auto Body = getCurrentBody()->getDeclStatements();
 
+  for(ArrayRef<Stmt*>::iterator I = Body.begin(), End = Body.end();
+      I != End; ++I) {
     ArrayRef<Stmt*> StmtList;
 
-    if (const CompoundStmt *BundledStmt = dyn_cast<CompoundStmt>(I->get()))
+    if (const CompoundStmt *BundledStmt = dyn_cast<CompoundStmt>(*I))
       StmtList = BundledStmt->getBody();
-    else StmtList = ArrayRef<Stmt*>(I->get());
+    else StmtList = ArrayRef<Stmt*>(*I);
     for(auto S : StmtList) {
       if (const DimensionStmt *DimStmt = dyn_cast<DimensionStmt>(S)){
         ApplySpecification(DimStmt);

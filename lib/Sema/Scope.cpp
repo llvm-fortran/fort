@@ -30,6 +30,11 @@ static StmtLabelInteger GetStmtLabelValue(const Expr *E) {
   }
 }
 
+void StmtLabelScope::setParent(StmtLabelScope *P) {
+  assert(!Parent);
+  Parent = P;
+}
+
 /// \brief Declares a new statement label.
 void StmtLabelScope::Declare(Expr *StmtLabel, Stmt *Statement) {
   auto Key = GetStmtLabelValue(StmtLabel);
@@ -65,13 +70,13 @@ bool StmtLabelScope::IsSame(const Expr *StmtLabelA,
   return GetStmtLabelValue(StmtLabelA) == GetStmtLabelValue(StmtLabelB);
 }
 
-void StmtLabelScope::reset() {
-  StmtLabelDeclsInScope.clear();
-  ForwardStmtLabelDeclsInScope.clear();
-}
-
 ImplicitTypingScope::ImplicitTypingScope(ImplicitTypingScope *Prev)
   : Parent(Prev), None(false) {
+}
+
+void ImplicitTypingScope::setParent(ImplicitTypingScope *P) {
+  assert(!Parent);
+  Parent = P;
 }
 
 bool ImplicitTypingScope::Apply(const ImplicitStmt::LetterSpecTy &Spec, QualType T) {
@@ -113,11 +118,6 @@ ImplicitTypingScope::Resolve(const IdentifierInfo *IdInfo) {
   else return std::make_pair(DefaultRule, QualType());
 }
 
-void ImplicitTypingScope::Reset() {
-  Rules.clear();
-  None = false;
-}
-
 InnerScope::InnerScope(InnerScope *Prev)
   : Parent(Prev) {
 }
@@ -138,29 +138,4 @@ Decl *InnerScope::Resolve(const IdentifierInfo *IDInfo) const {
   return Result? Result : (Parent? Parent->Resolve(IDInfo) : nullptr);
 }
 
-
-void Scope::Init(Scope *parent, unsigned flags) {
-  AnyParent = parent;
-  Flags = flags;
-
-  if (parent) {
-    Depth          = parent->Depth + 1;
-    PrototypeDepth = parent->PrototypeDepth;
-    PrototypeIndex = 0;
-    FnParent       = parent->FnParent;
-  } else {
-    Depth = 0;
-    PrototypeDepth = 0;
-    PrototypeIndex = 0;
-    FnParent = 0;
-  }
-
-  // If this scope is a function or contains breaks/continues, remember it.
-  if (flags & FnScope) FnParent = this;
-
-  DeclsInScope.clear();
-  Entity = 0;
-  ErrorTrap.reset();
-}
-
-} //namespace flang
+} // end namespace flang

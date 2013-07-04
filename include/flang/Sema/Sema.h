@@ -41,78 +41,21 @@ class IdentifierInfo;
 class Token;
 class VarDecl;
 
-class ExecutableProgramUnitStmts {
-public:
-  /// \brief A list of executable statements for all the blocks
-  std::vector<StmtResult> StmtList;
-
-  /// \brief Represents a statement with body(bodies) like DO or IF
-  struct ControlFlowStmt {
-    Stmt *Statement;
-    size_t BeginOffset;
-    /// \brief used only when a statement is a do which terminates
-    /// with a labeled statement.
-    Expr *ExpectedEndDoLabel;
-
-    ControlFlowStmt()
-      : Statement(nullptr),BeginOffset(0),
-        ExpectedEndDoLabel(nullptr){
-    }
-    ControlFlowStmt(CFBlockStmt *S)
-      : Statement(S), BeginOffset(0),
-        ExpectedEndDoLabel(nullptr) {
-    }
-    ControlFlowStmt(DoStmt *S, Expr *ExpectedEndDo)
-      : Statement(S), BeginOffset(0),
-        ExpectedEndDoLabel(ExpectedEndDo) {
-    }
-    ControlFlowStmt(IfStmt *S)
-      : Statement(S), BeginOffset(0) {
-    }
-    inline bool is(Stmt::StmtClass StmtType) const {
-      return Statement->getStmtClass() == StmtType;
-    }
-  };
-
-  /// \brief A stack of current block statements like IF and DO
-  SmallVector<ControlFlowStmt, 16> ControlFlowStack;
-
-  ExecutableProgramUnitStmts() {}
-
-  void Reset();
-
-  void Enter(ControlFlowStmt S);
-  void LeaveIfThen(ASTContext &C);
-  void Leave(ASTContext &C);
-  BlockStmt *LeaveOuterBody(ASTContext &C, SourceLocation Loc);
-
-  inline const ControlFlowStmt &LastEntered() const {
-    return ControlFlowStack.back();
-  }
-  inline bool HasEntered() const {
-    return ControlFlowStack.size() != 0;
-  }
-  bool HasEntered(Stmt::StmtClass StmtType) const;
-
-  void Append(Stmt *S);
-private:
-  Stmt *CreateBody(ASTContext &C, const ControlFlowStmt &Last);
-};
-
 /// Sema - This implements semantic analysis and AST buiding for Fortran.
 class Sema {
   Sema(const Sema&);           // DO NOT IMPLEMENT
   void operator=(const Sema&); // DO NOT IMPLEMENT
 
+
   /// \brief A statement label scope for the current program unit.
-  StmtLabelScope CurStmtLabelScope;
+  StmtLabelScope *CurStmtLabelScope;
 
   /// \brief A class which supports the executable statements in
   /// the current scope.
-  ExecutableProgramUnitStmts CurExecutableStmts;
+  BlockStmtBuilder *CurExecutableStmts;
 
   /// \brief The implicit scope for the current program unit.
-  ImplicitTypingScope CurImplicitTypingScope;
+  ImplicitTypingScope *CurImplicitTypingScope;
 
   /// \brief The mapping
   intrinsic::FunctionMapping IntrinsicFunctionMapping;
@@ -131,12 +74,16 @@ public:
 
   DeclContext *getContainingDC(DeclContext *DC);
 
-  inline StmtLabelScope& getCurrentStmtLabelScope() {
+  inline StmtLabelScope *getCurrentStmtLabelScope() const {
     return CurStmtLabelScope;
   }
 
-  inline ImplicitTypingScope& getCurrentImplicitTypingScope() {
+  inline ImplicitTypingScope *getCurrentImplicitTypingScope() const {
     return CurImplicitTypingScope;
+  }
+
+  inline BlockStmtBuilder *getCurrentBody() const {
+    return CurExecutableStmts;
   }
 
   inline ExprResult ExprError() const { return ExprResult(true); }
@@ -149,19 +96,27 @@ public:
   bool IsInsideFunctionOrSubroutine() const;
   FunctionDecl *CurrentContextAsFunction() const;
 
-  void PushExecutableProgramUnit();
+  void PushExecutableProgramUnit(ExecutableProgramUnitScope &Scope);
   void PopExecutableProgramUnit(SourceLocation Loc);
+
+  void PushProgramUnitScope(ExecutableProgramUnitScope &Scope);
+  void PopExecutableProgramUnitScope(SourceLocation Loc);
 
   void DeclareStatementLabel(Expr *StmtLabel, Stmt *S);
   void CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S);
 
-  void ActOnTranslationUnit();
-  void ActOnEndProgramUnit();
+  /// translation unit actions
+  void ActOnTranslationUnit(TranslationUnitScope &Scope);
+  void ActOnEndTranslationUnit();
 
-  MainProgramDecl *ActOnMainProgram(const IdentifierInfo *IDInfo, SourceLocation NameLoc);
-  void ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo, SourceLocation NameLoc);
+  /// program unit actions
+  MainProgramDecl *ActOnMainProgram(ASTContext &C, MainProgramScope &Scope,
+                                    const IdentifierInfo *IDInfo, SourceLocation NameLoc);
+  void ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo,
+                           SourceLocation NameLoc);
 
-  FunctionDecl *ActOnSubProgram(ASTContext &C, bool IsSubRoutine, SourceLocation IDLoc,
+  FunctionDecl *ActOnSubProgram(ASTContext &C, SubProgramScope &Scope,
+                                bool IsSubRoutine, SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl);
   VarDecl *ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
                                    const IdentifierInfo *IDInfo);
@@ -169,7 +124,7 @@ public:
   void ActOnSubProgramArgumentList(ASTContext &C, ArrayRef<VarDecl*> Arguments);
   void ActOnEndSubProgram(ASTContext &C, SourceLocation Loc);
 
-  void ActOnSpecificationPart(ArrayRef<StmtResult> Body);
+  void ActOnSpecificationPart();
   VarDecl *GetVariableForSpecification(const IdentifierInfo *IDInfo,
                                        SourceLocation ErrorLoc,
                                        SourceRange ErrorRange,
@@ -308,8 +263,6 @@ public:
                                           bool IsLabeled);
   UnitSpec *ActOnUnitSpec(ASTContext &C, ExprResult Value, SourceLocation Loc,
                           bool IsLabeled);
-
-  StmtResult ActOnBlock(ASTContext &C, SourceLocation Loc, ArrayRef<StmtResult> Body);
 
   StmtResult ActOnAssignStmt(ASTContext &C, SourceLocation Loc,
                              ExprResult Value, VarExpr* VarRef,

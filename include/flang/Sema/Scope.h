@@ -27,11 +27,73 @@ class Decl;
 class DeclContext;
 class UsingDirectiveDecl;
 
+/// BlockStmtBuilder - Constructs bodies for statements and program units.
+class BlockStmtBuilder {
+public:
+  /// \brief A list of executable statements for all the blocks
+  std::vector<Stmt*> StmtList;
+
+  /// \brief Represents a statement or a declaration with body(bodies) like DO or IF
+  struct Entry {
+    Stmt *Statement;
+    size_t BeginOffset;
+    /// \brief used only when a statement is a do which terminates
+    /// with a labeled statement.
+    Expr *ExpectedEndDoLabel;
+
+    Entry()
+      : Statement(nullptr),BeginOffset(0),
+        ExpectedEndDoLabel(nullptr){
+    }
+    Entry(CFBlockStmt *S)
+      : Statement(S), BeginOffset(0),
+        ExpectedEndDoLabel(nullptr) {
+    }
+    Entry(DoStmt *S, Expr *ExpectedEndDo)
+      : Statement(S), BeginOffset(0),
+        ExpectedEndDoLabel(ExpectedEndDo) {
+    }
+    Entry(IfStmt *S)
+      : Statement(S), BeginOffset(0) {
+    }
+    inline bool is(Stmt::StmtClass StmtType) const {
+      return Statement->getStmtClass() == StmtType;
+    }
+  };
+
+  /// \brief A stack of current block statements like IF and DO
+  SmallVector<Entry, 16> ControlFlowStack;
+
+  BlockStmtBuilder() {}
+
+  void Enter(Entry S);
+  void LeaveIfThen(ASTContext &C);
+  void Leave(ASTContext &C);
+  Stmt *LeaveOuterBody(ASTContext &C, SourceLocation Loc);
+
+  ArrayRef<Stmt*> getDeclStatements() {
+    return StmtList;
+  }
+
+  inline const Entry &LastEntered() const {
+    return ControlFlowStack.back();
+  }
+  inline bool HasEntered() const {
+    return ControlFlowStack.size() != 0;
+  }
+  bool HasEntered(Stmt::StmtClass StmtType) const;
+
+  void Append(Stmt *S);
+private:
+  Stmt *CreateBody(ASTContext &C, const Entry &Last);
+};
+
 /// StatementLabelScope - This is a component of a scope which assist with
 /// declaring and resolving statement labels.
 ///
 class StmtLabelScope {
 public:
+  StmtLabelScope *Parent;
 
   /// \brief Represents a usage of an undeclared statement label in
   /// some statement.
@@ -84,6 +146,11 @@ public:
     return ForwardStmtLabelDeclsInScope;
   }
 
+  StmtLabelScope *getParent() const {
+    return Parent;
+  }
+  void setParent(StmtLabelScope *P);
+
   /// \brief Declares a new statement label.
   /// Returns true if such declaration already exits.
   void Declare(Expr *StmtLabel, Stmt *Statement);
@@ -99,9 +166,6 @@ public:
 
   /// \brief Returns true is the two statement labels are identical.
   bool IsSame(const Expr *StmtLabelA, const Expr *StmtLabelB) const;
-
-  /// \bried Resets the scope.
-  void reset();
 };
 
 /// ImplicitTypingScope - This is a component of a scope which assist with
@@ -120,6 +184,11 @@ public:
     NoneRule
   };
 
+  ImplicitTypingScope *getParent() const {
+    return Parent;
+  }
+  void setParent(ImplicitTypingScope *P);
+
   /// \brief Associates a type rule with an identifier
   /// returns true if associating is sucessfull.
   bool Apply(const ImplicitStmt::LetterSpecTy& Spec, QualType T);
@@ -135,9 +204,6 @@ public:
 
   /// \brief Returns a rule and possibly a type associated with this identifier.
   std::pair<RuleType, QualType> Resolve(const IdentifierInfo *IdInfo);
-
-  /// \brief Resets the scope.
-  void Reset();
 };
 
 /// InnerScope - This is a scope which assists with resolving identifiers
@@ -162,128 +228,27 @@ public:
   Decl *Resolve(const IdentifierInfo *IDInfo) const;
 };
 
-/// Scope - A scope is a transient data structure that is used while parsing the
-/// program.  It assists with resolving identifiers to the appropriate
-/// declaration.
-///
-class Scope {
+/// The scope of a translation unit (a single file)
+class TranslationUnitScope {
 public:
-  /// ScopeFlags - These are bitfields that are or'd together when creating a
-  /// scope, which defines the sorts of things the scope contains.
-  enum ScopeFlags {
-    /// FnScope - This indicates that the scope corresponds to a function, which
-    /// means that labels are set here.
-    FnScope     = 0x01,
+  StmtLabelScope StmtLabels;
+  ImplicitTypingScope ImplicitTypingRules;
+};
 
-    /// DeclScope - This is a scope that can contain a declaration. Some scopes
-    /// just contain loop constructs but don't contain decls.
-    DeclScope   = 0x02,
-
-    /// RecordScope - The scope of a record definition.
-    RecordScope = 0x04
-  };
-private:
-  /// The parent scope for this scope.  This is null for the translation-unit
-  /// scope.
-  Scope *AnyParent;
-
-  /// Depth - This is the depth of this scope.  The translation-unit scope has
-  /// depth 0.
-  unsigned short Depth;
-
-  /// Flags - This contains a set of ScopeFlags, which indicates how the scope
-  /// interrelates with other control flow statements.
-  unsigned short Flags;
-
-  /// PrototypeDepth - This is the number of function prototype scopes
-  /// enclosing this scope, including this scope.
-  unsigned short PrototypeDepth;
-
-  /// PrototypeIndex - This is the number of parameters currently
-  /// declared in this scope.
-  unsigned short PrototypeIndex;
-
-  /// FnParent - If this scope has a parent scope that is a function body, this
-  /// pointer is non-null and points to it. This is used for label processing.
-  Scope *FnParent;
-
-  /// DeclsInScope - This keeps track of all declarations in this scope.  When
-  /// the declaration is added to the scope, it is set as the current
-  /// declaration for the identifier in the IdentifierTable.  When the scope is
-  /// popped, these declarations are removed from the IdentifierTable's notion
-  /// of current declaration.  It is up to the current Action implementation to
-  /// implement these semantics.
-  typedef llvm::SmallPtrSet<Decl*, 32> DeclSetTy;
-  DeclSetTy DeclsInScope;
-
-  /// Entity - The entity with which this scope is associated. For example, the
-  /// entity of a record scope is the record itself, the entity of a function
-  /// scope is a function, etc. This field is maintained by the Action
-  /// implementation.
-  void *Entity;
-
-  /// \brief Used to determine if errors occurred in this scope.
-  DiagnosticErrorTrap ErrorTrap;
-  
+/// The scope of an executable program unit.
+class ExecutableProgramUnitScope {
 public:
-  Scope(Scope *Parent, unsigned ScopeFlags, DiagnosticsEngine &Diag)
-    : ErrorTrap(Diag) {
-    Init(Parent, ScopeFlags);
-  }
+  StmtLabelScope StmtLabels;
+  ImplicitTypingScope ImplicitTypingRules;
+  BlockStmtBuilder Body;
+};
 
-  /// getFlags - Return the flags for this scope.
-  ///
-  unsigned getFlags() const { return Flags; }
-  void setFlags(unsigned F) { Flags = F; }
+/// The scope of a main program
+class MainProgramScope : public ExecutableProgramUnitScope {
+};
 
-  /// getParent - Return the scope that this is nested in.
-  ///
-  const Scope *getParent() const { return AnyParent; }
-  Scope *getParent() { return AnyParent; }
-
-  /// getFnParent - Return the closest scope that is a function body.
-  ///
-  const Scope *getFnParent() const { return FnParent; }
-  Scope *getFnParent() { return FnParent; }
-
-  /// Returns the number of function prototype scopes in this scope
-  /// chain.
-  unsigned getFunctionPrototypeDepth() const {
-    return PrototypeDepth;
-  }
-
-  typedef DeclSetTy::iterator decl_iterator;
-  decl_iterator decl_begin() const { return DeclsInScope.begin(); }
-  decl_iterator decl_end()   const { return DeclsInScope.end(); }
-  bool decl_empty()          const { return DeclsInScope.empty(); }
-
-  void AddDecl(Decl *D) {
-    DeclsInScope.insert(D);
-  }
-
-  void RemoveDecl(Decl *D) {
-    DeclsInScope.erase(D);
-  }
-
-  /// isDeclScope - Return true if this is the scope that the specified decl is
-  /// declared in.
-  bool isDeclScope(Decl *D) {
-    return DeclsInScope.count(D) != 0;
-  }
-
-  void* getEntity() const { return Entity; }
-  void setEntity(void *E) { Entity = E; }
-
-  bool hasErrorOccurred() const { return ErrorTrap.hasErrorOccurred(); }
-                           
-  /// isRecordScope - Return true if this scope is a structure scope.
-  bool isRecordScope() const {
-    return (getFlags() & Scope::RecordScope);
-  }
-
-  /// Init - This is used by the parser to implement scope caching.
-  ///
-  void Init(Scope *parent, unsigned flags);
+/// The scope of a function/subroutine
+class SubProgramScope : public ExecutableProgramUnitScope {
 };
 
 }  // end namespace flang

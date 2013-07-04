@@ -21,6 +21,7 @@
 #include "flang/Basic/TokenKinds.h"
 #include "flang/Sema/DeclSpec.h"
 #include "flang/Sema/Sema.h"
+#include "flang/Sema/Scope.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/ADT/APInt.h"
@@ -364,7 +365,8 @@ ExprResult Parser::ParseStatementLabelReference() {
 /// ParseProgramUnits - Main entry point to the parser. Parses the current
 /// source.
 bool Parser::ParseProgramUnits() {
-  Actions.ActOnTranslationUnit();
+  TranslationUnitScope TuScope;
+  Actions.ActOnTranslationUnit(TuScope);
 
   // Prime the lexer.
   Lex();
@@ -373,6 +375,7 @@ bool Parser::ParseProgramUnits() {
   while (!ParseProgramUnit())
     /* Parse them all */;
 
+  Actions.ActOnEndTranslationUnit();
   return false;
 }
 
@@ -388,16 +391,14 @@ bool Parser::ParseProgramUnit() {
   if (Tok.is(tok::eof))
     return true;
 
-  std::vector<StmtResult> Body;
-
   ParseStatementLabel();
   if (PeekAhead().is(tok::equal))
-    return ParseMainProgram(Body);
+    return ParseMainProgram();
 
   // FIXME: These calls should return something proper.
   switch (Tok.getKind()) {
   default:
-    ParseMainProgram(Body);
+    ParseMainProgram();
     break;
 
   case tok::kw_REAL:
@@ -407,11 +408,11 @@ bool Parser::ParseProgramUnit() {
   case tok::kw_LOGICAL:
   case tok::kw_DOUBLEPRECISION:
   case tok::kw_DOUBLECOMPLEX:
-    ParseTypedExternalSubprogram(Body);
+    ParseTypedExternalSubprogram();
     break;
   case tok::kw_FUNCTION:
   case tok::kw_SUBROUTINE:
-    ParseExternalSubprogram(Body);
+    ParseExternalSubprogram();
     break;
 
   case tok::kw_MODULE:
@@ -435,13 +436,13 @@ bool Parser::ParseProgramUnit() {
 ///           [execution-part]
 ///           [internal-subprogram-part]
 ///           end-program-stmt
-bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
+bool Parser::ParseMainProgram() {
   // If the PROGRAM statement didn't have an identifier, pretend like it did for
   // the time being.
   StmtResult ProgStmt;
   if (Tok.is(tok::kw_PROGRAM)) {
     ProgStmt = ParsePROGRAMStmt();
-    Body.push_back(ProgStmt);
+    //Body.push_back(ProgStmt);
   }
 
   // If the PROGRAM statement has an identifier, pass it on to the main program
@@ -454,13 +455,14 @@ bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
     NameLoc = PS->getNameLocation();
   }
 
-  auto Program = Actions.ActOnMainProgram(IDInfo, NameLoc);
+  MainProgramScope Scope;
+  Actions.ActOnMainProgram(Context, Scope, IDInfo, NameLoc);
 
-  ParseExecutableSubprogramBody(Body, tok::kw_ENDPROGRAM);
+  ParseExecutableSubprogramBody(tok::kw_ENDPROGRAM);
 
   ParseStatementLabel();
   StmtResult EndProgStmt = ParseEND_PROGRAMStmt();
-  Body.push_back(EndProgStmt);
+  Actions.getCurrentBody()->Append(EndProgStmt.take());
 
   IDInfo = 0;
   NameLoc = SourceLocation();
@@ -477,16 +479,15 @@ bool Parser::ParseMainProgram(std::vector<StmtResult> &Body) {
   return EndProgStmt.isInvalid();
 }
 
-bool Parser::ParseExecutableSubprogramBody(std::vector<StmtResult> &Body,
-                                           tok::TokenKind EndKw) {
+bool Parser::ParseExecutableSubprogramBody(tok::TokenKind EndKw) {
   // FIXME: Check for the specific keywords and not just absence of END or
   //        ENDPROGRAM.
   ParseStatementLabel();
   if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw))
-    ParseSpecificationPart(Body);
+    ParseSpecificationPart();
 
   // Apply specification statements.
-  Actions.ActOnSpecificationPart(Body);
+  Actions.ActOnSpecificationPart();
 
   // FIXME: Check for the specific keywords and not just absence of END or
   //        ENDPROGRAM.
@@ -503,12 +504,12 @@ bool Parser::ParseExecutableSubprogramBody(std::vector<StmtResult> &Body,
 ///          [import-stmt] ...
 ///          [implicit-part] ...
 ///          [declaration-construct] ...
-bool Parser::ParseSpecificationPart(std::vector<StmtResult> &Body) {
+bool Parser::ParseSpecificationPart() {
   bool HasErrors = false;
   while (Tok.is(tok::kw_USE)) {
     StmtResult S = ParseUSEStmt();
     if (S.isUsable()) {
-      Body.push_back(S);
+      Actions.getCurrentBody()->Append(S.take());
     } else if (S.isInvalid()) {
       LexToEndOfStatement();
       HasErrors = true;
@@ -522,7 +523,7 @@ bool Parser::ParseSpecificationPart(std::vector<StmtResult> &Body) {
   while (Tok.is(tok::kw_IMPORT)) {
     StmtResult S = ParseIMPORTStmt();
     if (S.isUsable()) {
-      Body.push_back(S);
+      Actions.getCurrentBody()->Append(S.take());
     } else if (S.isInvalid()) {
       LexToEndOfStatement();
       HasErrors = true;
@@ -533,11 +534,11 @@ bool Parser::ParseSpecificationPart(std::vector<StmtResult> &Body) {
     ParseStatementLabel();
   }
 
-  if (ParseImplicitPartList(Body))
+  if (ParseImplicitPartList())
     HasErrors = true;
 
 
-  if (ParseDeclarationConstructList(Body)) {
+  if (ParseDeclarationConstructList()) {
     LexToEndOfStatement();
     HasErrors = true;
   }
@@ -567,12 +568,12 @@ bool Parser::ParseSpecificationPart(std::vector<StmtResult> &Body) {
 ///           [execution-part]
 ///           [internal-subprogram-part]
 ///           end-function-stmt
-bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body) {
+bool Parser::ParseExternalSubprogram() {
   DeclSpec ReturnType;
-  return ParseExternalSubprogram(Body, ReturnType);
+  return ParseExternalSubprogram(ReturnType);
 }
 
-bool Parser::ParseTypedExternalSubprogram(std::vector<StmtResult> &Body) {
+bool Parser::ParseTypedExternalSubprogram() {
   DeclSpec ReturnType;
   ParseDeclarationTypeSpec(ReturnType);
   if(Tok.isNot(tok::kw_FUNCTION)) {
@@ -580,10 +581,10 @@ bool Parser::ParseTypedExternalSubprogram(std::vector<StmtResult> &Body) {
       << "FUNCTION";
     return true;
   }
-  return ParseExternalSubprogram(Body, ReturnType);
+  return ParseExternalSubprogram(ReturnType);
 }
 
-bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body, DeclSpec &ReturnType) {
+bool Parser::ParseExternalSubprogram(DeclSpec &ReturnType) {
   bool IsSubroutine = Tok.is(tok::kw_SUBROUTINE);
   Lex();
 
@@ -600,7 +601,8 @@ bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body, DeclSpec &Re
   auto II = Tok.getIdentifierInfo();
   Lex();
 
-  auto Function = Actions.ActOnSubProgram(Context, IsSubroutine, IDLoc, II, ReturnType);
+  SubProgramScope Scope;
+  Actions.ActOnSubProgram(Context, Scope, IsSubroutine, IDLoc, II, ReturnType);
   SmallVector<VarDecl* ,8> ArgumentList;
 
   if(EatIfPresentInSameStmt(tok::l_paren)) {
@@ -644,8 +646,8 @@ bool Parser::ParseExternalSubprogram(std::vector<StmtResult> &Body, DeclSpec &Re
 
   Actions.ActOnSubProgramArgumentList(Context, ArgumentList);
 
-  ParseExecutableSubprogramBody(Body, IsSubroutine? tok::kw_ENDSUBROUTINE :
-                                                    tok::kw_ENDFUNCTION);
+  ParseExecutableSubprogramBody(IsSubroutine? tok::kw_ENDSUBROUTINE :
+                                              tok::kw_ENDFUNCTION);
 
   if(!Tok.isAtStartOfStatement())
     LexToEndOfStatement();
@@ -690,12 +692,12 @@ bool Parser::ParseBlockData() {
 
 /// ParseImplicitPartList - Parse a (possibly empty) list of implicit part
 /// statements.
-bool Parser::ParseImplicitPartList(std::vector<StmtResult> &Body) {
+bool Parser::ParseImplicitPartList() {
   bool HasErrors = false;
   while (true) {
     StmtResult S = ParseImplicitPart();
     if (S.isUsable()) {
-      Body.push_back(S);
+      Actions.getCurrentBody()->Append(S.take());
     } else if (S.isInvalid()) {
       LexToEndOfStatement();
       HasErrors = true;
@@ -756,8 +758,8 @@ bool Parser::ParseExecutionPart() {
 
 /// ParseDeclarationConstructList - Parse a (possibly empty) list of declaration
 /// construct statements.
-bool Parser::ParseDeclarationConstructList(std::vector<StmtResult> &Body) {
-  while (!ParseDeclarationConstruct(Body))
+bool Parser::ParseDeclarationConstructList() {
+  while (!ParseDeclarationConstruct())
     /* Parse them all */ ;
 
   return false;
@@ -777,7 +779,7 @@ bool Parser::ParseDeclarationConstructList(std::vector<StmtResult> &Body) {
 ///      or specification-stmt
 ///      or type-declaration-stmt
 ///      or stmt-function-stmt
-bool Parser::ParseDeclarationConstruct(std::vector<StmtResult> &Body) {
+bool Parser::ParseDeclarationConstruct() {
   ParseStatementLabel();
 
   SmallVector<DeclResult, 4> Decls;
@@ -785,7 +787,7 @@ bool Parser::ParseDeclarationConstruct(std::vector<StmtResult> &Body) {
   switch (Tok.getKind()) {
   default:
     // FIXME: error handling.
-    if(ParseSpecificationStmt(Body)) return true;
+    if(ParseSpecificationStmt()) return true;
     break;
   case tok::kw_TYPE:
   case tok::kw_CLASS: {
@@ -1242,7 +1244,7 @@ bool Parser::ParseProcedureDeclStmt() {
 ///      or target-stmt
 ///      or value-stmt
 ///      or volatile-stmt
-bool Parser::ParseSpecificationStmt(std::vector<StmtResult> &Body) {
+bool Parser::ParseSpecificationStmt() {
   StmtResult Result;
   switch (Tok.getKind()) {
   default: return true;
@@ -1312,7 +1314,7 @@ bool Parser::ParseSpecificationStmt(std::vector<StmtResult> &Body) {
   if(Result.isInvalid())
     LexToEndOfStatement();
   if(Result.isUsable())
-    Body.push_back(Result);
+    Actions.getCurrentBody()->Append(Result.take());
 
   return false;
 notImplemented:

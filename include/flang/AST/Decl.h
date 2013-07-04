@@ -656,7 +656,7 @@ public:
 };
 
 class MainProgramDecl : public DeclaratorDecl, public DeclContext {
-  BlockStmt *Body;
+  Stmt *Body;
 
   MainProgramDecl(DeclContext *DC, const DeclarationNameInfo &NameInfo)
     : DeclaratorDecl(MainProgram, DC, NameInfo.getLoc(), NameInfo.getName(),
@@ -667,8 +667,8 @@ public:
   static MainProgramDecl *Create(ASTContext &C, DeclContext *DC,
                                  const DeclarationNameInfo &NameInfo);
 
-  void setBody(BlockStmt *S);
-  BlockStmt *getBody() const { return Body; }
+  void setBody(Stmt *S);
+  Stmt *getBody() const { return Body; }
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
@@ -693,7 +693,7 @@ public:
 private:
   unsigned ArgumentCount;
   VarDecl **Arguments;
-  BlockStmt *Body;
+  Stmt *Body;
 
   FunctionDecl(Kind DK, FunctionKind FK, DeclContext *DC,
                const DeclarationNameInfo &NameInfo, QualType T)
@@ -718,8 +718,8 @@ public:
   }
   void setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList);
 
-  void setBody(BlockStmt *S);
-  BlockStmt *getBody() const { return Body; }
+  void setBody(Stmt *S);
+  Stmt *getBody() const { return Body; }
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
@@ -875,6 +875,32 @@ public:
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
   static bool classof(const VarDecl *D) { return true; }
   static bool classofKind(Kind K) { return K == Var; }
+};
+
+/// ReturnVarDecl - An instance of this class is created to represent a
+/// return value variable.
+class ReturnVarDecl : public DeclaratorDecl {
+private:
+  ReturnVarDecl(Kind DK, DeclContext *DC, SourceLocation IDLoc,
+                const IdentifierInfo *ID)
+    : DeclaratorDecl(DK, DC, IDLoc, ID, QualType()) {
+  }
+public:
+  static ReturnVarDecl *Create(ASTContext &C, DeclContext *DC,
+                               SourceLocation IDLoc,
+                               const IdentifierInfo *ID);
+
+  void Profile(llvm::FoldingSetNodeID &ID) {
+    Profile(ID, getIdentifier());
+  }
+  static void Profile(llvm::FoldingSetNodeID &ID, const IdentifierInfo *Info) {
+    ID.AddPointer(Info);
+  }
+
+  // Implement isa/cast/dyncast/etc.
+  static bool classof(const Decl *D) { return classofKind(D->getKind()); }
+  static bool classof(const ReturnVarDecl *D) { return true; }
+  static bool classofKind(Kind K) { return K == ReturnVar; }
 };
 
 class FileScopeAsmDecl : public Decl {
