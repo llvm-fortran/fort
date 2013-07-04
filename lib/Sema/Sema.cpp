@@ -20,7 +20,6 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
-#include "flang/AST/ASTDumper.h"
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 #include <sstream>
@@ -79,7 +78,7 @@ static void ReportUnterminatedLabeledDoStmt(DiagnosticsEngine &Diags,
                                             SourceLocation Loc) {
   std::string Str;
   llvm::raw_string_ostream Stream(Str);
-  flang::print(Stream, S.ExpectedEndDoLabel);
+  S.ExpectedEndDoLabel->dump(Stream);
   Diags.Report(Loc, diag::err_expected_stmt_label_end_do) << Stream.str();
 }
 
@@ -116,7 +115,7 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
     else {
       std::string Str;
       llvm::raw_string_ostream Stream(Str);
-      flang::print(Stream, StmtLabelForwardDecls[I].StmtLabel);
+      StmtLabelForwardDecls[I].StmtLabel->dump(Stream);
       Diags.Report(StmtLabelForwardDecls[I].StmtLabel->getLocation(),
                    diag::err_undeclared_stmt_label_use)
           << Stream.str()
@@ -206,7 +205,7 @@ void Sema::DeclareStatementLabel(Expr *StmtLabel, Stmt *S) {
   if(auto Decl = getCurrentStmtLabelScope().Resolve(StmtLabel)) {
     std::string Str;
     llvm::raw_string_ostream Stream(Str);
-    flang::print(Stream, StmtLabel);
+    StmtLabel->dump(Stream);
     Diags.Report(StmtLabel->getLocation(),
                  diag::err_redefinition_of_stmt_label)
         << Stream.str() << StmtLabel->getSourceRange();
@@ -497,8 +496,8 @@ Decl *Sema::ResolveIdentifier(const IdentifierInfo *IDInfo) {
   return nullptr;
 }
 
-StmtResult Sema::ActOnBundledCompoundStmt(ASTContext &C, SourceLocation Loc,
-                                          ArrayRef<Stmt*> Body, Expr *StmtLabel) {
+StmtResult Sema::ActOnCompoundStmt(ASTContext &C, SourceLocation Loc,
+                                   ArrayRef<Stmt*> Body, Expr *StmtLabel) {
   if(Body.size() == 1) {
     auto Result = Body[0];
     if(StmtLabel) {
@@ -507,7 +506,7 @@ StmtResult Sema::ActOnBundledCompoundStmt(ASTContext &C, SourceLocation Loc,
     }
     return Result;
   }
-  auto Result = BundledCompoundStmt::Create(C, Loc, Body, StmtLabel);
+  auto Result = CompoundStmt::Create(C, Loc, Body, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
@@ -1306,7 +1305,7 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult Termi
     if(auto Decl = getCurrentStmtLabelScope().Resolve(TerminatingStmt.get())) {
       std::string String;
       llvm::raw_string_ostream Stream(String);
-      flang::print(Stream, TerminatingStmt.get());
+      TerminatingStmt.get()->dump(Stream);
       Diags.Report(TerminatingStmt.get()->getLocation(),
                    diag::err_stmt_label_must_decl_after)
           << Stream.str() << "DO"

@@ -1133,7 +1133,7 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
 
   } while(EatIfPresentInSameStmt(tok::comma));
 
-  return Actions.ActOnBundledCompoundStmt(Context, Loc, StmtList, StmtLabel);
+  return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
 /// ParsePARAMETERStmt - Parse the PARAMETER statement.
@@ -1197,7 +1197,7 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
     }
   }
 
-  return Actions.ActOnBundledCompoundStmt(Context, Loc, StmtList, StmtLabel);
+  return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
 /// ParseENTRYStmt - Parse the ENTRY statement.
@@ -1416,7 +1416,7 @@ Parser::StmtResult Parser::ParseDATAStmt() {
     if(Tok.isAtStartOfStatement()) break;
   }
 
-  return Actions.ActOnBundledCompoundStmt(Context, Loc, StmtList, StmtLabel);
+  return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
@@ -1606,7 +1606,7 @@ Parser::StmtResult Parser::ParseDIMENSIONStmt() {
       break;
     }
   }
-  return Actions.ActOnBundledCompoundStmt(Context, Loc, StmtList, StmtLabel);
+  return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
 /// ParseEQUIVALENCEStmt - Parse the EQUIVALENCE statement.
@@ -1676,7 +1676,7 @@ Parser::StmtResult Parser::ParseINTRINSICStmt(bool IsActuallyExternal) {
     }
   }
 
-  return Actions.ActOnBundledCompoundStmt(Context, Loc, StmtList, StmtLabel);
+  return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
 /// ParseNAMELISTStmt - Parse the NAMELIST statement.

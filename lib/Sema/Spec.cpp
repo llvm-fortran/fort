@@ -59,7 +59,7 @@ void Sema::ActOnSpecificationPart(ArrayRef<StmtResult> Body) {
 
     ArrayRef<Stmt*> StmtList;
 
-    if (const BundledCompoundStmt *BundledStmt = dyn_cast<BundledCompoundStmt>(I->get()))
+    if (const CompoundStmt *BundledStmt = dyn_cast<CompoundStmt>(I->get()))
       StmtList = BundledStmt->getBody();
     else StmtList = ArrayRef<Stmt*>(I->get());
     for(auto S : StmtList) {

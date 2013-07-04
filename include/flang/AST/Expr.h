@@ -70,6 +70,9 @@ public:
     return SourceRange(getLocStart(), getLocEnd());
   }
 
+  void dump() const;
+  void dump(llvm::raw_ostream &OS) const;
+
   static bool classof(const Expr *) { return true; }
 };
 
@@ -414,6 +417,9 @@ protected:
   ArraySpec(ArraySpecKind K);
 public:
   ArraySpecKind getKind() const { return Kind; }
+
+  void dump() const;
+  void dump(llvm::raw_ostream &OS) const;
 
   static bool classof(const ArraySpec *) { return true; }
 };

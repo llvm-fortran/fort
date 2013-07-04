@@ -15,7 +15,6 @@
 #include "flang/AST/DeclContextInternals.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
-#include "flang/AST/ASTDumper.h"
 #include "flang/AST/ASTContext.h"
 #include "llvm/Support/raw_ostream.h"
 

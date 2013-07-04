@@ -169,6 +169,9 @@ public:
   bool isImplicit() const { return Implicit; }
   void setImplicit(bool I = true) { Implicit = I; }
 
+  void dump() const;
+  void dump(llvm::raw_ostream &OS) const;
+
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *) { return true; }
   static DeclContext *castToDeclContext(const Decl *);

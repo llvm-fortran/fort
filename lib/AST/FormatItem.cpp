@@ -103,37 +103,37 @@ FormatItemList *FormatItemList::Create(ASTContext &C,
 void FormatItem::print(llvm::raw_ostream&) {
 }
 
-// FIXME:
+
 void IntegerDataEditDesc::print(llvm::raw_ostream &O) {
-  //if(getRepeatCount()) getRepeatCount()->print(O);
-  //O << tok::getTokenName(tok::TokenKind(getDescriptor()));
-  //getW()->print(O);
+  if(getRepeatCount()) getRepeatCount()->dump(O);
+  O << tok::getTokenName(tok::TokenKind(getDescriptor()));
+  getW()->dump(O);
 }
 void RealDataEditDesc::print(llvm::raw_ostream &O) {
-  //if(getRepeatCount()) getRepeatCount()->print(O);
-  //O << tok::getTokenName(tok::TokenKind(getDescriptor()));
-  //if(getW()) getW()->print(O);
+  if(getRepeatCount()) getRepeatCount()->dump(O);
+  O << tok::getTokenName(tok::TokenKind(getDescriptor()));
+  if(getW()) getW()->dump(O);
 }
 void CharacterDataEditDesc::print(llvm::raw_ostream &O) {
-  //if(getRepeatCount()) getRepeatCount()->print(O);
-  //O << tok::getTokenName(tok::TokenKind(getDescriptor()));
-  //if(getW()) getW()->print(O);
+  if(getRepeatCount()) getRepeatCount()->dump(O);
+  O << tok::getTokenName(tok::TokenKind(getDescriptor()));
+  if(getW()) getW()->dump(O);
 }
 void PositionEditDesc::print(llvm::raw_ostream &O) {
-  //O << tok::getTokenName(tok::TokenKind(getDescriptor()));
-  //getN()->print(O);
+  O << tok::getTokenName(tok::TokenKind(getDescriptor()));
+  getN()->dump(O);
 }
 void CharacterStringEditDesc::print(llvm::raw_ostream &O) {
-  //Str->print(O);
+  Str->dump(O);
 }
 void FormatItemList::print(llvm::raw_ostream &O) {
-  //O << "(";
-  //auto Items = getItems();
-  //for(size_t I = 0; I< Items.size(); ++I) {
-  //  if(I) O << ", ";
-  //  Items[I]->print(O);
-  //}
-  //O << " )";
+  O << "(";
+  auto Items = getItems();
+  for(size_t I = 0; I< Items.size(); ++I) {
+    if(I) O << ", ";
+    Items[I]->print(O);
+  }
+  O << " )";
 }
 
 

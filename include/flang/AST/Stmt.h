@@ -88,6 +88,9 @@ public:
     StmtLabel = E;
   }
 
+  void dump() const;
+  void dump(llvm::raw_ostream &OS) const;
+
   static bool classof(const Stmt*) { return true; }
 
 public:
@@ -194,19 +197,19 @@ public:
   }
 };
 
-/// BundledCompoundStmt - This represents a group of statements
+/// CompoundStmt - This represents a group of statements
 /// that are bundled together in the source code under one keyword.
 ///
 /// For example, the code PARAMETER (x=1, y=2) will create an AST like:
-///   BundledCompoundStmt {
+///   CompoundStmt {
 ///     ParameterStmt { x = 1 }
 ///     ParameterStmt { y = 2 }
 ///   }
-class BundledCompoundStmt : public ListStmt<Stmt*> {
-  BundledCompoundStmt(ASTContext &C, SourceLocation Loc,
+class CompoundStmt : public ListStmt<Stmt*> {
+  CompoundStmt(ASTContext &C, SourceLocation Loc,
                       ArrayRef<Stmt*> Body, Expr *StmtLabel);
 public:
-  static BundledCompoundStmt *Create(ASTContext &C, SourceLocation Loc,
+  static CompoundStmt *Create(ASTContext &C, SourceLocation Loc,
                                      ArrayRef<Stmt*> Body, Expr *StmtLabel);
 
   ArrayRef<Stmt*> getBody() const {
@@ -214,14 +217,14 @@ public:
   }
   Stmt *getFirst() const {
     auto Body = getBody();
-    if(auto BC = dyn_cast<BundledCompoundStmt>(Body.front()))
+    if(auto BC = dyn_cast<CompoundStmt>(Body.front()))
       return BC->getFirst();
     return Body.front();
   }
 
-  static bool classof(const BundledCompoundStmt*) { return true; }
+  static bool classof(const CompoundStmt*) { return true; }
   static bool classof(const Stmt *S) {
-    return S->getStmtClass() == BundledCompoundStmtClass;
+    return S->getStmtClass() == CompoundStmtClass;
   }
 };
 

@@ -206,8 +206,8 @@ public:
 
   void ActOnEndDerivedTypeDecl();
 
-  StmtResult ActOnBundledCompoundStmt(ASTContext &C, SourceLocation Loc,
-                                      ArrayRef<Stmt*> Body, Expr *StmtLabel);
+  StmtResult ActOnCompoundStmt(ASTContext &C, SourceLocation Loc,
+                               ArrayRef<Stmt*> Body, Expr *StmtLabel);
 
   // PROGRAM statement:
   StmtResult ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,

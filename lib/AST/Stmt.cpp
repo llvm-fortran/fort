@@ -61,15 +61,15 @@ DeclStmt *DeclStmt::Create(ASTContext &C, SourceLocation Loc,
 // Bundled Compound Statement
 //===----------------------------------------------------------------------===//
 
-BundledCompoundStmt::BundledCompoundStmt(ASTContext &C, SourceLocation Loc,
+CompoundStmt::CompoundStmt(ASTContext &C, SourceLocation Loc,
                                          ArrayRef<Stmt*> Body, Expr *StmtLabel)
-  : ListStmt(C, BundledCompoundStmtClass, Loc, Body, StmtLabel) {
+  : ListStmt(C, CompoundStmtClass, Loc, Body, StmtLabel) {
 }
 
-BundledCompoundStmt *BundledCompoundStmt::Create(ASTContext &C, SourceLocation Loc,
+CompoundStmt *CompoundStmt::Create(ASTContext &C, SourceLocation Loc,
                                                  ArrayRef<Stmt*> Body,
                                                  Expr *StmtLabel) {
-  return new(C) BundledCompoundStmt(C, Loc, Body, StmtLabel);
+  return new(C) CompoundStmt(C, Loc, Body, StmtLabel);
 }
 
 //===----------------------------------------------------------------------===//

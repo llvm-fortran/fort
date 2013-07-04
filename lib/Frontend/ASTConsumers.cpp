@@ -15,7 +15,6 @@
 #include "flang/Frontend/ASTConsumers.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/ASTConsumer.h"
-#include "flang/AST/ASTDumper.h"
 
 using namespace flang;
 
@@ -30,7 +29,7 @@ public:
   }
 
   void HandleTranslationUnit(ASTContext &Ctx) {
-    flang::dump(Ctx.getTranslationUnitDecl());
+    Ctx.getTranslationUnitDecl()->dump();
   }
 };
 

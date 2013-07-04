@@ -11,7 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/ASTDumper.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
 #include "flang/AST/ExprVisitor.h"
@@ -53,7 +52,7 @@ public:
 
   void VisitConstructPartStmt(const ConstructPartStmt *S);
   void VisitDeclStmt(const DeclStmt *S);
-  void VisitBundledCompoundStmt(const BundledCompoundStmt *S);
+  void VisitBundledCompoundStmt(const CompoundStmt *S);
   void VisitProgramStmt(const ProgramStmt *S);
   void VisitEndProgramStmt(const EndProgramStmt *S);
   void VisitImplicitStmt(const ImplicitStmt *S);
@@ -196,7 +195,7 @@ void ASTDumper::VisitDeclStmt(const DeclStmt *S) {
   OS << "\n";
 }
 
-void ASTDumper::VisitBundledCompoundStmt(const BundledCompoundStmt *S) {
+void ASTDumper::VisitBundledCompoundStmt(const CompoundStmt *S) {
   auto Body = S->getBody();
   for(size_t I = 0; I < Body.size(); ++I) {
     if(I) OS<<"&";
@@ -569,27 +568,38 @@ void ASTDumper::dumpArraySpec(const ArraySpec *S) {
   } else OS << "<unknown array spec>";
 }
 
-void flang::print(llvm::raw_ostream &OS, const Expr *E) {
-  ASTDumper Dumper(OS);
-  Dumper.dumpExpr(E);
+namespace flang {
+
+void Decl::dump() const {
+  dump(llvm::errs());
+}
+void Decl::dump(llvm::raw_ostream &OS) const {
+  ASTDumper SV(OS);
+  SV.dumpDecl(this);
 }
 
-void flang::dump(StmtResult S) {
-  ASTDumper SV(llvm::errs());
-  SV.dumpStmt(S.get());
+void Stmt::dump() const {
+  dump(llvm::errs());
+}
+void Stmt::dump(llvm::raw_ostream &OS) const {
+  ASTDumper SV(OS);
+  SV.dumpStmt(this);
 }
 
-void flang::dump(ArrayRef<StmtResult> S) {
-  ASTDumper SV(llvm::errs());
-
-  for (ArrayRef<StmtResult>::iterator I = S.begin(), E = S.end(); I != E; ++I){
-    if(!I->get()) continue;
-    if (!isa<ProgramStmt>(I->get()))
-      SV.dumpStmt((*I).get());
-  }
+void Expr::dump() const {
+  dump(llvm::errs());
+}
+void Expr::dump(llvm::raw_ostream &OS) const {
+  ASTDumper SV(OS);
+  SV.dumpExpr(this);
 }
 
-void flang::dump(const Decl *D) {
-  ASTDumper SV(llvm::errs());
-  SV.dumpDecl(D);
+void ArraySpec::dump() const {
+  dump(llvm::errs());
+}
+void ArraySpec::dump(llvm::raw_ostream &OS) const {
+  ASTDumper SV(OS);
+  SV.dumpArraySpec(this);
+}
+
 }

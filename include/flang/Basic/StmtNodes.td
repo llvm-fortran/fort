@@ -11,7 +11,7 @@ class DStmt<Stmt base, bit abstract = 0> : Stmt<abstract> {
 // Statements
 def ConstructPartStmt : Stmt;
 def DeclStmt : Stmt;
-def BundledCompoundStmt : Stmt;
+def CompoundStmt : Stmt;
 def ProgramStmt : Stmt;
 def EndProgramStmt : Stmt;
 def UseStmt : Stmt;
