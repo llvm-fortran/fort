@@ -37,6 +37,15 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
     void VisitGotoStmt(const GotoStmt *S) {
       CG->EmitGotoStmt(S);
     }
+    void VisitIfStmt(const IfStmt *S) {
+      CG->EmitIfStmt(S);
+    }
+    void VisitDoStmt(const DoStmt *S) {
+      CG->EmitDoStmt(S);
+    }
+    void VisitDoWhileStmt(const DoWhileStmt *S) {
+      CG->EmitDoWhileStmt(S);
+    }
     void VisitStopStmt(const StopStmt *S) {
       CG->EmitStopStmt(S);
     }
@@ -80,8 +89,16 @@ void CodeGenFunction::EmitGotoStmt(const GotoStmt *S) {
   GotoTargets.insert(std::make_pair(Dest, Block));
 }
 
-void CodeGenFunction::EmitContinueStmt(const ContinueStmt *S) {
-  // do nothing.
+void CodeGenFunction::EmitIfStmt(const IfStmt *S) {
+
+}
+
+void CodeGenFunction::EmitDoStmt(const DoStmt *S) {
+
+}
+
+void CodeGenFunction::EmitDoWhileStmt(const DoWhileStmt *S) {
+
 }
 
 void CodeGenFunction::EmitStopStmt(const StopStmt *S) {

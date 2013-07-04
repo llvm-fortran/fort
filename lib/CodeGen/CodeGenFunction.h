@@ -69,7 +69,11 @@ class CodeGenFunction : public CodeGenTypeCache {
 
   llvm::BasicBlock *ReturnBlock;
 
-  llvm::DenseMap<const Stmt*,llvm::BasicBlock*> GotoTargets;
+  llvm::DenseMap<const Stmt*, llvm::BasicBlock*> GotoTargets;
+
+  llvm::DenseMap<const VarDecl*, llvm::Value*> LocalVariables;
+
+  RValueTy ReturnValuePtr;
 
   bool IsMainProgram;
 
@@ -113,14 +117,19 @@ public:
   }
 
   void EmitFunctionDecls(const DeclContext *DC);
-  void EmitMainProgramBody(const Stmt *S);
-  void EmitFunctionBody(const Stmt *S);
+  void EmitMainProgramBody(const DeclContext *DC, const Stmt *S);
+  void EmitFunctionBody(const DeclContext *DC, const Stmt *S);
+
+  void EmitReturnVarDecl(const ReturnVarDecl *D);
+  void EmitVarDecl(const VarDecl *D);
 
   void EmitStmt(const Stmt *S);
   void EmitStmtLabel(const Stmt *S);
 
   void EmitGotoStmt(const GotoStmt *S);
-  void EmitContinueStmt(const ContinueStmt *S);
+  void EmitIfStmt(const IfStmt *S);
+  void EmitDoStmt(const DoStmt *S);
+  void EmitDoWhileStmt(const DoWhileStmt *S);
   void EmitStopStmt(const StopStmt *S);
   void EmitReturnStmt(const ReturnStmt *S);
 };

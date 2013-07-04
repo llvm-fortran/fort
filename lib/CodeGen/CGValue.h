@@ -12,8 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef CLANG_CODEGEN_CGVALUE_H
-#define CLANG_CODEGEN_CGVALUE_H
+#ifndef FLANG_CODEGEN_CGVALUE_H
+#define FLANG_CODEGEN_CGVALUE_H
 
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Type.h"
@@ -26,6 +26,30 @@ namespace llvm {
 
 namespace flang {
 namespace CodeGen {
+
+class ComplexValueTy {
+public:
+  llvm::Value *Re, *Im;
+
+  ComplexValueTy() {}
+  ComplexValueTy(llvm::Value *Real, llvm::Value *Imaginary)
+    : Re(Real), Im(Imaginary) {}
+};
+
+class CharacterValueTy {
+public:
+  llvm::Value *Ptr, *Len;
+};
+
+class LValueTy {
+public:
+};
+
+class RValueTy {
+public:
+  llvm::Value *V1;
+  llvm::Value *V2;
+};
 
 }  // end namespace CodeGen
 }  // end namespace flang

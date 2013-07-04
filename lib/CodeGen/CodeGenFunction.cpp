@@ -15,6 +15,7 @@
 #include "CodeGenModule.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
+#include "flang/AST/DeclVisitor.h"
 #include "flang/AST/Stmt.h"
 #include "flang/AST/Expr.h"
 #include "flang/Frontend/CodeGenOptions.h"
@@ -36,14 +37,31 @@ CodeGenFunction::~CodeGenFunction() {
 }
 
 void CodeGenFunction::EmitFunctionDecls(const DeclContext *DC) {
+  class Visitor : public ConstDeclVisitor<Visitor> {
+  public:
+    CodeGenFunction *CG;
+
+    Visitor(CodeGenFunction *P) : CG(P) {}
+
+    void VisitReturnVarDecl(const ReturnVarDecl *D) {
+      CG->EmitReturnVarDecl(D);
+    }
+    void VisitVarDecl(const VarDecl *D) {
+      CG->EmitVarDecl(D);
+    }
+  };
+  Visitor DV(this);
+  DV.Visit(DC);
 }
 
-void CodeGenFunction::EmitMainProgramBody(const Stmt *S) {
+void CodeGenFunction::EmitMainProgramBody(const DeclContext *DC, const Stmt *S) {
   auto Block = createBasicBlock("program_entry",getCurrentFunction());
   Builder.SetInsertPoint(Block);
-  ReturnBlock = createBasicBlock("program_exit",getCurrentFunction());
-
   IsMainProgram = true;
+
+  EmitFunctionDecls(DC);
+
+  ReturnBlock = createBasicBlock("program_exit",getCurrentFunction());
   if(S) {
     EmitStmt(S);
   }
@@ -58,19 +76,29 @@ void CodeGenFunction::EmitMainProgramBody(const Stmt *S) {
   Builder.CreateRet(ReturnValue);
 }
 
-void CodeGenFunction::EmitFunctionBody(const Stmt *S) {
+void CodeGenFunction::EmitFunctionBody(const DeclContext *DC, const Stmt *S) {
 
+}
+
+void CodeGenFunction::EmitReturnVarDecl(const ReturnVarDecl *D) {
+  //FIXME:
+  //Builder.CreateAlloca(IntTy, nullptr, D->getName());
+}
+
+void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
+  if(D->isParameter()) return;
+
+  auto Ptr = Builder.CreateAlloca(ConvertType(D->getType()), nullptr, D->getName());
+  LocalVariables.insert(std::make_pair(D, Ptr));
 }
 
 
 llvm::Type *CodeGenFunction::ConvertTypeForMem(QualType T) {
-  return nullptr;
-  //return CGM.getTypes().ConvertTypeForMem(T);
+  return CGM.getTypes().ConvertTypeForMem(T);
 }
 
 llvm::Type *CodeGenFunction::ConvertType(QualType T) {
-  return nullptr;
-  //return CGM.getTypes().ConvertType(T);
+  return CGM.getTypes().ConvertType(T);
 }
 
 } // end namespace CodeGen

@@ -114,6 +114,8 @@ class CodeGenModule : public CodeGenTypeCache {
   //const TargetInfo &Target;
   llvm::LLVMContext &VMContext;
 
+  CodeGenTypes Types;
+
 public:
   CodeGenModule(ASTContext &C, const CodeGenOptions &CodeGenOpts,
                 llvm::Module &M, const llvm::DataLayout &TD,
@@ -126,6 +128,8 @@ public:
   llvm::Module &getModule() const { return TheModule; }
 
   llvm::LLVMContext &getLLVMContext() const { return VMContext; }
+
+  CodeGenTypes &getTypes() { return Types; }
 
   /// Release - Finalize LLVM code generation.
   void Release();

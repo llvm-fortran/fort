@@ -23,6 +23,6 @@ typedef llvm::IRBuilder<> CGBuilderTy;
 #endif
 
 }  // end namespace CodeGen
-}  // end namespace clang
+}  // end namespace flang
 
 #endif

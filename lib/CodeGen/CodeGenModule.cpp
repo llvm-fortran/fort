@@ -37,7 +37,7 @@ CodeGenModule::CodeGenModule(ASTContext &C, const CodeGenOptions &CGO,
                              llvm::Module &M, const llvm::DataLayout &TD,
                              DiagnosticsEngine &diags)
   : Context(C), LangOpts(C.getLangOpts()), CodeGenOpts(CGO), TheModule(M),
-    Diags(diags), TheDataLayout(TD), VMContext(M.getContext()) {
+    Diags(diags), TheDataLayout(TD), VMContext(M.getContext()), Types(*this) {
 
   // Initialize the type cache.
   llvm::LLVMContext &LLVMContext = M.getContext();
@@ -89,8 +89,7 @@ void CodeGenModule::EmitMainProgramDecl(const MainProgramDecl *Program) {
   Func->setCallingConv(llvm::CallingConv::C);
 
   CodeGenFunction CGF(*this, Func);
-  CGF.EmitFunctionDecls(Program);
-  CGF.EmitMainProgramBody(Program->getBody());
+  CGF.EmitMainProgramBody(Program, Program->getBody());
 }
 
 void CodeGenModule::EmitFunctionDecl(const FunctionDecl *Function) {

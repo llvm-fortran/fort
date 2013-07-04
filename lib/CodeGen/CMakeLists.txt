@@ -2,6 +2,7 @@ add_flang_library(flangCodeGen
   ModuleBuilder.cpp
   CodeGenModule.cpp
   CodeGenFunction.cpp
+  CodeGenTypes.cpp
   CGStmt.cpp
 )
 
