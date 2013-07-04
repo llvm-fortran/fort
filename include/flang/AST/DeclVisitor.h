@@ -45,6 +45,19 @@ public:
 
   RetTy VisitDecl(PTR(Decl) D) { return RetTy(); }
 
+  RetTy Visit(PTR(DeclContext) D) {
+    DISPATCH(DeclContext, DeclContext);
+  }
+
+  RetTy VisitDeclContext(PTR(DeclContext) Ctx) {
+    auto I = Ctx->decls_begin();
+    for(auto E = Ctx->decls_end(); I!=E; ++I) {
+      if((*I)->getDeclContext() == Ctx)
+        Visit(*I);
+    }
+    return RetTy();
+  }
+
 #undef PTR
 #undef DISPATCH
 };

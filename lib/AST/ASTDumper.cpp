@@ -40,7 +40,7 @@ public:
 
   // declarations
   void dumpDecl(const Decl *D);
-  void dumpDeclContext(const DeclContext *Ctx, const Decl *D);
+  void dumpDeclContext(const DeclContext *Ctx);
   void VisitTranslationUnitDecl(const TranslationUnitDecl *D);
   void VisitMainProgramDecl(const MainProgramDecl *D);
   void VisitFunctionDecl(const FunctionDecl *D);
@@ -136,7 +136,7 @@ void ASTDumper::dumpDecl(const Decl *D) {
   ConstDeclVisitor<ASTDumper>::Visit(D);
 }
 
-void ASTDumper::dumpDeclContext(const DeclContext *Ctx, const Decl *D) {
+void ASTDumper::dumpDeclContext(const DeclContext *Ctx) {
   auto I = Ctx->decls_begin();
   for(auto E = Ctx->decls_end(); I!=E; ++I) {
     if((*I)->getDeclContext() == Ctx)
@@ -145,13 +145,13 @@ void ASTDumper::dumpDeclContext(const DeclContext *Ctx, const Decl *D) {
 }
 
 void ASTDumper::VisitTranslationUnitDecl(const TranslationUnitDecl *D) {
-  dumpDeclContext(D, D);
+  dumpDeclContext(D);
 }
 
 void ASTDumper::VisitMainProgramDecl(const MainProgramDecl *D) {
   OS << "program " << D->getName() << "\n";
   indent++;
-  dumpDeclContext(D, D);
+  dumpDeclContext(D);
   indent--;
   if(D->getBody())
     dumpSubStmt(D->getBody());
@@ -171,7 +171,7 @@ void ASTDumper::VisitFunctionDecl(const FunctionDecl *D) {
   }
   OS << ")\n";
   indent++;
-  dumpDeclContext(D, D);
+  dumpDeclContext(D);
   indent--;
   if(D->getBody())
     dumpSubStmt(D->getBody());
