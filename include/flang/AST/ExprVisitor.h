@@ -73,7 +73,7 @@ public:
 
   // If the implementation chooses not to implement a certain visit method, fall
   // back on VisitExpr or whatever else is the superclass.
-#define ABSTRACT_EXPR(E)
+#define ABSTRACT_EXPR(E) E
 #define EXPR(CLASS, PARENT)                                   \
   RetTy Visit ## CLASS(PTR(CLASS) E) { DISPATCH(PARENT, PARENT); }
 #include "flang/AST/ExprNodes.inc"

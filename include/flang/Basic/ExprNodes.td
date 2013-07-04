@@ -16,7 +16,7 @@ def ComplexConstantExpr : DExpr<ConstantExpr>;
 def CharacterConstantExpr : DExpr<ConstantExpr>;
 def BOZConstantExpr : DExpr<ConstantExpr>;
 def LogicalConstantExpr : DExpr<ConstantExpr>;
-def RepeatedConstantExpr : DExpr<ConstantExpr>;
+def RepeatedConstantExpr : Expr;
 
 def VarExpr : Expr;
 def UnresolvedIdentifierExpr : Expr;

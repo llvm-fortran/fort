@@ -84,6 +84,8 @@ public:
   //CodeGenTypes &getTypes() const { return CGM.getTypes(); }
   ASTContext &getContext() const { return CGM.getContext(); }
 
+  CGBuilderTy &getBuilder() { return Builder; }
+
   llvm::BasicBlock *getUnreachableBlock() {
     if (!UnreachableBlock) {
       UnreachableBlock = createBasicBlock("unreachable");
@@ -116,6 +118,8 @@ public:
 //#endif
   }
 
+  llvm::Value *GetVarPtr(const VarDecl *D);
+
   void EmitFunctionDecls(const DeclContext *DC);
   void EmitMainProgramBody(const DeclContext *DC, const Stmt *S);
   void EmitFunctionBody(const DeclContext *DC, const Stmt *S);
@@ -132,6 +136,11 @@ public:
   void EmitDoWhileStmt(const DoWhileStmt *S);
   void EmitStopStmt(const StopStmt *S);
   void EmitReturnStmt(const ReturnStmt *S);
+  void EmitAssignmentStmt(const AssignmentStmt *S);
+
+  llvm::Value *EmitScalarRValue(const Expr *E);
+  ComplexValueTy EmitComplexRValue(const Expr *E);
+  llvm::Value *EmitScalarExpr(const Expr *E);
 };
 
 }  // end namespace CodeGen

@@ -52,6 +52,9 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
     void VisitReturnStmt(const ReturnStmt *S) {
       CG->EmitReturnStmt(S);
     }
+    void VisitAssignmentStmt(const AssignmentStmt *S) {
+      CG->EmitAssignmentStmt(S);
+    }
   };
   Visitor SV(this);
 
@@ -111,6 +114,15 @@ void CodeGenFunction::EmitStopStmt(const StopStmt *S) {
 
 void CodeGenFunction::EmitReturnStmt(const ReturnStmt *S) {
   Builder.CreateBr(ReturnBlock);
+}
+
+void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
+  auto RHS = S->getRHS();
+  auto RHSType = RHS->getType();
+  if(RHSType->isIntegerType() || RHSType->isRealType() ||
+     RHSType->isLogicalType()) {
+    EmitScalarRValue(RHS);
+  }
 }
 
 }

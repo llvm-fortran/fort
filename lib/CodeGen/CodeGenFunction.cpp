@@ -92,6 +92,17 @@ void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
   LocalVariables.insert(std::make_pair(D, Ptr));
 }
 
+llvm::Value *CodeGenFunction::GetVarPtr(const VarDecl *D) {
+  return LocalVariables[D];
+}
+
+llvm::Value *CodeGenFunction::EmitScalarRValue(const Expr *E) {
+  return EmitScalarExpr(E);
+}
+
+ComplexValueTy CodeGenFunction::EmitComplexRValue(const Expr *E) {
+  return ComplexValueTy();
+}
 
 llvm::Type *CodeGenFunction::ConvertTypeForMem(QualType T) {
   return CGM.getTypes().ConvertTypeForMem(T);
