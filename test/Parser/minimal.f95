@@ -1,2 +1,2 @@
-! RUN: %flang < %s
+! RUN: %flang -fsyntax-only < %s
 END

@@ -18,8 +18,8 @@
 
 namespace flang {
 
-ASTContext::ASTContext(llvm::SourceMgr &SM)
-  : SrcMgr(SM), LastSDM(0) {
+ASTContext::ASTContext(llvm::SourceMgr &SM, LangOptions LangOpts)
+  : SrcMgr(SM), LastSDM(0), LanguageOptions(LangOpts) {
   TUDecl = TranslationUnitDecl::Create(*this);
   InitBuiltinTypes();
 }

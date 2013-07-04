@@ -1,4 +1,4 @@
-! RUN: %flang -verify < %s
+! RUN: %flang -fsyntax-only -verify < %s
 PROGRAM arrtest
   DIMENSION I_ARR2(1,2,3,4)
   INTEGER I_ARR(30)

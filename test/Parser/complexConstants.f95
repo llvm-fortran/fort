@@ -1,4 +1,4 @@
-! RUN: %flang -verify < %s
+! RUN: %flang -fsyntax-only -verify < %s
 PROGRAM constants
   COMPLEX C
   C = (1.0,2.0)

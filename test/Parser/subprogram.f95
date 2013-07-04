@@ -1,4 +1,4 @@
-! RUN: %flang -verify < %s
+! RUN: %flang -fsyntax-only -verify < %s
 
 SUBROUTINE FOO
 END

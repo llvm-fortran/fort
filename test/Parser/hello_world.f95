@@ -1,4 +1,4 @@
-! RUN: %flang < %s
+! RUN: %flang -fsyntax-only < %s
 PROGRAM HELLO_WORLD
   CHARACTER (LEN=11) :: C
   C = 'hello world'

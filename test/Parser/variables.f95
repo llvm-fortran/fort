@@ -1,4 +1,4 @@
-! RUN: %flang < %s
+! RUN: %flang -fsyntax-only < %s
 PROGRAM vartest
   IMPLICIT NONE
   INTEGER :: I

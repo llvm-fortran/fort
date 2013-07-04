@@ -1,4 +1,4 @@
-! RUN: %flang -verify < %s
+! RUN: %flang -fsyntax-only -verify < %s
 PROGRAM formattest
 
 1000 FORMAT (A)

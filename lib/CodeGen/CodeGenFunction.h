@@ -1,0 +1,131 @@
+//===-- CodeGenFunction.h - Per-Function state for LLVM CodeGen -*- C++ -*-===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+//
+// This is the internal per-function state used for llvm translation.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef CLANG_CODEGEN_CODEGENFUNCTION_H
+#define CLANG_CODEGEN_CODEGENFUNCTION_H
+
+#include "CGBuilder.h"
+#include "CGValue.h"
+#include "CodeGenModule.h"
+#include "flang/AST/Expr.h"
+#include "flang/AST/Stmt.h"
+#include "flang/AST/Type.h"
+//#include "flang/Basic/TargetInfo.h"
+#include "flang/Frontend/CodeGenOptions.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/ValueHandle.h"
+
+namespace llvm {
+  class BasicBlock;
+  class LLVMContext;
+  class MDNode;
+  class Module;
+  class SwitchInst;
+  class Twine;
+  class Value;
+  class CallSite;
+}
+
+namespace flang {
+  class ASTContext;
+  class Decl;
+
+namespace CodeGen {
+  class CodeGenTypes;
+
+/// CodeGenFunction - This class organizes the per-function state that is used
+/// while generating LLVM code.
+class CodeGenFunction : public CodeGenTypeCache {
+  CodeGenFunction(const CodeGenFunction &) LLVM_DELETED_FUNCTION;
+  void operator=(const CodeGenFunction &) LLVM_DELETED_FUNCTION;
+
+  CodeGenModule &CGM;  // Per-module state.
+  //const TargetInfo &Target;
+
+  CGBuilderTy Builder;
+
+  /// CurFuncDecl - Holds the Decl for the current outermost
+  /// non-closure context.
+  const Decl *CurFuncDecl;
+  /// CurCodeDecl - This is the inner-most code context, which includes blocks.
+  const Decl *CurCodeDecl;
+  QualType FnRetTy;
+  llvm::Function *CurFn;
+
+  llvm::BasicBlock *UnreachableBlock;
+
+  llvm::BasicBlock *ReturnBlock;
+
+  llvm::DenseMap<const Stmt*,llvm::BasicBlock*> GotoTargets;
+
+  bool IsMainProgram;
+
+public:
+  CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn);
+  ~CodeGenFunction();
+
+  //CodeGenTypes &getTypes() const { return CGM.getTypes(); }
+  ASTContext &getContext() const { return CGM.getContext(); }
+
+  llvm::BasicBlock *getUnreachableBlock() {
+    if (!UnreachableBlock) {
+      UnreachableBlock = createBasicBlock("unreachable");
+      new llvm::UnreachableInst(getLLVMContext(), UnreachableBlock);
+    }
+    return UnreachableBlock;
+  }
+  //const TargetInfo &getTarget() const { return Target; }
+  llvm::LLVMContext &getLLVMContext() { return CGM.getLLVMContext(); }
+
+  llvm::Function *getCurrentFunction() const {
+    return CurFn;
+  }
+
+  /// EmitReturnBlock - Emit the unified return block, trying to avoid its
+  /// emission when possible.
+  void EmitReturnBlock();
+
+  llvm::Type *ConvertTypeForMem(QualType T);
+  llvm::Type *ConvertType(QualType T);
+
+  /// createBasicBlock - Create an LLVM basic block.
+  llvm::BasicBlock *createBasicBlock(const Twine &name = "",
+                                     llvm::Function *parent = 0,
+                                     llvm::BasicBlock *before = 0) {
+//#ifdef NDEBUG
+//    return llvm::BasicBlock::Create(getLLVMContext(), "", parent, before);
+//#else
+    return llvm::BasicBlock::Create(getLLVMContext(), name, parent, before);
+//#endif
+  }
+
+  void EmitFunctionDecls(const DeclContext *DC);
+  void EmitMainProgramBody(const Stmt *S);
+  void EmitFunctionBody(const Stmt *S);
+
+  void EmitStmt(const Stmt *S);
+  void EmitStmtLabel(const Stmt *S);
+
+  void EmitGotoStmt(const GotoStmt *S);
+  void EmitContinueStmt(const ContinueStmt *S);
+  void EmitStopStmt(const StopStmt *S);
+  void EmitReturnStmt(const ReturnStmt *S);
+};
+
+}  // end namespace CodeGen
+}  // end namespace flang
+
+#endif

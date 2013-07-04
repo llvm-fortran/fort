@@ -17,6 +17,8 @@
 #include "flang/Frontend/ASTConsumers.h"
 #include "flang/Parse/Parser.h"
 #include "flang/Sema/Sema.h"
+#include "flang/CodeGen/ModuleBuilder.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -100,7 +102,7 @@ static bool ParseFile(const std::string &Filename,
 #if 0
   PrintAction PA(Diag);
 #endif
-  ASTContext Context(SrcMgr);
+  ASTContext Context(SrcMgr, Opts);
   Sema SA(Context, Diag);
   Parser P(SrcMgr, Opts, Diag, SA);
   Diag.getClient()->BeginSourceFile(Opts, &P.getLexer());
@@ -109,6 +111,15 @@ static bool ParseFile(const std::string &Filename,
   // dump
   auto Dumper = CreateASTDumper("");
   Dumper->HandleTranslationUnit(Context);
+
+
+  if(!SyntaxOnly) {
+    auto CG = CreateLLVMCodeGen(Diag, Filename == ""? std::string("module") : Filename,
+                                CodeGenOptions(), TargetOptions(), llvm::getGlobalContext());
+    CG->Initialize(Context);
+    CG->HandleTranslationUnit(Context);
+  }
+
   return Diag.hadErrors() || Diag.hadWarnings();
 }
 

@@ -1,4 +1,4 @@
-! RUN: %flang -verify < %s
+! RUN: %flang -fsyntax-only -verify < %s
 PROGRAM imptest
   IMPLICIT INTEGER(A)
   IMPLICIT REAL(B, G), COMPLEX(H)

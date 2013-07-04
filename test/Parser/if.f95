@@ -1,4 +1,4 @@
-! RUN: %flang -verify < %s
+! RUN: %flang -fsyntax-only -verify < %s
 PROGRAM iftest
   CHARACTER (LEN=11) :: C
   IF(1 == 1) C = "YES"

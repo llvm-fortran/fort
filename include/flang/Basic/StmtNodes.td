@@ -16,7 +16,6 @@ def ProgramStmt : Stmt;
 def EndProgramStmt : Stmt;
 def UseStmt : Stmt;
 def ImportStmt : Stmt;
-def SpecificationStmt : Stmt<1>;
 def ImplicitStmt : Stmt;
 def DimensionStmt : Stmt;
 def FormatStmt : Stmt;

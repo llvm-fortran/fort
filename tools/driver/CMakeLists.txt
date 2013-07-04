@@ -18,6 +18,7 @@ target_link_libraries(flang
   flangParse
   flangSema
   flangBasic
+  flangCodeGen
   )
 
 set_target_properties(flang PROPERTIES VERSION ${FLANG_EXECUTABLE_VERSION})

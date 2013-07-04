@@ -1,4 +1,4 @@
-* RUN: %flang < %s
+* RUN: %flang -fsyntax-only < %s
 * an extract from chemm.f
       SUBROUTINE FOO(M, N, ALPHA, BETA)
       REAL M, N, ALPHA, BETA

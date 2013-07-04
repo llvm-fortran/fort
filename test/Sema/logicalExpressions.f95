@@ -1,4 +1,4 @@
-! RUN: %flang -verify < %s
+! RUN: %flang -fsyntax-only -verify < %s
 PROGRAM logicalexpressions
   IMPLICIT NONE
   LOGICAL L

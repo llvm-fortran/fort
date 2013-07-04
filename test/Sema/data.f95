@@ -1,4 +1,4 @@
-! RUN: %flang -verify < %s
+! RUN: %flang -fsyntax-only -verify < %s
 PROGRAM datatest
   INTEGER I, J, K
   REAL X,Y,Z, ZZZ

@@ -1,4 +1,4 @@
-! RUN: %flang < %s
+! RUN: %flang -fsyntax-only < %s
 PROGRAM test
 
 10  FORMAT('Message= ',A)

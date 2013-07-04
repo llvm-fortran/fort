@@ -302,6 +302,10 @@ public:
   /// clients
   bool ReportNote(SourceLocation L, const llvm::Twine &Msg);
 
+  bool hasErrorOccurred() const {
+    return NumErrors!=0;
+  }
+
   /// \brief Clear out the current diagnostic.
   void Clear() { CurDiagID = ~0U; }
 private:

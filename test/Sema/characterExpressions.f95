@@ -1,4 +1,4 @@
-! RUN: %flang -verify < %s
+! RUN: %flang -fsyntax-only -verify < %s
 PROGRAM charexpressions
   IMPLICIT NONE
   CHARACTER * 16 C

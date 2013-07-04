@@ -1,4 +1,4 @@
-! RUN: %flang -verify < %s
+! RUN: %flang -fsyntax-only -verify < %s
 
 SUBROUTINE SUB(STR, STR2, STR3, STR4, STR5)
   CHARACTER STR*(*)

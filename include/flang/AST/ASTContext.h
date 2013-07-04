@@ -57,6 +57,8 @@ class ASTContext {
   /// SrcMgr - The associated SourceMgr object.
   llvm::SourceMgr &SrcMgr;
 
+  LangOptions LanguageOptions;
+
   //===--------------------------------------------------------------------===//
   //                           Type Constructors
   //===--------------------------------------------------------------------===//
@@ -75,7 +77,7 @@ private:
   void InitBuiltinType(QualType &R, BuiltinType::TypeSpec K);
 
 public:
-  ASTContext(llvm::SourceMgr &SM);
+  ASTContext(llvm::SourceMgr &SM, LangOptions LangOpts);
   ~ASTContext();
 
   TranslationUnitDecl *getTranslationUnitDecl() const { return TUDecl; }
@@ -88,6 +90,10 @@ public:
   }
   void Deallocate(void *Ptr) const {
     BumpAlloc.Deallocate(Ptr);
+  }
+
+  LangOptions getLangOpts() const {
+    return LanguageOptions;
   }
 
   // Builtin Types: [R404]

@@ -43,9 +43,10 @@ public:
 
   // If the implementation chooses not to implement a certain visit method, fall
   // back on VisitExpr or whatever else is the superclass.
-#define ABSTRACT_STMT(STMT)
+
 #define STMT(CLASS, PARENT)                                   \
   RetTy Visit ## CLASS(PTR(CLASS) S) { DISPATCH(PARENT, PARENT); }
+#define ABSTRACT_STMT(STMT) STMT
 #include "flang/AST/StmtNodes.inc"
 
   // Base case, ignore it. :)
