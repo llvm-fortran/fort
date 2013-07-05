@@ -127,6 +127,11 @@ public:
   void EmitReturnVarDecl(const ReturnVarDecl *D);
   void EmitVarDecl(const VarDecl *D);
 
+  void EmitBlock(llvm::BasicBlock *BB);
+  void EmitBranch(llvm::BasicBlock *Target);
+  void EmitBranchOnLogicalExpr(const Expr *Condition, llvm::BasicBlock *ThenBB,
+                               llvm::BasicBlock *ElseBB);
+
   void EmitStmt(const Stmt *S);
   void EmitStmtLabel(const Stmt *S);
 
@@ -137,12 +142,16 @@ public:
   void EmitStopStmt(const StopStmt *S);
   void EmitReturnStmt(const ReturnStmt *S);
   void EmitAssignmentStmt(const AssignmentStmt *S);
+  void EmitAssignment(const Expr *LHS, const Expr *RHS);
 
   llvm::Value *EmitScalarRValue(const Expr *E);
   ComplexValueTy EmitComplexRValue(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
   llvm::Value *EmitLogicalScalarExpr(const Expr *E);
   llvm::Value *EmitIntegerConstantExpr(const IntegerConstantExpr *E);
+  llvm::Value *EmitScalarRelationalExpr(BinaryExpr::Operator Op, llvm::Value *LHS,
+                                        llvm::Value *RHS);
+  llvm::Value *GetConstantOne(QualType T);
 
   ComplexValueTy EmitComplexExpr(const Expr *E);
   ComplexValueTy EmitComplexLoad(llvm::Value *Ptr, bool IsVolatile = false);

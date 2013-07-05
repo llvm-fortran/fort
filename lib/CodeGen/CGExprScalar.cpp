@@ -130,34 +130,46 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
   case BinaryExpr::Power:
     break;
 
+  default:
+    return CGF.EmitScalarRelationalExpr(E->getOperator(), LHS, RHS);
+  }
+  return Result;
+}
+
+llvm::Value *CodeGenFunction::EmitScalarRelationalExpr(BinaryExpr::Operator Op, llvm::Value *LHS,
+                                                       llvm::Value *RHS) {
+  auto IsInt = LHS->getType()->isIntegerTy();
+  llvm::CmpInst::Predicate CmpPredicate;
+
+  switch(Op) {
   case BinaryExpr::Eqv:
     CmpPredicate = llvm::CmpInst::ICMP_EQ;
-    goto CreateCmp;
+    break;
   case BinaryExpr::Neqv:
     CmpPredicate = llvm::CmpInst::ICMP_NE;
-    goto CreateCmp;
+    break;
 
   case BinaryExpr::Equal:
     CmpPredicate = IsInt? llvm::CmpInst::ICMP_EQ : llvm::CmpInst::FCMP_UEQ;
-    goto CreateCmp;
+    break;
   case BinaryExpr::NotEqual:
     CmpPredicate = IsInt? llvm::CmpInst::ICMP_NE : llvm::CmpInst::FCMP_UNE;
-    goto CreateCmp;
+    break;
   case BinaryExpr::LessThan:
     CmpPredicate = IsInt? llvm::CmpInst::ICMP_SLT : llvm::CmpInst::FCMP_ULT;
-    goto CreateCmp;
+    break;
   case BinaryExpr::LessThanEqual:
     CmpPredicate = IsInt? llvm::CmpInst::ICMP_SLE : llvm::CmpInst::FCMP_ULE;
-    goto CreateCmp;
+    break;
   case BinaryExpr::GreaterThan:
     CmpPredicate = IsInt? llvm::CmpInst::ICMP_SGT : llvm::CmpInst::FCMP_UGT;
-    goto CreateCmp;
+    break;
   case BinaryExpr::GreaterThanEqual:
     CmpPredicate = IsInt? llvm::CmpInst::ICMP_SGE : llvm::CmpInst::FCMP_UGE;
-    goto CreateCmp;
+    break;
+  default:
+    llvm_unreachable("unknown comparison op");
   }
-  return Result;
-CreateCmp:
   return IsInt? Builder.CreateICmp(CmpPredicate, LHS, RHS) :
                 Builder.CreateFCmp(CmpPredicate, LHS, RHS);
 }
@@ -190,6 +202,12 @@ llvm::Value *CodeGenFunction::EmitScalarExpr(const Expr *E) {
 
 llvm::Value *CodeGenFunction::EmitLogicalScalarExpr(const Expr *E) {
   return EmitScalarExpr(E);
+}
+
+llvm::Value *CodeGenFunction::GetConstantOne(QualType T) {
+  auto Type = ConvertType(T);
+  return Type->isIntegerTy()? llvm::ConstantInt::get(Type, 1) :
+                              llvm::ConstantFP::get(Type, 1.0);
 }
 
 }
