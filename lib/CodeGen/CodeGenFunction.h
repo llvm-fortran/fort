@@ -143,6 +143,12 @@ public:
   llvm::Value *EmitScalarExpr(const Expr *E);
   llvm::Value *EmitLogicalScalarExpr(const Expr *E);
   llvm::Value *EmitIntegerConstantExpr(const IntegerConstantExpr *E);
+
+  ComplexValueTy EmitComplexExpr(const Expr *E);
+  ComplexValueTy EmitComplexLoad(llvm::Value *Ptr, bool IsVolatile = false);
+  void EmitComplexStore(llvm::Value *Ptr, ComplexValueTy Value,
+                        bool IsVolatile = false);
+
 };
 
 }  // end namespace CodeGen

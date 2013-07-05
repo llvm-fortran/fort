@@ -101,7 +101,7 @@ llvm::Value *CodeGenFunction::EmitScalarRValue(const Expr *E) {
 }
 
 ComplexValueTy CodeGenFunction::EmitComplexRValue(const Expr *E) {
-  return ComplexValueTy();
+  return EmitComplexExpr(E);
 }
 
 llvm::Type *CodeGenFunction::ConvertTypeForMem(QualType T) {

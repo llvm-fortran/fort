@@ -122,6 +122,8 @@ void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
   if(RHSType->isIntegerType() || RHSType->isRealType() ||
      RHSType->isLogicalType()) {
     EmitScalarRValue(RHS);
+  } else if(RHSType->isComplexType()) {
+    EmitComplexRValue(RHS);
   }
 }
 

@@ -5,6 +5,7 @@ add_flang_library(flangCodeGen
   CodeGenTypes.cpp
   CGStmt.cpp
   CGExprScalar.cpp
+  CGExprComplex.cpp
 )
 
 target_link_libraries(flangCodeGen

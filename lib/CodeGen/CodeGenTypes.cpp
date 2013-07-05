@@ -47,8 +47,11 @@ llvm::Type *CodeGenTypes::ConvertBuiltInType(const BuiltinType *T) {
   case BuiltinType::Real:
     return CGM.FloatTy;
     break;
-  case BuiltinType::Complex:
-    break;
+  case BuiltinType::Complex: {
+    llvm::Type *Pair[2] = { CGM.FloatTy, CGM.FloatTy };
+    return llvm::StructType::get(CGM.getLLVMContext(),
+                                 ArrayRef<llvm::Type*>(Pair,2));
+  }
   case BuiltinType::Logical:
     return llvm::IntegerType::get(CGM.getLLVMContext(), 1);
     break;
