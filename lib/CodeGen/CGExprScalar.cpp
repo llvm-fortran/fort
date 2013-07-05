@@ -197,11 +197,51 @@ llvm::Value *CodeGenFunction::EmitComplexRelationalExpr(BinaryExpr::Operator Op,
 }
 
 llvm::Value *ScalarExprEmitter::VisitBinaryExprAnd(const BinaryExpr *E) {
-  return nullptr;//FIXME
+  auto LHSTrueBlock = CGF.createBasicBlock("and-lhs-true");
+  auto TrueBlock = CGF.createBasicBlock("and-true");
+  auto FalseBlock = CGF.createBasicBlock("and-false");
+  auto EndBlock = CGF.createBasicBlock("end-and");
+
+  auto LHS = EmitExpr(E->getLHS());
+  Builder.CreateCondBr(LHS, LHSTrueBlock, FalseBlock);
+  CGF.EmitBlock(LHSTrueBlock);
+  auto RHS = EmitExpr(E->getRHS());
+  Builder.CreateCondBr(RHS, TrueBlock, FalseBlock);
+  CGF.EmitBlock(TrueBlock);
+  auto ResultTrue = Builder.getTrue();
+  CGF.EmitBranch(EndBlock);
+  CGF.EmitBlock(FalseBlock);
+  auto ResultFalse = Builder.getFalse();
+  CGF.EmitBlock(EndBlock);
+
+  auto Result = Builder.CreatePHI(Builder.getInt1Ty(), 2, "and-result");
+  Result->addIncoming(ResultTrue, TrueBlock);
+  Result->addIncoming(ResultFalse, FalseBlock);
+  return Result;
 }
 
 llvm::Value *ScalarExprEmitter::VisitBinaryExprOr(const BinaryExpr *E) {
-  return nullptr;//FIXME
+  auto TrueBlock = CGF.createBasicBlock("or-true");
+  auto LHSFalseBlock = CGF.createBasicBlock("or-lhs-false");
+  auto FalseBlock = CGF.createBasicBlock("or-false");
+  auto EndBlock = CGF.createBasicBlock("end-or");
+
+  auto LHS = EmitExpr(E->getLHS());
+  Builder.CreateCondBr(LHS, TrueBlock, LHSFalseBlock);
+  CGF.EmitBlock(LHSFalseBlock);
+  auto RHS = EmitExpr(E->getRHS());
+  Builder.CreateCondBr(RHS, TrueBlock, FalseBlock);
+  CGF.EmitBlock(FalseBlock);
+  auto ResultFalse = Builder.getFalse();
+  CGF.EmitBranch(EndBlock);
+  CGF.EmitBlock(TrueBlock);
+  auto ResultTrue = Builder.getTrue();
+  CGF.EmitBlock(EndBlock);
+
+  auto Result = Builder.CreatePHI(Builder.getInt1Ty(), 2, "or-result");
+  Result->addIncoming(ResultTrue, TrueBlock);
+  Result->addIncoming(ResultFalse, FalseBlock);
+  return Result;
 }
 
 llvm::Value *CodeGenFunction::EmitScalarToScalarConversion(llvm::Value *Value,
