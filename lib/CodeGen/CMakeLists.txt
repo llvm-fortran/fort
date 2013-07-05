@@ -4,6 +4,7 @@ add_flang_library(flangCodeGen
   CodeGenFunction.cpp
   CodeGenTypes.cpp
   CGStmt.cpp
+  CGExpr.cpp
   CGExprScalar.cpp
   CGExprComplex.cpp
 )

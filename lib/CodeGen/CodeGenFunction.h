@@ -144,9 +144,12 @@ public:
   void EmitAssignmentStmt(const AssignmentStmt *S);
   void EmitAssignment(const Expr *LHS, const Expr *RHS);
 
+  LValueTy EmitLValue(const Expr *E);
+
   llvm::Value *EmitScalarRValue(const Expr *E);
   ComplexValueTy EmitComplexRValue(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
+  llvm::Value *EmitScalarLValue(const Expr *E);
   llvm::Value *EmitLogicalScalarExpr(const Expr *E);
   llvm::Value *EmitIntegerConstantExpr(const IntegerConstantExpr *E);
   llvm::Value *EmitScalarRelationalExpr(BinaryExpr::Operator Op, llvm::Value *LHS,
@@ -155,7 +158,7 @@ public:
 
   ComplexValueTy EmitComplexExpr(const Expr *E);
   ComplexValueTy EmitComplexLoad(llvm::Value *Ptr, bool IsVolatile = false);
-  void EmitComplexStore(llvm::Value *Ptr, ComplexValueTy Value,
+  void EmitComplexStore(ComplexValueTy Value, llvm::Value *Ptr,
                         bool IsVolatile = false);
 
 };

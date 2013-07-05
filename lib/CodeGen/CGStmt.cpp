@@ -228,12 +228,19 @@ void CodeGenFunction::EmitReturnStmt(const ReturnStmt *S) {
 void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
   auto RHS = S->getRHS();
   auto RHSType = RHS->getType();
+
+  auto Destination = EmitLValue(S->getLHS());
+
   if(RHSType->isIntegerType() || RHSType->isRealType() ||
      RHSType->isLogicalType()) {
-    EmitScalarRValue(RHS);
+    auto Value = EmitScalarRValue(RHS);
+    Builder.CreateStore(Value, Destination.getPointer());
   } else if(RHSType->isComplexType()) {
-    EmitComplexRValue(RHS);
+    auto Value = EmitComplexRValue(RHS);
+    EmitComplexStore(Value, Destination.getPointer());
   }
+
+
 }
 
 }
