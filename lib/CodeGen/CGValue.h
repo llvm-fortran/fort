@@ -34,6 +34,13 @@ public:
   ComplexValueTy() {}
   ComplexValueTy(llvm::Value *Real, llvm::Value *Imaginary)
     : Re(Real), Im(Imaginary) {}
+
+  inline llvm::Value *getPolarLength() const {
+    return Re;
+  }
+  inline llvm::Value *getPolarTheta() const {
+    return Im;
+  }
 };
 
 class CharacterValueTy {

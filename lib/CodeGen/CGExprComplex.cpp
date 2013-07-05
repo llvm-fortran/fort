@@ -18,6 +18,7 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/Intrinsics.h"
 #include "llvm/ADT/APFloat.h"
 
 namespace flang {
@@ -39,6 +40,7 @@ public:
   ComplexValueTy VisitUnaryExprPlus(const UnaryExpr *E);
   ComplexValueTy VisitUnaryExprMinus(const UnaryExpr *E);
   ComplexValueTy VisitBinaryExpr(const BinaryExpr *E);
+  ComplexValueTy VisitBinaryExprPow(const BinaryExpr *E);
   ComplexValueTy VisitImplicitCastExpr(const ImplicitCastExpr *E);
   ComplexValueTy VisitCallExpr(const CallExpr *E);
   ComplexValueTy VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
@@ -136,12 +138,45 @@ ComplexValueTy ComplexExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
     Result.Im = Builder.CreateFDiv(Tmp9, Tmp6);
     break;
   }
-
-  case BinaryExpr::Power:
-    // FIXME: TODO
-    break;
   }
   return Result;
+}
+
+ComplexValueTy CodeGenFunction::EmitComplexToPolarFormConversion(ComplexValueTy Value) {
+  // r = sqrt(re**2 + im**2)
+  auto ReSquared = Builder.CreateFMul(Value.Re,Value.Re);
+  auto ImSquared = Builder.CreateFMul(Value.Im,Value.Im);
+  auto SqrtFunc = GetIntrinsicFunction(llvm::Intrinsic::sqrt, ReSquared->getType());
+  auto Length = Builder.CreateCall(SqrtFunc, Builder.CreateFAdd(ReSquared, ImSquared));
+  // theta = arctan2(re/r,im/r)
+  // FIXME: call atan2
+  Builder.CreateFDiv(Value.Re, Length);
+  Builder.CreateFDiv(Value.Im, Length);
+  return ComplexValueTy(Length, Length);
+}
+
+ComplexValueTy ComplexExprEmitter::VisitBinaryExprPow(const BinaryExpr *E) {
+  auto LHS = EmitExpr(E->getLHS());
+  if(E->getRHS()->getType()->isIntegerType()) {
+    // (a+ib) ** n =>
+    // ( r*cos(a) + ir*sin(a) )**n =>
+    // r ** n cos(n*a) + ir ** n sin(n*a)
+    auto RHS = CGF.EmitScalarExpr(E->getRHS());
+    RHS = CGF.EmitIntToInt32Conversion(RHS);
+    LHS = CGF.EmitComplexToPolarFormConversion(LHS);
+    auto PowiFunc = CGF.GetIntrinsicFunction(llvm::Intrinsic::powi, LHS.getPolarLength()->getType(),
+                                             RHS->getType());
+    auto LengthToPower = Builder.CreateCall2(PowiFunc, LHS.getPolarLength(), RHS);
+    auto Theta = LHS.getPolarTheta();
+    auto SinFunc = CGF.GetIntrinsicFunction(llvm::Intrinsic::sin, Theta->getType());
+    auto CosFunc = CGF.GetIntrinsicFunction(llvm::Intrinsic::cos, Theta->getType());
+
+    auto Re = Builder.CreateFMul(LengthToPower, Builder.CreateCall(CosFunc, Theta));
+    auto Im = Builder.CreateFMul(LengthToPower, Builder.CreateCall(SinFunc, Theta));
+    return ComplexValueTy(Re, Im);
+  }
+
+  return ComplexValueTy();
 }
 
 ComplexValueTy CodeGenFunction::EmitComplexToComplexConversion(ComplexValueTy Value, QualType Target) {

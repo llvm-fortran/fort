@@ -38,4 +38,8 @@ PROGRAM test
   L = Y .GE. Y   ! CHECK: fcmp oge float
   L = Y .GT. Y   ! CHECK: fcmp ogt float
 
+  Y = Y ** 4.0   ! CHECK: call float @llvm.pow.f32.f32
+  Y = Y ** 5     ! CHECK: call float @llvm.powi.f32.i32
+  X = X ** 2     ! CHECK: call i32 @llvm.powi.i32.i32
+
 END PROGRAM

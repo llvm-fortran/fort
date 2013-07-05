@@ -104,11 +104,33 @@ ComplexValueTy CodeGenFunction::EmitComplexRValue(const Expr *E) {
   return EmitComplexExpr(E);
 }
 
-llvm::Type *CodeGenFunction::ConvertTypeForMem(QualType T) {
+llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID,
+                                                   ArrayRef<llvm::Type*> ArgTypes) const {
+  return llvm::Intrinsic::getDeclaration(&CGM.getModule(),
+                                         (llvm::Intrinsic::ID)FuncID,
+                                         ArgTypes);
+}
+
+llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID,
+                                                   llvm::Type *T1) const {
+  return llvm::Intrinsic::getDeclaration(&CGM.getModule(),
+                                         (llvm::Intrinsic::ID)FuncID,
+                                         T1);
+}
+
+llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID,
+                                                   llvm::Type *T1, llvm::Type *T2) const {
+  llvm::Type *ArgTypes[2] = {T1, T2};
+  return llvm::Intrinsic::getDeclaration(&CGM.getModule(),
+                                         (llvm::Intrinsic::ID)FuncID,
+                                         ArrayRef<llvm::Type*>(ArgTypes,2));
+}
+
+llvm::Type *CodeGenFunction::ConvertTypeForMem(QualType T) const {
   return CGM.getTypes().ConvertTypeForMem(T);
 }
 
-llvm::Type *CodeGenFunction::ConvertType(QualType T) {
+llvm::Type *CodeGenFunction::ConvertType(QualType T) const {
   return CGM.getTypes().ConvertType(T);
 }
 

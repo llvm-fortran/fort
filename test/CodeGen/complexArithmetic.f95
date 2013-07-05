@@ -48,4 +48,7 @@ PROGRAM test
   L = (1.0, 0.0) .NE. C ! CHECK: fcmp une float 1
   CONTINUE              ! CHECK: fcmp une float 0
   CONTINUE              ! CHECK: or i1
+
+  C = (1.0, 1.0)
+  C = C ** 3
 END

@@ -104,8 +104,8 @@ public:
   /// emission when possible.
   void EmitReturnBlock();
 
-  llvm::Type *ConvertTypeForMem(QualType T);
-  llvm::Type *ConvertType(QualType T);
+  llvm::Type *ConvertTypeForMem(QualType T) const;
+  llvm::Type *ConvertType(QualType T) const;
 
   /// createBasicBlock - Create an LLVM basic block.
   llvm::BasicBlock *createBasicBlock(const Twine &name = "",
@@ -116,6 +116,22 @@ public:
 #else
     return llvm::BasicBlock::Create(getLLVMContext(), name, parent, before);
 #endif
+  }
+
+  llvm::Value *GetIntrinsicFunction(int FuncID,
+                                    ArrayRef<llvm::Type*> ArgTypes) const;
+  llvm::Value *GetIntrinsicFunction(int FuncID,
+                                    llvm::Type *T1) const;
+  llvm::Value *GetIntrinsicFunction(int FuncID,
+                                    llvm::Type *T1, llvm::Type *T2) const;
+  inline
+  llvm::Value *GetIntrinsicFunction(int FuncID, QualType T1) const {
+    return GetIntrinsicFunction(FuncID, ConvertType(T1));
+  }
+  inline
+  llvm::Value *GetIntrinsicFunction(int FuncID,
+                                    QualType T1, QualType T2) const {
+    return GetIntrinsicFunction(FuncID, ConvertType(T1), ConvertType(T2));
   }
 
   llvm::Value *GetVarPtr(const VarDecl *D);
@@ -149,6 +165,7 @@ public:
   llvm::Value *EmitScalarRValue(const Expr *E);
   ComplexValueTy EmitComplexRValue(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
+  llvm::Value *EmitIntToInt32Conversion(llvm::Value *Value);
   llvm::Value *EmitScalarToScalarConversion(llvm::Value *Value, QualType Target);
   llvm::Value *EmitLogicalScalarExpr(const Expr *E);
   llvm::Value *EmitIntegerConstantExpr(const IntegerConstantExpr *E);
@@ -167,6 +184,7 @@ public:
   llvm::Value *EmitComplexToScalarConversion(ComplexValueTy Value, QualType Target);
   llvm::Value *EmitComplexRelationalExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
                                          ComplexValueTy RHS);
+  ComplexValueTy EmitComplexToPolarFormConversion(ComplexValueTy Value);
 
 };
 

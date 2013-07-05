@@ -134,8 +134,18 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
     Result = IsInt?  Builder.CreateSDiv(LHS, RHS) :
                      Builder.CreateFDiv(LHS, RHS);
     break;
-  case BinaryExpr::Power:
+  case BinaryExpr::Power: {
+    auto Intrinsic = llvm::Intrinsic::pow;
+    if(IsInt || RHS->getType()->isIntegerTy()) {
+      Intrinsic = llvm::Intrinsic::powi;
+      RHS = CGF.EmitIntToInt32Conversion(RHS);
+    }
+    auto Func = CGF.GetIntrinsicFunction(Intrinsic,
+                                         LHS->getType(),
+                                         RHS->getType());
+    Result = Builder.CreateCall2(Func, LHS, RHS);
     break;
+  }
 
   default:
     return CGF.EmitScalarRelationalExpr(Op, LHS, RHS);
@@ -242,6 +252,10 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExprOr(const BinaryExpr *E) {
   Result->addIncoming(ResultTrue, TrueBlock);
   Result->addIncoming(ResultFalse, FalseBlock);
   return Result;
+}
+
+llvm::Value *CodeGenFunction::EmitIntToInt32Conversion(llvm::Value *Value) {
+  return Value; // FIXME: Kinds
 }
 
 llvm::Value *CodeGenFunction::EmitScalarToScalarConversion(llvm::Value *Value,
