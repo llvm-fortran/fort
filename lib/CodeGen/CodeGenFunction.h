@@ -111,11 +111,11 @@ public:
   llvm::BasicBlock *createBasicBlock(const Twine &name = "",
                                      llvm::Function *parent = 0,
                                      llvm::BasicBlock *before = 0) {
-//#ifdef NDEBUG
-//    return llvm::BasicBlock::Create(getLLVMContext(), "", parent, before);
-//#else
+#ifdef NDEBUG
+    return llvm::BasicBlock::Create(getLLVMContext(), "", parent, before);
+#else
     return llvm::BasicBlock::Create(getLLVMContext(), name, parent, before);
-//#endif
+#endif
   }
 
   llvm::Value *GetVarPtr(const VarDecl *D);
@@ -149,17 +149,22 @@ public:
   llvm::Value *EmitScalarRValue(const Expr *E);
   ComplexValueTy EmitComplexRValue(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
-  llvm::Value *EmitScalarLValue(const Expr *E);
+  llvm::Value *EmitScalarToScalarConversion(llvm::Value *Value, QualType Target);
   llvm::Value *EmitLogicalScalarExpr(const Expr *E);
   llvm::Value *EmitIntegerConstantExpr(const IntegerConstantExpr *E);
   llvm::Value *EmitScalarRelationalExpr(BinaryExpr::Operator Op, llvm::Value *LHS,
                                         llvm::Value *RHS);
+
+  llvm::Value *GetConstantZero(QualType T);
   llvm::Value *GetConstantOne(QualType T);
 
   ComplexValueTy EmitComplexExpr(const Expr *E);
   ComplexValueTy EmitComplexLoad(llvm::Value *Ptr, bool IsVolatile = false);
   void EmitComplexStore(ComplexValueTy Value, llvm::Value *Ptr,
                         bool IsVolatile = false);
+  ComplexValueTy EmitComplexToComplexConversion(ComplexValueTy Value, QualType Target);
+  ComplexValueTy EmitScalarToComplexConversion(llvm::Value *Value, QualType Target);
+  llvm::Value *EmitComplexToScalarConversion(ComplexValueTy Value, QualType Target);
 
 };
 

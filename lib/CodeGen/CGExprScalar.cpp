@@ -182,9 +182,34 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExprOr(const BinaryExpr *E) {
   return nullptr;//FIXME
 }
 
+llvm::Value *CodeGenFunction::EmitScalarToScalarConversion(llvm::Value *Value,
+                                                           QualType Target) {
+  auto ValueType = Value->getType();
+
+  if(ValueType->isIntegerTy()) {
+    if(Target->isIntegerType()) {
+      return Value; // FIXME: Kinds
+    } else {
+      assert(Target->isRealType());
+      return Builder.CreateSIToFP(Value, ConvertType(Target));
+    }
+  } else {
+    assert(ValueType->isFloatingPointTy());
+    if(Target->isRealType()) {
+      return Value; // FIXME: Kinds
+    } else {
+      assert(Target->isIntegerType());
+      return Builder.CreateFPToSI(Value, ConvertType(Target));
+    }
+  }
+  return Value;
+}
+
 llvm::Value *ScalarExprEmitter::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
-  auto Val = EmitExpr(E->getExpression());
-  return Val;//FIXME
+  auto Input = E->getExpression();
+  if(Input->getType()->isComplexType())
+    return CGF.EmitComplexToScalarConversion(CGF.EmitComplexExpr(Input), E->getType());
+  return CGF.EmitScalarToScalarConversion(EmitExpr(Input), E->getType());
 }
 
 llvm::Value *ScalarExprEmitter::VisitCallExpr(const CallExpr *E) {
@@ -208,6 +233,12 @@ llvm::Value *CodeGenFunction::GetConstantOne(QualType T) {
   auto Type = ConvertType(T);
   return Type->isIntegerTy()? llvm::ConstantInt::get(Type, 1) :
                               llvm::ConstantFP::get(Type, 1.0);
+}
+
+llvm::Value *CodeGenFunction::GetConstantZero(QualType T) {
+  auto Type = ConvertType(T);
+  return Type->isIntegerTy()? llvm::ConstantInt::get(Type, 0) :
+                              llvm::ConstantFP::get(Type, 0.0);
 }
 
 }

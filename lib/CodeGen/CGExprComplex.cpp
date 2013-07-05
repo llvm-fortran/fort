@@ -144,8 +144,25 @@ ComplexValueTy ComplexExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
   return Result;
 }
 
+ComplexValueTy CodeGenFunction::EmitComplexToComplexConversion(ComplexValueTy Value, QualType Target) {
+  return Value; //FIXME: Kinds
+}
+
+ComplexValueTy CodeGenFunction::EmitScalarToComplexConversion(llvm::Value *Value, QualType Target) {
+  auto ElementType = getContext().getComplexTypeElementType(Target);
+  Value = EmitScalarToScalarConversion(Value, ElementType);
+  return ComplexValueTy(Value, GetConstantZero(ElementType));
+}
+
+llvm::Value *CodeGenFunction::EmitComplexToScalarConversion(ComplexValueTy Value, QualType Target) {
+  return EmitScalarToScalarConversion(Value.Re, Target);
+}
+
 ComplexValueTy ComplexExprEmitter::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
-  return ComplexValueTy(); // FIXME
+  auto Input = E->getExpression();
+  if(Input->getType()->isComplexType())
+    return CGF.EmitComplexToComplexConversion(EmitExpr(Input), E->getType());
+  return CGF.EmitScalarToComplexConversion(CGF.EmitScalarExpr(Input), E->getType());
 }
 
 ComplexValueTy ComplexExprEmitter::VisitCallExpr(const CallExpr *E) {

@@ -70,6 +70,8 @@ public:
                           bool IsStarLength,
                           Expr *LenSel) const;
   QualType getQualTypeOtherKind(QualType Type, QualType KindType);
+  QualType getComplexTypeElementType(QualType Type);
+
 private:
   QualType getTypeDeclTypeSlow(const TypeDecl *Decl) const;
 

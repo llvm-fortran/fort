@@ -110,6 +110,13 @@ QualType ASTContext::getQualTypeOtherKind(QualType Type, QualType KindType) {
                         ExtQuals? ExtQuals->getLengthSelector() : nullptr);
 }
 
+QualType ASTContext::getComplexTypeElementType(QualType Type) {
+  assert(Type->isComplexType());
+  if(Type.getExtQualsPtrOnNull())
+    return getQualTypeOtherKind(RealTy, Type);
+  return RealTy;
+}
+
 /// getPointerType - Return the uniqued reference to the type for a pointer to
 /// the specified type.
 PointerType *ASTContext::getPointerType(const Type *Ty, unsigned NumDims) {
