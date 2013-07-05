@@ -105,12 +105,19 @@ llvm::Value *ScalarExprEmitter::VisitUnaryExprNot(const UnaryExpr *E) {
 }
 
 llvm::Value *ScalarExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
+  auto Op = E->getOperator();
+  if(Op < BinaryExpr::Plus) {
+    // Complex comparison
+    if(E->getLHS()->getType()->isComplexType())
+      return CGF.EmitComplexRelationalExpr(Op, CGF.EmitComplexExpr(E->getLHS()),
+                                           CGF.EmitComplexExpr(E->getRHS()));
+  }
+
   auto LHS = EmitExpr(E->getLHS());
   auto RHS = EmitExpr(E->getRHS());
   bool IsInt = LHS->getType()->isIntegerTy();
-  llvm::CmpInst::Predicate CmpPredicate;
   llvm::Value *Result;
-  switch(E->getOperator()) {
+  switch(Op) {
   case BinaryExpr::Plus:
     Result = IsInt?  Builder.CreateAdd(LHS, RHS) :
                      Builder.CreateFAdd(LHS, RHS);
@@ -131,7 +138,7 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
     break;
 
   default:
-    return CGF.EmitScalarRelationalExpr(E->getOperator(), LHS, RHS);
+    return CGF.EmitScalarRelationalExpr(Op, LHS, RHS);
   }
   return Result;
 }

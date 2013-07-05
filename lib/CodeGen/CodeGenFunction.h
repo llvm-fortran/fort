@@ -165,6 +165,8 @@ public:
   ComplexValueTy EmitComplexToComplexConversion(ComplexValueTy Value, QualType Target);
   ComplexValueTy EmitScalarToComplexConversion(llvm::Value *Value, QualType Target);
   llvm::Value *EmitComplexToScalarConversion(ComplexValueTy Value, QualType Target);
+  llvm::Value *EmitComplexRelationalExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
+                                         ComplexValueTy RHS);
 
 };
 

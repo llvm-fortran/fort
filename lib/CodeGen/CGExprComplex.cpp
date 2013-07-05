@@ -144,6 +144,23 @@ ComplexValueTy ComplexExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
   return Result;
 }
 
+llvm::Value *CodeGenFunction::EmitComplexRelationalExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
+                                                        ComplexValueTy RHS) {
+  assert(Op == BinaryExpr::Equal || Op == BinaryExpr::NotEqual);
+
+  // x == y => x.re == y.re && x.im == y.im
+  // x != y => x.re != y.re || y.im != y.im
+  auto CmpPredicate = Op == BinaryExpr::Equal? llvm::CmpInst::FCMP_UEQ :
+                                               llvm::CmpInst::FCMP_UNE;
+
+  auto CmpRe = Builder.CreateFCmp(CmpPredicate, LHS.Re, RHS.Re);
+  auto CmpIm = Builder.CreateFCmp(CmpPredicate, LHS.Im, RHS.Im);
+  if(Op == BinaryExpr::Equal)
+    return Builder.CreateAnd(CmpRe, CmpIm);
+  else
+    return Builder.CreateOr(CmpRe, CmpIm);
+}
+
 ComplexValueTy CodeGenFunction::EmitComplexToComplexConversion(ComplexValueTy Value, QualType Target) {
   return Value; //FIXME: Kinds
 }
