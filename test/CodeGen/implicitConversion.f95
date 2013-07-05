@@ -19,7 +19,7 @@ PROGRAM test
   CONTINUE  ! CHECK: store i32
 
   L = X .EQ. I ! CHECK: sitofp i32
-  CONTINUE     ! CHECK: fcmp ueq float
+  CONTINUE     ! CHECK: fcmp oeq float
 
   X = C    ! CHECK: store float
   I = C    ! CHECK: fptosi float

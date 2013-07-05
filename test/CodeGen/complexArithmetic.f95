@@ -41,8 +41,8 @@ PROGRAM test
   C = (-7.0, 7.0) - C ! CHECK: fsub float -7
   CONTINUE            ! CHECK: fsub float 7
 
-  L = (0.0, 1.0) .EQ. C ! CHECK: fcmp ueq float 0
-  CONTINUE              ! CHECK: fcmp ueq float 1
+  L = (0.0, 1.0) .EQ. C ! CHECK: fcmp oeq float 0
+  CONTINUE              ! CHECK: fcmp oeq float 1
   CONTINUE              ! CHECK: and i1
 
   L = (1.0, 0.0) .NE. C ! CHECK: fcmp une float 1

@@ -143,42 +143,57 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
   return Result;
 }
 
-llvm::Value *CodeGenFunction::EmitScalarRelationalExpr(BinaryExpr::Operator Op, llvm::Value *LHS,
-                                                       llvm::Value *RHS) {
-  auto IsInt = LHS->getType()->isIntegerTy();
-  llvm::CmpInst::Predicate CmpPredicate;
-
+static llvm::CmpInst::Predicate
+ConvertRelationalOpToPredicate(BinaryExpr::Operator Op,
+                               bool IsInt = false) {
   switch(Op) {
   case BinaryExpr::Eqv:
-    CmpPredicate = llvm::CmpInst::ICMP_EQ;
+    return llvm::CmpInst::ICMP_EQ;
     break;
   case BinaryExpr::Neqv:
-    CmpPredicate = llvm::CmpInst::ICMP_NE;
+    return llvm::CmpInst::ICMP_NE;
     break;
 
   case BinaryExpr::Equal:
-    CmpPredicate = IsInt? llvm::CmpInst::ICMP_EQ : llvm::CmpInst::FCMP_UEQ;
-    break;
+    return IsInt? llvm::CmpInst::ICMP_EQ : llvm::CmpInst::FCMP_OEQ;
   case BinaryExpr::NotEqual:
-    CmpPredicate = IsInt? llvm::CmpInst::ICMP_NE : llvm::CmpInst::FCMP_UNE;
-    break;
+    return IsInt? llvm::CmpInst::ICMP_NE : llvm::CmpInst::FCMP_UNE;
   case BinaryExpr::LessThan:
-    CmpPredicate = IsInt? llvm::CmpInst::ICMP_SLT : llvm::CmpInst::FCMP_ULT;
-    break;
+    return IsInt? llvm::CmpInst::ICMP_SLT : llvm::CmpInst::FCMP_OLT;
   case BinaryExpr::LessThanEqual:
-    CmpPredicate = IsInt? llvm::CmpInst::ICMP_SLE : llvm::CmpInst::FCMP_ULE;
-    break;
+    return IsInt? llvm::CmpInst::ICMP_SLE : llvm::CmpInst::FCMP_OLE;
   case BinaryExpr::GreaterThan:
-    CmpPredicate = IsInt? llvm::CmpInst::ICMP_SGT : llvm::CmpInst::FCMP_UGT;
-    break;
+    return IsInt? llvm::CmpInst::ICMP_SGT : llvm::CmpInst::FCMP_OGT;
   case BinaryExpr::GreaterThanEqual:
-    CmpPredicate = IsInt? llvm::CmpInst::ICMP_SGE : llvm::CmpInst::FCMP_UGE;
-    break;
+    return IsInt? llvm::CmpInst::ICMP_SGE : llvm::CmpInst::FCMP_OGE;
   default:
     llvm_unreachable("unknown comparison op");
   }
-  return IsInt? Builder.CreateICmp(CmpPredicate, LHS, RHS) :
-                Builder.CreateFCmp(CmpPredicate, LHS, RHS);
+}
+
+llvm::Value *CodeGenFunction::EmitScalarRelationalExpr(BinaryExpr::Operator Op, llvm::Value *LHS,
+                                                       llvm::Value *RHS) {
+  auto IsInt = LHS->getType()->isIntegerTy();
+  auto Predicate = ConvertRelationalOpToPredicate(Op, IsInt);
+
+  return IsInt? Builder.CreateICmp(Predicate, LHS, RHS) :
+                Builder.CreateFCmp(Predicate, LHS, RHS);
+}
+
+llvm::Value *CodeGenFunction::EmitComplexRelationalExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
+                                                        ComplexValueTy RHS) {
+  assert(Op == BinaryExpr::Equal || Op == BinaryExpr::NotEqual);
+
+  // x == y => x.re == y.re && x.im == y.im
+  // x != y => x.re != y.re || y.im != y.im
+  auto Predicate = ConvertRelationalOpToPredicate(Op);
+
+  auto CmpRe = Builder.CreateFCmp(Predicate, LHS.Re, RHS.Re);
+  auto CmpIm = Builder.CreateFCmp(Predicate, LHS.Im, RHS.Im);
+  if(Op == BinaryExpr::Equal)
+    return Builder.CreateAnd(CmpRe, CmpIm);
+  else
+    return Builder.CreateOr(CmpRe, CmpIm);
 }
 
 llvm::Value *ScalarExprEmitter::VisitBinaryExprAnd(const BinaryExpr *E) {

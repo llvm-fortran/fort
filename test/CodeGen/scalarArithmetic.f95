@@ -31,11 +31,11 @@ PROGRAM test
   L = X .GE. X ! CHECK: icmp sge i32
   L = X .GT. X ! CHECK: icmp sgt i32
 
-  L = 1.0 .EQ. Y ! CHECK: fcmp ueq float 1
+  L = 1.0 .EQ. Y ! CHECK: fcmp oeq float 1
   L = 0.0 .NE. Y ! CHECK: fcmp une float 0
-  L = Y .LE. Y   ! CHECK: fcmp ule float
-  L = Y .LT. Y   ! CHECK: fcmp ult float
-  L = Y .GE. Y   ! CHECK: fcmp uge float
-  L = Y .GT. Y   ! CHECK: fcmp ugt float
+  L = Y .LE. Y   ! CHECK: fcmp ole float
+  L = Y .LT. Y   ! CHECK: fcmp olt float
+  L = Y .GE. Y   ! CHECK: fcmp oge float
+  L = Y .GT. Y   ! CHECK: fcmp ogt float
 
 END PROGRAM
