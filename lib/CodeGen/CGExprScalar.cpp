@@ -37,9 +37,21 @@ public:
   ScalarExprEmitter(CodeGenFunction &cgf);
 
   llvm::Value *EmitExpr(const Expr *E);
+  llvm::Value *VisitIntegerConstantExpr(const IntegerConstantExpr *E);
+  llvm::Value *VisitRealConstantExpr(const RealConstantExpr *E);
+  llvm::Value *VisitLogicalConstantExpr(const LogicalConstantExpr *E);
   llvm::Value *VisitVarExpr(const VarExpr *E);
-  llvm::Value *VisitUnaryExpr(const UnaryExpr *E);
+  llvm::Value *VisitReturnedValueExpr(const ReturnedValueExpr *E);
+  llvm::Value *VisitUnaryExprPlus(const UnaryExpr *E);
+  llvm::Value *VisitUnaryExprMinus(const UnaryExpr *E);
+  llvm::Value *VisitUnaryExprNot(const UnaryExpr *E);
   llvm::Value *VisitBinaryExpr(const BinaryExpr *E);
+  llvm::Value *VisitBinaryExprAnd(const BinaryExpr *E);
+  llvm::Value *VisitBinaryExprOr(const BinaryExpr *E);
+  llvm::Value *VisitImplicitCastExpr(const ImplicitCastExpr *E);
+  llvm::Value *VisitCallExpr(const CallExpr *E);
+  llvm::Value *VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
+
 };
 
 ScalarExprEmitter::ScalarExprEmitter(CodeGenFunction &cgf)
@@ -51,29 +63,52 @@ llvm::Value *ScalarExprEmitter::EmitExpr(const Expr *E) {
   return Visit(E);
 }
 
+llvm::Value *CodeGenFunction::EmitIntegerConstantExpr(const IntegerConstantExpr *E) {
+  return llvm::ConstantInt::get(Builder.getInt32Ty(), E->getValue().sextOrTrunc(32));
+}
+
+llvm::Value *ScalarExprEmitter::VisitIntegerConstantExpr(const IntegerConstantExpr *E) {
+  return CGF.EmitIntegerConstantExpr(E);
+}
+
+llvm::Value *ScalarExprEmitter::VisitRealConstantExpr(const RealConstantExpr *E) {
+  return llvm::ConstantFP::get(VMContext, E->getValue());
+}
+
+llvm::Value *ScalarExprEmitter::VisitLogicalConstantExpr(const LogicalConstantExpr *E) {
+  return Builder.getInt1(E->isTrue());
+}
+
 llvm::Value *ScalarExprEmitter::VisitVarExpr(const VarExpr *E) {
   auto Ptr = CGF.GetVarPtr(E->getVarDecl());
   return Builder.CreateLoad(Ptr,E->getVarDecl()->getName());
 }
 
-llvm::Value *ScalarExprEmitter::VisitUnaryExpr(const UnaryExpr *E) {
+llvm::Value *ScalarExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
+  return nullptr; // FIXME
+}
+
+llvm::Value *ScalarExprEmitter::VisitUnaryExprPlus(const UnaryExpr *E) {
+  return EmitExpr(E->getExpression());
+}
+
+llvm::Value *ScalarExprEmitter::VisitUnaryExprMinus(const UnaryExpr *E) {
   auto Val = EmitExpr(E->getExpression());
-  switch(E->getOperator()) {
-  case UnaryExpr::Plus:
-    return Val;
-  case UnaryExpr::Minus:
-    return E->getType()->isIntegerType()?
-             Builder.CreateNeg(Val) :
-             Builder.CreateFNeg(Val);
-  }
-  llvm_unreachable("invalid unary op");
-  return nullptr;
+  return E->getType()->isIntegerType()?
+           Builder.CreateNeg(Val) :
+           Builder.CreateFNeg(Val);
+}
+
+llvm::Value *ScalarExprEmitter::VisitUnaryExprNot(const UnaryExpr *E) {
+  auto Val = EmitExpr(E->getExpression());
+  return Builder.CreateXor(Val,1);
 }
 
 llvm::Value *ScalarExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
   auto LHS = EmitExpr(E->getLHS());
   auto RHS = EmitExpr(E->getRHS());
-  bool IsInt = E->getType()->isIntegerType();
+  bool IsInt = LHS->getType()->isIntegerTy();
+  llvm::CmpInst::Predicate CmpPredicate;
   llvm::Value *Result;
   switch(E->getOperator()) {
   case BinaryExpr::Plus:
@@ -94,13 +129,67 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
     break;
   case BinaryExpr::Power:
     break;
+
+  case BinaryExpr::Eqv:
+    CmpPredicate = llvm::CmpInst::ICMP_EQ;
+    goto CreateCmp;
+  case BinaryExpr::Neqv:
+    CmpPredicate = llvm::CmpInst::ICMP_NE;
+    goto CreateCmp;
+
+  case BinaryExpr::Equal:
+    CmpPredicate = IsInt? llvm::CmpInst::ICMP_EQ : llvm::CmpInst::FCMP_UEQ;
+    goto CreateCmp;
+  case BinaryExpr::NotEqual:
+    CmpPredicate = IsInt? llvm::CmpInst::ICMP_NE : llvm::CmpInst::FCMP_UNE;
+    goto CreateCmp;
+  case BinaryExpr::LessThan:
+    CmpPredicate = IsInt? llvm::CmpInst::ICMP_SLT : llvm::CmpInst::FCMP_ULT;
+    goto CreateCmp;
+  case BinaryExpr::LessThanEqual:
+    CmpPredicate = IsInt? llvm::CmpInst::ICMP_SLE : llvm::CmpInst::FCMP_ULE;
+    goto CreateCmp;
+  case BinaryExpr::GreaterThan:
+    CmpPredicate = IsInt? llvm::CmpInst::ICMP_SGT : llvm::CmpInst::FCMP_UGT;
+    goto CreateCmp;
+  case BinaryExpr::GreaterThanEqual:
+    CmpPredicate = IsInt? llvm::CmpInst::ICMP_SGE : llvm::CmpInst::FCMP_UGE;
+    goto CreateCmp;
   }
   return Result;
+CreateCmp:
+  return IsInt? Builder.CreateICmp(CmpPredicate, LHS, RHS) :
+                Builder.CreateFCmp(CmpPredicate, LHS, RHS);
+}
+
+llvm::Value *ScalarExprEmitter::VisitBinaryExprAnd(const BinaryExpr *E) {
+  return nullptr;//FIXME
+}
+
+llvm::Value *ScalarExprEmitter::VisitBinaryExprOr(const BinaryExpr *E) {
+  return nullptr;//FIXME
+}
+
+llvm::Value *ScalarExprEmitter::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
+  auto Val = EmitExpr(E->getExpression());
+  return Val;//FIXME
+}
+
+llvm::Value *ScalarExprEmitter::VisitCallExpr(const CallExpr *E) {
+  return nullptr;//FIXME
+}
+
+llvm::Value *ScalarExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
+  return nullptr;//FIXME
 }
 
 llvm::Value *CodeGenFunction::EmitScalarExpr(const Expr *E) {
   ScalarExprEmitter EV(*this);
   return EV.Visit(E);
+}
+
+llvm::Value *CodeGenFunction::EmitLogicalScalarExpr(const Expr *E) {
+  return EmitScalarExpr(E);
 }
 
 }

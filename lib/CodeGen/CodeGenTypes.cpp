@@ -50,7 +50,7 @@ llvm::Type *CodeGenTypes::ConvertBuiltInType(const BuiltinType *T) {
   case BuiltinType::Complex:
     break;
   case BuiltinType::Logical:
-    return CGM.Int8Ty;
+    return llvm::IntegerType::get(CGM.getLLVMContext(), 1);
     break;
   }
   return nullptr;

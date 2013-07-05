@@ -141,6 +141,8 @@ public:
   llvm::Value *EmitScalarRValue(const Expr *E);
   ComplexValueTy EmitComplexRValue(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
+  llvm::Value *EmitLogicalScalarExpr(const Expr *E);
+  llvm::Value *EmitIntegerConstantExpr(const IntegerConstantExpr *E);
 };
 
 }  // end namespace CodeGen
