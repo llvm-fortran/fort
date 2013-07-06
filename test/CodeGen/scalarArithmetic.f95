@@ -3,6 +3,7 @@ PROGRAM test
   INTEGER X ! CHECK: alloca i32
   REAL Y    ! CHECK: alloca float
   LOGICAL L ! CHECK: alloca i1
+  DOUBLE PRECISION DP ! CHECK: alloca double
 
   X = X     ! CHECK: load i32*
   X = +X    ! CHECK: load i32*
@@ -41,5 +42,10 @@ PROGRAM test
   Y = Y ** 4.0   ! CHECK: call float @llvm.pow.f32.f32
   Y = Y ** 5     ! CHECK: call float @llvm.powi.f32.i32
   X = X ** 2     ! CHECK: call i32 @llvm.powi.i32.i32
+
+  DP = DP         ! CHECK: load double*
+  DP = 1.0d0 + DP ! CHECK: fadd double 1
+  L  = DP .EQ. DP ! CHECK: fcmp oeq double
+  DP = DP ** 2    ! CHECK: call double @llvm.powi.f64.i32
 
 END PROGRAM

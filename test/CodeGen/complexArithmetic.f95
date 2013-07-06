@@ -1,6 +1,7 @@
 ! RUN: %flang %s 2>&1 | %file_check %s
 PROGRAM test
   COMPLEX C   ! CHECK: alloca { float, float }
+  DOUBLE COMPLEX DC ! CHECK: alloca { double, double }
   LOGICAL L
 
   C = C       ! CHECK: getelementptr inbounds { float, float }*
@@ -53,4 +54,7 @@ PROGRAM test
   C = C ** 1
   C = C ** 2
   C = C ** 3
+
+  DC = (2d0, 1d0) + DC ! CHECK: fadd double 2
+  CONTINUE             ! CHECK: fadd double 1
 END

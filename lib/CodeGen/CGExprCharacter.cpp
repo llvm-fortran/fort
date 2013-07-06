@@ -31,12 +31,29 @@ public:
 
   CharacterExprEmitter(CodeGenFunction &cgf);
 
-
+  CharacterValueTy EmitExpr(const Expr *E);
+  CharacterValueTy EmitCharacterConstantExpr(const CharacterConstantExpr *E);
+  CharacterValueTy EmitSubstringExpr(const SubstringExpr *E);
 };
 
 CharacterExprEmitter::CharacterExprEmitter(CodeGenFunction &cgf)
   : CGF(cgf), Builder(cgf.getBuilder()),
     VMContext(cgf.getLLVMContext()) {
+}
+
+CharacterValueTy CharacterExprEmitter::EmitExpr(const Expr *E) {
+  return Visit(E);
+}
+
+CharacterValueTy CharacterExprEmitter::EmitCharacterConstantExpr(const CharacterConstantExpr *E) {
+  return CharacterValueTy(Builder.CreateGlobalStringPtr(E->getValue()),
+                          llvm::ConstantInt::get(CGF.getModule().SizeTy,
+                                                 1)); // FIXME: length
+}
+
+CharacterValueTy CharacterExprEmitter::EmitSubstringExpr(const SubstringExpr *E) {
+  auto Str = EmitExpr(E->getTarget());
+  return Str;//FIXME
 }
 
 

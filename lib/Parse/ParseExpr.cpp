@@ -499,7 +499,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
     E = RealConstantExpr::Create(Context, Loc,
                                  getMaxLocationOfCurrentToken(),
-                                 NumStr);
+                                 NumStr, Context.RealTy);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
 
     Lex();
@@ -520,7 +520,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
     E = RealConstantExpr::Create(Context, Loc,
                                  getMaxLocationOfCurrentToken(),
-                                 NumStr, RealConstantExpr::Kind8);
+                                 NumStr, Context.DoublePrecisionTy);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
 
     Lex();

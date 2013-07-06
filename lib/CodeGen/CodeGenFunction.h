@@ -81,6 +81,10 @@ public:
   CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn);
   ~CodeGenFunction();
 
+  CodeGenModule &getModule() const {
+    return CGM;
+  }
+
   //CodeGenTypes &getTypes() const { return CGM.getTypes(); }
   ASTContext &getContext() const { return CGM.getContext(); }
 
@@ -190,14 +194,15 @@ public:
   ComplexValueTy EmitComplexToPolarFormConversion(ComplexValueTy Value);
 
   RValueTy EmitIntrinsicCall(const IntrinsicCallExpr *E);
-
-  // AIMAG, CONJG, no overloads
+  llvm::Value *EmitIntrinsicCallScalarTruncation(intrinsic::FunctionKind Func,
+                                                 llvm::Value *Value,
+                                                 QualType ResultType);
   RValueTy EmitIntrinsicCallComplex(intrinsic::FunctionKind Func, ComplexValueTy Value);
-
   llvm::Value* EmitIntrinsicCallScalarMath(intrinsic::FunctionKind Func,
                                            llvm::Value *A1, llvm::Value *A2 = nullptr);
   ComplexValueTy EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
                                               ComplexValueTy Value);
+
 
 };
 

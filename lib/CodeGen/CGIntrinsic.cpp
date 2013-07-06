@@ -30,23 +30,63 @@ namespace CodeGen {
 RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
   auto Func = intrinsic::getGenericFunctionKind(E->getIntrinsicFunction());
   auto Group = intrinsic::getFunctionGroup(Func);
+  auto Args = E->getArguments();
 
   switch(Group) {
-  case intrinsic::GROUP_COMPLEX:
-    return EmitIntrinsicCallComplex(Func, EmitComplexExpr(E->getArguments()[0]));
+  case intrinsic::GROUP_CONVERSION:
+    break;
 
-  case intrinsic::GROUP_MATHS: {
-    auto Args = E->getArguments();
+  case intrinsic::GROUP_TRUNCATION:
+    return EmitIntrinsicCallScalarTruncation(Func, EmitScalarExpr(Args[0]),
+                                             E->getType());
+
+  case intrinsic::GROUP_COMPLEX:
+    return EmitIntrinsicCallComplex(Func, EmitComplexExpr(Args[0]));
+
+  case intrinsic::GROUP_MATHS:
     if(Args[0]->getType()->isComplexType())
       return EmitIntrinsicCallComplexMath(Func, EmitComplexExpr(Args[0]));
     return EmitIntrinsicCallScalarMath(Func, EmitScalarExpr(Args[0]),
                                        Args.size() == 2?
                                         EmitScalarExpr(Args[1]) : nullptr);
-  }
   default:
     break;
   }
+
+  // other intrinsics
+  switch(Func) {
+  case intrinsic::DPROD: {
+    auto TargetType = getContext().DoublePrecisionTy;
+    auto A1 = EmitScalarExpr(Args[0]);
+    auto A2 = EmitScalarExpr(Args[1]);
+    return Builder.CreateFMul(EmitScalarToScalarConversion(A1, TargetType),
+                              EmitScalarToScalarConversion(A2, TargetType));
+  }
+
+  }
+
   return RValueTy();
+}
+
+llvm::Value *CodeGenFunction::EmitIntrinsicCallScalarTruncation(intrinsic::FunctionKind Func,
+                                                                llvm::Value *Value,
+                                                                QualType ResultType) {
+  llvm::Value *FuncDecl = nullptr;
+  auto ValueType = Value->getType();
+  switch(Func) {
+  case intrinsic::AINT:
+    FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::trunc, ValueType);
+    break;
+  case intrinsic::ANINT:
+  case intrinsic::NINT:
+    FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::rint, ValueType);
+    break;
+  }
+
+  auto Result = Builder.CreateCall(FuncDecl, Value);
+  if(Func == intrinsic::NINT)
+    return EmitScalarToScalarConversion(Result, ResultType);
+  return Result;
 }
 
 llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKind Func,

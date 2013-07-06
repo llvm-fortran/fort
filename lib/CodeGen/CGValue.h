@@ -46,6 +46,10 @@ public:
 class CharacterValueTy {
 public:
   llvm::Value *Ptr, *Len;
+
+  CharacterValueTy() {}
+  CharacterValueTy(llvm::Value *Pointer, llvm::Value *Length)
+    : Ptr(Pointer), Len(Length) {}
 };
 
 class LValueTy {
@@ -97,6 +101,9 @@ public:
   }
   ComplexValueTy asComplex() const {
     return ComplexValueTy(V1, V2);
+  }
+  CharacterValueTy asCharacter() const {
+    return CharacterValueTy(V1, V2);
   }
 
 };

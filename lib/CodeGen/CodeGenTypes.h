@@ -59,7 +59,9 @@ public:
 
   llvm::FunctionType *GetFunctionType(FunctionDecl *FD);
 
-  llvm::Type *ConvertBuiltInType(const BuiltinType *T);
+  llvm::Type *ConvertBuiltInType(const BuiltinType *T, const ExtQuals *Ext);
+  llvm::Type *ConvertBuiltInType(BuiltinType::TypeSpec Spec,
+                                 BuiltinType::TypeKind Kind);
 
 };
 

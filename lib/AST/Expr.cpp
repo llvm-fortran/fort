@@ -49,21 +49,21 @@ IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, SourceLocation L
 
 RealConstantExpr::RealConstantExpr(ASTContext &C, SourceLocation Loc,
                                    SourceLocation MaxLoc, llvm::StringRef Data,
-                                   Kind kind)
-  : ConstantExpr(RealConstantExprClass, kind == Kind4? C.RealTy : C.DoublePrecisionTy, Loc, MaxLoc) {
-  APFloat Val(kind == Kind4? APFloat::IEEEsingle : APFloat::IEEEdouble, Data);
+                                   QualType Type)
+  : ConstantExpr(RealConstantExprClass, Type, Loc, MaxLoc) {
+  APFloat Val(C.getFPTypeSemantics(Type), Data);
   Num.setValue(C, Val);
 }
 
 RealConstantExpr *RealConstantExpr::Create(ASTContext &C, SourceLocation Loc,
                                            SourceLocation MaxLoc, llvm::StringRef Data,
-                                           Kind kind) {
-  return new (C) RealConstantExpr(C, Loc, MaxLoc, Data, kind);
+                                           QualType Type) {
+  return new (C) RealConstantExpr(C, Loc, MaxLoc, Data, Type);
 }
 
 ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, SourceLocation Loc, SourceLocation MaxLoc,
-                                         const APFloat &Re, const APFloat &Im, Kind kind)
-  : ConstantExpr(ComplexConstantExprClass, kind == Kind4? C.ComplexTy : C.DoubleComplexTy, Loc, MaxLoc) {
+                                         const APFloat &Re, const APFloat &Im, QualType Type)
+  : ConstantExpr(ComplexConstantExprClass, Type, Loc, MaxLoc) {
   this->Re.setValue(C, Re);
   this->Im.setValue(C, Im);
 }
@@ -71,8 +71,8 @@ ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, SourceLocation Loc, Sour
 ComplexConstantExpr *ComplexConstantExpr::Create(ASTContext &C, SourceLocation Loc,
                                                  SourceLocation MaxLoc,
                                                  const APFloat &Re, const APFloat &Im,
-                                                 Kind kind) {
-  return new (C) ComplexConstantExpr(C, Loc, MaxLoc, Re, Im, kind);
+                                                 QualType Type) {
+  return new (C) ComplexConstantExpr(C, Loc, MaxLoc, Re, Im, Type);
 }
 
 CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, SourceLocation Loc,

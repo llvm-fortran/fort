@@ -459,88 +459,6 @@ class ExtQualsTypeCommonBase {
   friend class ExtQuals;
 };
 
-/// ExtQuals - We can encode up to four bits in the low bits of a type pointer,
-/// but there are many more type qualifiers that we want to be able to apply to
-/// an arbitrary type.  Therefore we have this struct, intended to be
-/// heap-allocated and used by QualType to store qualifiers.
-class ExtQuals : public ExtQualsTypeCommonBase, public llvm::FoldingSetNode {
-  /// Quals - the immutable set of qualifiers applied by this node; always
-  /// contains extended qualifiers.
-  Qualifiers Quals;
-
-  /// KindSelector - The kind-selector for a type.
-  unsigned KindSelector : 16;
-
-  /// IsDoublePrecisionKind - This assumes that a
-  /// kind-selector was applied using
-  /// DOUBLE PRECISION/DOUBLE COMPLEX statement.
-  unsigned IsDoublePrecisionKind : 1;
-
-  /// LEN = *
-  unsigned IsStarLengthSelector : 1;
-
-  /// LenSelector - The kind-selector for a type.
-  Expr *LenSelector;
-
-  ExtQuals *this_() { return this; }
-
-public:
-  enum {
-    DefaultArithmeticKind = 4,
-    DefaultCharacterKind = 1
-  };
-
-  ExtQuals(const Type *BaseTy, QualType Canon, Qualifiers Quals,
-           unsigned KS = 0, bool DBL = false, bool StarLS = false, Expr *LS = 0)
-    : ExtQualsTypeCommonBase(BaseTy,
-                             Canon.isNull() ? QualType(this_(), 0) : Canon),
-      Quals(Quals), KindSelector(KS), IsDoublePrecisionKind(DBL?1:0),
-      IsStarLengthSelector(StarLS?1:0), LenSelector(LS)
-  {}
-
-  Qualifiers getQualifiers() const { return Quals; }
-
-  bool hasAttributeSpecs() const { return Quals.hasAttributeSpecs(); }
-  unsigned getAttributeSpecs() const { return Quals.getAttributeSpecs(); }
-
-  bool hasIntentAttr() const { return Quals.hasIntentAttr(); }
-  unsigned getIntentAttr() const { return Quals.getIntentAttr(); }
-
-  bool hasAddressSpace() const { return Quals.hasAddressSpace(); }
-  unsigned getAddressSpace() const { return Quals.getAddressSpace(); }
-
-  const Type *getBaseType() const { return BaseType; }
-
-  bool hasKindSelector() const { return KindSelector != 0; }
-  unsigned getRawKindSelector() const { return KindSelector; }
-  unsigned getArithmeticKindSelector() const {
-    return KindSelector!=0? KindSelector : DefaultArithmeticKind;
-  }
-  unsigned getCharacterKindSelector() const {
-    return KindSelector!=0? KindSelector : DefaultCharacterKind;
-  }
-  bool isDoublePrecisionKind() const { return IsDoublePrecisionKind != 0; }
-
-  bool hasLengthSelector() const { return LenSelector != 0 || IsStarLengthSelector != 0; }
-  bool isStarLengthSelector() const { return IsStarLengthSelector != 0; }
-  Expr *getLengthSelector() const { return LenSelector; }
-
-  void Profile(llvm::FoldingSetNodeID &ID) const {
-    Profile(ID, getBaseType(), Quals, KindSelector, IsDoublePrecisionKind != 0,
-            IsStarLengthSelector != 0, LenSelector);
-  }
-  static void Profile(llvm::FoldingSetNodeID &ID,
-                      const Type *BaseType, Qualifiers Quals,
-                      unsigned KS, bool IsDBL, bool StarLS, Expr *LS) {
-    ID.AddPointer(BaseType);
-    ID.AddInteger(KS);
-    ID.AddBoolean(IsDBL);
-    ID.AddBoolean(StarLS);
-    ID.AddPointer(LS);
-    Quals.Profile(ID);
-  }
-};
-
 class ArrayType;
 
 /// Type - This is the base class for the type hierarchy.
@@ -622,6 +540,14 @@ public:
     Character       = 4,
     Logical         = 5
   };
+
+  enum TypeKind {
+#define INTEGER_KIND(NAME, VALUE) NAME,
+#define FLOATING_POINT_KIND(NAME, VALUE) NAME,
+#include "flang/AST/BuiltinTypeKinds.def"
+    NoKind
+  };
+
 protected:
   friend class ASTContext;      // ASTContext creates these.
   BuiltinType()
@@ -636,6 +562,8 @@ public:
   TypeSpec getTypeSpec() const { return TypeSpec(BuiltinTypeBitsKind); }
 
   void print(raw_ostream &OS) const;
+
+  static const char *getTypeKindString(TypeKind Kind);
 
   static bool classof(const Type *T) { return T->getTypeClass() == Builtin; }
   static bool classof(const BuiltinType *) { return true; }
@@ -731,6 +659,80 @@ public:
 
   static bool classof(const Type *T) { return T->getTypeClass() == Record; }
   static bool classof(const RecordType *) { return true; }
+};
+
+/// ExtQuals - We can encode up to four bits in the low bits of a type pointer,
+/// but there are many more type qualifiers that we want to be able to apply to
+/// an arbitrary type.  Therefore we have this struct, intended to be
+/// heap-allocated and used by QualType to store qualifiers.
+class ExtQuals : public ExtQualsTypeCommonBase, public llvm::FoldingSetNode {
+  /// Quals - the immutable set of qualifiers applied by this node; always
+  /// contains extended qualifiers.
+  Qualifiers Quals;
+
+  /// KindSelector - The kind-selector for a type.
+  unsigned KindSelector : 16;
+
+  /// IsDoublePrecisionKind - This assumes that a
+  /// kind-selector was applied using
+  /// DOUBLE PRECISION/DOUBLE COMPLEX statement.
+  unsigned IsDoublePrecisionKind : 1;
+
+  /// LEN = *
+  unsigned IsStarLengthSelector : 1;
+
+  /// LenSelector - The kind-selector for a type.
+  Expr *LenSelector;
+
+  ExtQuals *this_() { return this; }
+
+public:
+  ExtQuals(const Type *BaseTy, QualType Canon, Qualifiers Quals,
+           unsigned KS = BuiltinType::NoKind, bool DBL = false,
+           bool StarLS = false, Expr *LS = 0)
+    : ExtQualsTypeCommonBase(BaseTy,
+                             Canon.isNull() ? QualType(this_(), 0) : Canon),
+      Quals(Quals), KindSelector(KS), IsDoublePrecisionKind(DBL?1:0),
+      IsStarLengthSelector(StarLS?1:0), LenSelector(LS)
+  {}
+
+  Qualifiers getQualifiers() const { return Quals; }
+
+  bool hasAttributeSpecs() const { return Quals.hasAttributeSpecs(); }
+  unsigned getAttributeSpecs() const { return Quals.getAttributeSpecs(); }
+
+  bool hasIntentAttr() const { return Quals.hasIntentAttr(); }
+  unsigned getIntentAttr() const { return Quals.getIntentAttr(); }
+
+  bool hasAddressSpace() const { return Quals.hasAddressSpace(); }
+  unsigned getAddressSpace() const { return Quals.getAddressSpace(); }
+
+  const Type *getBaseType() const { return BaseType; }
+
+  bool hasKindSelector() const       { return KindSelector != BuiltinType::NoKind; }
+  BuiltinType::TypeKind getKindSelector() const {
+    return (BuiltinType::TypeKind)KindSelector;
+  }
+  bool isDoublePrecisionKind() const { return IsDoublePrecisionKind != 0; }
+
+  bool hasLengthSelector() const { return LenSelector != 0 || IsStarLengthSelector != 0; }
+  bool isStarLengthSelector() const { return IsStarLengthSelector != 0; }
+  Expr *getLengthSelector() const { return LenSelector; }
+
+  void Profile(llvm::FoldingSetNodeID &ID) const {
+    Profile(ID, getBaseType(), Quals, KindSelector, IsDoublePrecisionKind != 0,
+            IsStarLengthSelector != 0, LenSelector);
+  }
+  static void Profile(llvm::FoldingSetNodeID &ID,
+                      const Type *BaseType, Qualifiers Quals,
+                      unsigned KS, bool IsDBL, bool StarLS, Expr *LS) {
+    ID.AddPointer(BaseType);
+    ID.AddInteger(KS);
+    ID.AddBoolean(IsDBL);
+    ID.AddBoolean(StarLS);
+    ID.AddPointer(LS);
+    Quals.Profile(ID);
+  }
 };
 
 /// A qualifier set is used to build a set of qualifiers.

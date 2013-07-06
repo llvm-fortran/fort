@@ -60,6 +60,17 @@ void BuiltinType::print(llvm::raw_ostream &O) const {
   }
 }
 
+static const char * TypeKindStrings[] = {
+  #define INTEGER_KIND(NAME, VALUE) #VALUE ,
+  #define FLOATING_POINT_KIND(NAME, VALUE) #VALUE ,
+  #include "flang/AST/BuiltinTypeKinds.def"
+  "?"
+};
+
+const char *BuiltinType::getTypeKindString(TypeKind Kind) {
+  return TypeKindStrings[Kind];
+}
+
 void QualType::dump() const {
   print(llvm::errs());
 }
@@ -85,7 +96,7 @@ void QualType::print(raw_ostream &OS) const {
   }
   bool Comma = false;
   if (!EQ->isDoublePrecisionKind() && EQ->hasKindSelector()) {
-    OS << " (KIND=" << EQ->getRawKindSelector();
+    OS << " (KIND=" << BuiltinType::getTypeKindString(EQ->getKindSelector());
     if (EQ->hasLengthSelector()) {
       if(EQ->isStarLengthSelector()) OS << ", LEN=*";
       else {

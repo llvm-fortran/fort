@@ -179,21 +179,15 @@ public:
 };
 
 class RealConstantExpr : public ConstantExpr {
-public:
-  enum Kind {
-    Kind4,
-    Kind8,
-    Kind16
-  };
 private:
   APFloatStorage Num;
   RealConstantExpr(ASTContext &C, SourceLocation Loc,
                    SourceLocation MaxLoc, llvm::StringRef Data,
-                   Kind kind);
+                   QualType Type);
 public:
   static RealConstantExpr *Create(ASTContext &C, SourceLocation Loc,
                                   SourceLocation MaxLoc, llvm::StringRef Data,
-                                  Kind kind = Kind4);
+                                  QualType Type);
 
   APFloat getValue() const { return Num.getValue(); }
 
@@ -204,21 +198,15 @@ public:
 };
 
 class ComplexConstantExpr : public ConstantExpr {
-public:
-  enum Kind {
-    Kind4,
-    Kind8,
-    Kind16
-  };
 private:
   APFloatStorage Re, Im;
   ComplexConstantExpr(ASTContext &C, SourceLocation Loc, SourceLocation MaxLoc,
-                      const APFloat &Re, const APFloat &Im, Kind kind);
+                      const APFloat &Re, const APFloat &Im, QualType Type);
 public:
   static ComplexConstantExpr *Create(ASTContext &C, SourceLocation Loc,
                                      SourceLocation MaxLoc,
                                      const APFloat &Re, const APFloat &Im,
-                                     Kind kind = Kind4);
+                                     QualType Type);
 
   APFloat getRealValue() const { return Re.getValue(); }
   APFloat getImaginaryValue() const { return Im.getValue(); }

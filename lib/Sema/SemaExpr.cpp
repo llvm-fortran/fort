@@ -32,14 +32,14 @@ static TypeSpecifierType GetArithmeticTypeSpec(QualType T) {
 /// Returns true if a real type is also a double precision type (Kind is 8).
 static bool IsRealTypeDoublePrecision(QualType T) {
   auto Ext = T.getExtQualsPtrOnNull();
-  return Ext && Ext->getArithmeticKindSelector() == 8? true : false;
+  return Ext && Ext->getKindSelector() == BuiltinType::Real8? true : false;
 }
 
 /// Returns true if a type is a double precision real type (Kind is 8).
 static bool IsTypeDoublePrecisionReal(QualType T) {
   auto Ext = T.getExtQualsPtrOnNull();
   return T->isRealType() &&
-           Ext && Ext->getArithmeticKindSelector() == 8? true : false;
+           Ext && Ext->getKindSelector() == BuiltinType::Real8? true : false;
 }
 
 /// Returns true if a type is a single precision real type (Kind is 4).
@@ -53,41 +53,48 @@ static bool IsTypeSinglePrecisionReal(QualType T) {
 static bool IsTypeDoublePrecisionComplex(QualType T) {
   auto Ext = T.getExtQualsPtrOnNull();
   return T->isComplexType() &&
-           Ext && Ext->getArithmeticKindSelector() == 8? true : false;
+           Ext && Ext->getKindSelector() == BuiltinType::Real8? true : false;
 }
 
-static llvm::APFloat GetNumberConstant(DiagnosticsEngine &Diags, Expr *E) {
+static llvm::APFloat GetRealConstant(ASTContext &C, DiagnosticsEngine &Diags,
+                                     Expr *E, const llvm::fltSemantics &FPType) {
   if(auto Real = dyn_cast<RealConstantExpr>(E)) {
-    return Real->getValue();
+    bool IsExact;
+    auto Value = Real->getValue();
+    Value.convert(FPType,
+                  llvm::APFloat::rmNearestTiesToEven,
+                  &IsExact);
+    return Value;
   } else if(auto Int = dyn_cast<IntegerConstantExpr>(E)) {
-    // FIXME: take count into account?
-    llvm::APFloat result(llvm::APFloat::IEEEsingle);
-    result.convertFromAPInt(Int->getValue(),true,llvm::APFloat::rmNearestTiesToEven);
+    llvm::APFloat result(FPType);
+    result.convertFromAPInt(Int->getValue(), true, llvm::APFloat::rmNearestTiesToEven);
     return result;
   } else if(auto Unary = dyn_cast<UnaryExpr>(E)) {
-    auto Value = GetNumberConstant(Diags, Unary->getExpression());
+    auto Value = GetRealConstant(C, Diags, Unary->getExpression(),FPType);
     if(Unary->getOperator() == UnaryExpr::Minus)
       Value.changeSign();
     return Value;
   } else {
     Diags.Report(E->getLocation(), diag::err_expected_integer_or_real_constant_expr)
      << E->getSourceRange();
-    return llvm::APFloat(0.0);
+    return llvm::APFloat(FPType,"0");
   }
 }
 
 /// Returns true if two arithmetic type qualifiers have the same kind
-static bool ExtQualsSameKind(const ExtQuals *A, const ExtQuals *B) {
-  auto AK = A? A->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
-  auto BK = B? B->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
-  return AK == BK;
+static bool ExtQualsSameKind(const ASTContext &C,
+                             const ExtQuals *A, const ExtQuals *B,
+                             QualType AT, QualType BT) {
+  return C.ArithmeticTypesSameKind(A, AT, B, BT);
 }
 
 /// Returns the largest kind between two arithmetic type qualifiers.
-static int GetLargestKind(const ExtQuals *A, const ExtQuals *B) {
-  auto AK = A? A->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
-  auto BK = B? B->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
-  return AK >= BK ? 0 : 1;
+static int GetLargestKind(const ASTContext &C,
+                          const ExtQuals *A, const ExtQuals *B,
+                          QualType AT, QualType BT) {
+  auto KindA = C.getArithmeticTypeKind(A, AT);
+  auto KindB = C.getArithmeticTypeKind(B, BT);
+  return C.getTypeKindBitWidth(KindA) >= C.getTypeKindBitWidth(KindB)? 0 : 1;
 }
 
 /// Creates an implicit cast expression
@@ -98,15 +105,17 @@ static Expr *ImplicitCast(ASTContext &C, QualType T, ExprResult E) {
 /// Selects the type with the biggest kind from two arithmetic types,
 /// applies any required conversions to that type for two expressions,
 /// and returns that type.
+/// NB: This assumes that type A and type B have the same base type,
+/// i.e. Int and Int
 static QualType SelectLargestKindApplyConversions(ASTContext &C,
                                                   ExprResult &A, ExprResult &B,
                                                   QualType AType, QualType BType) {
-  const ExtQuals *AExt = AType.getExtQualsPtrOnNull();
-  const ExtQuals *BExt = BType.getExtQualsPtrOnNull();
-  auto AK = AExt? AExt->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
-  auto BK = BExt? BExt->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  auto AK = C.getArithmeticTypeKind(AType.getExtQualsPtrOnNull(), AType);
+  auto BK = C.getArithmeticTypeKind(BType.getExtQualsPtrOnNull(), BType);
+
   if(AK == BK) return AType;
-  else if(AK >= BK) {
+  else if(C.getTypeKindBitWidth(AK) >=
+          C.getTypeKindBitWidth(BK)) {
     B = ImplicitCast(C, AType, B);
     return AType;
   } else {
@@ -124,14 +133,16 @@ static QualType TakeTypeSelectLargestKindApplyConversion(ASTContext &C,
                                                          int Chosen,
                                                          ExprResult &A, ExprResult &B,
                                                          QualType AType, QualType BType) {
-  QualType ChosenType = Chosen == 0? AType : BType;
+  QualType ChosenType = Chosen == 0? AType : BType;  
   const ExtQuals *AExt = AType.getExtQualsPtrOnNull();
   const ExtQuals *BExt = BType.getExtQualsPtrOnNull();
-  auto AK = AExt? AExt->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
-  auto BK = BExt? BExt->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  auto AK = C.getArithmeticTypeKind(AExt, AType);
+  auto BK = C.getArithmeticTypeKind(BExt, BType);
+  auto AKWidth = C.getTypeKindBitWidth(AK);
+  auto BKWidth = C.getTypeKindBitWidth(BK);
   if(AK == BK ||
-     (Chosen == 0 && AK >= BK) ||
-     (Chosen != 0 && BK >= AK)) {
+     (Chosen == 0 && AKWidth >= BKWidth) ||
+     (Chosen != 0 && BKWidth >= AKWidth)) {
     if(Chosen == 0)
       B = ImplicitCast(C, ChosenType, B);
     else
@@ -147,8 +158,8 @@ static QualType TakeTypeSelectLargestKindApplyConversion(ASTContext &C,
 static QualType TypeWithKind(ASTContext &C, QualType T, QualType TKind) {
   const ExtQuals *AExt = T.getExtQualsPtrOnNull();
   const ExtQuals *BExt = TKind.getExtQualsPtrOnNull();
-  auto AK = AExt? AExt->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
-  auto BK = BExt? BExt->getArithmeticKindSelector() : ExtQuals::DefaultArithmeticKind;
+  auto AK = C.getArithmeticTypeKind(AExt, T);
+  auto BK = C.getArithmeticTypeKind(BExt, TKind);
   if(AK == BK) return T;
   return C.getQualTypeOtherKind(T, TKind);
 }
@@ -156,7 +167,8 @@ static QualType TypeWithKind(ASTContext &C, QualType T, QualType TKind) {
 ExprResult Sema::TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
                                      SourceLocation Loc, SourceLocation MinLoc) {
   const Type *LHSType = LHSTypeof.getTypePtr();
-  const Type *RHSType = RHS.get()->getType().getTypePtr();
+  auto RHSTypeof = RHS.get()->getType();
+  const Type *RHSType = RHSTypeof.getTypePtr();
   auto LHSExtQuals = LHSTypeof.getExtQualsPtrOnNull();
   auto RHSExtQuals = RHS.get()->getType().getExtQualsPtrOnNull();
 
@@ -168,19 +180,22 @@ ExprResult Sema::TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
                          IsRHSComplex;
 
   if(LHSType->isIntegerType()) {
-    if(IsRHSInteger && ExtQualsSameKind(LHSExtQuals, RHSExtQuals)) ;
+    if(IsRHSInteger && ExtQualsSameKind(Context, LHSExtQuals, RHSExtQuals,
+                                        LHSTypeof, RHSTypeof)) ;
     else if(IsRHSArithmetic)
       RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
                                      LHSTypeof, RHS.take());
     else goto typeError;
   } else if(LHSType->isRealType()) {
-    if(IsRHSReal && ExtQualsSameKind(LHSExtQuals, RHSExtQuals)) ;
+    if(IsRHSReal && ExtQualsSameKind(Context, LHSExtQuals, RHSExtQuals,
+                                     LHSTypeof, RHSTypeof)) ;
     else if(IsRHSArithmetic)
       RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
                                      LHSTypeof, RHS.take());
     else goto typeError;
   } else if(LHSType->isComplexType()) {
-    if(IsRHSComplex && ExtQualsSameKind(LHSExtQuals, RHSExtQuals)) ;
+    if(IsRHSComplex && ExtQualsSameKind(Context, LHSExtQuals, RHSExtQuals,
+                                        LHSTypeof, RHSTypeof)) ;
     else if(IsRHSArithmetic)
       RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
                                      LHSTypeof, RHS.take());
@@ -213,25 +228,28 @@ typeError:
 ExprResult Sema::ActOnComplexConstantExpr(ASTContext &C, SourceLocation Loc,
                                           SourceLocation MaxLoc,
                                           ExprResult RealPart, ExprResult ImPart) {
-  APFloat Re = GetNumberConstant(Diags, RealPart.take()),
-          Im = GetNumberConstant(Diags, ImPart.take());
-  ComplexConstantExpr::Kind Kind = ComplexConstantExpr::Kind4;
-  auto ReKind = llvm::APFloat::semanticsPrecision(Re.getSemantics());
-  auto ImKind = llvm::APFloat::semanticsPrecision(Im.getSemantics());
-  if(ReKind != ImKind) {
-    // one is double, other is single
-    bool IsExact;
-    if(ReKind > ImKind)
-      Im.convert(Re.getSemantics(), llvm::APFloat::rmNearestTiesToEven, &IsExact);
-    else
-      Re.convert(Im.getSemantics(), llvm::APFloat::rmNearestTiesToEven, &IsExact);
-    Kind = ComplexConstantExpr::Kind8;
-  } else {
-    if(ReKind == llvm::APFloat::semanticsPrecision(llvm::APFloat::IEEEdouble))
-       Kind = ComplexConstantExpr::Kind8;
-  }
+  QualType T1 = RealPart.get()->getType();
+  QualType T2 = ImPart.get()->getType();
+  QualType ElementType = T1;
+
+  if(T1->isRealType() || T2->isRealType()) {
+    if(T1->isRealType() && T2->isRealType()) {
+      auto ReKind = llvm::APFloat::semanticsPrecision(C.getFPTypeSemantics(T1));
+      auto ImKind = llvm::APFloat::semanticsPrecision(C.getFPTypeSemantics(T2));
+      if(ReKind < ImKind)
+        ElementType = T2;
+    }
+    else if(T2->isRealType()) ElementType = T2;
+  } else ElementType = C.RealTy;
+
+  const llvm::fltSemantics& ElementSemantics = C.getFPTypeSemantics(ElementType);
+
+  APFloat Re = GetRealConstant(C, Diags, RealPart.take(), ElementSemantics),
+          Im = GetRealConstant(C, Diags, ImPart.take(), ElementSemantics);
+
   return ComplexConstantExpr::Create(C, Loc,
-                                     MaxLoc, Re, Im, Kind);
+                                     MaxLoc, Re, Im,
+                                     C.getComplexType(ElementType));
 }
 
 ExprResult Sema::ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,

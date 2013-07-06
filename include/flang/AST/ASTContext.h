@@ -25,6 +25,7 @@
 
 namespace llvm {
   template <typename T> class ArrayRef;
+  struct fltSemantics;
 } // end llvm namespace
 
 namespace flang {
@@ -71,6 +72,62 @@ public:
                           Expr *LenSel) const;
   QualType getQualTypeOtherKind(QualType Type, QualType KindType);
   QualType getComplexTypeElementType(QualType Type);
+  QualType getComplexType(QualType ElementType);
+
+  const llvm::fltSemantics& getFPTypeSemantics(QualType Type);
+
+  /// \brief Returns the kind of an integer type or the
+  /// default integer kind if the type has no extended
+  /// qualifiers or if kind wasn't specified.
+  BuiltinType::TypeKind getIntTypeKind(const ExtQuals *Ext) const {
+    return Ext && Ext->hasKindSelector()? Ext->getKindSelector() :
+                                          BuiltinType::Int4;
+  }
+
+  /// \brief Returns the kind of a real type or the
+  /// default real kind if the type has no extended
+  /// qualifiers or if kind wasn't specified.
+  BuiltinType::TypeKind getRealTypeKind(const ExtQuals *Ext) const {
+    return Ext && Ext->hasKindSelector()? Ext->getKindSelector() :
+                                          BuiltinType::Real4;
+  }
+
+  /// \brief Returns the kind of a complex type or the
+  /// default complex kind if the type has no extended
+  /// qualifiers or if kind wasn't specified.
+  BuiltinType::TypeKind getComplexTypeKind(const ExtQuals *Ext) const {
+    return Ext && Ext->hasKindSelector()? Ext->getKindSelector() :
+                                          BuiltinType::Real4;
+  }
+
+  /// \brief Returns the kind of a real or complex type or the appropriate
+  /// default kind if the type has no extended qualifiers or if the kind
+  /// wasn't specified.
+  BuiltinType::TypeKind getRealOrComplexTypeKind(const ExtQuals *Ext,
+                                                 QualType T) const {
+    if(T->isRealType()) return getRealTypeKind(Ext);
+    else return getComplexTypeKind(Ext);
+  }
+
+  /// \brief Returns the kind of an integer, real or complex type
+  /// or the appropriate default kind if the type has no extended
+  /// qualifiers or if the kind wasn't specified.
+  BuiltinType::TypeKind getArithmeticTypeKind(const ExtQuals *Ext,
+                                              QualType T) const {
+    if(T->isIntegerType()) return getIntTypeKind(Ext);
+    else if(T->isRealType()) return getRealTypeKind(Ext);
+    else return getComplexTypeKind(Ext);
+  }
+
+  /// \brief Returns true if two arithmetic types have the same kind
+  bool ArithmeticTypesSameKind(const ExtQuals *AExt, QualType A,
+                               const ExtQuals *BExt, QualType B) const {
+    return getArithmeticTypeKind(AExt, A) ==
+           getArithmeticTypeKind(BExt, B);
+  }
+
+  /// \brief Returns the amount of bits that an arithmetic type kind occupies
+  unsigned getTypeKindBitWidth(BuiltinType::TypeKind Kind) const;
 
 private:
   QualType getTypeDeclTypeSlow(const TypeDecl *Decl) const;

@@ -13,6 +13,7 @@
 
 #include "flang/AST/ASTContext.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/APFloat.h"
 #include "llvm/Support/ErrorHandling.h"
 
 
@@ -41,10 +42,10 @@ void ASTContext::InitBuiltinTypes() {
   InitBuiltinType(IntegerTy,         BuiltinType::Integer);
   InitBuiltinType(RealTy,            BuiltinType::Real);
   DoublePrecisionTy = getExtQualType(RealTy.getTypePtr(), Qualifiers(),
-                                     8, true, false, nullptr);
+                                     BuiltinType::Real8, true, false, nullptr);
   InitBuiltinType(ComplexTy,         BuiltinType::Complex);
   DoubleComplexTy = getExtQualType(ComplexTy.getTypePtr(), Qualifiers(),
-                                   8, true, false, nullptr);
+                                   BuiltinType::Real8, true, false, nullptr);
   InitBuiltinType(CharacterTy,       BuiltinType::Character);
   InitBuiltinType(LogicalTy,         BuiltinType::Logical);
 }
@@ -59,6 +60,27 @@ QualType ASTContext::getBuiltinQualType(BuiltinType::TypeSpec TS) const {
   case BuiltinType::Complex:         return ComplexTy;
   }
   return QualType();
+}
+
+const llvm::fltSemantics&  ASTContext::getFPTypeSemantics(QualType Type) {
+  auto ExtQuals = Type.getExtQualsPtrOnNull();
+  if(!ExtQuals)
+    return llvm::APFloat::IEEEsingle; // Default REAL / COMPLEx
+  else return llvm::APFloat::IEEEdouble; // FIXME
+}
+
+unsigned ASTContext::getTypeKindBitWidth(BuiltinType::TypeKind Kind) const {
+  switch(Kind) {
+  case BuiltinType::Int1: return 8;
+  case BuiltinType::Int2: return 16;
+  case BuiltinType::Int4: return 32;
+  case BuiltinType::Int8: return 64;
+  case BuiltinType::Real4: return 32;
+  case BuiltinType::Real8: return 64;
+  case BuiltinType::Real16: return 128;
+  }
+  llvm_unreachable("invalid built in type kind");
+  return 0;
 }
 
 //===----------------------------------------------------------------------===//
@@ -104,17 +126,25 @@ QualType ASTContext::getQualTypeOtherKind(QualType Type, QualType KindType) {
 
   return getExtQualType(Type.getTypePtr(),
                         ExtQuals? ExtQuals->getQualifiers() : Qualifiers(),
-                        DesiredExtQuals->getRawKindSelector(),
+                        DesiredExtQuals->getKindSelector(),
                         DesiredExtQuals->isDoublePrecisionKind(),
                         ExtQuals? ExtQuals->isStarLengthSelector() : false,
                         ExtQuals? ExtQuals->getLengthSelector() : nullptr);
 }
 
+// NB: this assumes that real and complex have have the same default kind.
 QualType ASTContext::getComplexTypeElementType(QualType Type) {
   assert(Type->isComplexType());
   if(Type.getExtQualsPtrOnNull())
     return getQualTypeOtherKind(RealTy, Type);
   return RealTy;
+}
+
+QualType ASTContext::getComplexType(QualType ElementType) {
+  assert(ElementType->isRealType());
+  if(ElementType.getExtQualsPtrOnNull())
+    return getQualTypeOtherKind(ComplexTy, ElementType);
+  return ComplexTy;
 }
 
 /// getPointerType - Return the uniqued reference to the type for a pointer to
