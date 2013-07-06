@@ -273,7 +273,8 @@ llvm::Value *CodeGenFunction::EmitScalarToScalarConversion(llvm::Value *Value,
   } else {
     assert(ValueType->isFloatingPointTy());
     if(Target->isRealType()) {
-      return Value; // FIXME: Kinds
+      auto TargetType = ConvertType(Target);
+      return Builder.CreateFPCast(Value, TargetType);
     } else {
       assert(Target->isIntegerType());
       return Builder.CreateFPToSI(Value, ConvertType(Target));

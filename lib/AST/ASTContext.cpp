@@ -63,10 +63,12 @@ QualType ASTContext::getBuiltinQualType(BuiltinType::TypeSpec TS) const {
 }
 
 const llvm::fltSemantics&  ASTContext::getFPTypeSemantics(QualType Type) {
-  auto ExtQuals = Type.getExtQualsPtrOnNull();
-  if(!ExtQuals)
-    return llvm::APFloat::IEEEsingle; // Default REAL / COMPLEx
-  else return llvm::APFloat::IEEEdouble; // FIXME
+  switch(getRealOrComplexTypeKind(Type.getExtQualsPtrOnNull(), Type)) {
+  case BuiltinType::Real4:  return llvm::APFloat::IEEEsingle;
+  case BuiltinType::Real8:  return llvm::APFloat::IEEEdouble;
+  case BuiltinType::Real16: return llvm::APFloat::IEEEquad;
+  }
+  llvm_unreachable("invalid real type");
 }
 
 unsigned ASTContext::getTypeKindBitWidth(BuiltinType::TypeKind Kind) const {
