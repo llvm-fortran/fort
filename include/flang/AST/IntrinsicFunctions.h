@@ -31,14 +31,26 @@ enum FunctionArgumentCountKind {
 /// FunctionKind - This provides a simple uniform namespace for
 /// intrinsic functions from all Fortran languages.
 enum FunctionKind {
-#define INTRINSIC_FUNCTION(NAME, NUMARGS, VERSION) NAME,
+#define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) NAME,
 #include "IntrinsicFunctions.def"
   NUM_FUNCTIONS
 };
 
-/// \brief Returns the "simple" name of the functions (The specific
-/// typed overloads which may be used in original source code are
-/// not taken into consideration)
+/// Group - the list of function groups.
+enum Group {
+  GROUP_NONE,
+#define INTRINSIC_GROUP(NAME, FIRST, LAST) GROUP_ ## NAME,
+#include "IntrinsicFunctions.def"
+  NUM_GROUPS
+};
+
+/// \brief Returns the id of the generic function of this overload.
+FunctionKind getGenericFunctionKind(FunctionKind Function);
+
+/// \brief Returns the id of the group that this function belongs to.
+Group getFunctionGroup(FunctionKind Function);
+
+/// \brief Returns the name of the function.
 const char *getFunctionName(FunctionKind Kind);
 
 /// \brief Returns the number of arguments that the function accepts.

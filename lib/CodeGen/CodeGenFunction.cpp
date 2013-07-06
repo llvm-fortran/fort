@@ -81,12 +81,13 @@ void CodeGenFunction::EmitFunctionBody(const DeclContext *DC, const Stmt *S) {
 }
 
 void CodeGenFunction::EmitReturnVarDecl(const ReturnVarDecl *D) {
-  //FIXME:
-  //Builder.CreateAlloca(IntTy, nullptr, D->getName());
+  auto Ptr = Builder.CreateAlloca(ConvertType(D->getType()), nullptr, D->getName());
+  ReturnValuePtr.V1 = Ptr;
 }
 
 void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
-  if(D->isParameter()) return;
+  if(D->isParameter() ||
+     D->isArgument()) return;
 
   auto Ptr = Builder.CreateAlloca(ConvertType(D->getType()), nullptr, D->getName());
   LocalVariables.insert(std::make_pair(D, Ptr));
@@ -94,6 +95,10 @@ void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
 
 llvm::Value *CodeGenFunction::GetVarPtr(const VarDecl *D) {
   return LocalVariables[D];
+}
+
+llvm::Value *CodeGenFunction::GetRetVarPtr() {
+  return ReturnValuePtr.V1;
 }
 
 llvm::Value *CodeGenFunction::EmitScalarRValue(const Expr *E) {

@@ -55,6 +55,10 @@ llvm::Type *CodeGenTypes::ConvertBuiltInType(const BuiltinType *T) {
   case BuiltinType::Logical:
     return llvm::IntegerType::get(CGM.getLLVMContext(), 1);
     break;
+  case BuiltinType::Character:
+    llvm::Type *Pair[2] = { CGM.Int8PtrTy, CGM.SizeTy };
+    return llvm::StructType::get(CGM.getLLVMContext(),
+                                 ArrayRef<llvm::Type*>(Pair,2));
   }
   return nullptr;
 }

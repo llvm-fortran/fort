@@ -50,5 +50,7 @@ PROGRAM test
   CONTINUE              ! CHECK: or i1
 
   C = (1.0, 1.0)
+  C = C ** 1
+  C = C ** 2
   C = C ** 3
 END

@@ -85,7 +85,8 @@ llvm::Value *ScalarExprEmitter::VisitVarExpr(const VarExpr *E) {
 }
 
 llvm::Value *ScalarExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
-  return nullptr; // FIXME
+  auto Ptr = CGF.GetRetVarPtr();
+  return Builder.CreateLoad(Ptr,E->getFuncDecl()->getName());
 }
 
 llvm::Value *ScalarExprEmitter::VisitUnaryExprPlus(const UnaryExpr *E) {
@@ -293,7 +294,7 @@ llvm::Value *ScalarExprEmitter::VisitCallExpr(const CallExpr *E) {
 }
 
 llvm::Value *ScalarExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
-  return nullptr;//FIXME
+  return CGF.EmitIntrinsicCall(E).asScalar();
 }
 
 llvm::Value *CodeGenFunction::EmitScalarExpr(const Expr *E) {

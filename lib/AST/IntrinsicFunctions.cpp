@@ -15,26 +15,50 @@
 #include <cassert>
 
 namespace flang {
+namespace intrinsic {
 
 static char const * const FunctionNames[] = {
-#define INTRINSIC_FUNCTION(NAME, NUMARGS, VERSION) #NAME,
+#define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) #NAME,
 #include "flang/AST/IntrinsicFunctions.def"
   nullptr
 };
 
-const char *intrinsic::getFunctionName(FunctionKind Kind) {
+const char *getFunctionName(FunctionKind Kind) {
   assert(Kind < NUM_FUNCTIONS && "Invalid function kind!");
   return FunctionNames[Kind];
 }
 
-namespace intrinsic {
+static FunctionKind FunctionGenericKinds[] = {
+  #define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) GENERICNAME,
+  #include "flang/AST/IntrinsicFunctions.def"
+};
+
+FunctionKind getGenericFunctionKind(FunctionKind Function) {
+  return FunctionGenericKinds[Function];
+}
+
+static Group FunctionGroups[] = {
+  #define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) GROUP_NONE,
+  #include "flang/AST/IntrinsicFunctions.def"
+};
+
+Group getFunctionGroup(FunctionKind Function) {
+  return FunctionGroups[Function];
+}
+
+static void InitFunctionGroups() {
+  #define INTRINSIC_GROUP(NAME, FIRST, LAST) \
+    for(size_t I = FIRST; I <= LAST; ++I)    \
+      FunctionGroups[I] = GROUP_ ## NAME;
+  #include "flang/AST/IntrinsicFunctions.def"
+}
 
 static FunctionArgumentCountKind FunctionArgCounts[] = {
   #define NUM_ARGS_1 ArgumentCount1
   #define NUM_ARGS_2 ArgumentCount2
   #define NUM_ARGS_1_OR_2 ArgumentCount1or2
   #define NUM_ARGS_2_OR_MORE ArgumentCount2orMore
-  #define INTRINSIC_FUNCTION(NAME, NUMARGS, VERSION) NUMARGS,
+  #define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) NUMARGS,
   #include "flang/AST/IntrinsicFunctions.def"
     ArgumentCount1,
 };
@@ -47,6 +71,7 @@ FunctionArgumentCountKind getFunctionArgumentCount(FunctionKind Function) {
 FunctionMapping::FunctionMapping(const LangOptions &) {
   for(unsigned I = 0; I < NUM_FUNCTIONS; ++I)
     Mapping[getFunctionName(FunctionKind(I))] = FunctionKind(I);
+  InitFunctionGroups();
 }
 
 FunctionMapping::Result FunctionMapping::Resolve(const IdentifierInfo *IDInfo) {

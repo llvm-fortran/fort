@@ -62,8 +62,43 @@ public:
 
 class RValueTy {
 public:
+  enum Kind {
+    None,
+    Scalar,
+    Complex,
+    Character
+  };
+
+  Kind ValueType;
   llvm::Value *V1;
   llvm::Value *V2;
+
+  RValueTy() : ValueType(None) {}
+  RValueTy(llvm::Value *V)
+    : V1(V), ValueType(Scalar) {}
+  RValueTy(ComplexValueTy C)
+    : V1(C.Re), V2(C.Im), ValueType(Complex) {}
+
+  Kind getType() const {
+    return ValueType;
+  }
+  bool isScalar() const {
+    return getType() == Scalar;
+  }
+  bool isComplex() const {
+    return getType() == Complex;
+  }
+  bool isCharacter() const {
+    return getType() == Character;
+  }
+
+  llvm::Value *asScalar() const {
+    return V1;
+  }
+  ComplexValueTy asComplex() const {
+    return ComplexValueTy(V1, V2);
+  }
+
 };
 
 }  // end namespace CodeGen

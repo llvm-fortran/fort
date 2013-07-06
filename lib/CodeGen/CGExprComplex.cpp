@@ -79,7 +79,8 @@ ComplexValueTy ComplexExprEmitter::VisitVarExpr(const VarExpr *E) {
 }
 
 ComplexValueTy ComplexExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
-  return ComplexValueTy(); // FIXME
+  auto Ptr = CGF.GetRetVarPtr();
+  return CGF.EmitComplexLoad(Ptr);
 }
 
 ComplexValueTy ComplexExprEmitter::VisitUnaryExprPlus(const UnaryExpr *E) {
@@ -93,11 +94,16 @@ ComplexValueTy ComplexExprEmitter::VisitUnaryExprMinus(const UnaryExpr *E) {
 }
 
 ComplexValueTy ComplexExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
-  auto LHS = EmitExpr(E->getLHS());
-  auto RHS = EmitExpr(E->getRHS());
+  return CGF.EmitComplexBinaryExpr(E->getOperator(),
+                                   EmitExpr(E->getLHS()),
+                                   EmitExpr(E->getRHS()));
+}
+
+ComplexValueTy CodeGenFunction::EmitComplexBinaryExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
+                                                      ComplexValueTy RHS) {
   ComplexValueTy Result;
 
-  switch(E->getOperator()) {
+  switch(Op) {
   case BinaryExpr::Plus:
     Result.Re = Builder.CreateFAdd(LHS.Re, RHS.Re);
     Result.Im = Builder.CreateFAdd(LHS.Im, RHS.Im);
@@ -158,12 +164,24 @@ ComplexValueTy CodeGenFunction::EmitComplexToPolarFormConversion(ComplexValueTy 
 ComplexValueTy ComplexExprEmitter::VisitBinaryExprPow(const BinaryExpr *E) {
   auto LHS = EmitExpr(E->getLHS());
   if(E->getRHS()->getType()->isIntegerType()) {
-    // (a+ib) ** n =>
-    // ( r*cos(a) + ir*sin(a) )**n =>
-    // r ** n cos(n*a) + ir ** n sin(n*a)
     auto RHS = CGF.EmitScalarExpr(E->getRHS());
-    RHS = CGF.EmitIntToInt32Conversion(RHS);
+    // (a+ib) ** 1 => (a+ib)
+    // (a+ib) ** 2 =>
+    //   (a+ib) * (a+ib) =>
+    //   a*a + 2iab + i**2*b*b =>
+    //   a*a - b*b + 2iab
+    // (a+ib) ** n =>
+    //   ( r*cos(a) + ir*sin(a) )**n =>
+    //   r ** n cos(n*a) + ir ** n sin(n*a)
+    if(auto ConstInt = dyn_cast<llvm::ConstantInt>(RHS)) {
+      if(ConstInt->equalsInt(1))
+        return LHS;
+      else if(ConstInt->equalsInt(2))
+        return CGF.EmitComplexBinaryExpr(BinaryExpr::Multiply, LHS, LHS);
+    }
+
     LHS = CGF.EmitComplexToPolarFormConversion(LHS);
+    RHS = CGF.EmitIntToInt32Conversion(RHS);
     auto PowiFunc = CGF.GetIntrinsicFunction(llvm::Intrinsic::powi, LHS.getPolarLength()->getType(),
                                              RHS->getType());
     auto LengthToPower = Builder.CreateCall2(PowiFunc, LHS.getPolarLength(), RHS);
@@ -180,7 +198,9 @@ ComplexValueTy ComplexExprEmitter::VisitBinaryExprPow(const BinaryExpr *E) {
 }
 
 ComplexValueTy CodeGenFunction::EmitComplexToComplexConversion(ComplexValueTy Value, QualType Target) {
-  return Value; //FIXME: Kinds
+  auto ElementType = getContext().getComplexTypeElementType(Target);
+  return ComplexValueTy(EmitScalarToScalarConversion(Value.Re, ElementType),
+                        EmitScalarToScalarConversion(Value.Im, ElementType));
 }
 
 ComplexValueTy CodeGenFunction::EmitScalarToComplexConversion(llvm::Value *Value, QualType Target) {
@@ -204,8 +224,21 @@ ComplexValueTy ComplexExprEmitter::VisitCallExpr(const CallExpr *E) {
   return ComplexValueTy(); // FIXME
 }
 
+RValueTy CodeGenFunction::EmitIntrinsicCallComplex(intrinsic::FunctionKind Func, ComplexValueTy Value) {
+  switch(Func) {
+  case intrinsic::AIMAG:
+    return Value.Im;
+  case intrinsic::CONJG:
+    // conjg (a+ib) => (a-ib)
+    return ComplexValueTy(Value.Re, Builder.CreateFNeg(Value.Im));
+  default:
+    llvm_unreachable("invalid complex intrinsic");
+  }
+  return RValueTy();
+}
+
 ComplexValueTy ComplexExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
-  return ComplexValueTy(); // FIXME
+  return CGF.EmitIntrinsicCall(E).asComplex();
 }
 
 ComplexValueTy CodeGenFunction::EmitComplexExpr(const Expr *E) {

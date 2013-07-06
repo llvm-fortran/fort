@@ -8,6 +8,7 @@ add_flang_library(flangCodeGen
   CGExprScalar.cpp
   CGExprComplex.cpp
   CGExprCharacter.cpp
+  CGIntrinsic.cpp
 )
 
 target_link_libraries(flangCodeGen

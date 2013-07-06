@@ -49,7 +49,7 @@ LValueTy LValueExprEmitter::VisitVarExpr(const VarExpr *E) {
 }
 
 LValueTy LValueExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
-  return LValueTy();//FIXME
+  return LValueTy(CGF.GetRetVarPtr());
 }
 
 LValueTy LValueExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {

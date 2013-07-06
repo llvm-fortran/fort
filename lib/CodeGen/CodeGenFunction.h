@@ -135,6 +135,7 @@ public:
   }
 
   llvm::Value *GetVarPtr(const VarDecl *D);
+  llvm::Value *GetRetVarPtr();
 
   void EmitFunctionDecls(const DeclContext *DC);
   void EmitMainProgramBody(const DeclContext *DC, const Stmt *S);
@@ -179,12 +180,24 @@ public:
   ComplexValueTy EmitComplexLoad(llvm::Value *Ptr, bool IsVolatile = false);
   void EmitComplexStore(ComplexValueTy Value, llvm::Value *Ptr,
                         bool IsVolatile = false);
+  ComplexValueTy EmitComplexBinaryExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
+                                       ComplexValueTy RHS);
   ComplexValueTy EmitComplexToComplexConversion(ComplexValueTy Value, QualType Target);
   ComplexValueTy EmitScalarToComplexConversion(llvm::Value *Value, QualType Target);
   llvm::Value *EmitComplexToScalarConversion(ComplexValueTy Value, QualType Target);
   llvm::Value *EmitComplexRelationalExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
                                          ComplexValueTy RHS);
   ComplexValueTy EmitComplexToPolarFormConversion(ComplexValueTy Value);
+
+  RValueTy EmitIntrinsicCall(const IntrinsicCallExpr *E);
+
+  // AIMAG, CONJG, no overloads
+  RValueTy EmitIntrinsicCallComplex(intrinsic::FunctionKind Func, ComplexValueTy Value);
+
+  llvm::Value* EmitIntrinsicCallScalarMath(intrinsic::FunctionKind Func,
+                                           llvm::Value *A1, llvm::Value *A2 = nullptr);
+  ComplexValueTy EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
+                                              ComplexValueTy Value);
 
 };
 
