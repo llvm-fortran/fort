@@ -34,6 +34,24 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
 
   switch(Group) {
   case intrinsic::GROUP_CONVERSION:
+    if(Func == intrinsic::INT ||
+       Func == intrinsic::REAL) {
+      if(Args[0]->getType()->isComplexType())
+        return EmitComplexToScalarConversion(EmitComplexExpr(Args[0]),
+                                             E->getType());
+      else
+        return EmitScalarToScalarConversion(EmitScalarExpr(Args[0]),
+                                            E->getType());
+    } else if(Func == intrinsic::CMPLX) {
+      if(Args[0]->getType()->isComplexType())
+        return EmitComplexToComplexConversion(EmitComplexExpr(Args[0]),
+                                              E->getType());
+      else
+        return EmitScalarToComplexConversion(EmitScalarExpr(Args[0]),
+                                             E->getType()); // FIXME: 2 Args
+    } else {
+      //CHAR or ICHAR
+    }
     break;
 
   case intrinsic::GROUP_TRUNCATION:
@@ -93,6 +111,7 @@ llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKin
                                                           llvm::Value *A1, llvm::Value *A2) {
   llvm::Value *FuncDecl = nullptr;
   auto ValueType = A1->getType();
+  bool IsFloat = ValueType->isFloatTy();
   switch(Func) {
   case intrinsic::ABS:
     if(ValueType->isIntegerTy()) {
@@ -126,20 +145,39 @@ llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKin
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::cos, ValueType);
     break;
   case intrinsic::TAN:
+    FuncDecl = CGM.GetRuntimeFunction(IsFloat? "tanf" : "tan",
+                                      ValueType, ValueType);
     break;
   case intrinsic::ASIN:
+    FuncDecl = CGM.GetRuntimeFunction(IsFloat? "asinf" : "asin",
+                                      ValueType, ValueType);
     break;
   case intrinsic::ACOS:
+    FuncDecl = CGM.GetRuntimeFunction(IsFloat? "acosf" : "acos",
+                                      ValueType, ValueType);
     break;
   case intrinsic::ATAN:
+    FuncDecl = CGM.GetRuntimeFunction(IsFloat? "atanf" : "atan",
+                                      ValueType, ValueType);
     break;
-  case intrinsic::ATAN2:
+  case intrinsic::ATAN2: {
+    llvm::Type *Args[] = {ValueType, ValueType};
+    FuncDecl = CGM.GetRuntimeFunction(IsFloat? "atan2f" : "atan2",
+                                      llvm::makeArrayRef(Args, 2),
+                                      ValueType);
     break;
+  }
   case intrinsic::SINH:
+    FuncDecl = CGM.GetRuntimeFunction(IsFloat? "sinhf" : "sinh",
+                                      ValueType, ValueType);
     break;
   case intrinsic::COSH:
+    FuncDecl = CGM.GetRuntimeFunction(IsFloat? "coshf" : "cosh",
+                                      ValueType, ValueType);
     break;
   case intrinsic::TANH:
+    FuncDecl = CGM.GetRuntimeFunction(IsFloat? "tanhf" : "tanh",
+                                      ValueType, ValueType);
     break;
   default:
     llvm_unreachable("invalid scalar math intrinsic");

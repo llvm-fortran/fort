@@ -65,6 +65,21 @@ CodeGenModule::~CodeGenModule() {
 void CodeGenModule::Release() {
 }
 
+llvm::Value*
+CodeGenModule::GetRuntimeFunction(StringRef Name,
+                                  ArrayRef<llvm::Type*> ArgTypes,
+                                  llvm::Type *ReturnType) {
+  if(auto Func = TheModule.getFunction(Name))
+    return Func;
+  auto FType = llvm::FunctionType::get(ReturnType? ReturnType :
+                                       VoidTy, ArgTypes,
+                                       false);
+  auto Func = llvm::Function::Create(FType, llvm::GlobalValue::ExternalLinkage,
+                                     Name, &TheModule);
+  Func->setCallingConv(llvm::CallingConv::C);
+  return Func;
+}
+
 void CodeGenModule::EmitTopLevelDecl(const Decl *Declaration) {
   class Visitor : public ConstDeclVisitor<Visitor> {
   public:

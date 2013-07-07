@@ -2,6 +2,7 @@
 PROGRAM testscalarmath
   INTEGER i
   REAL x
+  DOUBLE PRECISION d
 
   INTRINSIC abs, mod
   INTRINSIC sqrt, exp, log, log10
@@ -24,5 +25,11 @@ PROGRAM testscalarmath
   x = log10(x)    ! CHECK: call float @llvm.log10.f32
   x = sin(x)      ! CHECK: call float @llvm.sin.f32
   x = cos(x)      ! CHECK: call float @llvm.cos.f32
+  x = tan(x)      ! CHECK: call float @tanf(float
+  x = atan2(2.0,x)! CHECK: call float @atan2f(float 2
+
+  d = sin(d)      ! CHECK: call double @llvm.sin.f64
+  d = cosh(d)     ! CHECK: call double @cosh(
+  d = exp(d)      ! CHECK: call double @llvm.exp.f64
 
 END

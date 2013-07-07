@@ -139,6 +139,10 @@ public:
   void EmitMainProgramDecl(const MainProgramDecl *Program);
 
   void EmitFunctionDecl(const FunctionDecl *Function);
+
+  llvm::Value* GetRuntimeFunction(StringRef Name,
+                                  ArrayRef<llvm::Type*> ArgTypes,
+                                  llvm::Type *ReturnType = nullptr);
 };
 
 }  // end namespace CodeGen
