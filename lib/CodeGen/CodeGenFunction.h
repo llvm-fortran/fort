@@ -73,7 +73,7 @@ class CodeGenFunction : public CodeGenTypeCache {
 
   llvm::DenseMap<const VarDecl*, llvm::Value*> LocalVariables;
 
-  RValueTy ReturnValuePtr;
+  llvm::Value *ReturnValuePtr;
 
   bool IsMainProgram;
 
@@ -143,9 +143,11 @@ public:
 
   void EmitFunctionDecls(const DeclContext *DC);
   void EmitMainProgramBody(const DeclContext *DC, const Stmt *S);
+  void EmitFunctionArguments(const FunctionDecl *Func);
+  void EmitFunctionPrologue(const FunctionDecl *Func);
   void EmitFunctionBody(const DeclContext *DC, const Stmt *S);
+  void EmitFunctionEpilogue(const FunctionDecl *Func);
 
-  void EmitReturnVarDecl(const ReturnVarDecl *D);
   void EmitVarDecl(const VarDecl *D);
 
   void EmitBlock(llvm::BasicBlock *BB);
@@ -202,6 +204,8 @@ public:
                                            llvm::Value *A1, llvm::Value *A2 = nullptr);
   ComplexValueTy EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
                                               ComplexValueTy Value);
+
+  RValueTy EmitCall(const CallExpr *E);
 
 
 };

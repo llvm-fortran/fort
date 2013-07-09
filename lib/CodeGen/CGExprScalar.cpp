@@ -291,7 +291,7 @@ llvm::Value *ScalarExprEmitter::VisitImplicitCastExpr(const ImplicitCastExpr *E)
 }
 
 llvm::Value *ScalarExprEmitter::VisitCallExpr(const CallExpr *E) {
-  return nullptr;//FIXME
+  return CGF.EmitCall(E).asScalar();
 }
 
 llvm::Value *ScalarExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {

@@ -109,7 +109,17 @@ void CodeGenModule::EmitMainProgramDecl(const MainProgramDecl *Program) {
 }
 
 void CodeGenModule::EmitFunctionDecl(const FunctionDecl *Function) {
+  auto FunctionInfo = Types.GetFunctionType(Function);
+  auto Func = llvm::Function::Create(FunctionInfo.getFunctionType(),
+                                     llvm::GlobalValue::ExternalLinkage,
+                                     Function->getName(), &TheModule);
+  Func->setCallingConv(FunctionInfo.getCallingConv());
 
+  CodeGenFunction CGF(*this, Func);
+  CGF.EmitFunctionArguments(Function);
+  CGF.EmitFunctionPrologue(Function);
+  CGF.EmitFunctionBody(Function, Function->getBody());
+  CGF.EmitFunctionEpilogue(Function);
 }
 
 

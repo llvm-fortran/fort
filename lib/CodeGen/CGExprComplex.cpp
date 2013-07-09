@@ -221,7 +221,7 @@ ComplexValueTy ComplexExprEmitter::VisitImplicitCastExpr(const ImplicitCastExpr 
 }
 
 ComplexValueTy ComplexExprEmitter::VisitCallExpr(const CallExpr *E) {
-  return ComplexValueTy(); // FIXME
+  return CGF.EmitCall(E).asComplex();
 }
 
 RValueTy CodeGenFunction::EmitIntrinsicCallComplex(intrinsic::FunctionKind Func, ComplexValueTy Value) {

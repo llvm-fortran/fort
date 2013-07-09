@@ -14,6 +14,7 @@
 #ifndef FLANG_CODEGEN_CODEGENTYPES_H
 #define FLANG_CODEGEN_CODEGENTYPES_H
 
+#include "CGCall.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Type.h"
 #include "flang/Frontend/CodeGenOptions.h"
@@ -57,11 +58,14 @@ public:
   /// memory representation is usually i8 or i32, depending on the target.
   llvm::Type *ConvertTypeForMem(QualType T);
 
-  llvm::FunctionType *GetFunctionType(FunctionDecl *FD);
+  CGFunctionInfo GetFunctionType(const FunctionDecl *FD);
 
   llvm::Type *ConvertBuiltInType(const BuiltinType *T, const ExtQuals *Ext);
   llvm::Type *ConvertBuiltInType(BuiltinType::TypeSpec Spec,
                                  BuiltinType::TypeKind Kind);
+
+  llvm::Type *ConvertReturnType(QualType T);
+  llvm::Type *ConvertArgumentType(QualType T);
 
 };
 

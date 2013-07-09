@@ -30,7 +30,8 @@ namespace CodeGen {
 CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn)
   : CGM(cgm), /*, Target(cgm.getTarget()),*/
     Builder(cgm.getModule().getContext()),
-    UnreachableBlock(nullptr), CurFn(Fn), IsMainProgram(false) {
+    UnreachableBlock(nullptr), CurFn(Fn), IsMainProgram(false),
+    ReturnValuePtr(nullptr) {
 }
 
 CodeGenFunction::~CodeGenFunction() {
@@ -43,9 +44,6 @@ void CodeGenFunction::EmitFunctionDecls(const DeclContext *DC) {
 
     Visitor(CodeGenFunction *P) : CG(P) {}
 
-    void VisitReturnVarDecl(const ReturnVarDecl *D) {
-      CG->EmitReturnVarDecl(D);
-    }
     void VisitVarDecl(const VarDecl *D) {
       CG->EmitVarDecl(D);
     }
@@ -76,13 +74,43 @@ void CodeGenFunction::EmitMainProgramBody(const DeclContext *DC, const Stmt *S) 
   Builder.CreateRet(ReturnValue);
 }
 
-void CodeGenFunction::EmitFunctionBody(const DeclContext *DC, const Stmt *S) {
-
+void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func) {
+  size_t I = 0;
+  auto Arguments = Func->getArguments();
+  for(auto Arg = CurFn->arg_begin(); Arg != CurFn->arg_end(); ++Arg, ++I) {
+    Arg->setName(Arguments[I]->getName());
+    LocalVariables.insert(std::make_pair(Arguments[I], Arg));
+  }
 }
 
-void CodeGenFunction::EmitReturnVarDecl(const ReturnVarDecl *D) {
-  auto Ptr = Builder.CreateAlloca(ConvertType(D->getType()), nullptr, D->getName());
-  ReturnValuePtr.V1 = Ptr;
+void CodeGenFunction::EmitFunctionPrologue(const FunctionDecl *Func) {
+  EmitBlock(createBasicBlock("entry"));
+  if(!Func->getType().isNull()) {
+    ReturnValuePtr = Builder.CreateAlloca(ConvertType(Func->getType()),
+                                          nullptr, Func->getName());
+  }
+  ReturnBlock = createBasicBlock("return");
+}
+
+void CodeGenFunction::EmitFunctionBody(const DeclContext *DC, const Stmt *S) {
+  EmitFunctionDecls(DC);
+  if(S)
+    EmitStmt(S);
+}
+
+void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func) {
+  EmitBlock(ReturnBlock);
+  if(auto ptr = GetRetVarPtr()) {
+    auto Type = Func->getType();
+    auto RetVar = GetRetVarPtr();
+    if(Type->isComplexType()) {
+      auto Value = EmitComplexLoad(RetVar);
+      llvm::Value *Values[2] = { Value.Re, Value.Im };
+      //Builder.CreateAggregateRet(Values ,2);
+    } else
+      Builder.CreateRet(Builder.CreateLoad(RetVar));
+  } else
+    Builder.CreateRetVoid();
 }
 
 void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
@@ -98,7 +126,7 @@ llvm::Value *CodeGenFunction::GetVarPtr(const VarDecl *D) {
 }
 
 llvm::Value *CodeGenFunction::GetRetVarPtr() {
-  return ReturnValuePtr.V1;
+  return ReturnValuePtr;
 }
 
 llvm::Value *CodeGenFunction::EmitScalarRValue(const Expr *E) {

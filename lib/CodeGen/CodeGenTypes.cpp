@@ -102,8 +102,26 @@ llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {
     return ConvertType(T);
 }
 
-llvm::FunctionType *CodeGenTypes::GetFunctionType(FunctionDecl *FD) {
-  return nullptr;
+llvm::Type *CodeGenTypes::ConvertReturnType(QualType T) {
+  return ConvertType(T);
+}
+
+llvm::Type *CodeGenTypes::ConvertArgumentType(QualType T) {
+  return llvm::PointerType::get(ConvertType(T), 0);
+}
+
+CGFunctionInfo CodeGenTypes::GetFunctionType(const FunctionDecl *FD) {
+  auto ReturnType = FD->getType().isNull() ? CGM.VoidTy :
+                                             ConvertReturnType(FD->getType());
+  auto Args = FD->getArguments();
+  SmallVector<llvm::Type*,8> ArgTypes(Args.size());
+  for(size_t I = 0; I < Args.size(); ++I)
+    ArgTypes[I] = ConvertArgumentType(Args[I]->getType());
+
+  CGFunctionInfo Result;
+  Result.Type = llvm::FunctionType::get(ReturnType, ArgTypes, false);
+  Result.CC = llvm::CallingConv::C;
+  return Result;
 }
 
 } } // end namespace flang
