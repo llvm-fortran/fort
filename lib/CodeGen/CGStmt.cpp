@@ -52,6 +52,9 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
     void VisitReturnStmt(const ReturnStmt *S) {
       CG->EmitReturnStmt(S);
     }
+    void VisitCallStmt(const CallStmt *S) {
+      CG->EmitCallStmt(S);
+    }
     void VisitAssignmentStmt(const AssignmentStmt *S) {
       CG->EmitAssignmentStmt(S);
     }
@@ -225,6 +228,10 @@ void CodeGenFunction::EmitReturnStmt(const ReturnStmt *S) {
   Builder.CreateBr(ReturnBlock);
 }
 
+void CodeGenFunction::EmitCallStmt(const CallStmt *S) {
+  EmitCall(S->getFunction(), S->getArguments(), true);
+}
+
 void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
   auto RHS = S->getRHS();
   auto RHSType = RHS->getType();
@@ -233,14 +240,19 @@ void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
 
   if(RHSType->isIntegerType() || RHSType->isRealType() ||
      RHSType->isLogicalType()) {
-    auto Value = EmitScalarRValue(RHS);
+    auto Value = EmitScalarExpr(RHS);
     Builder.CreateStore(Value, Destination.getPointer());
   } else if(RHSType->isComplexType()) {
-    auto Value = EmitComplexRValue(RHS);
+    auto Value = EmitComplexExpr(RHS);
     EmitComplexStore(Value, Destination.getPointer());
   }
+}
 
-
+void CodeGenFunction::EmitAssignment(LValueTy LHS, RValueTy RHS) {
+  if(RHS.isScalar())
+    Builder.CreateStore(RHS.asScalar(), LHS.getPointer());
+  else if(RHS.isComplex())
+    EmitComplexStore(RHS.asComplex(), LHS.getPointer());
 }
 
 }

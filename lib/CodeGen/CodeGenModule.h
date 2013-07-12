@@ -116,6 +116,8 @@ class CodeGenModule : public CodeGenTypeCache {
 
   CodeGenTypes Types;
 
+  llvm::DenseMap<const FunctionDecl*, CGFunctionInfo> Functions;
+
 public:
   CodeGenModule(ASTContext &C, const CodeGenOptions &CodeGenOpts,
                 llvm::Module &M, const llvm::DataLayout &TD,
@@ -140,9 +142,12 @@ public:
 
   void EmitFunctionDecl(const FunctionDecl *Function);
 
-  llvm::Value* GetRuntimeFunction(StringRef Name,
+  llvm::Value *GetRuntimeFunction(StringRef Name,
                                   ArrayRef<llvm::Type*> ArgTypes,
                                   llvm::Type *ReturnType = nullptr);
+
+  CGFunctionInfo GetFunctionInfo(const FunctionDecl *Function);
+
 };
 
 }  // end namespace CodeGen

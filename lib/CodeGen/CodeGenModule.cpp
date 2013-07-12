@@ -109,17 +109,27 @@ void CodeGenModule::EmitMainProgramDecl(const MainProgramDecl *Program) {
 }
 
 void CodeGenModule::EmitFunctionDecl(const FunctionDecl *Function) {
-  auto FunctionInfo = Types.GetFunctionType(Function);
-  auto Func = llvm::Function::Create(FunctionInfo.getFunctionType(),
-                                     llvm::GlobalValue::ExternalLinkage,
-                                     Function->getName(), &TheModule);
-  Func->setCallingConv(FunctionInfo.getCallingConv());
+  auto FuncInfo = GetFunctionInfo(Function);
 
-  CodeGenFunction CGF(*this, Func);
+  CodeGenFunction CGF(*this, FuncInfo.getFunction());
   CGF.EmitFunctionArguments(Function);
   CGF.EmitFunctionPrologue(Function);
   CGF.EmitFunctionBody(Function, Function->getBody());
   CGF.EmitFunctionEpilogue(Function);
+}
+
+CGFunctionInfo CodeGenModule::GetFunctionInfo(const FunctionDecl *Function) {
+  auto SearchResult = Functions.find(Function);
+  if(SearchResult != Functions.end())
+    return SearchResult->second;
+
+  auto FunctionInfo = Types.GetFunctionType(Function);
+  FunctionInfo.Function = llvm::Function::Create(FunctionInfo.getFunctionType(),
+                                                 llvm::GlobalValue::ExternalLinkage,
+                                                 Function->getName(), &TheModule);
+  FunctionInfo.Function->setCallingConv(FunctionInfo.getCallingConv());
+  Functions.insert(std::make_pair(Function, FunctionInfo));
+  return FunctionInfo;
 }
 
 

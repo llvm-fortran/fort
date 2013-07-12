@@ -82,6 +82,8 @@ public:
     : V1(V), ValueType(Scalar) {}
   RValueTy(ComplexValueTy C)
     : V1(C.Re), V2(C.Im), ValueType(Complex) {}
+  RValueTy(CharacterValueTy CharValue)
+    : V1(CharValue.Ptr), V2(CharValue.Len), ValueType(Character) {}
 
   Kind getType() const {
     return ValueType;

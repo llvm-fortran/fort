@@ -48,7 +48,7 @@ namespace CodeGen {
 
 /// CodeGenFunction - This class organizes the per-function state that is used
 /// while generating LLVM code.
-class CodeGenFunction : public CodeGenTypeCache {
+class CodeGenFunction {
   CodeGenFunction(const CodeGenFunction &) LLVM_DELETED_FUNCTION;
   void operator=(const CodeGenFunction &) LLVM_DELETED_FUNCTION;
 
@@ -150,6 +150,12 @@ public:
 
   void EmitVarDecl(const VarDecl *D);
 
+  /// CreateTempAlloca - This creates a alloca and inserts it into the entry
+  /// block. The caller is responsible for setting an appropriate alignment on
+  /// the alloca.
+  llvm::AllocaInst *CreateTempAlloca(llvm::Type *Ty,
+                                     const llvm::Twine &Name = "tmp");
+
   void EmitBlock(llvm::BasicBlock *BB);
   void EmitBranch(llvm::BasicBlock *Target);
   void EmitBranchOnLogicalExpr(const Expr *Condition, llvm::BasicBlock *ThenBB,
@@ -164,13 +170,14 @@ public:
   void EmitDoWhileStmt(const DoWhileStmt *S);
   void EmitStopStmt(const StopStmt *S);
   void EmitReturnStmt(const ReturnStmt *S);
+  void EmitCallStmt(const CallStmt *S);
   void EmitAssignmentStmt(const AssignmentStmt *S);
   void EmitAssignment(const Expr *LHS, const Expr *RHS);
+  void EmitAssignment(LValueTy LHS, RValueTy RHS);
 
+  RValueTy EmitRValue(const Expr *E);
   LValueTy EmitLValue(const Expr *E);
 
-  llvm::Value *EmitScalarRValue(const Expr *E);
-  ComplexValueTy EmitComplexRValue(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
   llvm::Value *EmitIntToInt32Conversion(llvm::Value *Value);
   llvm::Value *EmitScalarToScalarConversion(llvm::Value *Value, QualType Target);
@@ -206,6 +213,11 @@ public:
                                               ComplexValueTy Value);
 
   RValueTy EmitCall(const CallExpr *E);
+  RValueTy EmitCall(const FunctionDecl *Function, ArrayRef<Expr *> Arguments,
+                    bool ReturnsNothing = false);
+  RValueTy EmitCall(CGFunctionInfo FuncInfo, ArrayRef<Expr *> Arguments,
+                    QualType ReturnType, bool ReturnsNothing = false);
+  llvm::Value *EmitCallArgPtr(const Expr *E);
 
 
 };

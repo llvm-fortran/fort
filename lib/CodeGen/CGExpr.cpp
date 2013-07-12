@@ -25,6 +25,25 @@
 namespace flang {
 namespace CodeGen {
 
+/// CreateTempAlloca - This creates a alloca and inserts it into the entry
+/// block.
+llvm::AllocaInst *CodeGenFunction::CreateTempAlloca(llvm::Type *Ty,
+                                                    const llvm::Twine &Name) {
+  auto Block = Builder.GetInsertBlock();
+  llvm::IRBuilder<> Builder_(Block, Block->begin());
+  return Builder_.CreateAlloca(Ty, nullptr, Name);
+}
+
+RValueTy CodeGenFunction::EmitRValue(const Expr *E) {
+  auto EType = E->getType();
+  if(EType->isComplexType())
+    return EmitComplexExpr(E);
+  //else if(EType->isCharacterType())
+  //FIXME  return EmitCharacterExpr(E);
+  else
+    return EmitScalarExpr(E);
+}
+
 class LValueExprEmitter
   : public ConstExprVisitor<LValueExprEmitter, LValueTy> {
   CodeGenFunction &CGF;

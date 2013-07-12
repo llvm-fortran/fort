@@ -105,8 +105,10 @@ void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func) {
     auto RetVar = GetRetVarPtr();
     if(Type->isComplexType()) {
       auto Value = EmitComplexLoad(RetVar);
-      llvm::Value *Values[2] = { Value.Re, Value.Im };
-      //Builder.CreateAggregateRet(Values ,2);
+      llvm::Value *Values = llvm::UndefValue::get(ConvertType(Type));
+      Values = Builder.CreateInsertValue(Values, Value.Re, 0, "retre");
+      Values = Builder.CreateInsertValue(Values, Value.Im, 0, "retim");
+      Builder.CreateRet(Values);
     } else
       Builder.CreateRet(Builder.CreateLoad(RetVar));
   } else
@@ -127,14 +129,6 @@ llvm::Value *CodeGenFunction::GetVarPtr(const VarDecl *D) {
 
 llvm::Value *CodeGenFunction::GetRetVarPtr() {
   return ReturnValuePtr;
-}
-
-llvm::Value *CodeGenFunction::EmitScalarRValue(const Expr *E) {
-  return EmitScalarExpr(E);
-}
-
-ComplexValueTy CodeGenFunction::EmitComplexRValue(const Expr *E) {
-  return EmitComplexExpr(E);
 }
 
 llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID,

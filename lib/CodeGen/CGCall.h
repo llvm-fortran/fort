@@ -28,9 +28,13 @@ struct CallArg {
 
 class CGFunctionInfo {
 public:
+  llvm::Function *Function;
   llvm::FunctionType *Type;
   llvm::CallingConv::ID CC;
 
+  llvm::Function *getFunction() const {
+    return Function;
+  }
   llvm::FunctionType *getFunctionType() const {
     return Type;
   }
