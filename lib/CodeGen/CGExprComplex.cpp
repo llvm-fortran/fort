@@ -246,5 +246,17 @@ ComplexValueTy CodeGenFunction::EmitComplexExpr(const Expr *E) {
   return EV.EmitExpr(E);
 }
 
+ComplexValueTy CodeGenFunction::ExtractComplexValue(llvm::Value *Agg) {
+  return ComplexValueTy(Builder.CreateExtractValue(Agg, 0, "re"),
+                        Builder.CreateExtractValue(Agg, 1, "im"));
+}
+
+llvm::Value   *CodeGenFunction::CreateComplexAggregate(ComplexValueTy Value) {
+  llvm::Value *Result = llvm::UndefValue::get(
+                          getTypes().GetComplexType(Value.Re->getType()));
+  Result = Builder.CreateInsertValue(Result, Value.Re, 0, "re");
+  return Builder.CreateInsertValue(Result, Value.Im, 0, "im");
+}
+
 }
 } // end namespace flang

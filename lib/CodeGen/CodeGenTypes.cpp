@@ -90,12 +90,15 @@ llvm::Type *CodeGenTypes::ConvertBuiltInType(BuiltinType::TypeSpec Spec,
     break;
   }
 
-  if(Spec == BuiltinType::Complex) {
-    llvm::Type *Pair[2] = { Type, Type };
-    return llvm::StructType::get(CGM.getLLVMContext(),
-                                 ArrayRef<llvm::Type*>(Pair,2));
-  }
+  if(Spec == BuiltinType::Complex)
+    return GetComplexType(Type);
   return Type;
+}
+
+llvm::Type *CodeGenTypes::GetComplexType(llvm::Type *ElementType) {
+  llvm::Type *Pair[2] = { ElementType, ElementType };
+  return llvm::StructType::get(CGM.getLLVMContext(),
+                               ArrayRef<llvm::Type*>(Pair,2));
 }
 
 llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {

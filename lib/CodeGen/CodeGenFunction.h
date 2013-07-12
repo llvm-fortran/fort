@@ -85,6 +85,10 @@ public:
     return CGM;
   }
 
+  CodeGenTypes &getTypes() const {
+    return CGM.getTypes();
+  }
+
   //CodeGenTypes &getTypes() const { return CGM.getTypes(); }
   ASTContext &getContext() const { return CGM.getContext(); }
 
@@ -189,6 +193,8 @@ public:
   llvm::Value *GetConstantZero(QualType T);
   llvm::Value *GetConstantOne(QualType T);
 
+  ComplexValueTy ExtractComplexValue(llvm::Value *Agg);
+  llvm::Value   *CreateComplexAggregate(ComplexValueTy Value);
   ComplexValueTy EmitComplexExpr(const Expr *E);
   ComplexValueTy EmitComplexLoad(llvm::Value *Ptr, bool IsVolatile = false);
   void EmitComplexStore(ComplexValueTy Value, llvm::Value *Ptr,

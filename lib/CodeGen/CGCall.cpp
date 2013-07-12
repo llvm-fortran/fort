@@ -52,8 +52,7 @@ RValueTy CodeGenFunction::EmitCall(CGFunctionInfo FuncInfo, ArrayRef<Expr *> Arg
   if(ReturnsNothing || ReturnType.isNull())
     return RValueTy();
   if(ReturnType->isComplexType())
-    return ComplexValueTy(Builder.CreateExtractValue(Result, 0, "re"),
-                          Builder.CreateExtractValue(Result, 1, "im"));
+    return ExtractComplexValue(Result);
   return Result;
 }
 

@@ -59,6 +59,7 @@ public:
   llvm::Type *ConvertTypeForMem(QualType T);
 
   CGFunctionInfo GetFunctionType(const FunctionDecl *FD);
+  llvm::Type *GetComplexType(llvm::Type *ElementType);
 
   llvm::Type *ConvertBuiltInType(const BuiltinType *T, const ExtQuals *Ext);
   llvm::Type *ConvertBuiltInType(BuiltinType::TypeSpec Spec,
