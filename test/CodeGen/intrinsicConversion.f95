@@ -27,5 +27,7 @@ PROGRAM intrinsicconv
   c = cmplx(i) ! CHECK: sitofp
   c = cmplx(r)
   c = cmplx(d) ! CHECK: fptrunc
+  c = cmplx(r, r)
+  c = cmplx(1.0, r)
 
 END

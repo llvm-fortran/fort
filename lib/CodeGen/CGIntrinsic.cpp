@@ -46,9 +46,15 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
       if(Args[0]->getType()->isComplexType())
         return EmitComplexToComplexConversion(EmitComplexExpr(Args[0]),
                                               E->getType());
-      else
-        return EmitScalarToComplexConversion(EmitScalarExpr(Args[0]),
-                                             E->getType()); // FIXME: 2 Args
+      else {
+        if(Args.size() == 2) {
+          auto ElementType = getContext().getComplexTypeElementType(E->getType());
+          return ComplexValueTy(EmitScalarToScalarConversion(EmitScalarExpr(Args[0]), ElementType),
+                                EmitScalarToScalarConversion(EmitScalarExpr(Args[1]), ElementType));
+        }
+        else return EmitScalarToComplexConversion(EmitScalarExpr(Args[0]),
+                                                  E->getType());
+      }
     } else {
       //CHAR or ICHAR
     }
