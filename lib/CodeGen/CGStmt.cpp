@@ -217,11 +217,7 @@ void CodeGenFunction::EmitDoWhileStmt(const DoWhileStmt *S) {
 }
 
 void CodeGenFunction::EmitStopStmt(const StopStmt *S) {
-  if(IsMainProgram) {
-    Builder.CreateBr(ReturnBlock);
-    return;
-  }
-  // FIXME: todo in functions;
+  EmitRuntimeCall(CGM.GetRuntimeFunction("stop", ArrayRef<llvm::Type*>()));
 }
 
 void CodeGenFunction::EmitReturnStmt(const ReturnStmt *S) {

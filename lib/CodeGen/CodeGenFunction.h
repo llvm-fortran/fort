@@ -215,7 +215,7 @@ public:
   RValueTy EmitIntrinsicCallComplex(intrinsic::FunctionKind Func, ComplexValueTy Value);
   llvm::Value* EmitIntrinsicCallScalarMath(intrinsic::FunctionKind Func,
                                            llvm::Value *A1, llvm::Value *A2 = nullptr);
-  ComplexValueTy EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
+  RValueTy EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
                                               ComplexValueTy Value);
 
   RValueTy EmitCall(const CallExpr *E);
@@ -225,6 +225,9 @@ public:
                     QualType ReturnType, bool ReturnsNothing = false);
   llvm::Value *EmitCallArgPtr(const Expr *E);
 
+  llvm::CallInst *EmitRuntimeCall(llvm::Value *Func);
+  llvm::CallInst *EmitRuntimeCall(llvm::Value *Func, llvm::ArrayRef<llvm::Value*> Args);
+  llvm::CallInst *EmitRuntimeCall2(llvm::Value *Func, llvm::Value *A1, llvm::Value *A2);
 
 };
 

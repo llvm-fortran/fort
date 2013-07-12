@@ -153,39 +153,39 @@ llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKin
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::cos, ValueType);
     break;
   case intrinsic::TAN:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("tan", ValueType),
-                                      ValueType, ValueType);
+    FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("tan", ValueType),
+                                ValueType, ValueType);
     break;
   case intrinsic::ASIN:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("asin", ValueType),
-                                      ValueType, ValueType);
+    FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("asin", ValueType),
+                                ValueType, ValueType);
     break;
   case intrinsic::ACOS:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("acos", ValueType),
-                                      ValueType, ValueType);
+    FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("acos", ValueType),
+                                ValueType, ValueType);
     break;
   case intrinsic::ATAN:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("atan", ValueType),
-                                      ValueType, ValueType);
+    FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("atan", ValueType),
+                                ValueType, ValueType);
     break;
   case intrinsic::ATAN2: {
     llvm::Type *Args[] = {ValueType, ValueType};
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("atan2", ValueType),
-                                      llvm::makeArrayRef(Args, 2),
-                                      ValueType);
+    FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("atan2", ValueType),
+                                llvm::makeArrayRef(Args, 2),
+                                ValueType);
     break;
   }
   case intrinsic::SINH:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("sinh", ValueType),
-                                      ValueType, ValueType);
+    FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("sinh", ValueType),
+                                ValueType, ValueType);
     break;
   case intrinsic::COSH:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("cosh", ValueType),
-                                      ValueType, ValueType);
+    FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("cosh", ValueType),
+                                ValueType, ValueType);
     break;
   case intrinsic::TANH:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("tanh", ValueType),
-                                      ValueType, ValueType);
+    FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("tanh", ValueType),
+                                ValueType, ValueType);
     break;
   default:
     llvm_unreachable("invalid scalar math intrinsic");
@@ -195,42 +195,50 @@ llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKin
   return Builder.CreateCall(FuncDecl, A1);
 }
 
-ComplexValueTy CodeGenFunction::EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
-                                                             ComplexValueTy Value) {
+RValueTy CodeGenFunction::EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
+                                                       ComplexValueTy Value) {
   llvm::Value *FuncDecl = nullptr;
   auto ElementType = Value.Re->getType();
   auto ValueType = getTypes().GetComplexType(ElementType);
+  llvm::Type *ElementTypes[] = { ElementType, ElementType };
+  auto ArgType = llvm::makeArrayRef(ElementTypes, 2);
 
   switch(Func) {
   case intrinsic::ABS:
     FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("cabs", ElementType),
-                                      ValueType, ValueType);
+                                      ArgType, ElementType);
     break;
   case intrinsic::SQRT:
     FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("csqrt", ElementType),
-                                      ValueType, ValueType);
+                                      ArgType, ValueType);
     break;
   case intrinsic::EXP:
     FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("cexp", ElementType),
-                                      ValueType, ValueType);
+                                      ArgType, ValueType);
     break;
   case intrinsic::LOG:
     FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("clog", ElementType),
-                                      ValueType, ValueType);
+                                      ArgType, ValueType);
     break;
   case intrinsic::SIN:
     FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("csin", ElementType),
-                                      ValueType, ValueType);
+                                      ArgType, ValueType);
     break;
   case intrinsic::COS:
     FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("ccos", ElementType),
-                                      ValueType, ValueType);
+                                      ArgType, ValueType);
+    break;
+  case intrinsic::TAN:
+    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("ctan", ElementType),
+                                      ArgType, ValueType);
     break;
   default:
     llvm_unreachable("invalid complex math intrinsic");
   }
-  return ExtractComplexValue(Builder.CreateCall(FuncDecl,
-                                                CreateComplexAggregate(Value)));
+  auto Result = EmitRuntimeCall2(FuncDecl, Value.Re, Value.Im);
+  if(Func == intrinsic::ABS)
+    return Result;
+  return ExtractComplexValue(Result);
 }
 
 }

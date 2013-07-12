@@ -5,11 +5,11 @@ PROGRAM testcomplexintrinsicmath
 
   c = (1.0, 0.0)
 
-  c = abs(c)   ! CHECK: call { float, float } @cabsf
-  c = sqrt(c)  ! CHECK: call { float, float } @csqrtf
-  c = sin(c)   ! CHECK: call { float, float } @csinf
-  c = cos(c)   ! CHECK: call { float, float } @ccosf
-  c = log(c)   ! CHECK: call { float, float } @clogf
-  c = exp(c)   ! CHECK: call { float, float } @cexpf
+  c = abs(c)   ! CHECK: call float @libflang_cabsf
+  c = sqrt(c)  ! CHECK: call { float, float } @libflang_csqrtf
+  c = sin(c)   ! CHECK: call { float, float } @libflang_csinf
+  c = cos(c)   ! CHECK: call { float, float } @libflang_ccosf
+  c = log(c)   ! CHECK: call { float, float } @libflang_clogf
+  c = exp(c)   ! CHECK: call { float, float } @libflang_cexpf
 
 END

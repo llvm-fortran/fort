@@ -142,6 +142,10 @@ public:
 
   void EmitFunctionDecl(const FunctionDecl *Function);
 
+  llvm::Value *GetCFunction(StringRef Name,
+                                  ArrayRef<llvm::Type*> ArgTypes,
+                                  llvm::Type *ReturnType = nullptr);
+
   llvm::Value *GetRuntimeFunction(StringRef Name,
                                   ArrayRef<llvm::Type*> ArgTypes,
                                   llvm::Type *ReturnType = nullptr);

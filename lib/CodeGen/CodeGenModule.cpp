@@ -20,6 +20,7 @@
 #include "flang/Frontend/CodeGenOptions.h"
 #include "llvm/ADT/APSInt.h"
 #include "llvm/ADT/Triple.h"
+#include "llvm/ADT/SmallString.h"
 #include "llvm/IR/CallingConv.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Intrinsics.h"
@@ -66,9 +67,9 @@ void CodeGenModule::Release() {
 }
 
 llvm::Value*
-CodeGenModule::GetRuntimeFunction(StringRef Name,
-                                  ArrayRef<llvm::Type*> ArgTypes,
-                                  llvm::Type *ReturnType) {
+CodeGenModule::GetCFunction(StringRef Name,
+                            ArrayRef<llvm::Type*> ArgTypes,
+                            llvm::Type *ReturnType) {
   if(auto Func = TheModule.getFunction(Name))
     return Func;
   auto FType = llvm::FunctionType::get(ReturnType? ReturnType :
@@ -78,6 +79,15 @@ CodeGenModule::GetRuntimeFunction(StringRef Name,
                                      Name, &TheModule);
   Func->setCallingConv(llvm::CallingConv::C);
   return Func;
+}
+
+llvm::Value *
+CodeGenModule::GetRuntimeFunction(StringRef Name,
+                                  ArrayRef<llvm::Type*> ArgTypes,
+                                  llvm::Type *ReturnType) {
+  llvm::SmallString<32> MangledName("libflang_");
+  MangledName.append(Name);
+  return GetCFunction(MangledName, ArgTypes, ReturnType);
 }
 
 void CodeGenModule::EmitTopLevelDecl(const Decl *Declaration) {
