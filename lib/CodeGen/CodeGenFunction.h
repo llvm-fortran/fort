@@ -182,6 +182,7 @@ public:
   RValueTy EmitRValue(const Expr *E);
   LValueTy EmitLValue(const Expr *E);
 
+  // scalar expressions.
   llvm::Value *EmitScalarExpr(const Expr *E);
   llvm::Value *EmitIntToInt32Conversion(llvm::Value *Value);
   llvm::Value *EmitScalarToScalarConversion(llvm::Value *Value, QualType Target);
@@ -193,8 +194,10 @@ public:
   llvm::Value *GetConstantZero(QualType T);
   llvm::Value *GetConstantOne(QualType T);
 
+  // complex expressions.
   ComplexValueTy ExtractComplexValue(llvm::Value *Agg);
   llvm::Value   *CreateComplexAggregate(ComplexValueTy Value);
+  llvm::Value   *CreateComplexVector(ComplexValueTy Value);
   ComplexValueTy EmitComplexExpr(const Expr *E);
   ComplexValueTy EmitComplexLoad(llvm::Value *Ptr, bool IsVolatile = false);
   void EmitComplexStore(ComplexValueTy Value, llvm::Value *Ptr,
@@ -209,6 +212,13 @@ public:
   llvm::Value *EmitComplexRelationalExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
                                          ComplexValueTy RHS);
 
+  // character expressesions
+  llvm::Value   *CreateCharacterAggregate(CharacterValueTy Value);
+  void EmitCharacterAssignment(const Expr *LHS, const Expr *RHS);
+  llvm::Value *GetCharacterTypeLength(QualType T);
+  CharacterValueTy EmitCharacterExpr(const Expr *E);
+
+  // intrinsic calls
   RValueTy EmitIntrinsicCall(const IntrinsicCallExpr *E);
   llvm::Value *EmitIntrinsicCallScalarTruncation(intrinsic::FunctionKind Func,
                                                  llvm::Value *Value,
@@ -219,11 +229,36 @@ public:
   RValueTy EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
                                               ComplexValueTy Value);
 
+  // calls
   RValueTy EmitCall(const CallExpr *E);
-  RValueTy EmitCall(const FunctionDecl *Function, ArrayRef<Expr *> Arguments,
+  RValueTy EmitCall(const FunctionDecl *Function,
+                    ArrayRef<Expr *> Arguments,
                     bool ReturnsNothing = false);
-  RValueTy EmitCall(CGFunctionInfo FuncInfo, ArrayRef<Expr *> Arguments,
-                    QualType ReturnType, bool ReturnsNothing = false);
+  RValueTy EmitCall(llvm::Value *Callee,
+                    const CGFunctionInfo *FuncInfo,
+                    ArrayRef<Expr *> Arguments,
+                    bool ReturnsNothing = false);
+  RValueTy EmitCall(CGFunction Func,
+                    ArrayRef<RValueTy> Arguments);
+  RValueTy EmitCall2(CGFunction Func,
+                     RValueTy A1, RValueTy A2) {
+    RValueTy Args[] = { A1, A2 };
+    return EmitCall(Func, llvm::makeArrayRef(Args, 2));
+  }
+  RValueTy EmitCall3(CGFunction Func,
+                     RValueTy A1, RValueTy A2, RValueTy A3) {
+    RValueTy Args[] = { A1, A2, A3 };
+    return EmitCall(Func, llvm::makeArrayRef(Args, 3));
+  }
+
+  void EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+                   const Expr *E, CGFunctionInfo::ArgInfo ArgInfo);
+  void EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+                   llvm::Value *Value, CGFunctionInfo::ArgInfo ArgInfo);
+  void EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+                   ComplexValueTy Value, CGFunctionInfo::ArgInfo ArgInfo);
+  void EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+                   CharacterValueTy Value, CGFunctionInfo::ArgInfo ArgInfo);
   llvm::Value *EmitCallArgPtr(const Expr *E);
 
   llvm::CallInst *EmitRuntimeCall(llvm::Value *Func);

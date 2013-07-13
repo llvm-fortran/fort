@@ -116,7 +116,11 @@ class CodeGenModule : public CodeGenTypeCache {
 
   CodeGenTypes Types;
 
-  llvm::DenseMap<const FunctionDecl*, CGFunctionInfo> Functions;
+  /// RuntimeFunctions - contains all the runtime functions
+  /// used in this module.
+  llvm::StringMap<CGFunction> RuntimeFunctions;
+
+  llvm::DenseMap<const FunctionDecl*, CGFunction> Functions;
 
 public:
   CodeGenModule(ASTContext &C, const CodeGenOptions &CodeGenOpts,
@@ -143,14 +147,34 @@ public:
   void EmitFunctionDecl(const FunctionDecl *Function);
 
   llvm::Value *GetCFunction(StringRef Name,
-                                  ArrayRef<llvm::Type*> ArgTypes,
-                                  llvm::Type *ReturnType = nullptr);
+                            ArrayRef<llvm::Type*> ArgTypes,
+                            llvm::Type *ReturnType = nullptr);
 
   llvm::Value *GetRuntimeFunction(StringRef Name,
                                   ArrayRef<llvm::Type*> ArgTypes,
                                   llvm::Type *ReturnType = nullptr);
 
-  CGFunctionInfo GetFunctionInfo(const FunctionDecl *Function);
+  CGFunction GetRuntimeFunction(StringRef Name,
+                                ArrayRef<QualType> ArgTypes,
+                                QualType ReturnType = QualType());
+
+  CGFunction GetRuntimeFunction2(StringRef Name,
+                                 QualType A1, QualType A2,
+                                 QualType ReturnType = QualType()) {
+    QualType ArgTypes[] = { A1, A2 };
+    return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 2),
+                              ReturnType);
+  }
+
+  CGFunction GetRuntimeFunction3(StringRef Name,
+                                 QualType A1, QualType A2, QualType A3,
+                                 QualType ReturnType = QualType()) {
+    QualType ArgTypes[] = { A1, A2, A3 };
+    return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 3),
+                              ReturnType);
+  }
+
+  CGFunction GetFunction(const FunctionDecl *Function);
 
 };
 

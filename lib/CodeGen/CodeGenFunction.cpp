@@ -116,7 +116,10 @@ void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
   if(D->isParameter() ||
      D->isArgument()) return;
 
-  auto Ptr = Builder.CreateAlloca(ConvertType(D->getType()), nullptr, D->getName());
+  auto Type = D->getType();
+  // FIXME: arrays.
+  auto Ptr = Builder.CreateAlloca(ConvertTypeForMem(Type),
+                                  nullptr, D->getName());
   LocalVariables.insert(std::make_pair(D, Ptr));
 }
 

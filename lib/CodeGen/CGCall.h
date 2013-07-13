@@ -10,6 +10,7 @@
 #ifndef FLANG_CODEGEN_CGCALL_H
 #define FLANG_CODEGEN_CGCALL_H
 
+#include "ABIInfo.h"
 #include "CGValue.h"
 #include "flang/AST/Type.h"
 #include "llvm/IR/Module.h"
@@ -28,18 +29,54 @@ struct CallArg {
 
 class CGFunctionInfo {
 public:
-  llvm::Function *Function;
+  struct ArgInfo {
+    ABIArgInfo ABIInfo;
+
+    ArgInfo() : ABIInfo(ABIArgInfo::Reference) {}
+  };
+private:
   llvm::FunctionType *Type;
   llvm::CallingConv::ID CC;
+  unsigned NumArgs;
+  ArgInfo *Args;
+  ABIRetInfo ReturnInfo;
 
-  llvm::Function *getFunction() const {
-    return Function;
-  }
+  CGFunctionInfo() {}
+public:
+  static CGFunctionInfo *Create(ASTContext &C,
+                                llvm::CallingConv::ID CC,
+                                llvm::FunctionType *Type,
+                                ArrayRef<ArgInfo> Arguments,
+                                ABIRetInfo RetInfo);
+
   llvm::FunctionType *getFunctionType() const {
     return Type;
   }
   llvm::CallingConv::ID getCallingConv() const {
     return CC;
+  }
+  ArrayRef<ArgInfo> getArguments() const {
+    return ArrayRef<ArgInfo>(Args, size_t(NumArgs));
+  }
+  ABIRetInfo getReturnInfo() const {
+    return ReturnInfo;
+  }
+};
+
+class CGFunction {
+  const CGFunctionInfo *FuncInfo;
+  llvm::Function *Function;
+public:
+  CGFunction() {}
+  CGFunction(const CGFunctionInfo *Info,
+             llvm::Function *Func)
+    : FuncInfo(Info), Function(Func) {}
+
+  const CGFunctionInfo *getInfo() const {
+    return FuncInfo;
+  }
+  llvm::Function *getFunction() const {
+    return Function;
   }
 };
 

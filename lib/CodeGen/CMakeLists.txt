@@ -14,4 +14,5 @@ add_flang_library(flangCodeGen
 
 target_link_libraries(flangCodeGen
   flangAST
+  LLVMCore
   )

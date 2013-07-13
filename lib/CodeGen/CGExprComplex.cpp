@@ -229,7 +229,14 @@ llvm::Value   *CodeGenFunction::CreateComplexAggregate(ComplexValueTy Value) {
   llvm::Value *Result = llvm::UndefValue::get(
                           getTypes().GetComplexType(Value.Re->getType()));
   Result = Builder.CreateInsertValue(Result, Value.Re, 0, "re");
-  return Builder.CreateInsertValue(Result, Value.Im, 0, "im");
+  return Builder.CreateInsertValue(Result, Value.Im, 1, "im");
+}
+
+llvm::Value   *CodeGenFunction::CreateComplexVector(ComplexValueTy Value) {
+  llvm::Value *Result = llvm::UndefValue::get(
+                          getTypes().GetComplexTypeAsVector(Value.Re->getType()));
+  Result = Builder.CreateInsertElement(Result, Value.Re, Builder.getInt32(0), "re");
+  return Builder.CreateInsertElement(Result, Value.Im, Builder.getInt32(1), "im");
 }
 
 }

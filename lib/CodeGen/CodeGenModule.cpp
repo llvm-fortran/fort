@@ -90,6 +90,45 @@ CodeGenModule::GetRuntimeFunction(StringRef Name,
   return GetCFunction(MangledName, ArgTypes, ReturnType);
 }
 
+CGFunction
+CodeGenModule::GetRuntimeFunction(StringRef Name,
+                                  ArrayRef<QualType> ArgTypes,
+                                  QualType ReturnType) {
+  llvm::SmallString<32> MangledName("libflang_");
+  MangledName.append(Name);
+
+  auto SearchResult = RuntimeFunctions.find(MangledName);
+  if(SearchResult != RuntimeFunctions.end())
+    return SearchResult->second;
+
+  auto FunctionInfo = Types.GetRuntimeFunctionType(getContext(),
+                                                   ArgTypes,
+                                                   ReturnType);
+  auto Func = llvm::Function::Create(FunctionInfo->getFunctionType(),
+                                     llvm::GlobalValue::ExternalLinkage,
+                                     llvm::Twine(MangledName), &TheModule);
+  Func->setCallingConv(FunctionInfo->getCallingConv());
+  auto Result = CGFunction(FunctionInfo, Func);
+  RuntimeFunctions[MangledName] = Result;
+  return Result;
+}
+
+CGFunction CodeGenModule::GetFunction(const FunctionDecl *Function) {
+  auto SearchResult = Functions.find(Function);
+  if(SearchResult != Functions.end())
+    return SearchResult->second;
+
+  auto FunctionInfo = Types.GetFunctionType(getContext(), Function);
+
+  auto Func = llvm::Function::Create(FunctionInfo->getFunctionType(),
+                                     llvm::GlobalValue::ExternalLinkage,
+                                     Function->getName(), &TheModule);
+  Func->setCallingConv(FunctionInfo->getCallingConv());
+  auto Result = CGFunction(FunctionInfo, Func);
+  Functions.insert(std::make_pair(Function, Result));
+  return Result;
+}
+
 void CodeGenModule::EmitTopLevelDecl(const Decl *Declaration) {
   class Visitor : public ConstDeclVisitor<Visitor> {
   public:
@@ -119,7 +158,7 @@ void CodeGenModule::EmitMainProgramDecl(const MainProgramDecl *Program) {
 }
 
 void CodeGenModule::EmitFunctionDecl(const FunctionDecl *Function) {
-  auto FuncInfo = GetFunctionInfo(Function);
+  auto FuncInfo = GetFunction(Function);
 
   CodeGenFunction CGF(*this, FuncInfo.getFunction());
   CGF.EmitFunctionArguments(Function);
@@ -128,19 +167,6 @@ void CodeGenModule::EmitFunctionDecl(const FunctionDecl *Function) {
   CGF.EmitFunctionEpilogue(Function);
 }
 
-CGFunctionInfo CodeGenModule::GetFunctionInfo(const FunctionDecl *Function) {
-  auto SearchResult = Functions.find(Function);
-  if(SearchResult != Functions.end())
-    return SearchResult->second;
-
-  auto FunctionInfo = Types.GetFunctionType(Function);
-  FunctionInfo.Function = llvm::Function::Create(FunctionInfo.getFunctionType(),
-                                                 llvm::GlobalValue::ExternalLinkage,
-                                                 Function->getName(), &TheModule);
-  FunctionInfo.Function->setCallingConv(FunctionInfo.getCallingConv());
-  Functions.insert(std::make_pair(Function, FunctionInfo));
-  return FunctionInfo;
-}
 
 
 }

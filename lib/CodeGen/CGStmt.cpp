@@ -241,7 +241,8 @@ void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
   } else if(RHSType->isComplexType()) {
     auto Value = EmitComplexExpr(RHS);
     EmitComplexStore(Value, Destination.getPointer());
-  }
+  } else if(RHSType->isCharacterType())
+    EmitCharacterAssignment(S->getLHS(), S->getRHS());
 }
 
 void CodeGenFunction::EmitAssignment(LValueTy LHS, RValueTy RHS) {

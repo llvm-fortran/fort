@@ -58,15 +58,28 @@ public:
   /// memory representation is usually i8 or i32, depending on the target.
   llvm::Type *ConvertTypeForMem(QualType T);
 
-  CGFunctionInfo GetFunctionType(const FunctionDecl *FD);
-  llvm::Type *GetComplexType(llvm::Type *ElementType);
+  const CGFunctionInfo *GetFunctionType(ASTContext &C,
+                                        const FunctionDecl *FD);
 
+  const CGFunctionInfo *GetRuntimeFunctionType(ASTContext &C,
+                                               ArrayRef<QualType> Args,
+                                               QualType ReturnType);
+
+  llvm::Type *GetComplexType(llvm::Type *ElementType);
+  llvm::Type *GetComplexTypeAsVector(llvm::Type *ElementType);
+
+  llvm::Type *GetCharacterType(llvm::Type *PtrType);
+
+  llvm::Type *ConvertBuiltInTypeForMem(const BuiltinType *T,
+                                       const ExtQuals *Ext);
   llvm::Type *ConvertBuiltInType(const BuiltinType *T, const ExtQuals *Ext);
   llvm::Type *ConvertBuiltInType(BuiltinType::TypeSpec Spec,
                                  BuiltinType::TypeKind Kind);
 
-  llvm::Type *ConvertReturnType(QualType T);
+  llvm::Type *ConvertReturnType(QualType T, ABIRetInfo &RetInfo);
   llvm::Type *ConvertArgumentType(QualType T);
+
+  uint64_t GetCharacterTypeLength(QualType T);
 
 };
 

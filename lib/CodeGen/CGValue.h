@@ -54,13 +54,19 @@ public:
 
 class LValueTy {
 public:
-  llvm::Value *Ptr;
+  llvm::Value *Ptr, *Len;
 
   LValueTy() {}
   LValueTy(llvm::Value *Dest)
     : Ptr(Dest) {}
+  LValueTy(llvm::Value *Dest, llvm::Value *Length)
+    : Ptr(Dest), Len(Length) {}
+
   llvm::Value *getPointer() const {
     return Ptr;
+  }
+  llvm::Value *getLength() const {
+    return Len;
   }
 };
 

@@ -29,6 +29,11 @@ CodeGenTypes::CodeGenTypes(CodeGenModule &cgm)
 
 CodeGenTypes::~CodeGenTypes() { }
 
+uint64_t CodeGenTypes::GetCharacterTypeLength(QualType T) {
+  auto Ext = T.getExtQualsPtrOnNull();
+  return 1; //FIXME
+}
+
 llvm::Type *CodeGenTypes::ConvertType(QualType T) {
   auto Ext = T.getExtQualsPtrOnNull();
   auto TPtr = T.getTypePtr();
@@ -36,6 +41,13 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     return ConvertBuiltInType(BTy, Ext);
 
   return nullptr;
+}
+
+llvm::Type *CodeGenTypes::ConvertBuiltInTypeForMem(const BuiltinType *T,
+                                                   const ExtQuals *Ext) {
+  if(T->getTypeSpec() != BuiltinType::Character)
+    return ConvertBuiltInType(T, Ext);
+  return llvm::ArrayType::get(CGM.Int8Ty, 1);
 }
 
 llvm::Type *CodeGenTypes::ConvertBuiltInType(const BuiltinType *T,
@@ -54,6 +66,7 @@ llvm::Type *CodeGenTypes::ConvertBuiltInType(const BuiltinType *T,
 
   case BuiltinType::Logical:
     return llvm::IntegerType::get(CGM.getLLVMContext(), 1);
+
   case BuiltinType::Character:
     llvm::Type *Pair[2] = { CGM.Int8PtrTy, CGM.SizeTy };
     return llvm::StructType::get(CGM.getLLVMContext(),
@@ -101,11 +114,34 @@ llvm::Type *CodeGenTypes::GetComplexType(llvm::Type *ElementType) {
                                ArrayRef<llvm::Type*>(Pair,2));
 }
 
-llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {
-    return ConvertType(T);
+llvm::Type *CodeGenTypes::GetCharacterType(llvm::Type *PtrType) {
+  llvm::Type *Pair[2] = { PtrType, CGM.SizeTy };
+  return llvm::StructType::get(CGM.getLLVMContext(),
+                               ArrayRef<llvm::Type*>(Pair,2));
 }
 
-llvm::Type *CodeGenTypes::ConvertReturnType(QualType T) {
+llvm::Type *CodeGenTypes::GetComplexTypeAsVector(llvm::Type *ElementType) {
+  return llvm::VectorType::get(ElementType, 2);
+}
+
+llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {
+  auto Ext = T.getExtQualsPtrOnNull();
+  auto TPtr = T.getTypePtr();
+  if(const BuiltinType *BTy = dyn_cast<BuiltinType>(TPtr))
+    return ConvertBuiltInTypeForMem(BTy, Ext);
+
+  return nullptr;
+}
+
+llvm::Type *CodeGenTypes::ConvertReturnType(QualType T, ABIRetInfo &RetInfo) {
+  if(T->isCharacterType()) {
+    RetInfo = ABIRetInfo(ABIRetInfo::CharacterValueAsArg);
+    return CGM.VoidTy;
+  }
+  else if(T->isComplexType())
+    RetInfo = ABIRetInfo(ABIRetInfo::ComplexValue);
+  else
+    RetInfo = ABIRetInfo(ABIRetInfo::ScalarValue);
   return ConvertType(T);
 }
 
@@ -113,17 +149,67 @@ llvm::Type *CodeGenTypes::ConvertArgumentType(QualType T) {
   return llvm::PointerType::get(ConvertType(T), 0);
 }
 
-CGFunctionInfo CodeGenTypes::GetFunctionType(const FunctionDecl *FD) {
-  auto ReturnType = FD->getType().isNull() ? CGM.VoidTy :
-                                             ConvertReturnType(FD->getType());
-  auto Args = FD->getArguments();
-  SmallVector<llvm::Type*,8> ArgTypes(Args.size());
-  for(size_t I = 0; I < Args.size(); ++I)
-    ArgTypes[I] = ConvertArgumentType(Args[I]->getType());
+const CGFunctionInfo *CodeGenTypes::GetFunctionType(ASTContext &C,
+                                                    const FunctionDecl *FD) {
+  ABIRetInfo ReturnInfo;
+  llvm::Type *ReturnType;
+  if(FD->getType().isNull())
+    ReturnType = CGM.VoidTy;
+  else
+    ReturnType = ConvertReturnType(FD->getType(), ReturnInfo);
 
-  CGFunctionInfo Result;
-  Result.Type = llvm::FunctionType::get(ReturnType, ArgTypes, false);
-  Result.CC = llvm::CallingConv::C;
+  auto Args = FD->getArguments();
+  SmallVector<CGFunctionInfo::ArgInfo, 8> ArgInfo(Args.size());
+  SmallVector<llvm::Type*, 8> ArgTypes(Args.size());
+  for(size_t I = 0; I < Args.size(); ++I) {
+    auto ArgType = Args[I]->getType();
+    //FIXME: arrays
+    ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Reference);
+    ArgTypes[I] = ConvertArgumentType(ArgType);
+  }
+  // FIXME: return character using argument
+
+  // FIXME: fold same infos into one?
+  auto Result = CGFunctionInfo::Create(C, llvm::CallingConv::C,
+                                       llvm::FunctionType::get(ReturnType, ArgTypes, false),
+                                       ArgInfo,
+                                       ReturnInfo);
+  return Result;
+}
+
+const CGFunctionInfo *
+CodeGenTypes::GetRuntimeFunctionType(ASTContext &C,
+                                     ArrayRef<QualType> Args,
+                                     QualType ReturnType) {
+  ABIRetInfo ReturnInfo;
+  llvm::Type *RetType;
+  if(ReturnType.isNull())
+    RetType = CGM.VoidTy;
+  else
+    RetType = ConvertReturnType(ReturnType, ReturnInfo);
+
+  SmallVector<CGFunctionInfo::ArgInfo, 8> ArgInfo(Args.size());
+  SmallVector<llvm::Type*, 8> ArgTypes;
+  for(size_t I = 0; I < Args.size(); ++I) {
+    if(Args[I]->isCharacterType()) {
+      ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Expand);
+      ArgTypes.push_back(CGM.Int8PtrTy); //FIXME: character kinds
+      ArgTypes.push_back(CGM.SizeTy);
+    } else if(Args[I]->isComplexType()) {
+      ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Expand);
+      auto ElementType = ConvertType(C.getComplexTypeElementType(Args[I]));
+      ArgTypes.push_back(ElementType);
+      ArgTypes.push_back(ElementType);
+    } else {
+      ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Value);
+      ArgTypes.push_back(ConvertType(Args[I]));
+    }
+  }
+
+  auto Result = CGFunctionInfo::Create(C, llvm::CallingConv::C,
+                                       llvm::FunctionType::get(RetType, ArgTypes, false),
+                                       ArgInfo,
+                                       ReturnInfo);
   return Result;
 }
 
