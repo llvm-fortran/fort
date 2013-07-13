@@ -164,8 +164,13 @@ const CGFunctionInfo *CodeGenTypes::GetFunctionType(ASTContext &C,
   for(size_t I = 0; I < Args.size(); ++I) {
     auto ArgType = Args[I]->getType();
     //FIXME: arrays
-    ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Reference);
-    ArgTypes[I] = ConvertArgumentType(ArgType);
+    if(ArgType->isCharacterType()) {
+      ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Value);
+      ArgTypes[I] = ConvertType(ArgType);
+    } else {
+      ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Reference);
+      ArgTypes[I] = ConvertArgumentType(ArgType);
+    }
   }
   // FIXME: return character using argument
 

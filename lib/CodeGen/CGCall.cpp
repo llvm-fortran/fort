@@ -104,6 +104,10 @@ RValueTy CodeGenFunction::EmitCall(CGFunction Func,
 
 void CodeGenFunction::EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
                                   const Expr *E, CGFunctionInfo::ArgInfo ArgInfo) {
+  if(E->getType()->isCharacterType()) {
+    EmitCallArg(Args, EmitCharacterExpr(E), ArgInfo);
+    return;
+  }
   switch(ArgInfo.ABIInfo.getKind()) {
   case ABIArgInfo::Value:
     Args.push_back(EmitScalarExpr(E));

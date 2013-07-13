@@ -60,6 +60,8 @@ CharacterValueTy CharacterExprEmitter::VisitCharacterConstantExpr(const Characte
 
 CharacterValueTy CharacterExprEmitter::VisitVarExpr(const VarExpr *E) {
   auto VD = E->getVarDecl();
+  if(VD->isArgument())
+    return CGF.ExtractCharacterValue(CGF.GetVarPtr(VD));
   return CharacterValueTy(Builder.CreateConstInBoundsGEP2_32(CGF.GetVarPtr(VD), 0, 0),
                           CGF.GetCharacterTypeLength(VD->getType()));
 }
@@ -124,6 +126,11 @@ llvm::Value *CodeGenFunction::GetCharacterTypeLength(QualType T) {
 CharacterValueTy CodeGenFunction::EmitCharacterExpr(const Expr *E) {
   CharacterExprEmitter EV(*this);
   return EV.EmitExpr(E);
+}
+
+CharacterValueTy CodeGenFunction::ExtractCharacterValue(llvm::Value *Agg) {
+  return CharacterValueTy(Builder.CreateExtractValue(Agg, 0, "re"),
+                          Builder.CreateExtractValue(Agg, 1, "im"));
 }
 
 llvm::Value *CodeGenFunction::CreateCharacterAggregate(CharacterValueTy Value) {

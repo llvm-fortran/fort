@@ -216,6 +216,7 @@ public:
                                          ComplexValueTy RHS);
 
   // character expressesions
+  CharacterValueTy ExtractCharacterValue(llvm::Value *Agg);
   llvm::Value   *CreateCharacterAggregate(CharacterValueTy Value);
   void EmitCharacterAssignment(const Expr *LHS, const Expr *RHS);
   llvm::Value *GetCharacterTypeLength(QualType T);

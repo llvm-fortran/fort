@@ -38,8 +38,8 @@ RValueTy CodeGenFunction::EmitRValue(const Expr *E) {
   auto EType = E->getType();
   if(EType->isComplexType())
     return EmitComplexExpr(E);
-  //else if(EType->isCharacterType())
-  //FIXME  return EmitCharacterExpr(E);
+  else if(EType->isCharacterType())
+    return EmitCharacterExpr(E);
   else
     return EmitScalarExpr(E);
 }

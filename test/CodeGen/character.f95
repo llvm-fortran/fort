@@ -1,4 +1,10 @@
 ! RUN: %flang %s 2>&1 | %file_check %s
+
+SUBROUTINE FOO(STR) ! CHECK: define void @FOO({ i8*, i64 }
+  CHARACTER*(*) STR
+  STR = 'AGAIN'
+END
+
 PROGRAM test
   CHARACTER STR ! CHECK: alloca [1 x i8]
   LOGICAL L
@@ -14,5 +20,7 @@ PROGRAM test
 
   L = STR .NE. STR      ! CHECK: call i32 @libflang_compare_char1
   CONTINUE              ! CHECK: icmp ne i32
+
+  CALL FOO(STR)
 
 END PROGRAM
