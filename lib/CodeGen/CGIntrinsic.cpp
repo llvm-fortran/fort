@@ -195,6 +195,29 @@ llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKin
   return Builder.CreateCall(FuncDecl, A1);
 }
 
+// Lets pretend ** is an intrinsic
+ComplexValueTy CodeGenFunction::EmitComplexPowi(ComplexValueTy LHS, llvm::Value *RHS) {
+  auto ElementType = LHS.Re->getType();
+  llvm::Type *ArgTypes[] = { ElementType, ElementType, CGM.Int32Ty };
+  auto Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("cpowi", ElementType),
+                                     llvm::makeArrayRef(ArgTypes, 3),
+                                     getTypes().GetComplexType(ElementType));
+  llvm::Value *Args[] = { LHS.Re, LHS.Im, RHS };
+  return ExtractComplexValue(
+           EmitRuntimeCall(Func, llvm::makeArrayRef(Args, 3)));
+}
+
+ComplexValueTy CodeGenFunction::EmitComplexPow(ComplexValueTy LHS, ComplexValueTy RHS) {
+  auto ElementType = LHS.Re->getType();
+  llvm::Type *ElementTypeX4[] = { ElementType, ElementType, ElementType, ElementType };
+  auto Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("cpow", ElementType),
+                                     llvm::makeArrayRef(ElementTypeX4, 4),
+                                     getTypes().GetComplexType(ElementType));
+  llvm::Value *Args[] = { LHS.Re, LHS.Im, RHS.Re, RHS.Im };
+  return ExtractComplexValue(
+           EmitRuntimeCall(Func, llvm::makeArrayRef(Args, 4)));
+}
+
 RValueTy CodeGenFunction::EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
                                                        ComplexValueTy Value) {
   llvm::Value *FuncDecl = nullptr;

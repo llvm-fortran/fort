@@ -148,19 +148,6 @@ ComplexValueTy CodeGenFunction::EmitComplexBinaryExpr(BinaryExpr::Operator Op, C
   return Result;
 }
 
-ComplexValueTy CodeGenFunction::EmitComplexToPolarFormConversion(ComplexValueTy Value) {
-  // r = sqrt(re**2 + im**2)
-  auto ReSquared = Builder.CreateFMul(Value.Re,Value.Re);
-  auto ImSquared = Builder.CreateFMul(Value.Im,Value.Im);
-  auto SqrtFunc = GetIntrinsicFunction(llvm::Intrinsic::sqrt, ReSquared->getType());
-  auto Length = Builder.CreateCall(SqrtFunc, Builder.CreateFAdd(ReSquared, ImSquared));
-  // theta = arctan2(re/r,im/r)
-  // FIXME: call atan2
-  Builder.CreateFDiv(Value.Re, Length);
-  Builder.CreateFDiv(Value.Im, Length);
-  return ComplexValueTy(Length, Length);
-}
-
 ComplexValueTy ComplexExprEmitter::VisitBinaryExprPow(const BinaryExpr *E) {
   auto LHS = EmitExpr(E->getLHS());
   if(E->getRHS()->getType()->isIntegerType()) {
@@ -179,22 +166,9 @@ ComplexValueTy ComplexExprEmitter::VisitBinaryExprPow(const BinaryExpr *E) {
       else if(ConstInt->equalsInt(2))
         return CGF.EmitComplexBinaryExpr(BinaryExpr::Multiply, LHS, LHS);
     }
-
-    LHS = CGF.EmitComplexToPolarFormConversion(LHS);
-    RHS = CGF.EmitIntToInt32Conversion(RHS);
-    auto PowiFunc = CGF.GetIntrinsicFunction(llvm::Intrinsic::powi, LHS.getPolarLength()->getType(),
-                                             RHS->getType());
-    auto LengthToPower = Builder.CreateCall2(PowiFunc, LHS.getPolarLength(), RHS);
-    auto Theta = LHS.getPolarTheta();
-    auto SinFunc = CGF.GetIntrinsicFunction(llvm::Intrinsic::sin, Theta->getType());
-    auto CosFunc = CGF.GetIntrinsicFunction(llvm::Intrinsic::cos, Theta->getType());
-
-    auto Re = Builder.CreateFMul(LengthToPower, Builder.CreateCall(CosFunc, Theta));
-    auto Im = Builder.CreateFMul(LengthToPower, Builder.CreateCall(SinFunc, Theta));
-    return ComplexValueTy(Re, Im);
+    return CGF.EmitComplexPowi(LHS, RHS);
   }
-
-  return ComplexValueTy();
+  return CGF.EmitComplexPow(LHS, EmitExpr(E->getRHS()));
 }
 
 ComplexValueTy CodeGenFunction::EmitComplexToComplexConversion(ComplexValueTy Value, QualType Target) {

@@ -201,12 +201,13 @@ public:
                         bool IsVolatile = false);
   ComplexValueTy EmitComplexBinaryExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
                                        ComplexValueTy RHS);
+  ComplexValueTy EmitComplexPowi(ComplexValueTy LHS, llvm::Value *RHS);
+  ComplexValueTy EmitComplexPow(ComplexValueTy LHS, ComplexValueTy RHS);
   ComplexValueTy EmitComplexToComplexConversion(ComplexValueTy Value, QualType Target);
   ComplexValueTy EmitScalarToComplexConversion(llvm::Value *Value, QualType Target);
   llvm::Value *EmitComplexToScalarConversion(ComplexValueTy Value, QualType Target);
   llvm::Value *EmitComplexRelationalExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
                                          ComplexValueTy RHS);
-  ComplexValueTy EmitComplexToPolarFormConversion(ComplexValueTy Value);
 
   RValueTy EmitIntrinsicCall(const IntrinsicCallExpr *E);
   llvm::Value *EmitIntrinsicCallScalarTruncation(intrinsic::FunctionKind Func,
