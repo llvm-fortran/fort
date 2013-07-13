@@ -112,6 +112,10 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
     if(E->getLHS()->getType()->isComplexType())
       return CGF.EmitComplexRelationalExpr(Op, CGF.EmitComplexExpr(E->getLHS()),
                                            CGF.EmitComplexExpr(E->getRHS()));
+    // Character comparison
+    else if(E->getLHS()->getType()->isCharacterType())
+      return CGF.EmitCharacterRelationalExpr(Op, CGF.EmitCharacterExpr(E->getLHS()),
+                                             CGF.EmitCharacterExpr(E->getRHS()));
   }
 
   auto LHS = EmitExpr(E->getLHS());
@@ -205,6 +209,14 @@ llvm::Value *CodeGenFunction::EmitComplexRelationalExpr(BinaryExpr::Operator Op,
     return Builder.CreateAnd(CmpRe, CmpIm);
   else
     return Builder.CreateOr(CmpRe, CmpIm);
+}
+
+llvm::Value *
+CodeGenFunction::ConvertComparisonResultToRelationalOp(BinaryExpr::Operator Op,
+                                                       llvm::Value *Result) {
+  return Builder.CreateICmp(ConvertRelationalOpToPredicate(Op, true),
+                            Result,
+                            Builder.getInt32(0));
 }
 
 llvm::Value *ScalarExprEmitter::VisitBinaryExprAnd(const BinaryExpr *E) {
@@ -301,6 +313,13 @@ llvm::Value *ScalarExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *
 llvm::Value *CodeGenFunction::EmitScalarExpr(const Expr *E) {
   ScalarExprEmitter EV(*this);
   return EV.Visit(E);
+}
+
+llvm::Value *CodeGenFunction::EmitSizeIntExpr(const Expr *E) {
+  auto Value = EmitScalarExpr(E);
+  if(Value->getType() != CGM.SizeTy)
+    return Builder.CreateZExtOrTrunc(Value, CGM.SizeTy);
+  return Value;
 }
 
 llvm::Value *CodeGenFunction::EmitLogicalScalarExpr(const Expr *E) {

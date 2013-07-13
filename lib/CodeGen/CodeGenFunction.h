@@ -183,6 +183,7 @@ public:
   LValueTy EmitLValue(const Expr *E);
 
   // scalar expressions.
+  llvm::Value *EmitSizeIntExpr(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
   llvm::Value *EmitIntToInt32Conversion(llvm::Value *Value);
   llvm::Value *EmitScalarToScalarConversion(llvm::Value *Value, QualType Target);
@@ -190,6 +191,8 @@ public:
   llvm::Value *EmitIntegerConstantExpr(const IntegerConstantExpr *E);
   llvm::Value *EmitScalarRelationalExpr(BinaryExpr::Operator Op, llvm::Value *LHS,
                                         llvm::Value *RHS);
+  llvm::Value *ConvertComparisonResultToRelationalOp(BinaryExpr::Operator Op,
+                                                     llvm::Value *Result);
 
   llvm::Value *GetConstantZero(QualType T);
   llvm::Value *GetConstantOne(QualType T);
@@ -217,6 +220,8 @@ public:
   void EmitCharacterAssignment(const Expr *LHS, const Expr *RHS);
   llvm::Value *GetCharacterTypeLength(QualType T);
   CharacterValueTy EmitCharacterExpr(const Expr *E);
+  llvm::Value *EmitCharacterRelationalExpr(BinaryExpr::Operator Op, CharacterValueTy LHS,
+                                           CharacterValueTy RHS);
 
   // intrinsic calls
   RValueTy EmitIntrinsicCall(const IntrinsicCallExpr *E);

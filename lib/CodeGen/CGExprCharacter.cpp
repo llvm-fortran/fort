@@ -39,6 +39,7 @@ public:
   CharacterValueTy VisitCharacterConstantExpr(const CharacterConstantExpr *E);
   CharacterValueTy VisitVarExpr(const VarExpr *E);
   CharacterValueTy VisitReturnedValueExpr(const ReturnedValueExpr *E);
+  CharacterValueTy VisitBinaryExprConcat(const BinaryExpr *E);
   CharacterValueTy VisitSubstringExpr(const SubstringExpr *E);
 };
 
@@ -64,19 +65,46 @@ CharacterValueTy CharacterExprEmitter::VisitVarExpr(const VarExpr *E) {
 }
 
 CharacterValueTy CharacterExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
-  return CharacterValueTy(); //FIXME
+  //FIXME
+  return CharacterValueTy();
+}
+
+CharacterValueTy CharacterExprEmitter::VisitBinaryExprConcat(const BinaryExpr *E) {
+  // FIXME
+  return CharacterValueTy(Builder.CreateGlobalStringPtr("?"),
+                          llvm::ConstantInt::get(CGF.getModule().SizeTy,
+                                                 1));
 }
 
 CharacterValueTy CharacterExprEmitter::VisitSubstringExpr(const SubstringExpr *E) {
   auto Str = EmitExpr(E->getTarget());
-  return Str;//FIXME
+  if(E->getStartingPoint()) {
+    auto Start = Builder.CreateSub(CGF.EmitSizeIntExpr(E->getStartingPoint()),
+                                   llvm::ConstantInt::get(CGF.getModule().SizeTy,
+                                                          1));
+    Str.Ptr = Builder.CreateGEP(Str.Ptr, Start);
+    if(E->getEndPoint()) {
+      auto End = CGF.EmitSizeIntExpr(E->getEndPoint());
+      Str.Len = Builder.CreateSub(End, Start);
+    } else
+      Str.Len = Builder.CreateSub(Str.Len, Start);
+  }
+  else if(E->getEndPoint())
+    Str.Len = CGF.EmitSizeIntExpr(E->getEndPoint());
+  return Str;
 }
 
 void CodeGenFunction::EmitCharacterAssignment(const Expr *LHS, const Expr *RHS) {
   auto CharType = getContext().CharacterTy;
   auto Dest = EmitCharacterExpr(LHS);
-  if(isa<BinaryExpr>(RHS)) {
-    // '//'
+  if(auto BinExpr = dyn_cast<BinaryExpr>(RHS)) {
+    // a = b // c
+    auto Src1 = EmitCharacterExpr(BinExpr->getLHS());
+    auto Src2 = EmitCharacterExpr(BinExpr->getRHS());
+    auto Func = CGM.GetRuntimeFunction3(MANGLE_CHAR_FUNCTION("concat", CharType),
+                                        CharType, CharType, CharType);
+    EmitCall3(Func, Dest, Src1, Src2);
+    return;
   }
   else if(isa<CallExpr>(RHS)) {
     // can store the result directly in LHS
@@ -105,6 +133,14 @@ llvm::Value *CodeGenFunction::CreateCharacterAggregate(CharacterValueTy Value) {
   return Builder.CreateInsertValue(Result, Value.Len, 1, "len");
 }
 
+llvm::Value *CodeGenFunction::EmitCharacterRelationalExpr(BinaryExpr::Operator Op, CharacterValueTy LHS,
+                                                          CharacterValueTy RHS) {
+  auto CharType = getContext().CharacterTy;
+  auto Func = CGM.GetRuntimeFunction2(MANGLE_CHAR_FUNCTION("compare", CharType),
+                                      CharType, CharType, getContext().IntegerTy); //FIXME: int32
+  auto Result = EmitCall2(Func, LHS, RHS).asScalar();
+  return ConvertComparisonResultToRelationalOp(Op, Result);
+}
 
 }
 } // end namespace flang
