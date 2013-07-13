@@ -18,12 +18,16 @@
 namespace flang   {
 namespace CodeGen {
 
-struct CallArg {
-  RValueTy Value;
-  QualType Type;
+class CallArgList {
+public:
+  SmallVector<llvm::Value*, 16> Values;
+  RValueTy ReturnValue;
 
-  CallArg(RValueTy value, QualType type)
-    : Value(value), Type(type) {
+  void addReturnValueArg(RValueTy Value) {
+    ReturnValue = Value;
+  }
+  ArrayRef<llvm::Value*> getValues() {
+    return Values;
   }
 };
 

@@ -225,7 +225,8 @@ void CodeGenFunction::EmitReturnStmt(const ReturnStmt *S) {
 }
 
 void CodeGenFunction::EmitCallStmt(const CallStmt *S) {
-  EmitCall(S->getFunction(), S->getArguments(), true);
+  CallArgList ArgList;
+  EmitCall(S->getFunction(), ArgList, S->getArguments(), true);
 }
 
 void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {

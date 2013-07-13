@@ -67,8 +67,7 @@ CharacterValueTy CharacterExprEmitter::VisitVarExpr(const VarExpr *E) {
 }
 
 CharacterValueTy CharacterExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
-  //FIXME
-  return CharacterValueTy();
+  return CGF.ExtractCharacterValue(CGF.GetRetVarPtr());
 }
 
 CharacterValueTy CharacterExprEmitter::VisitBinaryExprConcat(const BinaryExpr *E) {
@@ -108,8 +107,11 @@ void CodeGenFunction::EmitCharacterAssignment(const Expr *LHS, const Expr *RHS) 
     EmitCall3(Func, Dest, Src1, Src2);
     return;
   }
-  else if(isa<CallExpr>(RHS)) {
-    // can store the result directly in LHS
+  else if(auto Call = dyn_cast<CallExpr>(RHS)) {
+    CallArgList ArgList;
+    ArgList.addReturnValueArg(Dest);
+    EmitCall(Call->getFunction(), ArgList, Call->getArguments(), true);
+    return;
   }
   auto Src = EmitCharacterExpr(RHS);
 

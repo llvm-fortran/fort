@@ -5,6 +5,12 @@ SUBROUTINE FOO(STR) ! CHECK: define void @FOO({ i8*, i64 }
   STR = 'AGAIN'
 END
 
+CHARACTER*10 FUNCTION BAR(I) ! CHECK: define void @BAR
+  INTEGER I
+  BAR = 'STRING'
+  BAR = BAR
+END
+
 PROGRAM test
   CHARACTER STR ! CHECK: alloca [1 x i8]
   LOGICAL L
@@ -22,5 +28,7 @@ PROGRAM test
   CONTINUE              ! CHECK: icmp ne i32
 
   CALL FOO(STR)
+
+  STR = BAR(2)
 
 END PROGRAM

@@ -148,9 +148,11 @@ public:
   void EmitFunctionDecls(const DeclContext *DC);
   void EmitMainProgramBody(const DeclContext *DC, const Stmt *S);
   void EmitFunctionArguments(const FunctionDecl *Func);
-  void EmitFunctionPrologue(const FunctionDecl *Func);
+  void EmitFunctionPrologue(const FunctionDecl *Func,
+                            const CGFunctionInfo *Info);
   void EmitFunctionBody(const DeclContext *DC, const Stmt *S);
-  void EmitFunctionEpilogue(const FunctionDecl *Func);
+  void EmitFunctionEpilogue(const FunctionDecl *Func,
+                            const CGFunctionInfo *Info);
 
   void EmitVarDecl(const VarDecl *D);
 
@@ -238,11 +240,13 @@ public:
   // calls
   RValueTy EmitCall(const CallExpr *E);
   RValueTy EmitCall(const FunctionDecl *Function,
+                    CallArgList &ArgList,
                     ArrayRef<Expr *> Arguments,
                     bool ReturnsNothing = false);
   RValueTy EmitCall(llvm::Value *Callee,
                     const CGFunctionInfo *FuncInfo,
-                    ArrayRef<Expr *> Arguments,
+                    CallArgList &ArgList,
+                    ArrayRef<Expr*> Arguments,
                     bool ReturnsNothing = false);
   RValueTy EmitCall(CGFunction Func,
                     ArrayRef<RValueTy> Arguments);

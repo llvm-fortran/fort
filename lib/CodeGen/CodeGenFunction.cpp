@@ -77,15 +77,26 @@ void CodeGenFunction::EmitMainProgramBody(const DeclContext *DC, const Stmt *S) 
 void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func) {
   size_t I = 0;
   auto Arguments = Func->getArguments();
-  for(auto Arg = CurFn->arg_begin(); Arg != CurFn->arg_end(); ++Arg, ++I) {
+  auto Arg = CurFn->arg_begin();
+  for(; I < Arguments.size(); ++Arg, ++I) {
     Arg->setName(Arguments[I]->getName());
     LocalVariables.insert(std::make_pair(Arguments[I], Arg));
   }
+
+  // Extra argument for the returned data.
+  if(Arg != CurFn->arg_end()) {
+    Arg->setName(Func->getName());
+    ReturnValuePtr = Arg;
+    assert(Arg + 1 == CurFn->arg_end());
+  }
 }
 
-void CodeGenFunction::EmitFunctionPrologue(const FunctionDecl *Func) {
+void CodeGenFunction::EmitFunctionPrologue(const FunctionDecl *Func,
+                                           const CGFunctionInfo *Info) {
   EmitBlock(createBasicBlock("entry"));
-  if(!Func->getType().isNull()) {
+  auto RetKind = Info->getReturnInfo().getKind();
+  if(RetKind != ABIRetInfo::Nothing &&
+     RetKind != ABIRetInfo::CharacterValueAsArg) {
     ReturnValuePtr = Builder.CreateAlloca(ConvertType(Func->getType()),
                                           nullptr, Func->getName());
   }
@@ -98,16 +109,23 @@ void CodeGenFunction::EmitFunctionBody(const DeclContext *DC, const Stmt *S) {
     EmitStmt(S);
 }
 
-void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func) {
+void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func,
+                                           const CGFunctionInfo *Info) {
   EmitBlock(ReturnBlock);
-  if(auto ptr = GetRetVarPtr()) {
-    auto Type = Func->getType();
-    auto RetVar = GetRetVarPtr();
-    if(Type->isComplexType())
+  if(auto RetVar = GetRetVarPtr()) {
+    auto ReturnInfo = Info->getReturnInfo();
+    switch(ReturnInfo.getKind()) {
+    case ABIRetInfo::ScalarValue:
+      Builder.CreateRet(Builder.CreateLoad(RetVar));
+      break;
+    case ABIRetInfo::ComplexValue:
       Builder.CreateRet(CreateComplexAggregate(
                           EmitComplexLoad(RetVar)));
-    else
-      Builder.CreateRet(Builder.CreateLoad(RetVar));
+      break;
+    default:
+      Builder.CreateRetVoid();
+      break;
+    }
   } else
     Builder.CreateRetVoid();
 }

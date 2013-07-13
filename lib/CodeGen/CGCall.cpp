@@ -44,38 +44,49 @@ CGFunctionInfo *CGFunctionInfo::Create(ASTContext &C,
 }
 
 RValueTy CodeGenFunction::EmitCall(const CallExpr *E) {
-  return EmitCall(E->getFunction(), E->getArguments());
+  CallArgList ArgList;
+  return EmitCall(E->getFunction(), ArgList, E->getArguments());
 }
 
-RValueTy CodeGenFunction::EmitCall(const FunctionDecl *Function, ArrayRef<Expr*> Arguments, bool ReturnsNothing) {
+RValueTy CodeGenFunction::EmitCall(const FunctionDecl *Function,
+                                   CallArgList &ArgList,
+                                   ArrayRef<Expr*> Arguments,
+                                   bool ReturnsNothing) {
   CGFunction CGFunc = CGM.GetFunction(Function);
   if(Function->isExternal()) {
     // FIXME: TODO
   }
   return EmitCall(CGFunc.getFunction(), CGFunc.getInfo(),
-                  Arguments, ReturnsNothing);
+                  ArgList, Arguments, ReturnsNothing);
 }
 
 RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
                                    const CGFunctionInfo *FuncInfo,
-                                   ArrayRef<Expr *> Arguments,
+                                   CallArgList &ArgList,
+                                   ArrayRef<Expr*> Arguments,
                                    bool ReturnsNothing) {
-  SmallVector<llvm::Value*, 8> Args;
   auto ArgumentInfo = FuncInfo->getArguments();
   for(size_t I = 0; I < Arguments.size(); ++I)
-    EmitCallArg(Args, Arguments[I], ArgumentInfo[I]);
+    EmitCallArg(ArgList.Values, Arguments[I], ArgumentInfo[I]);
+  auto ReturnInfo = FuncInfo->getReturnInfo().getKind();
+  if(ReturnInfo == ABIRetInfo::CharacterValueAsArg) {
+    CGFunctionInfo::ArgInfo RetArgInfo;
+    RetArgInfo.ABIInfo = FuncInfo->getReturnInfo().getReturnArgInfo();
+    EmitCallArg(ArgList.Values, ArgList.ReturnValue.asCharacter(),
+                RetArgInfo);
+  }
 
   auto Result = Builder.CreateCall(Callee,
-                                   Args, "call");
+                                   ArgList.Values, "call");
   Result->setCallingConv(FuncInfo->getCallingConv());
 
-  auto ReturnInfo = FuncInfo->getReturnInfo().getKind();
   if(ReturnsNothing ||
      ReturnInfo == ABIRetInfo::Nothing)
     return RValueTy();
   else if(ReturnInfo == ABIRetInfo::ComplexValue)
     return ExtractComplexValue(Result);
-  //FIXME character value as arg
+  else if(ReturnInfo == ABIRetInfo::CharacterValueAsArg)
+    return ArgList.ReturnValue;
   return Result;
 }
 

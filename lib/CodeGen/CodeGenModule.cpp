@@ -162,9 +162,9 @@ void CodeGenModule::EmitFunctionDecl(const FunctionDecl *Function) {
 
   CodeGenFunction CGF(*this, FuncInfo.getFunction());
   CGF.EmitFunctionArguments(Function);
-  CGF.EmitFunctionPrologue(Function);
+  CGF.EmitFunctionPrologue(Function, FuncInfo.getInfo());
   CGF.EmitFunctionBody(Function, Function->getBody());
-  CGF.EmitFunctionEpilogue(Function);
+  CGF.EmitFunctionEpilogue(Function, FuncInfo.getInfo());
 }
 
 
