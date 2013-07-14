@@ -596,27 +596,6 @@ StmtResult Sema::ActOnIMPLICIT(ASTContext &C, SourceLocation Loc, Expr *StmtLabe
   return Result;
 }
 
-class NonConstantExprASTSearch {
-public:
-  SmallVector<const Expr *,8> Results;
-
-  void visit(const Expr *E) {
-    if(isa<ConstantExpr>(E)) ;
-    else if(const UnaryExpr *Unary = dyn_cast<UnaryExpr>(E)) {
-      visit(Unary->getExpression());
-    } else if(const BinaryExpr *Binary = dyn_cast<BinaryExpr>(E)) {
-      visit(Binary->getLHS());
-      visit(Binary->getRHS());
-    } else if(const ImplicitCastExpr *Cast = dyn_cast<ImplicitCastExpr>(E)) {
-      visit(Cast->getExpression());
-    } else if(const VarExpr *Var = dyn_cast<VarExpr>(E)) {
-      if(!Var->getVarDecl()->isParameter())
-        Results.push_back(E);
-    }
-    else Results.push_back(E);
-  }
-};
-
 StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
                                 SourceLocation EqualLoc,
                                 SourceLocation IDLoc,
@@ -634,12 +613,12 @@ StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
   }
 
   // Make sure the value is a constant expression.
-  NonConstantExprASTSearch Visitor;
-  Visitor.visit(Value.get());
-  if(!Visitor.Results.empty()) {
+  if(!Value.get()->isEvaluatable(C)) {
+    llvm::SmallVector<const Expr*, 16> Results;
+    Value.get()->GatherNonEvaluatableExpressions(C, Results);
     Diags.Report(IDLoc, diag::err_parameter_requires_const_init)
         << IDInfo << Value.get()->getSourceRange();
-    for(auto E : Visitor.Results) {
+    for(auto E : Results) {
       Diags.Report(E->getLocation(), diag::note_parameter_value_invalid_expr)
           << E->getSourceRange();
     }
@@ -1012,10 +991,8 @@ bool Sema::CheckArrayBoundValue(Expr *E) {
     }
   }
 
-  // Make sure the value is a constant expression.
-  NonConstantExprASTSearch Visitor;
-  Visitor.visit(E);
-  if(!Visitor.Results.empty()) {
+  // Make sure the value is a constant expression.s
+  if(!E->isEvaluatable(Context)) {
     Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
       << E->getSourceRange();
     return false;
@@ -1053,9 +1030,7 @@ bool Sema::CheckCharacterLengthSpec(const Expr *E) {
   }
 
   // Make sure the value is a constant expression.
-  NonConstantExprASTSearch Visitor;
-  Visitor.visit(E);
-  if(!Visitor.Results.empty()) {
+  if(!E->isEvaluatable(Context)) {
     Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
       << E->getSourceRange();
     return false;

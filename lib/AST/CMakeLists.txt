@@ -6,6 +6,7 @@ add_flang_library(flangAST
 	DeclGroup.cpp
 	DeclarationName.cpp
 	Expr.cpp
+  ExprConstant.cpp
 	FormatSpec.cpp
   FormatItem.cpp
   IOSpec.cpp

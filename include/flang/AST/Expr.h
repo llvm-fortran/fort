@@ -70,6 +70,18 @@ public:
     return SourceRange(getLocStart(), getLocEnd());
   }
 
+  /// EvaluateAsInt - Return true if this is a constant which we can fold and
+  /// convert to an integer, using any crazy technique that we want to.
+  bool EvaluateAsInt(llvm::APSInt &Result, const ASTContext &Ctx) const;
+
+  /// isEvaluatable - Returns true if this is a constant which can be folded.
+  bool isEvaluatable(const ASTContext &Ctx) const;
+
+  /// GatherNonEvaluatableExpressions - if an expression can't be evaluated,
+  /// gathers the child expressions which can't be evaluated.
+  void GatherNonEvaluatableExpressions(const ASTContext &Ctx,
+                                       SmallVectorImpl<const Expr*> &Result);
+
   void dump() const;
   void dump(llvm::raw_ostream &OS) const;
 
