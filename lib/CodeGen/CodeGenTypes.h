@@ -39,6 +39,23 @@ namespace flang {
 namespace CodeGen {
   class CodeGenModule;
 
+class CGType {
+  QualType ASTType;
+  llvm::Type *LLVMType;
+public:
+  CGType() : LLVMType(nullptr) {}
+  CGType(QualType T) : ASTType(T), LLVMType(nullptr) {}
+  CGType(llvm::Type *T) : LLVMType(T) {}
+
+  bool isQualType() const { return LLVMType == nullptr; }
+  QualType asQualType() const {
+    return ASTType;
+  }
+  llvm::Type *asLLVMType() const {
+    return LLVMType;
+  }
+};
+
 /// CodeGenTypes - This class organizes the cross-module state that is used
 /// while lowering AST types to LLVM types.
 class CodeGenTypes {
@@ -62,8 +79,8 @@ public:
                                         const FunctionDecl *FD);
 
   const CGFunctionInfo *GetRuntimeFunctionType(ASTContext &C,
-                                               ArrayRef<QualType> Args,
-                                               QualType ReturnType);
+                                               ArrayRef<CGType> Args,
+                                               CGType ReturnType);
 
   llvm::Type *GetComplexType(llvm::Type *ElementType);
   llvm::Type *GetComplexTypeAsVector(llvm::Type *ElementType);

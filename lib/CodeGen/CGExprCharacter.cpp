@@ -41,6 +41,8 @@ public:
   CharacterValueTy VisitReturnedValueExpr(const ReturnedValueExpr *E);
   CharacterValueTy VisitBinaryExprConcat(const BinaryExpr *E);
   CharacterValueTy VisitSubstringExpr(const SubstringExpr *E);
+  CharacterValueTy VisitCallExpr(const CallExpr *E);
+  CharacterValueTy VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
 };
 
 CharacterExprEmitter::CharacterExprEmitter(CodeGenFunction &cgf)
@@ -95,6 +97,15 @@ CharacterValueTy CharacterExprEmitter::VisitSubstringExpr(const SubstringExpr *E
   return Str;
 }
 
+CharacterValueTy CharacterExprEmitter::VisitCallExpr(const CallExpr *E) {
+  // FIXME
+  return CharacterValueTy();
+}
+
+CharacterValueTy CharacterExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
+  return CGF.EmitIntrinsicCall(E).asCharacter();
+}
+
 void CodeGenFunction::EmitCharacterAssignment(const Expr *LHS, const Expr *RHS) {
   auto CharType = getContext().CharacterTy;
   auto Dest = EmitCharacterExpr(LHS);
@@ -131,8 +142,8 @@ CharacterValueTy CodeGenFunction::EmitCharacterExpr(const Expr *E) {
 }
 
 CharacterValueTy CodeGenFunction::ExtractCharacterValue(llvm::Value *Agg) {
-  return CharacterValueTy(Builder.CreateExtractValue(Agg, 0, "re"),
-                          Builder.CreateExtractValue(Agg, 1, "im"));
+  return CharacterValueTy(Builder.CreateExtractValue(Agg, 0, "ptr"),
+                          Builder.CreateExtractValue(Agg, 1, "len"));
 }
 
 llvm::Value *CodeGenFunction::CreateCharacterAggregate(CharacterValueTy Value) {
@@ -146,9 +157,72 @@ llvm::Value *CodeGenFunction::EmitCharacterRelationalExpr(BinaryExpr::Operator O
                                                           CharacterValueTy RHS) {
   auto CharType = getContext().CharacterTy;
   auto Func = CGM.GetRuntimeFunction2(MANGLE_CHAR_FUNCTION("compare", CharType),
-                                      CharType, CharType, getContext().IntegerTy); //FIXME: int32
+                                      CharType, CharType, CGM.Int32Ty);
   auto Result = EmitCall2(Func, LHS, RHS).asScalar();
   return ConvertComparisonResultToRelationalOp(Op, Result);
+}
+
+llvm::Value *CodeGenFunction::EmitCharacterDereference(CharacterValueTy Value) {
+  return Builder.CreateLoad(Value.Ptr);
+}
+
+RValueTy CodeGenFunction::EmitIntrinsicCallCharacter(intrinsic::FunctionKind Func,
+                                                     CharacterValueTy Value) {
+  auto CharType = getContext().CharacterTy;
+  CGFunction RuntimeFunc;
+  switch(Func){
+  case intrinsic::LEN:
+    return EmitSizeIntToIntConversion(Value.Len);
+    break;
+  case intrinsic::LEN_TRIM:
+    RuntimeFunc = CGM.GetRuntimeFunction1(MANGLE_CHAR_FUNCTION("lentrim", CharType),
+                                          CharType, CGM.SizeTy);
+    return EmitSizeIntToIntConversion(EmitCall1(RuntimeFunc, Value).asScalar());
+    break;
+  default:
+    llvm_unreachable("invalid character intrinsic");
+  }
+  return EmitCall1(RuntimeFunc, Value);
+}
+
+static BinaryExpr::Operator GetLexicalComparisonOp(intrinsic::FunctionKind Func) {
+  switch(Func) {
+  case intrinsic::LLE:
+    return BinaryExpr::LessThanEqual;
+  case intrinsic::LLT:
+    return BinaryExpr::LessThan;
+  case intrinsic::LGE:
+    return BinaryExpr::GreaterThanEqual;
+  case intrinsic::LGT:
+    return BinaryExpr::GreaterThan;
+  }
+  llvm_unreachable("invalid intrinsic function");
+}
+
+RValueTy CodeGenFunction::EmitIntrinsicCallCharacter(intrinsic::FunctionKind Func,
+                                                     CharacterValueTy A1,
+                                                     CharacterValueTy A2) {
+  auto CharType = getContext().CharacterTy;
+  CGFunction RuntimeFunc;
+  switch(Func) {
+  case intrinsic::INDEX: {
+    auto Diff = Builder.CreatePtrDiff(A2.Ptr, A1.Ptr);
+    Diff = EmitSizeIntToIntConversion(Diff);
+    return Builder.CreateAdd(Diff, GetConstantOne(getContext().IntegerTy));
+    break;
+  }
+
+  case intrinsic::LLE:
+  case intrinsic::LLT:
+  case intrinsic::LGE:
+  case intrinsic::LGT:
+    RuntimeFunc = CGM.GetRuntimeFunction2(MANGLE_CHAR_FUNCTION("lexcompare", CharType),
+                                          CharType, CharType, CGM.Int32Ty);
+    return ConvertComparisonResultToRelationalOp(GetLexicalComparisonOp(Func),
+                                                 EmitCall2(RuntimeFunc, A1, A2).asScalar());
+  default:
+    llvm_unreachable("invalid character intrinsic");
+  }
 }
 
 }

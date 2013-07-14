@@ -55,9 +55,17 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
         else return EmitScalarToComplexConversion(EmitScalarExpr(Args[0]),
                                                   E->getType());
       }
-    } else {
-      //CHAR or ICHAR
-    }
+    } else if(Func == intrinsic::ICHAR) {
+      auto Value = EmitCharacterDereference(EmitCharacterExpr(Args[0]));
+      return Builder.CreateZExtOrTrunc(Value, ConvertType(getContext().IntegerTy));
+    } else if(Func == intrinsic::CHAR) {
+      auto Temp = CreateTempAlloca(CGM.Int8Ty, "char");
+      auto Value = CharacterValueTy(Temp,
+                                    llvm::ConstantInt::get(CGM.SizeTy, 1));
+      Builder.CreateStore(Builder.CreateSExtOrTrunc(EmitScalarExpr(Args[0]), CGM.Int8Ty),
+                          Value.Ptr);
+      return Value;
+    } else llvm_unreachable("invalid conversion intrinsic");
     break;
 
   case intrinsic::GROUP_TRUNCATION:
@@ -73,6 +81,12 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
     return EmitIntrinsicCallScalarMath(Func, EmitScalarExpr(Args[0]),
                                        Args.size() == 2?
                                         EmitScalarExpr(Args[1]) : nullptr);
+  case intrinsic::GROUP_CHARACTER:
+    if(Args.size() == 1)
+      return EmitIntrinsicCallCharacter(Func, EmitCharacterExpr(Args[0]));
+    else
+      return EmitIntrinsicCallCharacter(Func, EmitCharacterExpr(Args[0]),
+                                        EmitCharacterExpr(Args[1]));
   default:
     break;
   }

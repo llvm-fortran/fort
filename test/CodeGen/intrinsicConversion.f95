@@ -4,8 +4,9 @@ PROGRAM intrinsicconv
   REAL R
   COMPLEX C
   DOUBLE PRECISION D
+  CHARACTER STR
 
-  INTRINSIC int, real, dble, cmplx
+  INTRINSIC int, real, dble, cmplx, ichar, char
 
   i = 0
   r = 1.0
@@ -29,5 +30,9 @@ PROGRAM intrinsicconv
   c = cmplx(d) ! CHECK: fptrunc
   c = cmplx(r, r)
   c = cmplx(1.0, r)
+
+  i = ichar('A') ! CHECK: zext i8
+  str = char(i)  ! CHECK: trunc i32
+  i = ichar(char(66))
 
 END

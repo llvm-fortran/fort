@@ -188,6 +188,7 @@ public:
   llvm::Value *EmitSizeIntExpr(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
   llvm::Value *EmitIntToInt32Conversion(llvm::Value *Value);
+  llvm::Value *EmitSizeIntToIntConversion(llvm::Value *Value);
   llvm::Value *EmitScalarToScalarConversion(llvm::Value *Value, QualType Target);
   llvm::Value *EmitLogicalScalarExpr(const Expr *E);
   llvm::Value *EmitIntegerConstantExpr(const IntegerConstantExpr *E);
@@ -225,6 +226,11 @@ public:
   CharacterValueTy EmitCharacterExpr(const Expr *E);
   llvm::Value *EmitCharacterRelationalExpr(BinaryExpr::Operator Op, CharacterValueTy LHS,
                                            CharacterValueTy RHS);
+  RValueTy EmitIntrinsicCallCharacter(intrinsic::FunctionKind Func,
+                                      CharacterValueTy Value);
+  RValueTy EmitIntrinsicCallCharacter(intrinsic::FunctionKind Func,
+                                      CharacterValueTy A1, CharacterValueTy A2);
+  llvm::Value *EmitCharacterDereference(CharacterValueTy Value);
 
   // intrinsic calls
   RValueTy EmitIntrinsicCall(const IntrinsicCallExpr *E);
@@ -235,7 +241,7 @@ public:
   llvm::Value* EmitIntrinsicCallScalarMath(intrinsic::FunctionKind Func,
                                            llvm::Value *A1, llvm::Value *A2 = nullptr);
   RValueTy EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
-                                              ComplexValueTy Value);
+                                        ComplexValueTy Value);
 
   // calls
   RValueTy EmitCall(const CallExpr *E);
@@ -250,11 +256,18 @@ public:
                     bool ReturnsNothing = false);
   RValueTy EmitCall(CGFunction Func,
                     ArrayRef<RValueTy> Arguments);
+
+  RValueTy EmitCall1(CGFunction Func,
+                     RValueTy Arg) {
+    return EmitCall(Func, Arg);
+  }
+
   RValueTy EmitCall2(CGFunction Func,
                      RValueTy A1, RValueTy A2) {
     RValueTy Args[] = { A1, A2 };
     return EmitCall(Func, llvm::makeArrayRef(Args, 2));
   }
+
   RValueTy EmitCall3(CGFunction Func,
                      RValueTy A1, RValueTy A2, RValueTy A3) {
     RValueTy Args[] = { A1, A2, A3 };

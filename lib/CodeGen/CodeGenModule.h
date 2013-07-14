@@ -155,21 +155,28 @@ public:
                                   llvm::Type *ReturnType = nullptr);
 
   CGFunction GetRuntimeFunction(StringRef Name,
-                                ArrayRef<QualType> ArgTypes,
-                                QualType ReturnType = QualType());
+                                ArrayRef<CGType> ArgTypes,
+                                CGType ReturnType = CGType());
+
+  CGFunction GetRuntimeFunction1(StringRef Name,
+                                CGType ArgType,
+                                CGType ReturnType = CGType()) {
+    return GetRuntimeFunction(Name, ArgType,
+                              ReturnType);
+  }
 
   CGFunction GetRuntimeFunction2(StringRef Name,
-                                 QualType A1, QualType A2,
-                                 QualType ReturnType = QualType()) {
-    QualType ArgTypes[] = { A1, A2 };
+                                 CGType A1, CGType A2,
+                                 CGType ReturnType = CGType()) {
+    CGType ArgTypes[] = { A1, A2 };
     return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 2),
                               ReturnType);
   }
 
   CGFunction GetRuntimeFunction3(StringRef Name,
-                                 QualType A1, QualType A2, QualType A3,
-                                 QualType ReturnType = QualType()) {
-    QualType ArgTypes[] = { A1, A2, A3 };
+                                 CGType A1, CGType A2, CGType A3,
+                                 CGType ReturnType = CGType()) {
+    CGType ArgTypes[] = { A1, A2, A3 };
     return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 3),
                               ReturnType);
   }

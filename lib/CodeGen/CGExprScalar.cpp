@@ -271,6 +271,10 @@ llvm::Value *CodeGenFunction::EmitIntToInt32Conversion(llvm::Value *Value) {
   return Value; // FIXME: Kinds
 }
 
+llvm::Value *CodeGenFunction::EmitSizeIntToIntConversion(llvm::Value *Value) {
+  return Builder.CreateZExtOrTrunc(Value, ConvertType(getContext().IntegerTy));
+}
+
 llvm::Value *CodeGenFunction::EmitScalarToScalarConversion(llvm::Value *Value,
                                                            QualType Target) {
   auto ValueType = Value->getType();

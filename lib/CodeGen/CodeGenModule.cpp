@@ -92,8 +92,8 @@ CodeGenModule::GetRuntimeFunction(StringRef Name,
 
 CGFunction
 CodeGenModule::GetRuntimeFunction(StringRef Name,
-                                  ArrayRef<QualType> ArgTypes,
-                                  QualType ReturnType) {
+                                  ArrayRef<CGType> ArgTypes,
+                                  CGType ReturnType) {
   llvm::SmallString<32> MangledName("libflang_");
   MangledName.append(Name);
 

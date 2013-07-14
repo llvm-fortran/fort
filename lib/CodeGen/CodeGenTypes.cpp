@@ -193,30 +193,41 @@ const CGFunctionInfo *CodeGenTypes::GetFunctionType(ASTContext &C,
 
 const CGFunctionInfo *
 CodeGenTypes::GetRuntimeFunctionType(ASTContext &C,
-                                     ArrayRef<QualType> Args,
-                                     QualType ReturnType) {
+                                     ArrayRef<CGType> Args,
+                                     CGType ReturnType) {
   ABIRetInfo ReturnInfo;
   llvm::Type *RetType;
-  if(ReturnType.isNull())
-    RetType = CGM.VoidTy;
-  else
-    RetType = ConvertReturnType(ReturnType, ReturnInfo);
+  if(ReturnType.isQualType()) {
+    if(ReturnType.asQualType().isNull())
+      RetType = CGM.VoidTy;
+    else
+      RetType = ConvertReturnType(ReturnType.asQualType(), ReturnInfo);
+  } else {
+    ReturnInfo = ABIRetInfo::ScalarValue;
+    RetType = ReturnType.asLLVMType();
+  }
 
   SmallVector<CGFunctionInfo::ArgInfo, 8> ArgInfo(Args.size());
   SmallVector<llvm::Type*, 8> ArgTypes;
   for(size_t I = 0; I < Args.size(); ++I) {
-    if(Args[I]->isCharacterType()) {
-      ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Expand);
-      ArgTypes.push_back(CGM.Int8PtrTy); //FIXME: character kinds
-      ArgTypes.push_back(CGM.SizeTy);
-    } else if(Args[I]->isComplexType()) {
-      ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Expand);
-      auto ElementType = ConvertType(C.getComplexTypeElementType(Args[I]));
-      ArgTypes.push_back(ElementType);
-      ArgTypes.push_back(ElementType);
+    if(Args[I].isQualType()) {
+      auto Type = Args[I].asQualType();
+      if(Type->isCharacterType()) {
+        ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Expand);
+        ArgTypes.push_back(CGM.Int8PtrTy); //FIXME: character kinds
+        ArgTypes.push_back(CGM.SizeTy);
+      } else if(Type->isComplexType()) {
+        ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Expand);
+        auto ElementType = ConvertType(C.getComplexTypeElementType(Type));
+        ArgTypes.push_back(ElementType);
+        ArgTypes.push_back(ElementType);
+      } else {
+        ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Value);
+        ArgTypes.push_back(ConvertType(Type));
+      }
     } else {
       ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Value);
-      ArgTypes.push_back(ConvertType(Args[I]));
+      ArgTypes.push_back(Args[I].asLLVMType());
     }
   }
 
