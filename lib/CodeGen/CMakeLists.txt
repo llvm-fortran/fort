@@ -3,6 +3,7 @@ add_flang_library(flangCodeGen
   CodeGenModule.cpp
   CodeGenFunction.cpp
   CodeGenTypes.cpp
+  CGABI.cpp
   CGStmt.cpp
   CGExpr.cpp
   CGExprScalar.cpp

@@ -15,6 +15,7 @@
 #define FLANG_CODEGEN_CODEGENTYPES_H
 
 #include "CGCall.h"
+#include "CGABI.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Type.h"
 #include "flang/Frontend/CodeGenOptions.h"
@@ -61,6 +62,8 @@ public:
 class CodeGenTypes {
 public:
   CodeGenModule &CGM;
+  ASTContext &Context;
+  FortranABI DefaultABI;
 
 public:
   CodeGenTypes(CodeGenModule &cgm);
@@ -75,12 +78,11 @@ public:
   /// memory representation is usually i8 or i32, depending on the target.
   llvm::Type *ConvertTypeForMem(QualType T);
 
-  const CGFunctionInfo *GetFunctionType(ASTContext &C,
-                                        const FunctionDecl *FD);
+  const CGFunctionInfo *GetFunctionType(const FunctionDecl *FD);
 
-  const CGFunctionInfo *GetRuntimeFunctionType(ASTContext &C,
-                                               ArrayRef<CGType> Args,
-                                               CGType ReturnType);
+  const CGFunctionInfo *GetFunctionType(FortranABI &ABI,
+                                        ArrayRef<CGType> Args,
+                                        CGType ReturnType);
 
   llvm::Type *GetComplexType(llvm::Type *ElementType);
   llvm::Type *GetComplexTypeAsVector(llvm::Type *ElementType);
@@ -93,8 +95,12 @@ public:
   llvm::Type *ConvertBuiltInType(BuiltinType::TypeSpec Spec,
                                  BuiltinType::TypeKind Kind);
 
-  llvm::Type *ConvertReturnType(QualType T, ABIRetInfo &RetInfo);
-  llvm::Type *ConvertArgumentType(QualType T);
+  llvm::Type *ConvertReturnType(QualType T,
+                                CGFunctionInfo::RetInfo &ReturnInfo);
+
+  void ConvertArgumentType(SmallVectorImpl<llvm::Type *> &ArgTypes,
+                           QualType T,
+                           CGFunctionInfo::ArgInfo &ArgInfo);
 
   uint64_t GetCharacterTypeLength(QualType T);
 

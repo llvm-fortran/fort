@@ -101,9 +101,9 @@ CodeGenModule::GetRuntimeFunction(StringRef Name,
   if(SearchResult != RuntimeFunctions.end())
     return SearchResult->second;
 
-  auto FunctionInfo = Types.GetRuntimeFunctionType(getContext(),
-                                                   ArgTypes,
-                                                   ReturnType);
+  auto FunctionInfo = Types.GetFunctionType(LibflangABI,
+                                            ArgTypes,
+                                            ReturnType);
   auto Func = llvm::Function::Create(FunctionInfo->getFunctionType(),
                                      llvm::GlobalValue::ExternalLinkage,
                                      llvm::Twine(MangledName), &TheModule);
@@ -118,7 +118,7 @@ CGFunction CodeGenModule::GetFunction(const FunctionDecl *Function) {
   if(SearchResult != Functions.end())
     return SearchResult->second;
 
-  auto FunctionInfo = Types.GetFunctionType(getContext(), Function);
+  auto FunctionInfo = Types.GetFunctionType(Function);
 
   auto Func = llvm::Function::Create(FunctionInfo->getFunctionType(),
                                      llvm::GlobalValue::ExternalLinkage,

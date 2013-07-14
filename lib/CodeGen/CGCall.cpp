@@ -28,11 +28,61 @@
 namespace flang {
 namespace CodeGen {
 
+llvm::Type *CodeGenTypes::ConvertReturnType(QualType T,
+                                            CGFunctionInfo::RetInfo &ReturnInfo) {
+  switch(ReturnInfo.ABIInfo.getKind()) {
+  case ABIRetInfo::Nothing:
+    return CGM.VoidTy;
+
+  case ABIRetInfo::CharacterValueAsArg:
+    ReturnInfo.ReturnArgInfo.ABIInfo = ABIArgInfo(ABIArgInfo::Value);
+    return CGM.VoidTy;
+  default:
+    break;
+  }
+
+  ReturnInfo.Kind = T->isComplexType()? CGFunctionInfo::RetInfo::ComplexValue :
+                                        CGFunctionInfo::RetInfo::ScalarValue;
+  return ConvertType(T);
+}
+
+void CodeGenTypes::ConvertArgumentType(SmallVectorImpl<llvm::Type*> &ArgTypes,
+                                       QualType T,
+                                       CGFunctionInfo::ArgInfo &ArgInfo) {
+  switch(ArgInfo.ABIInfo.getKind()) {
+  case ABIArgInfo::Value:
+    ArgTypes.push_back(ConvertType(T));
+    break;
+
+  case ABIArgInfo::Reference:
+    ArgTypes.push_back(llvm::PointerType::get(ConvertType(T), 0));
+    break;
+
+  case ABIArgInfo::Expand:
+    if(T->isComplexType()) {
+      auto ElementType = ConvertType(Context.getComplexTypeElementType(T));
+      ArgTypes.push_back(ElementType);
+      ArgTypes.push_back(ElementType);
+    } else if(T->isCharacterType()) {
+      ArgTypes.push_back(CGM.Int8PtrTy); //FIXME: character kinds
+      ArgTypes.push_back(CGM.SizeTy);
+    } else
+      llvm_unreachable("invalid expand abi");
+    break;
+
+  case ABIArgInfo::ComplexValueAsVector:
+    assert(T->isComplexType());
+    ArgTypes.push_back(GetComplexTypeAsVector(
+                         ConvertType(Context.getComplexTypeElementType(T))));
+    break;
+  }
+}
+
 CGFunctionInfo *CGFunctionInfo::Create(ASTContext &C,
                                        llvm::CallingConv::ID CC,
                                        llvm::FunctionType *Type,
                                        ArrayRef<ArgInfo> Arguments,
-                                       ABIRetInfo RetInfo) {
+                                       RetInfo Returns) {
   auto Info = new(C) CGFunctionInfo;
   Info->Type = Type;
   Info->CC = CC;
@@ -40,7 +90,7 @@ CGFunctionInfo *CGFunctionInfo::Create(ASTContext &C,
   Info->Args = new(C) ArgInfo[Info->NumArgs];
   for(unsigned I = 0; I < Info->NumArgs; ++I)
     Info->Args[I] = Arguments[I];
-  Info->ReturnInfo = RetInfo;
+  Info->ReturnInfo = Returns;
 }
 
 RValueTy CodeGenFunction::EmitCall(const CallExpr *E) {
@@ -68,13 +118,10 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
   auto ArgumentInfo = FuncInfo->getArguments();
   for(size_t I = 0; I < Arguments.size(); ++I)
     EmitCallArg(ArgList.Values, Arguments[I], ArgumentInfo[I]);
-  auto ReturnInfo = FuncInfo->getReturnInfo().getKind();
-  if(ReturnInfo == ABIRetInfo::CharacterValueAsArg) {
-    CGFunctionInfo::ArgInfo RetArgInfo;
-    RetArgInfo.ABIInfo = FuncInfo->getReturnInfo().getReturnArgInfo();
+  auto ReturnInfo = FuncInfo->getReturnInfo().ABIInfo.getKind();
+  if(ReturnInfo == ABIRetInfo::CharacterValueAsArg)
     EmitCallArg(ArgList.Values, ArgList.ReturnValue.asCharacter(),
-                RetArgInfo);
-  }
+                FuncInfo->getReturnInfo().ReturnArgInfo);
 
   auto Result = Builder.CreateCall(Callee,
                                    ArgList.Values, "call");
@@ -83,7 +130,8 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
   if(ReturnsNothing ||
      ReturnInfo == ABIRetInfo::Nothing)
     return RValueTy();
-  else if(ReturnInfo == ABIRetInfo::ComplexValue)
+  else if(ReturnInfo == ABIRetInfo::Value &&
+          FuncInfo->getReturnInfo().Kind == CGFunctionInfo::RetInfo::ComplexValue)
     return ExtractComplexValue(Result);
   else if(ReturnInfo == ABIRetInfo::CharacterValueAsArg)
     return ArgList.ReturnValue;
@@ -108,7 +156,7 @@ RValueTy CodeGenFunction::EmitCall(CGFunction Func,
   auto Result = Builder.CreateCall(Func.getFunction(),
                                    Args, "call");
   Result->setCallingConv(FuncInfo->getCallingConv());
-  if(FuncInfo->getReturnInfo().getKind() == ABIRetInfo::ComplexValue)
+  if(FuncInfo->getReturnInfo().Kind == CGFunctionInfo::RetInfo::ComplexValue)
     return ExtractComplexValue(Result);
   return Result;
 }

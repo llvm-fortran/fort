@@ -115,6 +115,7 @@ class CodeGenModule : public CodeGenTypeCache {
   llvm::LLVMContext &VMContext;
 
   CodeGenTypes Types;
+  RuntimeABI LibflangABI;
 
   /// RuntimeFunctions - contains all the runtime functions
   /// used in this module.

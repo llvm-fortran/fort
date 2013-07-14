@@ -24,7 +24,7 @@ namespace flang {
 namespace CodeGen {
 
 CodeGenTypes::CodeGenTypes(CodeGenModule &cgm)
-  : CGM(cgm) {
+  : CGM(cgm), Context(cgm.getContext()) {
 }
 
 CodeGenTypes::~CodeGenTypes() { }
@@ -133,58 +133,28 @@ llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {
   return nullptr;
 }
 
-llvm::Type *CodeGenTypes::ConvertReturnType(QualType T, ABIRetInfo &RetInfo) {
-  if(T->isCharacterType()) {
-    RetInfo = ABIRetInfo(ABIRetInfo::CharacterValueAsArg, ABIArgInfo::Value);
-    return CGM.VoidTy;
-  }
-  else if(T->isComplexType())
-    RetInfo = ABIRetInfo(ABIRetInfo::ComplexValue);
-  else
-    RetInfo = ABIRetInfo(ABIRetInfo::ScalarValue);
-  return ConvertType(T);
-}
-
-llvm::Type *CodeGenTypes::ConvertArgumentType(QualType T) {
-  return llvm::PointerType::get(ConvertType(T), 0);
-}
-
-const CGFunctionInfo *CodeGenTypes::GetFunctionType(ASTContext &C,
-                                                    const FunctionDecl *FD) {
-  ABIRetInfo ReturnInfo;
-  llvm::Type *ReturnType;
-  if(FD->getType().isNull())
-    ReturnType = CGM.VoidTy;
-  else
-    ReturnType = ConvertReturnType(FD->getType(), ReturnInfo);
+const CGFunctionInfo *CodeGenTypes::GetFunctionType(const FunctionDecl *FD) {
+  CGFunctionInfo::RetInfo ReturnInfo;
+  ReturnInfo.ABIInfo = DefaultABI.GetRetABI(FD->getType());
+  auto ReturnType = ConvertReturnType(FD->getType(), ReturnInfo);
 
   auto Args = FD->getArguments();
   SmallVector<CGFunctionInfo::ArgInfo, 8> ArgInfo;
   SmallVector<llvm::Type*, 8> ArgTypes;
   for(size_t I = 0; I < Args.size(); ++I) {
     auto ArgType = Args[I]->getType();
-    //FIXME: arrays
     CGFunctionInfo::ArgInfo Info;
-    llvm::Type *Type;
-    if(ArgType->isCharacterType()) {
-      Info.ABIInfo = ABIArgInfo(ABIArgInfo::Value);
-      Type = ConvertType(ArgType);
-    } else {
-      Info.ABIInfo = ABIArgInfo(ABIArgInfo::Reference);
-      Type = ConvertArgumentType(ArgType);
-    }
+    Info.ABIInfo = DefaultABI.GetArgABI(ArgType);
+    ConvertArgumentType(ArgTypes, ArgType, Info);
     ArgInfo.push_back(Info);
-    ArgTypes.push_back(Type);
   }
-  if(ReturnInfo.getKind() == ABIRetInfo::CharacterValueAsArg) {
-    CGFunctionInfo::ArgInfo Info;
-    Info.ABIInfo = ABIArgInfo(ABIArgInfo::Value);
-    ArgInfo.push_back(Info);
-    ArgTypes.push_back(ConvertType(FD->getType()));
+  if(ReturnInfo.ABIInfo.getKind() == ABIRetInfo::CharacterValueAsArg) {
+    ArgInfo.push_back(ReturnInfo.ReturnArgInfo);
+    ConvertArgumentType(ArgTypes, FD->getType(), ReturnInfo.ReturnArgInfo);
   }
 
   // FIXME: fold same infos into one?
-  auto Result = CGFunctionInfo::Create(C, llvm::CallingConv::C,
+  auto Result = CGFunctionInfo::Create(Context, llvm::CallingConv::C,
                                        llvm::FunctionType::get(ReturnType, ArgTypes, false),
                                        ArgInfo,
                                        ReturnInfo);
@@ -192,46 +162,36 @@ const CGFunctionInfo *CodeGenTypes::GetFunctionType(ASTContext &C,
 }
 
 const CGFunctionInfo *
-CodeGenTypes::GetRuntimeFunctionType(ASTContext &C,
-                                     ArrayRef<CGType> Args,
-                                     CGType ReturnType) {
-  ABIRetInfo ReturnInfo;
+CodeGenTypes::GetFunctionType(FortranABI &ABI,
+                              ArrayRef<CGType> Args,
+                              CGType ReturnType) {
+  CGFunctionInfo::RetInfo ReturnInfo;
   llvm::Type *RetType;
   if(ReturnType.isQualType()) {
-    if(ReturnType.asQualType().isNull())
-      RetType = CGM.VoidTy;
-    else
-      RetType = ConvertReturnType(ReturnType.asQualType(), ReturnInfo);
-  } else {
-    ReturnInfo = ABIRetInfo::ScalarValue;
+    ReturnInfo.ABIInfo = ABI.GetRetABI(ReturnType.asQualType());
+    RetType = ConvertReturnType(ReturnType.asQualType(), ReturnInfo);
+  }
+  else {
+    ReturnInfo.ABIInfo = ABIRetInfo(ABIRetInfo::Value);
+    ReturnInfo.Kind = CGFunctionInfo::RetInfo::ScalarValue;
     RetType = ReturnType.asLLVMType();
   }
 
-  SmallVector<CGFunctionInfo::ArgInfo, 8> ArgInfo(Args.size());
+  SmallVector<CGFunctionInfo::ArgInfo, 8> ArgInfo;
   SmallVector<llvm::Type*, 8> ArgTypes;
   for(size_t I = 0; I < Args.size(); ++I) {
+    CGFunctionInfo::ArgInfo Info;
     if(Args[I].isQualType()) {
-      auto Type = Args[I].asQualType();
-      if(Type->isCharacterType()) {
-        ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Expand);
-        ArgTypes.push_back(CGM.Int8PtrTy); //FIXME: character kinds
-        ArgTypes.push_back(CGM.SizeTy);
-      } else if(Type->isComplexType()) {
-        ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Expand);
-        auto ElementType = ConvertType(C.getComplexTypeElementType(Type));
-        ArgTypes.push_back(ElementType);
-        ArgTypes.push_back(ElementType);
-      } else {
-        ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Value);
-        ArgTypes.push_back(ConvertType(Type));
-      }
+      Info.ABIInfo = ABI.GetArgABI(Args[I].asQualType());
+      ConvertArgumentType(ArgTypes, Args[I].asQualType(), Info);
     } else {
-      ArgInfo[I].ABIInfo = ABIArgInfo(ABIArgInfo::Value);
+      Info.ABIInfo = ABIArgInfo(ABIArgInfo::Value);
       ArgTypes.push_back(Args[I].asLLVMType());
     }
+    ArgInfo.push_back(Info);
   }
 
-  auto Result = CGFunctionInfo::Create(C, llvm::CallingConv::C,
+  auto Result = CGFunctionInfo::Create(Context, llvm::CallingConv::C,
                                        llvm::FunctionType::get(RetType, ArgTypes, false),
                                        ArgInfo,
                                        ReturnInfo);

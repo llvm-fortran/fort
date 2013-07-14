@@ -55,27 +55,22 @@ public:
     /// Returns void
     Nothing,
 
-    /// Returns a scalar value
-    ScalarValue,
-
-    /// Returns a complex value as an aggregate (real, im)
-    ComplexValue,
+    /// Returns a value
+    /// scalar - simple value
+    /// complex - aggregate value (real, im)
+    Value,
 
     /// Returns a character value using an argument
     CharacterValueAsArg
   };
 private:
   Kind TheKind;
-  ABIArgInfo AsArgInfo;
 public:
 
   ABIRetInfo(Kind K = Nothing) :
-    TheKind(K), AsArgInfo(ABIArgInfo::Value) {}
-  ABIRetInfo(Kind K, ABIArgInfo RetArg) :
-    TheKind(K), AsArgInfo(RetArg) {}
+    TheKind(K) {}
 
   Kind getKind() const { return TheKind; }
-  ABIArgInfo getReturnArgInfo() const { return AsArgInfo; }
 };
 
 }  // end namespace flang

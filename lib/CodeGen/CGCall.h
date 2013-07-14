@@ -38,12 +38,25 @@ public:
 
     ArgInfo() : ABIInfo(ABIArgInfo::Reference) {}
   };
+
+  struct RetInfo {
+    enum ValueKind {
+      ScalarValue,
+      ComplexValue
+    };
+
+    ABIRetInfo ABIInfo;
+    ArgInfo    ReturnArgInfo;
+    ValueKind  Kind;
+
+    RetInfo() : ABIInfo(ABIRetInfo::Nothing), Kind(ScalarValue) {}
+  };
 private:
   llvm::FunctionType *Type;
   llvm::CallingConv::ID CC;
   unsigned NumArgs;
   ArgInfo *Args;
-  ABIRetInfo ReturnInfo;
+  RetInfo ReturnInfo;
 
   CGFunctionInfo() {}
 public:
@@ -51,7 +64,7 @@ public:
                                 llvm::CallingConv::ID CC,
                                 llvm::FunctionType *Type,
                                 ArrayRef<ArgInfo> Arguments,
-                                ABIRetInfo RetInfo);
+                                RetInfo Returns);
 
   llvm::FunctionType *getFunctionType() const {
     return Type;
@@ -62,7 +75,7 @@ public:
   ArrayRef<ArgInfo> getArguments() const {
     return ArrayRef<ArgInfo>(Args, size_t(NumArgs));
   }
-  ABIRetInfo getReturnInfo() const {
+  RetInfo getReturnInfo() const {
     return ReturnInfo;
   }
 };

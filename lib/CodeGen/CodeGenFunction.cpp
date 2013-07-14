@@ -94,9 +94,8 @@ void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func) {
 void CodeGenFunction::EmitFunctionPrologue(const FunctionDecl *Func,
                                            const CGFunctionInfo *Info) {
   EmitBlock(createBasicBlock("entry"));
-  auto RetKind = Info->getReturnInfo().getKind();
-  if(RetKind != ABIRetInfo::Nothing &&
-     RetKind != ABIRetInfo::CharacterValueAsArg) {
+  auto RetABI = Info->getReturnInfo().ABIInfo.getKind();
+  if(RetABI == ABIRetInfo::Value) {
     ReturnValuePtr = Builder.CreateAlloca(ConvertType(Func->getType()),
                                           nullptr, Func->getName());
   }
@@ -114,18 +113,19 @@ void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func,
   EmitBlock(ReturnBlock);
   if(auto RetVar = GetRetVarPtr()) {
     auto ReturnInfo = Info->getReturnInfo();
-    switch(ReturnInfo.getKind()) {
-    case ABIRetInfo::ScalarValue:
-      Builder.CreateRet(Builder.CreateLoad(RetVar));
-      break;
-    case ABIRetInfo::ComplexValue:
-      Builder.CreateRet(CreateComplexAggregate(
-                          EmitComplexLoad(RetVar)));
-      break;
-    default:
-      Builder.CreateRetVoid();
-      break;
+
+    if(ReturnInfo.ABIInfo.getKind() == ABIRetInfo::Value) {
+      switch(ReturnInfo.Kind) {
+      case CGFunctionInfo::RetInfo::ScalarValue:
+        Builder.CreateRet(Builder.CreateLoad(RetVar));
+        break;
+      case CGFunctionInfo::RetInfo::ComplexValue:
+        Builder.CreateRet(CreateComplexAggregate(
+                            EmitComplexLoad(RetVar)));
+        break;
+      }
     }
+    else Builder.CreateRetVoid();
   } else
     Builder.CreateRetVoid();
 }
