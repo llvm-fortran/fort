@@ -13,6 +13,7 @@
 
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
+#include "CGIORuntime.h"
 #include "flang/AST/StmtVisitor.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/IR/DataLayout.h"
@@ -57,6 +58,12 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
     }
     void VisitAssignmentStmt(const AssignmentStmt *S) {
       CG->EmitAssignmentStmt(S);
+    }
+    void VisitWriteStmt(const WriteStmt *S) {
+      CG->getModule().getIORuntime().EmitWriteStmt(S);
+    }
+    void VisitPrintStmt(const PrintStmt *S) {
+      CG->getModule().getIORuntime().EmitPrintStmt(S);
     }
   };
   Visitor SV(this);

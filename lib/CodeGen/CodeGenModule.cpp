@@ -13,6 +13,7 @@
 
 #include "CodeGenModule.h"
 #include "CodeGenFunction.h"
+#include "CGIORuntime.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/DeclVisitor.h"
@@ -57,11 +58,14 @@ CodeGenModule::CodeGenModule(ASTContext &C, const CodeGenOptions &CGO,
   IntPtrTy = llvm::IntegerType::get(LLVMContext, PointerWidthInBits);
   Int8PtrTy = Int8Ty->getPointerTo(0);
   Int8PtrPtrTy = Int8PtrTy->getPointerTo(0);
+
+  IORuntime = CreateLibflangIORuntime(*this);
 }
 
 CodeGenModule::~CodeGenModule() {
+  if(IORuntime)
+    delete IORuntime;
 }
-
 
 void CodeGenModule::Release() {
 }

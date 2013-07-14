@@ -51,6 +51,8 @@ namespace flang {
 
 namespace CodeGen {
 
+  class CGIORuntime;
+
 struct CodeGenTypeCache {
   /// void
   llvm::Type *VoidTy;
@@ -116,6 +118,7 @@ class CodeGenModule : public CodeGenTypeCache {
 
   CodeGenTypes Types;
   RuntimeABI LibflangABI;
+  CGIORuntime *IORuntime;
 
   /// RuntimeFunctions - contains all the runtime functions
   /// used in this module.
@@ -137,6 +140,16 @@ public:
   llvm::LLVMContext &getLLVMContext() const { return VMContext; }
 
   CodeGenTypes &getTypes() { return Types; }
+
+  bool hasIORuntime() const {
+    return IORuntime != nullptr;
+  }
+
+  /// getIORuntime() - Return a reference to the configured
+  /// IO runtime.
+  CGIORuntime &getIORuntime() {
+    return *IORuntime;
+  }
 
   /// Release - Finalize LLVM code generation.
   void Release();

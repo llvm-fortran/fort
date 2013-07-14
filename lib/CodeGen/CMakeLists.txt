@@ -11,6 +11,8 @@ add_flang_library(flangCodeGen
   CGExprCharacter.cpp
   CGIntrinsic.cpp
   CGCall.cpp
+  CGIORuntime.cpp
+  CGIOLibflang.cpp
 )
 
 target_link_libraries(flangCodeGen
