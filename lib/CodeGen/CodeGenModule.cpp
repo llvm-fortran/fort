@@ -41,20 +41,16 @@ CodeGenModule::CodeGenModule(ASTContext &C, const CodeGenOptions &CGO,
   : Context(C), LangOpts(C.getLangOpts()), CodeGenOpts(CGO), TheModule(M),
     Diags(diags), TheDataLayout(TD), VMContext(M.getContext()), Types(*this) {
 
-  // FIXME
-  // Initialize the type cache.
   llvm::LLVMContext &LLVMContext = M.getContext();
   VoidTy = llvm::Type::getVoidTy(LLVMContext);
+  Int1Ty = llvm::Type::getInt1Ty(LLVMContext);
   Int8Ty = llvm::Type::getInt8Ty(LLVMContext);
   Int16Ty = llvm::Type::getInt16Ty(LLVMContext);
   Int32Ty = llvm::Type::getInt32Ty(LLVMContext);
   Int64Ty = llvm::Type::getInt64Ty(LLVMContext);
   FloatTy = llvm::Type::getFloatTy(LLVMContext);
   DoubleTy = llvm::Type::getDoubleTy(LLVMContext);
-  PointerWidthInBits = 64;//C.getTargetInfo().getPointerWidth(0);
-  /*PointerAlignInBytes =
-  C.toCharUnitsFromBits(C.getTargetInfo().getPointerAlign(0)).getQuantity();
-  IntTy = llvm::IntegerType::get(LLVMContext, C.getTargetInfo().getIntWidth());*/
+  PointerWidthInBits = TD.getPointerSizeInBits(0);
   IntPtrTy = llvm::IntegerType::get(LLVMContext, PointerWidthInBits);
   Int8PtrTy = Int8Ty->getPointerTo(0);
   Int8PtrPtrTy = Int8PtrTy->getPointerTo(0);
