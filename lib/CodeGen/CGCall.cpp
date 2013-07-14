@@ -186,8 +186,8 @@ void CodeGenFunction::EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
     auto Ptr = EmitCallArgPtr(E);
     Args.push_back(Builder.CreateBitCast(Ptr, CGM.VoidPtrTy));
     Args.push_back(Builder.getInt32(getContext().getTypeKindBitWidth(
-                                      getContext().getArithmeticTypeKind(EType.getExtQualsPtrOrNull(),
-                                                                         EType))/8));
+                                      getContext().getArithmeticOrLogicalTypeKind(
+                                        EType.getExtQualsPtrOrNull(), EType))/8));
     break;
   }
   }

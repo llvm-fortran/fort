@@ -7,7 +7,7 @@ PROGRAM test
 
   X = 1          ! CHECK: store i32 1, i32*
   Y = 0.0        ! CHECK: store float 0
-  L = .false.    ! CHECK: store i1 false, i1*
+  L = .false.    ! CHECK: store i32 0, i32*
 
   CONTINUE       ! CHECK: getelementptr inbounds { float, float }*
   C = (1.0, 3.0) ! CHECK: store float 1

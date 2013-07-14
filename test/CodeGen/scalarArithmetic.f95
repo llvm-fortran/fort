@@ -2,7 +2,7 @@
 PROGRAM test
   INTEGER X ! CHECK: alloca i32
   REAL Y    ! CHECK: alloca float
-  LOGICAL L ! CHECK: alloca i1
+  LOGICAL L ! CHECK: alloca i32
   DOUBLE PRECISION DP ! CHECK: alloca double
 
   X = X     ! CHECK: load i32*

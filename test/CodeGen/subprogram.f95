@@ -3,7 +3,7 @@
 SUBROUTINE SUB ! CHECK: define void @SUB()
 END            ! CHECK: ret void
 
-SUBROUTINE SUB2(I, R, C, L) ! CHECK: define void @SUB2(i32* %I, float* %R, { float, float }* %C, i1* %L)
+SUBROUTINE SUB2(I, R, C, L) ! CHECK: define void @SUB2(i32* %I, float* %R, { float, float }* %C, i32* %L)
   INTEGER I
   REAL R
   COMPLEX C
@@ -13,7 +13,7 @@ SUBROUTINE SUB2(I, R, C, L) ! CHECK: define void @SUB2(i32* %I, float* %R, { flo
   J = I ! CHECK: load i32* %I
   C = R ! CHECK: load float* %R
 
-  IF(L) THEN ! CHECK: load i1* %L
+  IF(L) THEN ! CHECK: load i32* %L
     J = 0
   END IF
 
@@ -64,7 +64,7 @@ PROGRAM test
   CONTINUE ! CHECK: store float 2.0
   CONTINUE ! CHECK: store float 1.0
   CONTINUE ! CHECK: store float 2.0
-  CONTINUE ! CHECK: store i1 false
+  CONTINUE ! CHECK: store i32 0
   CONTINUE ! call void @SUB2
 
 END

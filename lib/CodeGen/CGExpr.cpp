@@ -40,6 +40,8 @@ RValueTy CodeGenFunction::EmitRValue(const Expr *E) {
     return EmitComplexExpr(E);
   else if(EType->isCharacterType())
     return EmitCharacterExpr(E);
+  else if(EType->isLogicalType())
+    return EmitLogicalValueExpr(E);
   else
     return EmitScalarExpr(E);
 }

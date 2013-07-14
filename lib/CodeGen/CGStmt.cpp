@@ -105,7 +105,7 @@ void CodeGenFunction::EmitBranch(llvm::BasicBlock *Target) {
 void CodeGenFunction::EmitBranchOnLogicalExpr(const Expr *Condition,
                                               llvm::BasicBlock *ThenBB,
                                               llvm::BasicBlock *ElseBB) {
-  auto CV = EmitLogicalScalarExpr(Condition);
+  auto CV = EmitLogicalConditionExpr(Condition);
   Builder.CreateCondBr(CV, ThenBB, ElseBB);
 }
 
@@ -242,9 +242,11 @@ void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
 
   auto Destination = EmitLValue(S->getLHS());
 
-  if(RHSType->isIntegerType() || RHSType->isRealType() ||
-     RHSType->isLogicalType()) {
+  if(RHSType->isIntegerType() || RHSType->isRealType()) {
     auto Value = EmitScalarExpr(RHS);
+    Builder.CreateStore(Value, Destination.getPointer());
+  } else if(RHSType->isLogicalType()) {
+    auto Value = EmitLogicalValueExpr(RHS);
     Builder.CreateStore(Value, Destination.getPointer());
   } else if(RHSType->isComplexType()) {
     auto Value = EmitComplexExpr(RHS);

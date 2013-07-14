@@ -37,6 +37,8 @@ public:
   ScalarExprEmitter(CodeGenFunction &cgf);
 
   llvm::Value *EmitExpr(const Expr *E);
+  llvm::Value *EmitLogicalConditionExpr(const Expr *E);
+  llvm::Value *EmitLogicalValueExpr(const Expr *E);
   llvm::Value *VisitIntegerConstantExpr(const IntegerConstantExpr *E);
   llvm::Value *VisitRealConstantExpr(const RealConstantExpr *E);
   llvm::Value *VisitLogicalConstantExpr(const LogicalConstantExpr *E);
@@ -61,6 +63,20 @@ ScalarExprEmitter::ScalarExprEmitter(CodeGenFunction &cgf)
 
 llvm::Value *ScalarExprEmitter::EmitExpr(const Expr *E) {
   return Visit(E);
+}
+
+llvm::Value *ScalarExprEmitter::EmitLogicalConditionExpr(const Expr *E) {
+  auto Value = Visit(E);
+  if(Value->getType() != CGF.getModule().Int1Ty)
+    return Builder.CreateZExtOrTrunc(Value, CGF.getModule().Int1Ty);
+  return Value;
+}
+
+llvm::Value *ScalarExprEmitter::EmitLogicalValueExpr(const Expr *E) {
+  auto Value = Visit(E);
+  if(Value->getType() == CGF.getModule().Int1Ty)
+    return Builder.CreateZExtOrTrunc(Value, CGF.ConvertType(E->getType()));
+  return Value;
 }
 
 llvm::Value *CodeGenFunction::EmitIntegerConstantExpr(const IntegerConstantExpr *E) {
@@ -102,7 +118,8 @@ llvm::Value *ScalarExprEmitter::VisitUnaryExprMinus(const UnaryExpr *E) {
 
 llvm::Value *ScalarExprEmitter::VisitUnaryExprNot(const UnaryExpr *E) {
   auto Val = EmitExpr(E->getExpression());
-  return Builder.CreateXor(Val,1);
+  return Builder.CreateXor(Val,
+                           llvm::ConstantInt::get(Val->getType(), 1));
 }
 
 llvm::Value *ScalarExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
@@ -190,6 +207,10 @@ llvm::Value *CodeGenFunction::EmitScalarRelationalExpr(BinaryExpr::Operator Op, 
                                                        llvm::Value *RHS) {
   auto IsInt = LHS->getType()->isIntegerTy();
   auto Predicate = ConvertRelationalOpToPredicate(Op, IsInt);
+  if(Op == BinaryExpr::Eqv || Op == BinaryExpr::Neqv) {
+    // logical comparison, need same types.
+    RHS = Builder.CreateZExtOrTrunc(RHS, LHS->getType());
+  }
 
   return IsInt? Builder.CreateICmp(Predicate, LHS, RHS) :
                 Builder.CreateFCmp(Predicate, LHS, RHS);
@@ -225,10 +246,10 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExprAnd(const BinaryExpr *E) {
   auto FalseBlock = CGF.createBasicBlock("and-false");
   auto EndBlock = CGF.createBasicBlock("end-and");
 
-  auto LHS = EmitExpr(E->getLHS());
+  auto LHS = EmitLogicalConditionExpr(E->getLHS());
   Builder.CreateCondBr(LHS, LHSTrueBlock, FalseBlock);
   CGF.EmitBlock(LHSTrueBlock);
-  auto RHS = EmitExpr(E->getRHS());
+  auto RHS = EmitLogicalConditionExpr(E->getRHS());
   Builder.CreateCondBr(RHS, TrueBlock, FalseBlock);
   CGF.EmitBlock(TrueBlock);
   auto ResultTrue = Builder.getTrue();
@@ -249,10 +270,10 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExprOr(const BinaryExpr *E) {
   auto FalseBlock = CGF.createBasicBlock("or-false");
   auto EndBlock = CGF.createBasicBlock("end-or");
 
-  auto LHS = EmitExpr(E->getLHS());
+  auto LHS = EmitLogicalConditionExpr(E->getLHS());
   Builder.CreateCondBr(LHS, TrueBlock, LHSFalseBlock);
   CGF.EmitBlock(LHSFalseBlock);
-  auto RHS = EmitExpr(E->getRHS());
+  auto RHS = EmitLogicalConditionExpr(E->getRHS());
   Builder.CreateCondBr(RHS, TrueBlock, FalseBlock);
   CGF.EmitBlock(FalseBlock);
   auto ResultFalse = Builder.getFalse();
@@ -326,8 +347,14 @@ llvm::Value *CodeGenFunction::EmitSizeIntExpr(const Expr *E) {
   return Value;
 }
 
-llvm::Value *CodeGenFunction::EmitLogicalScalarExpr(const Expr *E) {
-  return EmitScalarExpr(E);
+llvm::Value *CodeGenFunction::EmitLogicalConditionExpr(const Expr *E) {
+  ScalarExprEmitter EV(*this);
+  return EV.EmitLogicalConditionExpr(E);
+}
+
+llvm::Value *CodeGenFunction::EmitLogicalValueExpr(const Expr *E) {
+  ScalarExprEmitter EV(*this);
+  return EV.EmitLogicalValueExpr(E);
 }
 
 llvm::Value *CodeGenFunction::GetConstantOne(QualType T) {

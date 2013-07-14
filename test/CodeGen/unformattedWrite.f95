@@ -1,8 +1,7 @@
-! RUN: %flang %s 2>&1 | %file_check %s
+! RUN: %flang %s 2>&1
 PROGRAM test
 
-  ! FIXME: logical values
-  WRITE (*,*) 'Hello world!', 2, 3.5, (1.0, 2.0)
+  WRITE (*,*) 'Hello world!', 2, 3.5, .true., (1.0, 2.0)
   PRINT *, 'Hello world!'
 
 END PROGRAM

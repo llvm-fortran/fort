@@ -190,7 +190,8 @@ public:
   llvm::Value *EmitIntToInt32Conversion(llvm::Value *Value);
   llvm::Value *EmitSizeIntToIntConversion(llvm::Value *Value);
   llvm::Value *EmitScalarToScalarConversion(llvm::Value *Value, QualType Target);
-  llvm::Value *EmitLogicalScalarExpr(const Expr *E);
+  llvm::Value *EmitLogicalConditionExpr(const Expr *E);
+  llvm::Value *EmitLogicalValueExpr(const Expr *E);
   llvm::Value *EmitIntegerConstantExpr(const IntegerConstantExpr *E);
   llvm::Value *EmitScalarRelationalExpr(BinaryExpr::Operator Op, llvm::Value *LHS,
                                         llvm::Value *RHS);

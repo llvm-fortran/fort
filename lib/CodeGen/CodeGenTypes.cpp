@@ -63,9 +63,9 @@ llvm::Type *CodeGenTypes::ConvertBuiltInType(const BuiltinType *T,
   case BuiltinType::Complex:
     Kind = CGM.getContext().getComplexTypeKind(Ext);
     break;
-
   case BuiltinType::Logical:
-    return llvm::IntegerType::get(CGM.getLLVMContext(), 1);
+    Kind = CGM.getContext().getLogicalTypeKind(Ext);
+    break;
 
   case BuiltinType::Character:
     llvm::Type *Pair[2] = { CGM.Int8PtrTy, CGM.SizeTy };

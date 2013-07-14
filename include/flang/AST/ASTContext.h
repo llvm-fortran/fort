@@ -84,6 +84,14 @@ public:
                                           BuiltinType::Int4;
   }
 
+  /// \brief Returns the kind of a logical type or the
+  /// default logical kind if the type has no extended
+  /// qualifiers or if kind wasn't specified.
+  BuiltinType::TypeKind getLogicalTypeKind(const ExtQuals *Ext) const {
+    return Ext && Ext->hasKindSelector()? Ext->getKindSelector() :
+                                          BuiltinType::Int4;
+  }
+
   /// \brief Returns the kind of a real type or the
   /// default real kind if the type has no extended
   /// qualifiers or if kind wasn't specified.
@@ -116,6 +124,17 @@ public:
                                               QualType T) const {
     if(T->isIntegerType()) return getIntTypeKind(Ext);
     else if(T->isRealType()) return getRealTypeKind(Ext);
+    else return getComplexTypeKind(Ext);
+  }
+
+  /// \brief Returns the kind of an integer, real, logical or complex type
+  /// or the appropriate default kind if the type has no extended
+  /// qualifiers or if the kind wasn't specified.
+  BuiltinType::TypeKind getArithmeticOrLogicalTypeKind(const ExtQuals *Ext,
+                                                       QualType T) const {
+    if(T->isIntegerType()) return getIntTypeKind(Ext);
+    else if(T->isRealType()) return getRealTypeKind(Ext);
+    else if(T->isComplexType()) return getLogicalTypeKind(Ext);
     else return getComplexTypeKind(Ext);
   }
 
