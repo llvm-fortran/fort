@@ -97,7 +97,8 @@ CodeGenModule::GetRuntimeFunction(StringRef Name,
 CGFunction
 CodeGenModule::GetRuntimeFunction(StringRef Name,
                                   ArrayRef<CGType> ArgTypes,
-                                  CGType ReturnType) {
+                                  CGType ReturnType,
+                                  FortranABI *ABI) {
   llvm::SmallString<32> MangledName("libflang_");
   MangledName.append(Name);
 
@@ -105,7 +106,7 @@ CodeGenModule::GetRuntimeFunction(StringRef Name,
   if(SearchResult != RuntimeFunctions.end())
     return SearchResult->second;
 
-  auto FunctionInfo = Types.GetFunctionType(LibflangABI,
+  auto FunctionInfo = Types.GetFunctionType(ABI? *ABI : RuntimeABI,
                                             ArgTypes,
                                             ReturnType);
   auto Func = llvm::Function::Create(FunctionInfo->getFunctionType(),

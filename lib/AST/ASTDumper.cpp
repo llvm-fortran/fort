@@ -509,7 +509,7 @@ void ASTDumper::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
   else if(Type->isComplexType())
     OS << "CMPLX(";
   dumpExpr(E->getExpression());
-  if(const ExtQuals *Ext = Type.getExtQualsPtrOnNull())
+  if(const ExtQuals *Ext = Type.getExtQualsPtrOrNull())
     OS << ",Kind=" << BuiltinType::getTypeKindString(Ext->getKindSelector());
   OS << ')';
 }

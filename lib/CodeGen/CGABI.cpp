@@ -28,16 +28,23 @@ ABIRetInfo FortranABI::GetRetABI(QualType RetType) {
   return ABIRetInfo(ABIRetInfo::Value);
 }
 
-ABIArgInfo RuntimeABI::GetArgABI(QualType ArgType) {
-  if(ArgType->isCharacterType() ||
+ABIArgInfo LibflangABI::GetArgABI(QualType ArgType) {
+  if(ArgType->isComplexType() ||
      ArgType->isCharacterType())
     return ABIArgInfo(ABIArgInfo::Expand);
 
   return ABIArgInfo(ABIArgInfo::Value);
 }
 
-ABIRetInfo RuntimeABI::GetRetABI(QualType RetType) {
+ABIRetInfo LibflangABI::GetRetABI(QualType RetType) {
   return FortranABI::GetRetABI(RetType);
+}
+
+ABIArgInfo LibflangTransferABI::GetArgABI(QualType ArgType) {
+  if(ArgType->isCharacterType())
+    return LibflangABI::GetArgABI(ArgType);
+
+  return ABIArgInfo(ABIArgInfo::ReferenceAsVoidExtraSize);
 }
 
 }

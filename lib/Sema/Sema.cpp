@@ -1064,7 +1064,7 @@ bool Sema::CheckCharacterLengthSpec(const Expr *E) {
 }
 
 bool Sema::CheckCharacterLengthDeclarationCompability(QualType T, VarDecl *VD) {
-  auto Ext = T.getExtQualsPtrOnNull();
+  auto Ext = T.getExtQualsPtrOrNull();
   if(Ext) {
     if(Ext->isStarLengthSelector() && !VD->isArgument()) {
       Diags.Report(VD->getLocation(), diag::err_char_star_length_incompatible)

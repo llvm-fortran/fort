@@ -28,6 +28,11 @@ public:
     /// Passes a scalar/complex by reference
     Reference,
 
+    /// Passes a scalar/complex as two arguments
+    /// pointer argument - void*
+    /// size argument - int32 (sizeof type)
+    ReferenceAsVoidExtraSize,
+
     /// Passes an aggregate as separate arguments
     /// complex - two arguments (real, im)
     /// character - two arguments (ptr, len)

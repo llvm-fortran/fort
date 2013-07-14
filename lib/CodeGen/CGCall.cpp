@@ -58,6 +58,11 @@ void CodeGenTypes::ConvertArgumentType(SmallVectorImpl<llvm::Type*> &ArgTypes,
     ArgTypes.push_back(llvm::PointerType::get(ConvertType(T), 0));
     break;
 
+  case ABIArgInfo::ReferenceAsVoidExtraSize:
+    ArgTypes.push_back(CGM.VoidPtrTy);
+    ArgTypes.push_back(CGM.Int32Ty);
+    break;
+
   case ABIArgInfo::Expand:
     if(T->isComplexType()) {
       auto ElementType = ConvertType(Context.getComplexTypeElementType(T));
@@ -175,6 +180,16 @@ void CodeGenFunction::EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
   case ABIArgInfo::Reference:
     Args.push_back(EmitCallArgPtr(E));
     break;
+
+  case ABIArgInfo::ReferenceAsVoidExtraSize: {
+    auto EType = E->getType();
+    auto Ptr = EmitCallArgPtr(E);
+    Args.push_back(Builder.CreateBitCast(Ptr, CGM.VoidPtrTy));
+    Args.push_back(Builder.getInt32(getContext().getTypeKindBitWidth(
+                                      getContext().getArithmeticTypeKind(EType.getExtQualsPtrOrNull(),
+                                                                         EType))/8));
+    break;
+  }
   }
 }
 

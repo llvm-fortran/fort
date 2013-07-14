@@ -327,7 +327,7 @@ public:
   const Type *getTypePtr() const;
   const Type *getTypePtrOrNull() const;
 
-  const ExtQuals *getExtQualsPtrOnNull() const;
+  const ExtQuals *getExtQualsPtrOrNull() const;
 
   /// \brief Retrieves a pointer to the name of the base type.
   const IdentifierInfo *getBaseTypeIdentifier() const;
@@ -768,7 +768,7 @@ inline const Type *QualType::getTypePtr() const {
 inline const Type *QualType::getTypePtrOrNull() const {
   return (isNull() ? 0 : getCommonPtr()->BaseType);
 }
-inline const ExtQuals *QualType::getExtQualsPtrOnNull() const {
+inline const ExtQuals *QualType::getExtQualsPtrOrNull() const {
   return Value.getPointer().dyn_cast<const ExtQuals*>();
 }
 inline bool QualType::isCanonical() const {

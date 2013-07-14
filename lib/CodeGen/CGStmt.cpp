@@ -60,10 +60,10 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
       CG->EmitAssignmentStmt(S);
     }
     void VisitWriteStmt(const WriteStmt *S) {
-      CG->getModule().getIORuntime().EmitWriteStmt(S);
+      CG->getModule().getIORuntime().EmitWriteStmt(*CG, S);
     }
     void VisitPrintStmt(const PrintStmt *S) {
-      CG->getModule().getIORuntime().EmitPrintStmt(S);
+      CG->getModule().getIORuntime().EmitPrintStmt(*CG, S);
     }
   };
   Visitor SV(this);

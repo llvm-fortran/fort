@@ -21,10 +21,15 @@ public:
   virtual ABIRetInfo GetRetABI(QualType RetType);
 };
 
-class RuntimeABI : public FortranABI {
+class LibflangABI : public FortranABI {
 public:
   ABIArgInfo GetArgABI(QualType ArgType);
   ABIRetInfo GetRetABI(QualType RetType);
+};
+
+class LibflangTransferABI : public LibflangABI {
+public:
+  ABIArgInfo GetArgABI(QualType ArgType);
 };
 
 }

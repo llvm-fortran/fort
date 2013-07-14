@@ -63,7 +63,7 @@ QualType ASTContext::getBuiltinQualType(BuiltinType::TypeSpec TS) const {
 }
 
 const llvm::fltSemantics&  ASTContext::getFPTypeSemantics(QualType Type) {
-  switch(getRealOrComplexTypeKind(Type.getExtQualsPtrOnNull(), Type)) {
+  switch(getRealOrComplexTypeKind(Type.getExtQualsPtrOrNull(), Type)) {
   case BuiltinType::Real4:  return llvm::APFloat::IEEEsingle;
   case BuiltinType::Real8:  return llvm::APFloat::IEEEdouble;
   case BuiltinType::Real16: return llvm::APFloat::IEEEquad;
@@ -122,8 +122,8 @@ QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals,
 }
 
 QualType ASTContext::getQualTypeOtherKind(QualType Type, QualType KindType) {
-  auto ExtQuals = Type.getExtQualsPtrOnNull();
-  auto DesiredExtQuals = KindType.getExtQualsPtrOnNull();
+  auto ExtQuals = Type.getExtQualsPtrOrNull();
+  auto DesiredExtQuals = KindType.getExtQualsPtrOrNull();
   assert(DesiredExtQuals);
 
   return getExtQualType(Type.getTypePtr(),
@@ -137,14 +137,14 @@ QualType ASTContext::getQualTypeOtherKind(QualType Type, QualType KindType) {
 // NB: this assumes that real and complex have have the same default kind.
 QualType ASTContext::getComplexTypeElementType(QualType Type) {
   assert(Type->isComplexType());
-  if(Type.getExtQualsPtrOnNull())
+  if(Type.getExtQualsPtrOrNull())
     return getQualTypeOtherKind(RealTy, Type);
   return RealTy;
 }
 
 QualType ASTContext::getComplexType(QualType ElementType) {
   assert(ElementType->isRealType());
-  if(ElementType.getExtQualsPtrOnNull())
+  if(ElementType.getExtQualsPtrOrNull())
     return getQualTypeOtherKind(ComplexTy, ElementType);
   return ComplexTy;
 }

@@ -31,13 +31,13 @@ static TypeSpecifierType GetArithmeticTypeSpec(QualType T) {
 
 /// Returns true if a real type is also a double precision type (Kind is 8).
 static bool IsRealTypeDoublePrecision(QualType T) {
-  auto Ext = T.getExtQualsPtrOnNull();
+  auto Ext = T.getExtQualsPtrOrNull();
   return Ext && Ext->getKindSelector() == BuiltinType::Real8? true : false;
 }
 
 /// Returns true if a type is a double precision real type (Kind is 8).
 static bool IsTypeDoublePrecisionReal(QualType T) {
-  auto Ext = T.getExtQualsPtrOnNull();
+  auto Ext = T.getExtQualsPtrOrNull();
   return T->isRealType() &&
            Ext && Ext->getKindSelector() == BuiltinType::Real8? true : false;
 }
@@ -51,7 +51,7 @@ static bool IsTypeSinglePrecisionReal(QualType T) {
 
 /// Returns true if a type is a double precision complex type (Kind is 8).
 static bool IsTypeDoublePrecisionComplex(QualType T) {
-  auto Ext = T.getExtQualsPtrOnNull();
+  auto Ext = T.getExtQualsPtrOrNull();
   return T->isComplexType() &&
            Ext && Ext->getKindSelector() == BuiltinType::Real8? true : false;
 }
@@ -110,8 +110,8 @@ static Expr *ImplicitCast(ASTContext &C, QualType T, ExprResult E) {
 static QualType SelectLargestKindApplyConversions(ASTContext &C,
                                                   ExprResult &A, ExprResult &B,
                                                   QualType AType, QualType BType) {
-  auto AK = C.getArithmeticTypeKind(AType.getExtQualsPtrOnNull(), AType);
-  auto BK = C.getArithmeticTypeKind(BType.getExtQualsPtrOnNull(), BType);
+  auto AK = C.getArithmeticTypeKind(AType.getExtQualsPtrOrNull(), AType);
+  auto BK = C.getArithmeticTypeKind(BType.getExtQualsPtrOrNull(), BType);
 
   if(AK == BK) return AType;
   else if(C.getTypeKindBitWidth(AK) >=
@@ -134,8 +134,8 @@ static QualType TakeTypeSelectLargestKindApplyConversion(ASTContext &C,
                                                          ExprResult &A, ExprResult &B,
                                                          QualType AType, QualType BType) {
   QualType ChosenType = Chosen == 0? AType : BType;  
-  const ExtQuals *AExt = AType.getExtQualsPtrOnNull();
-  const ExtQuals *BExt = BType.getExtQualsPtrOnNull();
+  const ExtQuals *AExt = AType.getExtQualsPtrOrNull();
+  const ExtQuals *BExt = BType.getExtQualsPtrOrNull();
   auto AK = C.getArithmeticTypeKind(AExt, AType);
   auto BK = C.getArithmeticTypeKind(BExt, BType);
   auto AKWidth = C.getTypeKindBitWidth(AK);
@@ -156,8 +156,8 @@ static QualType TakeTypeSelectLargestKindApplyConversion(ASTContext &C,
 }
 
 static QualType TypeWithKind(ASTContext &C, QualType T, QualType TKind) {
-  const ExtQuals *AExt = T.getExtQualsPtrOnNull();
-  const ExtQuals *BExt = TKind.getExtQualsPtrOnNull();
+  const ExtQuals *AExt = T.getExtQualsPtrOrNull();
+  const ExtQuals *BExt = TKind.getExtQualsPtrOrNull();
   auto AK = C.getArithmeticTypeKind(AExt, T);
   auto BK = C.getArithmeticTypeKind(BExt, TKind);
   if(AK == BK) return T;
@@ -169,8 +169,8 @@ ExprResult Sema::TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
   const Type *LHSType = LHSTypeof.getTypePtr();
   auto RHSTypeof = RHS.get()->getType();
   const Type *RHSType = RHSTypeof.getTypePtr();
-  auto LHSExtQuals = LHSTypeof.getExtQualsPtrOnNull();
-  auto RHSExtQuals = RHS.get()->getType().getExtQualsPtrOnNull();
+  auto LHSExtQuals = LHSTypeof.getExtQualsPtrOrNull();
+  auto RHSExtQuals = RHS.get()->getType().getExtQualsPtrOrNull();
 
   // Arithmetic assigment
   bool IsRHSInteger = RHSType->isIntegerType();

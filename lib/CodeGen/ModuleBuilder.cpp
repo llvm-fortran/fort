@@ -60,7 +60,8 @@ namespace {
       //M->setDataLayout(Ctx->getTargetInfo().getTargetDescription());
       //M->setTargetTriple("");
       //M->setDataLayout("");
-      //TD.reset(new llvm::DataLayout(Ctx->getTargetInfo().getTargetDescription()));
+      TD.reset(new llvm::DataLayout(M.get()));//Ctx->getTargetInfo().getTargetDescription()));
+
       Builder.reset(new CodeGen::CodeGenModule(Context, CodeGenOpts, *M, *TD,
                                                Diags));
     }

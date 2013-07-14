@@ -30,8 +30,8 @@ public:
   CGIORuntime(CodeGenModule &cgm) : CGM(cgm) {}
   virtual ~CGIORuntime();
 
-  virtual void EmitWriteStmt(const WriteStmt *S) = 0;
-  virtual void EmitPrintStmt(const PrintStmt *S) = 0;
+  virtual void EmitWriteStmt(CodeGenFunction &CGF, const WriteStmt *S) = 0;
+  virtual void EmitPrintStmt(CodeGenFunction &CGF, const PrintStmt *S) = 0;
 };
 
 /// Creates an instance of a Libflang IO runtime class.

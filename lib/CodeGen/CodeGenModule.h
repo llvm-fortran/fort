@@ -117,7 +117,7 @@ class CodeGenModule : public CodeGenTypeCache {
   llvm::LLVMContext &VMContext;
 
   CodeGenTypes Types;
-  RuntimeABI LibflangABI;
+  LibflangABI RuntimeABI;
   CGIORuntime *IORuntime;
 
   /// RuntimeFunctions - contains all the runtime functions
@@ -138,6 +138,10 @@ public:
   llvm::Module &getModule() const { return TheModule; }
 
   llvm::LLVMContext &getLLVMContext() const { return VMContext; }
+
+  const llvm::DataLayout &getDataLayout() const {
+    return TheDataLayout;
+  }
 
   CodeGenTypes &getTypes() { return Types; }
 
@@ -170,29 +174,33 @@ public:
 
   CGFunction GetRuntimeFunction(StringRef Name,
                                 ArrayRef<CGType> ArgTypes,
-                                CGType ReturnType = CGType());
+                                CGType ReturnType = CGType(),
+                                FortranABI *ABI = nullptr);
 
   CGFunction GetRuntimeFunction1(StringRef Name,
-                                CGType ArgType,
-                                CGType ReturnType = CGType()) {
+                                 CGType ArgType,
+                                 CGType ReturnType = CGType(),
+                                 FortranABI *ABI = nullptr) {
     return GetRuntimeFunction(Name, ArgType,
-                              ReturnType);
+                              ReturnType, ABI);
   }
 
   CGFunction GetRuntimeFunction2(StringRef Name,
                                  CGType A1, CGType A2,
-                                 CGType ReturnType = CGType()) {
+                                 CGType ReturnType = CGType(),
+                                 FortranABI *ABI = nullptr) {
     CGType ArgTypes[] = { A1, A2 };
     return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 2),
-                              ReturnType);
+                              ReturnType, ABI);
   }
 
   CGFunction GetRuntimeFunction3(StringRef Name,
                                  CGType A1, CGType A2, CGType A3,
-                                 CGType ReturnType = CGType()) {
+                                 CGType ReturnType = CGType(),
+                                 FortranABI *ABI = nullptr) {
     CGType ArgTypes[] = { A1, A2, A3 };
     return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 3),
-                              ReturnType);
+                              ReturnType, ABI);
   }
 
   CGFunction GetFunction(const FunctionDecl *Function);

@@ -30,12 +30,12 @@ CodeGenTypes::CodeGenTypes(CodeGenModule &cgm)
 CodeGenTypes::~CodeGenTypes() { }
 
 uint64_t CodeGenTypes::GetCharacterTypeLength(QualType T) {
-  auto Ext = T.getExtQualsPtrOnNull();
+  auto Ext = T.getExtQualsPtrOrNull();
   return 1; //FIXME
 }
 
 llvm::Type *CodeGenTypes::ConvertType(QualType T) {
-  auto Ext = T.getExtQualsPtrOnNull();
+  auto Ext = T.getExtQualsPtrOrNull();
   auto TPtr = T.getTypePtr();
   if(const BuiltinType *BTy = dyn_cast<BuiltinType>(TPtr))
     return ConvertBuiltInType(BTy, Ext);
@@ -125,7 +125,7 @@ llvm::Type *CodeGenTypes::GetComplexTypeAsVector(llvm::Type *ElementType) {
 }
 
 llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {
-  auto Ext = T.getExtQualsPtrOnNull();
+  auto Ext = T.getExtQualsPtrOrNull();
   auto TPtr = T.getTypePtr();
   if(const BuiltinType *BTy = dyn_cast<BuiltinType>(TPtr))
     return ConvertBuiltInTypeForMem(BTy, Ext);
