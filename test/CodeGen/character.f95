@@ -12,7 +12,8 @@ CHARACTER*10 FUNCTION BAR(I) ! CHECK: define void @BAR
 END
 
 PROGRAM test
-  CHARACTER STR ! CHECK: alloca [1 x i8]
+  CHARACTER STR     ! CHECK: alloca [1 x i8]
+  CHARACTER*20 STR2 ! CHECK: alloca [20 x i8]
   LOGICAL L
 
   STR = 'HELLO' ! CHECK: call void @libflang_assignment_char1
@@ -30,5 +31,7 @@ PROGRAM test
   CALL FOO(STR)
 
   STR = BAR(2)
+
+  STR2 = 'GREETINGS'
 
 END PROGRAM

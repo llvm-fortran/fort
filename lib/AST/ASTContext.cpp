@@ -42,10 +42,10 @@ void ASTContext::InitBuiltinTypes() {
   InitBuiltinType(IntegerTy,         BuiltinType::Integer);
   InitBuiltinType(RealTy,            BuiltinType::Real);
   DoublePrecisionTy = getExtQualType(RealTy.getTypePtr(), Qualifiers(),
-                                     BuiltinType::Real8, true, false, nullptr);
+                                     BuiltinType::Real8, true, false, 0);
   InitBuiltinType(ComplexTy,         BuiltinType::Complex);
   DoubleComplexTy = getExtQualType(ComplexTy.getTypePtr(), Qualifiers(),
-                                   BuiltinType::Real8, true, false, nullptr);
+                                   BuiltinType::Real8, true, false, 0);
   InitBuiltinType(CharacterTy,       BuiltinType::Character);
   InitBuiltinType(LogicalTy,         BuiltinType::Logical);
 }
@@ -92,7 +92,7 @@ unsigned ASTContext::getTypeKindBitWidth(BuiltinType::TypeKind Kind) const {
 QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals,
                                     unsigned KindSel, bool IsDoublePrecisionKind,
                                     bool IsStarLength,
-                                    Expr *LenSel) const {
+                                    unsigned LenSel) const {
   // Check if we've already instantiated this type.
   llvm::FoldingSetNodeID ID;
   ExtQuals::Profile(ID, BaseType, Quals, KindSel, IsDoublePrecisionKind, IsStarLength, LenSel);
@@ -131,7 +131,7 @@ QualType ASTContext::getQualTypeOtherKind(QualType Type, QualType KindType) {
                         DesiredExtQuals->getKindSelector(),
                         DesiredExtQuals->isDoublePrecisionKind(),
                         ExtQuals? ExtQuals->isStarLengthSelector() : false,
-                        ExtQuals? ExtQuals->getLengthSelector() : nullptr);
+                        ExtQuals? ExtQuals->getLengthSelector() : 0);
 }
 
 // NB: this assumes that real and complex have have the same default kind.

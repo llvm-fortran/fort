@@ -388,6 +388,11 @@ public:
 
 private:
 
+
+  /// Returns evaluated length specification
+  /// fot the character type.
+  unsigned EvalAndCheckCharacterLength(const Expr *E);
+
   bool IsValidFunctionType(QualType Type);
 
   /// Sets a type for a function
@@ -403,9 +408,6 @@ private:
 
   /// Returns true if the given array type can be applied to a declaration.
   bool CheckArrayTypeDeclarationCompability(const ArrayType *T, VarDecl *VD);
-
-  /// Returns true if the character length spec is valid
-  bool CheckCharacterLengthSpec(const Expr *E);
 
   /// Returns true if the given character length can be applied to a declaration.
   bool CheckCharacterLengthDeclarationCompability(QualType T, VarDecl *VD);

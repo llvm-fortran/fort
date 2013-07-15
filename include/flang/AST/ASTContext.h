@@ -69,7 +69,7 @@ public:
   QualType getExtQualType(const Type *Base, Qualifiers Quals,
                           unsigned KindSel, bool IsDoublePrecisionKind,
                           bool IsStarLength,
-                          Expr *LenSel) const;
+                          unsigned LenSel) const;
   QualType getQualTypeOtherKind(QualType Type, QualType KindType);
   QualType getComplexTypeElementType(QualType Type);
   QualType getComplexType(QualType ElementType);

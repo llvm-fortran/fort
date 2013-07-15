@@ -100,8 +100,7 @@ void QualType::print(raw_ostream &OS) const {
     if (EQ->hasLengthSelector()) {
       if(EQ->isStarLengthSelector()) OS << ", LEN=*";
       else {
-        OS << ", LEN=";
-        EQ->getLengthSelector()->dump(OS);
+        OS << ", LEN=" << EQ->getLengthSelector();
       }
     }
     OS << ")";
@@ -109,9 +108,7 @@ void QualType::print(raw_ostream &OS) const {
   } else if (EQ->hasLengthSelector()) {
     if(EQ->isStarLengthSelector()) OS << "(LEN=*)";
     else {
-      OS << " (LEN=";
-      EQ->getLengthSelector()->dump(OS);
-      OS << ")";
+      OS << " (LEN=" << EQ->getLengthSelector() << ")";
       Comma = true;
     }
   }

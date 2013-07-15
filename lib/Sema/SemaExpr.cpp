@@ -15,7 +15,6 @@
 #include "flang/AST/Expr.h"
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
-#include <sstream>
 
 namespace flang {
 

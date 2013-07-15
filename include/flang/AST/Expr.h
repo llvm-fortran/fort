@@ -72,7 +72,7 @@ public:
 
   /// EvaluateAsInt - Return true if this is a constant which we can fold and
   /// convert to an integer, using any crazy technique that we want to.
-  bool EvaluateAsInt(llvm::APSInt &Result, const ASTContext &Ctx) const;
+  bool EvaluateAsInt(int64_t &Result, const ASTContext &Ctx) const;
 
   /// isEvaluatable - Returns true if this is a constant which can be folded.
   bool isEvaluatable(const ASTContext &Ctx) const;

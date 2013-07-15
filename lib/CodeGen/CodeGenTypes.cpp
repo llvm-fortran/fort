@@ -31,7 +31,8 @@ CodeGenTypes::~CodeGenTypes() { }
 
 uint64_t CodeGenTypes::GetCharacterTypeLength(QualType T) {
   auto Ext = T.getExtQualsPtrOrNull();
-  return 1; //FIXME
+  return Ext && Ext->hasLengthSelector()?
+           Ext->getLengthSelector() : 1;
 }
 
 llvm::Type *CodeGenTypes::ConvertType(QualType T) {
@@ -47,7 +48,8 @@ llvm::Type *CodeGenTypes::ConvertBuiltInTypeForMem(const BuiltinType *T,
                                                    const ExtQuals *Ext) {
   if(T->getTypeSpec() != BuiltinType::Character)
     return ConvertBuiltInType(T, Ext);
-  return llvm::ArrayType::get(CGM.Int8Ty, 1);
+  return llvm::ArrayType::get(CGM.Int8Ty, Ext && Ext->hasLengthSelector()?
+                                            Ext->getLengthSelector() : 1);
 }
 
 llvm::Type *CodeGenTypes::ConvertBuiltInType(const BuiltinType *T,

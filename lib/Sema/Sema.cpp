@@ -388,12 +388,13 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
     assert(!Kind);
     Kind = BuiltinType::Real8;
   }
+  unsigned LengthSelector = 0;
   if(DS.hasLengthSelector() && !DS.isStarLengthSelector())
-    CheckCharacterLengthSpec(DS.getLengthSelector());
+    LengthSelector = EvalAndCheckCharacterLength(DS.getLengthSelector());
   Result = C.getExtQualType(TypeNode, Quals, Kind,
                             DS.isDoublePrecision(),
                             DS.isStarLengthSelector(),
-                            DS.getLengthSelector());
+                            LengthSelector);
 
   if (!Quals.hasAttributeSpec(Qualifiers::AS_dimension))
     return Result;
@@ -1017,23 +1018,6 @@ bool Sema::CheckArrayTypeDeclarationCompability(const ArrayType *T, VarDecl *VD)
         return false;
       }
     }
-  }
-  return true;
-}
-
-bool Sema::CheckCharacterLengthSpec(const Expr *E) {
-  auto Type = E->getType();
-  if(!Type.isNull() && !Type->isIntegerType()) {
-    Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
-      << E->getSourceRange();
-    return false;
-  }
-
-  // Make sure the value is a constant expression.
-  if(!E->isEvaluatable(Context)) {
-    Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
-      << E->getSourceRange();
-    return false;
   }
   return true;
 }

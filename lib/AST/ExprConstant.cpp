@@ -14,6 +14,7 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/ExprVisitor.h"
+#include <limits>
 
 namespace flang {
 
@@ -66,12 +67,45 @@ bool ConstExprVerifier::VisitVarExpr(const VarExpr *E) {
   return false;
 }
 
+struct IntValueTy : public llvm::APInt {
+
+  IntValueTy() {}
+  IntValueTy(uint64_t I) :
+    llvm::APInt(64, I) {}
+
+  template<typename T = int64_t>
+  bool IsProperSignedInt() const {
+    auto u64 = getLimitedValue();
+    if(isNonNegative())
+      return u64 <= uint64_t(std::numeric_limits<T>::max());
+    else
+      return T(int64_t(u64)) >= (std::numeric_limits<T>::min());
+  }
+
+  void operator=(const llvm::APInt &I) {
+    llvm::APInt::operator =(I);
+  }
+
+  template<typename T = int64_t>
+  bool Assign(const llvm::APInt &I) {
+    auto u64 = I.getLimitedValue();
+    if(u64 <= uint64_t(std::numeric_limits<T>::max())) {
+      *this = IntValueTy(u64);
+      return true;
+    }
+    *this = IntValueTy(1);
+    return false;
+  }
+};
+
+/// Evaluates 64 bit signed integers.
 class IntExprEvaluator: public ConstExprVisitor<IntExprEvaluator,
                                                 bool> {
-  llvm::APSInt &Result;
+  IntValueTy Result;
 public:
-  IntExprEvaluator(llvm::APSInt &I)
-    : Result(I) {}
+  IntExprEvaluator() {}
+
+  bool CheckResult(bool Overflow);
 
   bool Eval(const Expr *E);
   bool VisitExpr(const Expr *E);
@@ -80,7 +114,15 @@ public:
   bool VisitUnaryExprPlus(const UnaryExpr *E);
   bool VisitBinaryExpr(const BinaryExpr *E);
   bool VisitVarExpr(const VarExpr *E);
+
+  int64_t getResult() const;
 };
+
+int64_t IntExprEvaluator::getResult() const {
+  if(Result.IsProperSignedInt())
+    return int64_t(Result.getLimitedValue());
+  return 1;
+}
 
 bool IntExprEvaluator::Eval(const Expr *E) {
   if(E->getType()->isIntegerType())
@@ -88,18 +130,25 @@ bool IntExprEvaluator::Eval(const Expr *E) {
   return false;
 }
 
+bool IntExprEvaluator::CheckResult(bool Overflow) {
+  if(Overflow || !Result.IsProperSignedInt())
+    return false;
+  return true;
+}
+
 bool IntExprEvaluator::VisitExpr(const Expr *E) {
   return false;
 }
 
 bool IntExprEvaluator::VisitIntegerConstantExpr(const IntegerConstantExpr *E) {
-  Result = E->getValue();
-  return true;
+  return Result.Assign(E->getValue());
 }
 
 bool IntExprEvaluator::VisitUnaryExprMinus(const UnaryExpr *E) {
   if(!Eval(E->getExpression())) return false;
-  Result.setIsSigned(!Result.isSigned());
+  bool Overflow = false;
+  Result = IntValueTy(0).ssub_ov(Result, Overflow);
+  return CheckResult(Overflow);
 }
 
 bool IntExprEvaluator::VisitUnaryExprPlus(const UnaryExpr *E) {
@@ -108,38 +157,40 @@ bool IntExprEvaluator::VisitUnaryExprPlus(const UnaryExpr *E) {
 
 bool IntExprEvaluator::VisitBinaryExpr(const BinaryExpr *E) {
   if(!Eval(E->getRHS())) return false;
-  llvm::APSInt RHS(Result);
+  IntValueTy RHS(Result);
   if(!Eval(E->getLHS())) return false;
 
+  bool Overflow = false;
   switch(E->getOperator()) {
   case BinaryExpr::Plus:
-    Result += RHS;
+    Result = Result.sadd_ov(RHS, Overflow);
     break;
   case BinaryExpr::Minus:
-    Result -= RHS;
+    Result = Result.ssub_ov(RHS, Overflow);
     break;
   case BinaryExpr::Multiply:
-    Result *= RHS;
+    Result = Result.smul_ov(RHS, Overflow);
     break;
   case BinaryExpr::Divide:
-    Result /= RHS;
+    Result = Result.sdiv_ov(RHS, Overflow);
     break;
   case BinaryExpr::Power: {
-    if(llvm::APSInt::isSameValue(RHS, llvm::APSInt(0))) {
-      Result = RHS;
-      break;
-    } else if(RHS.isUnsigned()) {
-      llvm::APSInt R(Result);
-      for(llvm::APSInt I(1); I < RHS; ++I) {
-        Result *= R;
-      }
-    } else return false;
+    if(RHS.isNegative()) return false;
+    uint64_t N = RHS.getLimitedValue();
+    IntValueTy Sum(1);
+    for(uint64_t I = 0; I < N; ++I) {
+      Overflow = false;
+      Sum = Sum.smul_ov(Result, Overflow);
+      if(Overflow || !Sum.IsProperSignedInt())
+        return false;
+    }
+    Result = Sum;
     break;
   }
   default:
     return false;
   }
-  return true;
+  return CheckResult(Overflow);
 }
 
 bool IntExprEvaluator::VisitVarExpr(const VarExpr *E) {
@@ -149,13 +200,10 @@ bool IntExprEvaluator::VisitVarExpr(const VarExpr *E) {
   return false;
 }
 
-bool Expr::EvaluateAsInt(llvm::APSInt &Result, const ASTContext &Ctx) const {
-  IntExprEvaluator EV(Result);
+bool Expr::EvaluateAsInt(int64_t &Result, const ASTContext &Ctx) const {
+  IntExprEvaluator EV;
   auto Success = EV.Eval(this);
-  if(Success) {
-    if(llvm::APSInt::isSameValue(Result, llvm::APSInt(0)))
-      Result.setIsUnsigned(true);
-  }
+  Result = EV.getResult();
   return Success;
 }
 
