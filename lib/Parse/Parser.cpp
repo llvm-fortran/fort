@@ -249,14 +249,21 @@ void Parser::CleanLiteral(Token T, std::string &NameStr) {
   assert(T.isLiteral() && "Trying to clean a non-literal!");
   if (!T.needsCleaning()) {
     // This should be the common case.
-    NameStr = llvm::StringRef(T.getLiteralData(),
-                              T.getLength()).str();
+    if(T.isNot(tok::char_literal_constant)) {
+      NameStr = llvm::StringRef(T.getLiteralData(),
+                                T.getLength()).str();
+    } else {
+      NameStr = llvm::StringRef(T.getLiteralData()+1,
+                                T.getLength()-2).str();
+    }
     return;
   }
 
   llvm::SmallVector<llvm::StringRef, 2> Spelling;
   TheLexer.getSpelling(T, Spelling);
   NameStr = T.CleanLiteral(Spelling);
+  if(T.is(tok::char_literal_constant))
+    NameStr = std::string(NameStr,1,NameStr.length()-2);
 }
 
 /// EatIfPresent - Eat the token if it's present. Return 'true' if it was
@@ -308,8 +315,6 @@ bool Parser::ParseInclude() {
   }
   std::string LiteralString;
   CleanLiteral(NextTok,LiteralString);
-  //FIXME: need a proper way to get unquoted unescaped string from the character literal.
-  LiteralString = std::string(LiteralString,1,LiteralString.length()-2);
   if(!LiteralString.length()) {
     Diag.Report(NextTok.getLocation(),diag::err_pp_empty_filename);
     return true;

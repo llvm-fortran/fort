@@ -6,8 +6,7 @@ PROGRAM test
 
   INTRINSIC len, len_trim, index, lle, lgt
 
-  ! FIXME: 5
-  I = len('Hello') ! CHECK: store i32 7
+  I = len('Hello') ! CHECK: store i32 5
 
   I = len_trim('Hello   ') ! CHECK: @libflang_lentrim_char1
 

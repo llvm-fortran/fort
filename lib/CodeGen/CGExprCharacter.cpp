@@ -31,7 +31,6 @@ class CharacterExprEmitter
   CodeGenFunction &CGF;
   CGBuilderTy &Builder;
   llvm::LLVMContext &VMContext;
-  bool HasDest;
   CharacterValueTy Dest;
 public:
 
