@@ -173,15 +173,38 @@ public:
 };
 
 void CodeGenFunction::EmitDoStmt(const DoStmt *S) {
-  // FIXME: proper
   // Init
   auto VarPtr = GetVarPtr(cast<VarExpr>(S->getDoVar())->getVarDecl());
   auto InitValue = EmitScalarExpr(S->getInitialParameter());
-  Builder.CreateStore(InitValue, VarPtr);
+  Builder.CreateStore(InitValue, VarPtr);  
   auto EndValue = EmitScalarExpr(S->getTerminalParameter());
   auto IncValue = S->getIncrementationParameter()?
                     EmitScalarExpr(S->getIncrementationParameter()) :
                     GetConstantOne(S->getDoVar()->getType());
+
+  // FIXME: Iteration count doesn't need to be used for all loops.
+  bool UseIterationCount = true;
+
+  // IterationCount = MAX( INT( (m2 - m1 + m3)/m3), 0)
+  llvm::Value *IterationCountVar;
+  auto Zero = llvm::ConstantInt::get(CGM.SizeTy, 0);
+  if(UseIterationCount) {
+    IterationCountVar = CreateTempAlloca(CGM.SizeTy,
+                                         "iteration-count");
+    auto Val = EmitScalarBinaryExpr(BinaryExpr::Minus,
+                                    EndValue, InitValue);
+    Val = EmitScalarBinaryExpr(BinaryExpr::Plus,
+                               Val, IncValue);
+    Val = EmitScalarBinaryExpr(BinaryExpr::Divide,
+                               Val, IncValue);
+    if(Val->getType()->isFloatingPointTy())
+      Val = Builder.CreateFPToSI(Val, CGM.SizeTy);
+    else
+      Val = Builder.CreateSExtOrTrunc(Val, CGM.SizeTy);
+    Val = Builder.CreateSelect(Builder.CreateICmpSGE(Val, Zero),
+                               Val, Zero, "max");
+    Builder.CreateStore(Val, IterationCountVar);
+  }
 
   auto Loop = createBasicBlock("do");
   auto LoopBody = createBasicBlock("loop");
@@ -191,19 +214,33 @@ void CodeGenFunction::EmitDoStmt(const DoStmt *S) {
   LoopScope Scope(this, S, LoopIncrement, EndLoop);
 
   EmitBlock(Loop);
-  llvm::Value *CurrentValue = Builder.CreateLoad(VarPtr);
-  Builder.CreateCondBr(EmitScalarRelationalExpr(
-                         BinaryExpr::LessThanEqual,
-                         CurrentValue, EndValue),
-                       LoopBody, EndLoop);
+  // Check condition
+  llvm::Value *Cond;
+  if(UseIterationCount)
+    Cond = Builder.CreateICmpNE(Builder.CreateLoad(IterationCountVar),
+                                Zero);
+  else
+    Cond = EmitScalarRelationalExpr(
+             BinaryExpr::LessThanEqual,
+             Builder.CreateLoad(VarPtr), EndValue);
+  Builder.CreateCondBr(Cond, LoopBody, EndLoop);
+
   EmitBlock(LoopBody);
   EmitStmt(S->getBody());
+
   EmitBlock(LoopIncrement);
-  CurrentValue = Builder.CreateLoad(VarPtr);
-  CurrentValue = CurrentValue->getType()->isIntegerTy()?
-                   Builder.CreateAdd(CurrentValue, IncValue) :
-                   Builder.CreateFAdd(CurrentValue, IncValue);
-  Builder.CreateStore(CurrentValue, VarPtr);
+  // increment the do variable
+  llvm::Value *CurVal = Builder.CreateLoad(VarPtr);
+  CurVal = EmitScalarBinaryExpr(BinaryExpr::Plus,
+                                CurVal, IncValue);
+  Builder.CreateStore(CurVal, VarPtr);
+  // decrement loop counter if its used.
+  if(UseIterationCount) {
+    Builder.CreateStore(Builder.CreateSub(
+                        Builder.CreateLoad(IterationCountVar),
+                        llvm::ConstantInt::get(CGM.SizeTy, 1)), IterationCountVar);
+  }
+
   EmitBranch(Loop);
   EmitBlock(EndLoop);
 }

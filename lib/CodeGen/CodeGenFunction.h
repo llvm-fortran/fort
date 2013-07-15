@@ -187,6 +187,9 @@ public:
   // scalar expressions.
   llvm::Value *EmitSizeIntExpr(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
+  llvm::Value *EmitScalarBinaryExpr(BinaryExpr::Operator Op,
+                                    llvm::Value *LHS,
+                                    llvm::Value *RHS);
   llvm::Value *EmitIntToInt32Conversion(llvm::Value *Value);
   llvm::Value *EmitSizeIntToIntConversion(llvm::Value *Value);
   llvm::Value *EmitScalarToScalarConversion(llvm::Value *Value, QualType Target);

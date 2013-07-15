@@ -140,8 +140,14 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
 
   auto LHS = EmitExpr(E->getLHS());
   auto RHS = EmitExpr(E->getRHS());
-  bool IsInt = LHS->getType()->isIntegerTy();
+  return CGF.EmitScalarBinaryExpr(Op, LHS, RHS);
+}
+
+llvm::Value *CodeGenFunction::EmitScalarBinaryExpr(BinaryExpr::Operator Op,
+                                                   llvm::Value *LHS,
+                                                   llvm::Value *RHS) {
   llvm::Value *Result;
+  bool IsInt = LHS->getType()->isIntegerTy();
   switch(Op) {
   case BinaryExpr::Plus:
     Result = IsInt?  Builder.CreateAdd(LHS, RHS) :
@@ -163,17 +169,17 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
     auto Intrinsic = llvm::Intrinsic::pow;
     if(IsInt || RHS->getType()->isIntegerTy()) {
       Intrinsic = llvm::Intrinsic::powi;
-      RHS = CGF.EmitIntToInt32Conversion(RHS);
+      RHS = EmitIntToInt32Conversion(RHS);
     }
-    auto Func = CGF.GetIntrinsicFunction(Intrinsic,
-                                         LHS->getType(),
-                                         RHS->getType());
+    auto Func = GetIntrinsicFunction(Intrinsic,
+                                     LHS->getType(),
+                                     RHS->getType());
     Result = Builder.CreateCall2(Func, LHS, RHS);
     break;
   }
 
   default:
-    return CGF.EmitScalarRelationalExpr(Op, LHS, RHS);
+    return EmitScalarRelationalExpr(Op, LHS, RHS);
   }
   return Result;
 }

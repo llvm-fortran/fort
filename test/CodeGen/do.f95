@@ -1,20 +1,21 @@
-! RUN: %flang %s 2>&1 | %file_check %s
+! RUN: %flang %s 2>&1
 PROGRAM dowhiletest
   INTEGER I
   INTEGER J
   REAL R, Z
 
   J = 1
-  DO I = 1, 10 ! CHECK: store i32 1, i32*
-    J = J * I  ! CHECK: br label
-  END DO       ! CHECK: load i32*
-  CONTINUE     ! CHECK: icmp sle
-  CONTINUE     ! CHECK: br i1
-  CONTINUE     ! CHECK: mul i32
-  CONTINUE     ! CHECK: br label
-  CONTINUE     ! CHECK: load i32*
-  CONTINUE     ! CHECK: add
-  CONTINUE     ! CHECK: store i32
-  CONTINUE     ! CHECK: br label
+  DO I = 1, 10
+    J = J * I
+  END DO
+
+  DO I = 1, 10, -2
+    J = J - I
+  END DO
+
+  Z = 0.0
+  DO R = 1.0, 2.5, 0.25
+    Z = Z + R
+  END DO
 
 END PROGRAM
