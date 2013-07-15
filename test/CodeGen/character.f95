@@ -14,6 +14,7 @@ END
 PROGRAM test
   CHARACTER STR     ! CHECK: alloca [1 x i8]
   CHARACTER*20 STR2 ! CHECK: alloca [20 x i8]
+  PARAMETER (Label = '...')
   LOGICAL L
 
   STR = 'HELLO' ! CHECK: call void @libflang_assignment_char1
@@ -33,5 +34,6 @@ PROGRAM test
   STR = BAR(2)
 
   STR2 = 'GREETINGS'
+  STR2 = Label
 
 END PROGRAM

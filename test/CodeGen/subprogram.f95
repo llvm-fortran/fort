@@ -39,6 +39,7 @@ END
 PROGRAM test
   REAL R
   COMPLEX C
+  PARAMETER (PI = 3.0)
   INTRINSIC REAL, CMPLX
 
   R = SQUARE(2.0) ! CHECK: store float 2.0
@@ -46,6 +47,8 @@ PROGRAM test
 
   R = SQUARE(R)   ! CHECK: call float @SQUARE(float*
   R = SQUARE(SQUARE(R))
+
+  R = SQUARE(PI)  ! CHECK: call float @SQUARE(float*
 
   C = DOUBLE((1.0, 2.0)) ! CHECK: store float 1
   CONTINUE               ! CHECK: store float 2

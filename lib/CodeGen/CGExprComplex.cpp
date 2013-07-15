@@ -74,7 +74,10 @@ void CodeGenFunction::EmitComplexStore(ComplexValueTy Value, llvm::Value *Ptr,
 }
 
 ComplexValueTy ComplexExprEmitter::VisitVarExpr(const VarExpr *E) {
-  auto Ptr = CGF.GetVarPtr(E->getVarDecl());
+  auto VD = E->getVarDecl();
+  if(VD->isParameter())
+    return EmitExpr(VD->getInit());
+  auto Ptr = CGF.GetVarPtr(VD);
   return CGF.EmitComplexLoad(Ptr);
 }
 

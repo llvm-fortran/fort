@@ -234,8 +234,11 @@ void CodeGenFunction::EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
 }
 
 llvm::Value *CodeGenFunction::EmitCallArgPtr(const Expr *E) {
-  if(auto Var = dyn_cast<VarExpr>(E))
-    return GetVarPtr(Var->getVarDecl());
+  if(auto Var = dyn_cast<VarExpr>(E)) {
+    auto VD = Var->getVarDecl();
+    if(!VD->isParameter())
+      return GetVarPtr(VD);
+  }
   else if(isa<ReturnedValueExpr>(E))
     return GetRetVarPtr();
 

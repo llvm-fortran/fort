@@ -96,8 +96,11 @@ llvm::Value *ScalarExprEmitter::VisitLogicalConstantExpr(const LogicalConstantEx
 }
 
 llvm::Value *ScalarExprEmitter::VisitVarExpr(const VarExpr *E) {
-  auto Ptr = CGF.GetVarPtr(E->getVarDecl());
-  return Builder.CreateLoad(Ptr,E->getVarDecl()->getName());
+  auto VD = E->getVarDecl();
+  if(VD->isParameter())
+    return EmitExpr(VD->getInit());
+  auto Ptr = CGF.GetVarPtr(VD);
+  return Builder.CreateLoad(Ptr,VD->getName());
 }
 
 llvm::Value *ScalarExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
