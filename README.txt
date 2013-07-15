@@ -8,6 +8,17 @@ flang:
 Flang is a Fortran front-end.
 
 //===----------------------------------------------------------------------===//
+// Compiling Flang (master branch)
+//===----------------------------------------------------------------------===//
+
+Flang depends on a fork of clang for some of its files. In order to compile
+Flang, you'll need to merge the clang branch and flang branch together in your
+local repository. Please use the following two commands to achieve this:
+
+  git merge --squash --no-commit clang_branch
+  git reset HEAD
+
+//===----------------------------------------------------------------------===//
 // To Do List
 //===----------------------------------------------------------------------===//
 
