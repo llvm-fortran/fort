@@ -561,6 +561,28 @@ protected:
 public:
   TypeSpec getTypeSpec() const { return TypeSpec(BuiltinTypeBitsKind); }
 
+  bool isIntegerType() const {
+    return getTypeSpec() == Integer;
+  }
+  bool isRealType() const {
+    return getTypeSpec() == Real;
+  }
+  bool isComplexType() const {
+    return getTypeSpec() == Complex;
+  }
+  bool isIntegerOrRealType() const {
+    auto Spec = getTypeSpec();
+    return Spec == Integer || Spec == Real;
+  }
+  bool isIntegerOrRealOrComplexType() const {
+    auto Spec = getTypeSpec();
+    return Spec == Integer || Spec == Real || Spec == Complex;
+  }
+  bool isRealOrComplexType() const {
+    auto Spec = getTypeSpec();
+    return Spec == Real || Spec == Complex;
+  }
+
   void print(raw_ostream &OS) const;
 
   static const char *getTypeKindString(TypeKind Kind);

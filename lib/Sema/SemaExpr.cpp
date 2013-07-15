@@ -585,335 +585,41 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
   auto Function = FunctionDecl->getFunction();
 
   // Check argument count
-  unsigned ArgCountDiag = 0;
-  int ExpectedCount = 0;
-  const char *ExpectedString = nullptr;
-
-  switch(getFunctionArgumentCount(Function)) {
-  case ArgumentCount1:
-    ExpectedCount = 1;
-    if(Args.size() < 1)
-      ArgCountDiag = diag::err_typecheck_call_too_few_args;
-    else if(Args.size() > 1)
-      ArgCountDiag = diag::err_typecheck_call_too_many_args;
-    break;
-  case ArgumentCount2:
-    ExpectedCount = 2;
-    if(Args.size() < 2)
-      ArgCountDiag = diag::err_typecheck_call_too_few_args;
-    else if(Args.size() > 2)
-      ArgCountDiag = diag::err_typecheck_call_too_many_args;
-    break;
-  case ArgumentCount1or2:
-    ExpectedString = "1 or 2";
-    if(Args.size() < 1)
-      ArgCountDiag = diag::err_typecheck_call_too_few_args;
-    else if(Args.size() > 2)
-      ArgCountDiag = diag::err_typecheck_call_too_many_args;
-    break;
-  case ArgumentCount2orMore:
-    ExpectedCount = 2;
-    if(Args.size() < 2)
-      ArgCountDiag = diag::err_typecheck_call_too_few_args_at_least;
-    break;
-  default:
-    llvm_unreachable("invalid arg count");
-  }
-  if(ArgCountDiag) {
-    auto Reporter = Diags.Report(Loc, ArgCountDiag)
-                      << /*intrinsic function=*/ 0;
-    if(ExpectedString)
-      Reporter << ExpectedString;
-    else
-      Reporter << ExpectedCount;
-    Reporter << unsigned(Args.size());
-
+  if(CheckIntrinsicCallArgumentCount(Function, Args, Loc))
     return ExprError();
-  }
-
-  // FIXME: TODO Check that all arguments are the same type
-  if(Args.size() > 1) {
-    for(size_t I = 1; I < Args.size(); ++I) {
-
-    }
-  }
 
   // Per function type checks.
   QualType ReturnType;
-  auto FirstArgType = Args[0]->getType();
-  auto FirstArgArithSpec = GetArithmeticTypeSpec(FirstArgType);
-  auto FirstArgLoc = Args[0]->getLocation();
-  auto FirstArgSourceRange = Args[0]->getSourceRange();
-
-  switch(Function) {
-  case INT: case IFIX: case IDINT:
-    if(Function == IFIX && !IsTypeSinglePrecisionReal(FirstArgType)) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.RealTy << FirstArgSourceRange;
-    }
-    else if(Function == IDINT && !IsTypeDoublePrecisionReal(FirstArgType)) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.DoublePrecisionTy << FirstArgSourceRange;
-    }
-    else if(FirstArgArithSpec == TST_unspecified) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
-        << FirstArgSourceRange;
-    }
-
-    ReturnType = C.IntegerTy;
+  switch(getFunctionGroup(Function)) {
+  case GROUP_CONVERSION:
+    CheckIntrinsicConversionFunc(Function, Args, ReturnType);
     break;
 
-  case REAL: case FLOAT: case SNGL:
-    if(Function == FLOAT && FirstArgArithSpec != TST_integer) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.IntegerTy << FirstArgSourceRange;
-    }
-    else if(Function == SNGL && !IsTypeDoublePrecisionReal(FirstArgType)) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.DoublePrecisionTy << FirstArgSourceRange;
-    }
-    else if(FirstArgArithSpec == TST_unspecified) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
-        << FirstArgSourceRange;
-    }
-
-    ReturnType = C.RealTy;
+  case GROUP_TRUNCATION:
+    CheckIntrinsicTruncationFunc(Function, Args, ReturnType);
     break;
 
-  case DBLE:
-    if(FirstArgArithSpec == TST_unspecified) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
-        << FirstArgSourceRange;
-    }
-
-    ReturnType = C.DoublePrecisionTy;
+  case GROUP_COMPLEX:
+    CheckIntrinsicComplexFunc(Function, Args, ReturnType);
     break;
 
-  case CMPLX:
-    if(FirstArgArithSpec == TST_unspecified) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
-        << FirstArgSourceRange;
-    }
-    ReturnType = C.ComplexTy;
-    break;
-  case DCMPLX:
-    if(FirstArgArithSpec == TST_unspecified) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
-        << FirstArgSourceRange;
-    }
-    ReturnType = C.DoubleComplexTy;
+  case GROUP_MATHS:
+    CheckIntrinsicMathsFunc(Function, Args, ReturnType);
     break;
 
-  case ICHAR:
-    if(!FirstArgType->isCharacterType()) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.CharacterTy << FirstArgSourceRange;
-    }
-    ReturnType = C.IntegerTy;
+  case GROUP_CHARACTER:
+    CheckIntrinsicCharacterFunc(Function, Args, ReturnType);
     break;
 
-  case CHAR:
-    if(FirstArgArithSpec != TST_integer) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.IntegerTy << FirstArgSourceRange;
-    }
-    ReturnType = C.CharacterTy;
-    break;
-
-// real any kind
-#define CASE_REAL_DOUBLE_OVERLOAD(NAME) \
-  case NAME: \
-    if(FirstArgArithSpec != TST_real) { \
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible) \
-        << FirstArgType << C.RealTy << FirstArgSourceRange; \
-    }
-
-// real kind 8
-#define CASE_DOUBLE_OVERLOAD(NAME) \
-  case NAME: \
-    if(!IsTypeDoublePrecisionReal(FirstArgType)) { \
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible) \
-        << FirstArgType << C.DoublePrecisionTy << FirstArgSourceRange; \
-    }
-
-#define CASE_COMPLEX_OVERLOAD(NAME) \
-  case NAME: \
-    if(FirstArgArithSpec != TST_complex) { \
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible) \
-        << FirstArgType << C.ComplexTy << FirstArgSourceRange; \
-    }
-
-  CASE_REAL_DOUBLE_OVERLOAD(NINT)
-    ReturnType = C.IntegerTy;
-    break;
-  CASE_DOUBLE_OVERLOAD(IDNINT)
-    ReturnType = C.IntegerTy;
-    break;
-
-  case ABS:
-    if(FirstArgArithSpec == TST_unspecified) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << "'INTEGER' or 'REAL' or 'COMPLEX'"
-        << FirstArgSourceRange;
-    }
-    if(FirstArgArithSpec == TST_complex)
-      ReturnType = TypeWithKind(C, C.RealTy, FirstArgType);
-    else
-      ReturnType = FirstArgType;
-    break;
-  CASE_COMPLEX_OVERLOAD(CABS)
-    ReturnType = TypeWithKind(C, C.RealTy, FirstArgType);
-    break;
-  case CDABS:
-    if(!IsTypeDoublePrecisionComplex(FirstArgType)) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.DoubleComplexTy << FirstArgSourceRange;
-    }
-    else ReturnType = C.DoublePrecisionTy;
-    break;
-
-  case LEN:
-  case LEN_TRIM:
-    if(!FirstArgType->isCharacterType()) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.CharacterTy << FirstArgSourceRange;
-    }
-    ReturnType = C.IntegerTy;
-    break;
-  case INDEX:
-    if(!FirstArgType->isCharacterType()) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.CharacterTy << FirstArgSourceRange;
-    }
-    ReturnType = C.IntegerTy;
-    break;
-
-  CASE_COMPLEX_OVERLOAD(AIMAG)
-    ReturnType = C.RealTy;
-    break;
-  case DIMAG:
-    if(!IsTypeDoublePrecisionComplex(FirstArgType)) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.DoubleComplexTy << FirstArgSourceRange;
-    }
-    ReturnType = C.DoublePrecisionTy;
-    break;
-
-  // FIXME: add the rest.
-
-  // Real + double + complex
-  case SQRT: case EXP: case LOG:
-  case SIN: case COS:
-    if(FirstArgArithSpec == TST_unspecified ||
-       FirstArgArithSpec == TST_integer) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[0]->getType() << "'REAL' or 'COMPLEX'"
-        << FirstArgSourceRange;
-    }
-    else ReturnType = FirstArgType;
-    break;
-
-  // Real + double (i.e. real any kind)
-  case ATAN2:
-    if(!Args[1]->getType()->isRealType()) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[1]->getType() << C.RealTy
-        << Args[1]->getSourceRange();
-    }
-  case AINT: case ANINT:
-  case LOG10: case TAN: case ASIN:
-  case ACOS: case ATAN:
-  case SINH: case COSH: case TANH:
-    if(FirstArgArithSpec != TST_real) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.RealTy << FirstArgSourceRange;
-    }
-    else ReturnType = FirstArgType;
-    break;
-
-  // int
-  case IABS:
-    if(FirstArgArithSpec != TST_integer) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.IntegerTy << FirstArgSourceRange;
-    }
-    else ReturnType = FirstArgType;
-    break;
-
-  // real (kind 4 only)
-  case ALOG: case ALOG10:
-    if(!IsTypeSinglePrecisionReal(FirstArgType)) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.RealTy << FirstArgSourceRange;
-    }
-    else ReturnType = FirstArgType;
-    break;
-
-  // double (real kind 8 only)
-  case DATAN2:
-    if(!IsTypeDoublePrecisionReal(Args[1]->getType())) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[1]->getType() << C.DoublePrecisionTy
-        << Args[1]->getSourceRange();
-    }
-  case DINT: case DNINT:
-  case DABS:
-  case DSQRT: case DEXP: case DLOG:
-  case DLOG10: case DSIN: case DCOS:
-  case DTAN: case DASIN: case DACOS:
-  case DATAN: case DSINH:
-  case DCOSH: case DTANH:
-    if(!IsTypeDoublePrecisionReal(FirstArgType)) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.DoublePrecisionTy << FirstArgSourceRange;
-    }
-    else ReturnType = FirstArgType;
-    break;
-
-  // complex
-  case CONJG:
-  case CSQRT: case CEXP: case CLOG:
-  case CSIN: case CCOS:
-    if(FirstArgArithSpec != TST_complex) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.ComplexTy << FirstArgSourceRange;
-    }
-    else ReturnType = FirstArgType;
-    break;
-
-  // double complex(kind is 8)
-  case DCONJG:
-    if(!IsTypeDoublePrecisionComplex(FirstArgType)) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.DoubleComplexTy << FirstArgSourceRange;
-    }
-    else ReturnType = FirstArgType;
-    break;
-
-  case LGE: case LGT: case LLE: case LLT:
-    if(!FirstArgType->isCharacterType()) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << FirstArgType << C.CharacterTy << FirstArgSourceRange;
-    }
-    if(!Args[1]->getType()->isCharacterType()) {
-      Diags.Report(FirstArgLoc, diag::err_typecheck_passing_incompatible)
-        << Args[1]->getType() << C.CharacterTy << Args[1]->getSourceRange();
-    }
-    ReturnType = C.LogicalTy;
-    break;
+  default:
+    llvm_unreachable("invalid intrinsic function");
   }
 
-  if(ReturnType.isNull()) {
+  if(ReturnType.isNull())
     ReturnType = C.RealTy; //An error occurred.
-  }
 
   return IntrinsicCallExpr::Create(C, Loc, Function,
-                                           Args, ReturnType);
+                                   Args, ReturnType);
 }
 
 } // namespace flang

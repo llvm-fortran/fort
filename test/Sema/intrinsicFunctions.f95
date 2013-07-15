@@ -15,6 +15,7 @@ PROGRAM intrinfuntest
 
   INTRINSIC AINT, dint, anint, DNINT, nint, IDNINT
   INTRINSIC abs, iabs, dabs, cabs
+  INTRINSIC mod
   INTRINSIC len, len_trim, index
   INTRINSIC aimag, conjg
 
@@ -59,6 +60,7 @@ PROGRAM intrinfuntest
   C = CMPLX(1,2)
   C = CMPLX() ! expected-error {{too few arguments to intrinsic function call, expected 1 or 2, have 0}}
   C = CMPLX(1,2,3,4) ! expected-error {{too many arguments to intrinsic function call, expected 1 or 2, have 4}}
+  C = CMPLX(1.0, .false.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'INTEGER' or 'REAL' or 'COMPLEX'}}
 
   I = ICHAR('HELLO')
   I = ichar(.false.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'CHARACTER'}}
@@ -90,6 +92,9 @@ PROGRAM intrinfuntest
   I = IABS(I) ! CHECK: I = IABS(I)
   D = DABS(D) ! CHECK: D = DABS(D)
   R = CABS(C) ! CHECK: R = CABS(C)
+
+  I = MOD(3,I) ! CHECK: I = MOD(3, I)
+  R = MOD(R, 3.0) ! CHECK: R = MOD(R, 3)
 
   I = LEN(STRING) ! CHECK: I = LEN(STRING)
   I = len_trim(STRING) ! CHECK: I = LEN_TRIM(STRING)

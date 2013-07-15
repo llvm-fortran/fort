@@ -407,6 +407,81 @@ private:
   /// fot the character type.
   unsigned EvalAndCheckCharacterLength(const Expr *E);
 
+  /// Returns true if two types have the same type class
+  /// and kind.
+  bool CheckTypesSameKind(QualType A, QualType B) const;
+
+  /// Checks that all of the expressions have the same type
+  /// class and kind.
+  void CheckExpressionListSameTypeKind(ArrayRef<Expr*> Expressions);
+
+  /// Returns true if the argument count doesn't match to the function
+  /// count
+  bool CheckIntrinsicCallArgumentCount(intrinsic::FunctionKind Function,
+                                       ArrayRef<Expr*> Args, SourceLocation Loc);
+
+  /// Returns false if the call to a function from a conversion group
+  /// is valid.
+  bool CheckIntrinsicConversionFunc(intrinsic::FunctionKind Function,
+                                    ArrayRef<Expr*> Args,
+                                    QualType &ReturnType);
+
+  /// Returns false if the call to a function from the truncation group
+  /// is valid.
+  bool CheckIntrinsicTruncationFunc(intrinsic::FunctionKind Function,
+                                    ArrayRef<Expr*> Args,
+                                    QualType &ReturnType);
+
+  /// Returns false if the call to a function from the complex group
+  /// is valid.
+  bool CheckIntrinsicComplexFunc(intrinsic::FunctionKind Function,
+                                 ArrayRef<Expr*> Args,
+                                 QualType &ReturnType);
+
+  /// Returns false if the call to a function from the maths group
+  /// is valid.
+  bool CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
+                               ArrayRef<Expr*> Args,
+                               QualType &ReturnType);
+
+  /// Returns false if the call to a function from the character group
+  /// is valid.
+  bool CheckIntrinsicCharacterFunc(intrinsic::FunctionKind Function,
+                                   ArrayRef<Expr*> Args,
+                                   QualType &ReturnType);
+
+  /// Returns false if the argument's type is integer.
+  bool CheckIntegerArgument(const Expr *E);
+
+  /// Returns false if the argument's type is real.
+  bool CheckRealArgument(const Expr *E);
+
+  /// Returns false if the argument's type is complex.
+  bool CheckComplexArgument(const Expr *E);
+
+  /// Returns false if the argument's type is real but isn't double precision.
+  bool CheckStrictlyRealArgument(const Expr *E);
+
+  /// Returns false if the argument's type is real and is double precision.
+  bool CheckDoublePrecisionRealArgument(const Expr *E);
+
+  /// Returns false if the argument's type is complex and is double complex.
+  bool CheckDoubleComplexArgument(const Expr *E);
+
+  /// Returns false if the argument's type is character.
+  bool CheckCharacterArgument(const Expr *E);
+
+  /// Returns false if the argument has an integer or a real type.
+  bool CheckIntegerOrRealArgument(const Expr *E);
+
+  /// Returns false if the argument has an integer or a real or
+  /// a complex argument.
+  bool CheckIntegerOrRealOrComplexArgument(const Expr *E);
+
+  /// Returns false if the argument has a real or
+  /// a complex argument.
+  bool CheckRealOrComplexArgument(const Expr *E);
+
   bool IsValidFunctionType(QualType Type);
 
   /// Sets a type for a function

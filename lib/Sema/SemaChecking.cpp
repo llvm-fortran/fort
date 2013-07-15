@@ -85,4 +85,175 @@ unsigned Sema::EvalAndCheckCharacterLength(const Expr *E) {
   return Result;
 }
 
+bool Sema::CheckTypesSameKind(QualType A, QualType B) const {
+  if(auto ABTy = dyn_cast<BuiltinType>(A.getTypePtr())) {
+    auto BBTy = dyn_cast<BuiltinType>(B.getTypePtr());
+    if(!BBTy) return false;
+    auto Spec = ABTy->getTypeSpec();
+    if(Spec != BBTy->getTypeSpec()) return false;
+    auto AExt = A.getExtQualsPtrOrNull();
+    auto BExt = B.getExtQualsPtrOrNull();
+    switch(Spec) {
+    case BuiltinType::Integer:
+      return Context.getIntTypeKind(AExt) ==
+             Context.getIntTypeKind(BExt);
+    case BuiltinType::Real:
+      return Context.getRealTypeKind(AExt) ==
+             Context.getRealTypeKind(BExt);
+    case BuiltinType::Character:
+      return true;
+    case BuiltinType::Complex:
+      return Context.getComplexTypeKind(AExt) ==
+             Context.getComplexTypeKind(BExt);
+    case BuiltinType::Logical:
+      return Context.getLogicalTypeKind(AExt) ==
+             Context.getLogicalTypeKind(BExt);
+    }
+  }
+  return false;
+}
+
+void Sema::CheckExpressionListSameTypeKind(ArrayRef<Expr*> Expressions) {
+  assert(!Expressions.empty());
+  auto T = Expressions.front()->getType();
+  for(size_t I = 0; I < Expressions.size(); ++I) {
+    auto E = Expressions[I];
+    if(!CheckTypesSameKind(T, E->getType())) {
+      Diags.Report(E->getLocation(), 0) // FIXME
+        << E->getSourceRange();
+    }
+  }
+}
+
+static const BuiltinType *getBuiltinType(const Expr *E) {
+  return dyn_cast<BuiltinType>(E->getType().getTypePtr());
+}
+
+/// Returns true if a type is a double precision real type (Kind is 8).
+static bool IsTypeDoublePrecisionReal(QualType T) {
+  auto Ext = T.getExtQualsPtrOrNull();
+  return T->isRealType() &&
+           Ext && Ext->getKindSelector() == BuiltinType::Real8? true : false;
+}
+
+/// Returns true if a type is a single precision real type (Kind is 4).
+static bool IsTypeSinglePrecisionReal(QualType T) {
+  if(T->isRealType())
+    return !IsTypeDoublePrecisionReal(T);
+  return false;
+}
+
+/// Returns true if a type is a double precision complex type (Kind is 8).
+static bool IsTypeDoublePrecisionComplex(QualType T) {
+  auto Ext = T.getExtQualsPtrOrNull();
+  return T->isComplexType() &&
+           Ext && Ext->getKindSelector() == BuiltinType::Real8? true : false;
+}
+
+bool Sema::CheckIntegerArgument(const Expr *E) {
+  auto Type = getBuiltinType(E);
+  if(!Type || !Type->isIntegerType()) {
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
+      << E->getType() << Context.IntegerTy
+      << E->getSourceRange();
+    return true;
+  }
+  return false;
+}
+
+bool Sema::CheckRealArgument(const Expr *E) {
+  auto Type = getBuiltinType(E);
+  if(!Type || !Type->isRealType()) {
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
+      << E->getType() << Context.RealTy
+      << E->getSourceRange();
+    return true;
+  }
+  return false;
+}
+
+bool Sema::CheckComplexArgument(const Expr *E) {
+  auto Type = getBuiltinType(E);
+  if(!Type || !Type->isComplexType()) {
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
+      << E->getType() << Context.ComplexTy
+      << E->getSourceRange();
+    return true;
+  }
+  return false;
+}
+
+bool Sema::CheckStrictlyRealArgument(const Expr *E) {
+  if(!IsTypeSinglePrecisionReal(E->getType())) {
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
+      << E->getType() << Context.RealTy
+      << E->getSourceRange();
+    return true;
+  }
+  return false;
+}
+
+bool Sema::CheckDoublePrecisionRealArgument(const Expr *E) {
+  if(!IsTypeDoublePrecisionReal(E->getType())) {
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
+      << E->getType() << Context.DoublePrecisionTy
+      << E->getSourceRange();
+    return true;
+  }
+  return false;
+}
+
+bool Sema::CheckDoubleComplexArgument(const Expr *E) {
+  if(!IsTypeDoublePrecisionComplex(E->getType())) {
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
+      << E->getType() << Context.DoubleComplexTy
+      << E->getSourceRange();
+    return true;
+  }
+  return false;
+}
+
+bool Sema::CheckCharacterArgument(const Expr *E) {
+  auto Type = getBuiltinType(E);
+  if(!Type || !Type->isCharacterType()) {
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
+      << E->getType() << Context.CharacterTy
+      << E->getSourceRange();
+  }
+  return false;
+}
+
+bool Sema::CheckIntegerOrRealArgument(const Expr *E) {
+  auto Type = getBuiltinType(E);
+  if(!Type || !Type->isIntegerOrRealType()) {
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
+      << E->getType() << "'INTEGER' or 'REAL'"
+      << E->getSourceRange();
+    return true;
+  }
+  return false;
+}
+
+bool Sema::CheckIntegerOrRealOrComplexArgument(const Expr *E) {
+  auto Type = getBuiltinType(E);
+  if(!Type || !Type->isIntegerOrRealOrComplexType()) {
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
+      << E->getType() << "'INTEGER' or 'REAL' or 'COMPLEX'"
+      << E->getSourceRange();
+    return true;
+  }
+  return false;
+}
+
+bool Sema::CheckRealOrComplexArgument(const Expr *E) {
+  auto Type = getBuiltinType(E);
+  if(!Type || !Type->isRealOrComplexType()) {
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
+      << E->getType() << "'REAL' or 'COMPLEX'"
+      << E->getSourceRange();
+    return true;
+  }
+  return false;
+}
+
 } // end namespace flang
