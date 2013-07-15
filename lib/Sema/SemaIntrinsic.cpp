@@ -204,14 +204,20 @@ bool Sema::CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
 
   // 2 integer/real/complex
   case MOD:
+  case SIGN:
+  case DIM:
   case ATAN2:
     if(GenericFunction != Function) {
       switch(Function) {
+      case ISIGN: case IDIM:
+        CheckIntegerArgument(FirstArg);
+        CheckIntegerArgument(SecondArg);
+        break;
       case AMOD:
         CheckRealArgument(FirstArg);
         CheckRealArgument(SecondArg);
         break;
-      case DMOD:
+      case DMOD: case DSIGN: case DDIM:
       case DATAN2:
         CheckDoublePrecisionRealArgument(FirstArg);
         CheckDoublePrecisionRealArgument(SecondArg);
@@ -228,6 +234,49 @@ bool Sema::CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
       }
     }
     CheckExpressionListSameTypeKind(Args);
+    ReturnType = FirstArg->getType();
+    break;
+
+  case DPROD:
+    CheckStrictlyRealArgument(FirstArg);
+    CheckStrictlyRealArgument(SecondArg);
+    ReturnType = Context.DoublePrecisionTy;
+    break;
+
+  case MAX:
+  case MIN:
+    if(GenericFunction != Function) {
+      //FIXME
+      bool Failed = false;
+      for(size_t I = 0; I < Args.size(); ++I) {
+        switch(Function) {
+        case MAX0: case MIN0: case AMIN0:
+          if(CheckIntegerArgument(Args[I]))
+            Failed = true;
+          break;
+        case AMAX1: case AMIN1: case MIN1:
+          if(CheckStrictlyRealArgument(Args[I]))
+            Failed = true;
+          break;
+        case DMAX1: case DMIN1:
+          if(CheckDoublePrecisionRealArgument(Args[I]))
+            Failed = true;
+          break;
+        }
+      }
+      if(!Failed)
+        CheckExpressionListSameTypeKind(Args);
+      //FIXME AMIN0 returns -> Real
+      //FIXME MIN1  returns -> Integer ???
+    } else {
+      bool Failed = false;
+      for(size_t I = 0; I < Args.size(); ++I) {
+        if(CheckIntegerOrRealArgument(Args[I]))
+          Failed = true;
+      }
+      if(!Failed)
+        CheckExpressionListSameTypeKind(Args);
+    }
     ReturnType = FirstArg->getType();
     break;
 

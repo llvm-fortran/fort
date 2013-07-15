@@ -15,7 +15,7 @@ PROGRAM intrinfuntest
 
   INTRINSIC AINT, dint, anint, DNINT, nint, IDNINT
   INTRINSIC abs, iabs, dabs, cabs
-  INTRINSIC mod
+  INTRINSIC mod, sign, dim, dprod, max, min
   INTRINSIC len, len_trim, index
   INTRINSIC aimag, conjg
 
@@ -93,8 +93,12 @@ PROGRAM intrinfuntest
   D = DABS(D) ! CHECK: D = DABS(D)
   R = CABS(C) ! CHECK: R = CABS(C)
 
-  I = MOD(3,I) ! CHECK: I = MOD(3, I)
-  R = MOD(R, 3.0) ! CHECK: R = MOD(R, 3)
+  I = MOD(3,I)     ! CHECK: I = MOD(3, I)
+  R = MOD(R, 3.0)  ! CHECK: R = MOD(R, 3)
+  R = SIGN(R, 0.0) ! CHECK: R = SIGN(R, 0)
+  D = DPROD(R, R)  ! CHECK: D = DPROD(R, R)
+  R = max(1.0, R)  ! CHECK: R = MAX(1, R)
+  I = min(I, 11)
 
   I = LEN(STRING) ! CHECK: I = LEN(STRING)
   I = len_trim(STRING) ! CHECK: I = LEN_TRIM(STRING)
