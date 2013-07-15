@@ -224,6 +224,8 @@ public:
   llvm::Value   *CreateCharacterAggregate(CharacterValueTy Value);
   void EmitCharacterAssignment(const Expr *LHS, const Expr *RHS);
   llvm::Value *GetCharacterTypeLength(QualType T);
+  CharacterValueTy GetCharacterValueFromAlloca(llvm::Value *Ptr,
+                                               QualType StorageType);
   CharacterValueTy EmitCharacterExpr(const Expr *E);
   llvm::Value *EmitCharacterRelationalExpr(BinaryExpr::Operator Op, CharacterValueTy LHS,
                                            CharacterValueTy RHS);

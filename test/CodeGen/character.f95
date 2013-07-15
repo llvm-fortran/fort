@@ -36,4 +36,8 @@ PROGRAM test
   STR2 = 'GREETINGS'
   STR2 = Label
 
+  CALL FOO(BAR(1))
+
+  STR2 = 'JK ' // BAR(10) // ' KG'
+
 END PROGRAM
