@@ -108,9 +108,6 @@ RValueTy CodeGenFunction::EmitCall(const FunctionDecl *Function,
                                    ArrayRef<Expr*> Arguments,
                                    bool ReturnsNothing) {
   CGFunction CGFunc = CGM.GetFunction(Function);
-  if(Function->isExternal()) {
-    // FIXME: TODO
-  }
   return EmitCall(CGFunc.getFunction(), CGFunc.getInfo(),
                   ArgList, Arguments, ReturnsNothing);
 }

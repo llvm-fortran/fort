@@ -42,6 +42,9 @@ PROGRAM test
   PARAMETER (PI = 3.0)
   INTRINSIC REAL, CMPLX
 
+  REAL ExtFunc
+  EXTERNAL ExtSub, ExtSub2, ExtFunc
+
   R = SQUARE(2.0) ! CHECK: store float 2.0
   CONTINUE        ! CHECK: call float @SQUARE(float*
 
@@ -69,5 +72,12 @@ PROGRAM test
   CONTINUE ! CHECK: store float 2.0
   CONTINUE ! CHECK: store i32 0
   CONTINUE ! call void @SUB2
+
+  R = ExtFunc(ExtFunc(1.0)) ! CHECK: call float @EXTFUNC(float*
+
+  CALL ExtSub      ! CHECK: call void @EXTSUB()
+  CALL ExtSub()    ! CHECK: call void @EXTSUB()
+  CALL ExtSub2(R, C) ! CHECK: call void @EXTSUB2(float*
+
 
 END

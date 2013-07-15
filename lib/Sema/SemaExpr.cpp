@@ -528,21 +528,35 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResul
 }
 
 bool Sema::CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Arguments, SourceLocation Loc) {
-  if(!Function->isExternal()) {
-    // check the arguments.
-    auto FunctionArgs = Function->getArguments();
-    if(Arguments.size() != FunctionArgs.size()) {
-      unsigned ArgCountDiag;
-      if(Arguments.size() < FunctionArgs.size())
-        ArgCountDiag = diag::err_typecheck_call_too_few_args;
-      else
-        ArgCountDiag = diag::err_typecheck_call_too_many_args;
-      Diags.Report(Loc, ArgCountDiag)
-          << /*function=*/ (Function->isSubroutine()? 2 : 1) << unsigned(FunctionArgs.size())
-          << unsigned(Arguments.size());
-      return false;
+  if(Function->isExternal()) {
+    if(Arguments.empty()) return true;
+    if(Function->getArguments().empty()) {
+      // Infer external function arguments.
+      llvm::SmallVector<VarDecl*, 8> Args(Arguments.size());
+      for(size_t I = 0; I < Arguments.size(); ++I) {
+        auto Arg = VarDecl::CreateArgument(Context, Function,
+                                           Function->getLocation(), Function->getIdentifier());
+        Arg->setType(Arguments[I]->getType());
+        Args[I] = Arg;
+      }
+      Function->setArguments(Context, Args);
     }
   }
+
+  // check the arguments.
+  auto FunctionArgs = Function->getArguments();
+  if(Arguments.size() != FunctionArgs.size()) {
+    unsigned ArgCountDiag;
+    if(Arguments.size() < FunctionArgs.size())
+      ArgCountDiag = diag::err_typecheck_call_too_few_args;
+    else
+      ArgCountDiag = diag::err_typecheck_call_too_many_args;
+    Diags.Report(Loc, ArgCountDiag)
+        << /*function=*/ (Function->isSubroutine()? 2 : 1) << unsigned(FunctionArgs.size())
+        << unsigned(Arguments.size());
+    return false;
+  }
+
   return true;
 }
 
