@@ -186,6 +186,9 @@ def err_arg_no_implicit_type : Error<
 def err_func_invalid_type : Error<
   "invalid type for a function %0">;
 
+def err_invalid_kind_selector : Error<
+  "invalid kind selector '%0' for type %1">;
+
 }
 
 }

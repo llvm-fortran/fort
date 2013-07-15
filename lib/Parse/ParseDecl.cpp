@@ -463,10 +463,8 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
     if (Tok.is(tok::l_paren)) {
       if(Tok.isAtStartOfStatement()) return false;
       const Token &NextTok = PeekAhead();
-      if (NextTok.isNot(tok::kw_KIND) ||
-          NextTok.isNot(tok::kw_LEN) ||
-          !(NextTok.is(tok::identifier) &&
-            NextTok.getIdentifierInfo()->getFETokenInfo<VarDecl>()))
+      if (NextTok.isNot(tok::kw_KIND) &&
+          NextTok.isNot(tok::kw_LEN))
         return false;
     }
 

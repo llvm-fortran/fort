@@ -388,6 +388,20 @@ public:
 
 private:
 
+  /// Returns evaluated integer,
+  /// or an ErrorValue if the expression couldn't
+  /// be evaluated.
+  int64_t EvalAndCheckIntExpr(const Expr *E,
+                              int64_t ErrorValue);
+
+  /// Checks if an evaluated integer greater than 0.
+  /// Returns EvalResult if EvalResult > 0, or the error
+  /// value if EvalResult <= 0
+  int64_t CheckIntGT0(const Expr *E, int64_t EvalResult, int64_t ErrorValue = 1);
+
+  /// Returns evaluated kind specification for the builtin types.
+  BuiltinType::TypeKind EvalAndCheckTypeKind(QualType T,
+                                             const Expr *E);
 
   /// Returns evaluated length specification
   /// fot the character type.

@@ -382,15 +382,18 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
   Qualifiers Quals = Qualifiers::fromOpaqueValue(DS.getAttributeSpecs());
   Quals.setIntentAttr(DS.getIntentSpec());
   Quals.setAccessAttr(DS.getAccessSpec());
+
   unsigned Kind = BuiltinType::NoKind;
-  // FIXME: eval DS.getKindSelector();
   if(DS.isDoublePrecision()) {
-    assert(!Kind);
+    assert(!DS.getKindSelector());
     Kind = BuiltinType::Real8;
-  }
+  } else if(DS.hasKindSelector())
+    Kind = EvalAndCheckTypeKind(Result, DS.getKindSelector());
+
   unsigned LengthSelector = 0;
   if(DS.hasLengthSelector() && !DS.isStarLengthSelector())
     LengthSelector = EvalAndCheckCharacterLength(DS.getLengthSelector());
+
   Result = C.getExtQualType(TypeNode, Quals, Kind,
                             DS.isDoublePrecision(),
                             DS.isStarLengthSelector(),
