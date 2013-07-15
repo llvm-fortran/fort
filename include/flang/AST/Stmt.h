@@ -46,7 +46,8 @@ public:
   };
 
 private:
-  StmtClass StmtID;
+  unsigned StmtID : 16;
+  unsigned IsStmtLabelUsed : 1;
   SourceLocation Loc;
   Expr *StmtLabel;
 
@@ -63,12 +64,13 @@ protected:
   }
 
   Stmt(StmtClass ID, SourceLocation L, Expr *SLT)
-    : StmtID(ID), Loc(L), StmtLabel(SLT) {}
+    : StmtID(ID), Loc(L), StmtLabel(SLT),
+      IsStmtLabelUsed(0) {}
 public:
   virtual ~Stmt();
 
   /// getStmtClass - Get the Class of the statement.
-  StmtClass getStmtClass() const { return StmtID; }
+  StmtClass getStmtClass() const { return StmtClass(StmtID); }
 
   /// getLocation - Get the location of the statement.
   SourceLocation getLocation() const { return Loc; }
@@ -89,6 +91,14 @@ public:
   void setStmtLabel(Expr *E) {
     assert(!StmtLabel);
     StmtLabel = E;
+  }
+
+  bool isStmtLabelUsed() const {
+    return IsStmtLabelUsed;
+  }
+
+  void markStmtLabelAsUsed() {
+    IsStmtLabelUsed = 1;
   }
 
   void dump() const;

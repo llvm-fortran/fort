@@ -127,7 +127,18 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
           << StmtLabelForwardDecls[I].StmtLabel->getSourceRange();
     }
   }
-  // FIXME: TODO warning unused statement labels.
+  // FIXME: gather usage data.
+  for(auto I = CurStmtLabelScope->decl_begin();
+      I != CurStmtLabelScope->decl_end(); ++I) {
+    auto Stmt = I->second;
+    if(!Stmt->isStmtLabelUsed()) {
+      auto StmtLabel = Stmt->getStmtLabel();
+      Diags.Report(StmtLabel->getLocation(),
+                   diag::warn_unused_stmt_label)
+       << I->first << StmtLabel->getSourceRange();
+    }
+  }
+
   // Clear the statement labels scope
   CurStmtLabelScope = CurStmtLabelScope->getParent();
 
