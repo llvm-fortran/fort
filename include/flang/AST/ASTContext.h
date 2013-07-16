@@ -38,7 +38,7 @@ class Decl;
 class RecordDecl;
 class TypeDecl;
 
-class ASTContext {
+class ASTContext : public llvm::RefCountedBase<ASTContext> {
   ASTContext &this_() { return *this; }
 
   mutable std::vector<Type*>            Types;

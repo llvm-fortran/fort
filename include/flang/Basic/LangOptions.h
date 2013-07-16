@@ -14,13 +14,14 @@
 #ifndef FLANG_LANGOPTIONS_H__
 #define FLANG_LANGOPTIONS_H__
 
+#include "llvm/ADT/IntrusiveRefCntPtr.h"
 #include <string>
 
 namespace flang {
 
 /// LangOptions - This class keeps track of the various options that can be
 /// enabled, which controls the dialect of Fortran that is accepted.
-class LangOptions {
+class LangOptions : public llvm::RefCountedBase<LangOptions> {
 public:
   unsigned Fortran77         : 1; // Fortran 77
   unsigned Fortran90         : 1; // Fortran 90
