@@ -348,7 +348,7 @@ llvm::Value *ScalarExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *
 }
 
 llvm::Value *ScalarExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
-  return CGF.EmitArrayElementExpr(E).asScalar();
+  return Builder.CreateLoad(CGF.EmitArrayElementPtr(E));
 }
 
 llvm::Value *CodeGenFunction::EmitScalarExpr(const Expr *E) {

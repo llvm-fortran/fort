@@ -157,7 +157,7 @@ CharacterValueTy CharacterExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCal
 }
 
 CharacterValueTy CharacterExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
-  return CGF.EmitArrayElementExpr(E).asCharacter();
+  return CGF.GetCharacterValueFromPtr(CGF.EmitArrayElementPtr(E), E->getType());
 }
 
 void CodeGenFunction::EmitCharacterAssignment(const Expr *LHS, const Expr *RHS) {

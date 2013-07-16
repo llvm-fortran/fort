@@ -164,21 +164,5 @@ llvm::Value *CodeGenFunction::EmitArrayElementPtr(const Expr *Target,
   return Builder.CreateGEP(EV.getResultPtr(), Offset);
 }
 
-RValueTy CodeGenFunction::EmitArrayElementExpr(const ArrayElementExpr *E) {
-  auto Ptr = EmitArrayElementPtr(E->getTarget(), E->getSubscriptList());
-
-  auto ReturnType = E->getType();
-  if(ReturnType->isIntegerType() ||
-     ReturnType->isRealType() ||
-     ReturnType->isLogicalType())
-    return Builder.CreateLoad(Ptr);
-  else if(ReturnType->isComplexType())
-    return EmitComplexLoad(Ptr);
-  else if(ReturnType->isCharacterType())
-    return GetCharacterValueFromPtr(Ptr, ReturnType);
-
-  return RValueTy();
-}
-
 }
 } // end namespace flang

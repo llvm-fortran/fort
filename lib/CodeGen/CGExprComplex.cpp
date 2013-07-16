@@ -220,7 +220,7 @@ ComplexValueTy ComplexExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExp
 }
 
 ComplexValueTy ComplexExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
-  return CGF.EmitArrayElementExpr(E).asComplex();
+  return CGF.EmitComplexLoad(CGF.EmitArrayElementPtr(E));
 }
 
 ComplexValueTy CodeGenFunction::EmitComplexExpr(const Expr *E) {
