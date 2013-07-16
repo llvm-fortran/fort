@@ -52,6 +52,28 @@ public:
     : Ptr(Pointer), Len(Length) {}
 };
 
+class ArrayDimensionValueTy {
+public:
+  llvm::Value *LowerBound;
+  llvm::Value *UpperBound;
+  llvm::Value *Stride;
+
+  ArrayDimensionValueTy() {}
+  ArrayDimensionValueTy(llvm::Value *LB, llvm::Value *UB = nullptr,
+                        llvm::Value *Str = nullptr)
+    : LowerBound(LB), UpperBound(UB), Stride(Str) {}
+
+  bool hasLowerBound() const {
+    return LowerBound != nullptr;
+  }
+  bool hasUpperBound() const {
+    return UpperBound != nullptr;
+  }
+  bool hasStride() const {
+    return Stride != nullptr;
+  }
+};
+
 class LValueTy {
 public:
   llvm::Value *Ptr, *Len;

@@ -235,7 +235,7 @@ public:
   llvm::Value   *CreateCharacterAggregate(CharacterValueTy Value);
   void EmitCharacterAssignment(const Expr *LHS, const Expr *RHS);
   llvm::Value *GetCharacterTypeLength(QualType T);
-  CharacterValueTy GetCharacterValueFromAlloca(llvm::Value *Ptr,
+  CharacterValueTy GetCharacterValueFromPtr(llvm::Value *Ptr,
                                                QualType StorageType);
   CharacterValueTy EmitCharacterExpr(const Expr *E);
   llvm::Value *EmitCharacterRelationalExpr(BinaryExpr::Operator Op, CharacterValueTy LHS,
@@ -309,7 +309,18 @@ public:
 
   // arrays
   RValueTy EmitArrayElementExpr(const ArrayElementExpr *E);
+  llvm::Value *EmitArrayElementPtr(const Expr *Target,
+                                   const ArrayRef<Expr*> Subscripts);
 
+  llvm::Value *EmitDimSize(const ArrayDimensionValueTy &Dim);
+  llvm::Value *EmitDimSubscript(llvm::Value *Subscript,
+                                const ArrayDimensionValueTy &Dim);
+
+  llvm::Value *EmitNthDimSubscript(llvm::Value *Subscript,
+                                   const ArrayDimensionValueTy &Dim,
+                                   llvm::Value *DimSizeProduct);
+
+  void GetArrayDimensionsInfo(QualType T, SmallVectorImpl<ArrayDimensionValueTy> &Dims);
 };
 
 }  // end namespace CodeGen

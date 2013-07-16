@@ -421,6 +421,9 @@ public:
   void dump() const;
   void dump(llvm::raw_ostream &OS) const;
 
+  virtual const Expr *getLowerBoundOrNull() const { return nullptr; }
+  virtual const Expr *getUpperBoundOrNull() const { return nullptr; }
+
   /// Returns true if the bounds of this dimension specification are constants.
   virtual bool EvaluateBounds(int64_t &LB, int64_t &UB, const ASTContext &Ctx) const;
 
@@ -445,6 +448,8 @@ public:
 
   Expr *getLowerBound() const { return LowerBound; }
   Expr *getUpperBound() const { return UpperBound; }
+  const Expr *getLowerBoundOrNull() const { return LowerBound; }
+  const Expr *getUpperBoundOrNull() const { return UpperBound; }
 
   bool EvaluateBounds(int64_t &LB, int64_t &UB, const ASTContext &Ctx) const;
 
@@ -470,6 +475,7 @@ public:
   static AssumedShapeSpec *Create(ASTContext &C, Expr *LB);
 
   Expr *getLowerBound() const { return LowerBound; }
+  const Expr *getLowerBoundOrNull() const { return LowerBound; }
 
   static bool classof(const AssumedShapeSpec *) { return true; }
   static bool classof(const ArraySpec *AS) {
@@ -527,6 +533,7 @@ public:
 
   SourceLocation getLocation() const { return Loc; }
   Expr *getLowerBound() const { return LowerBound; }
+  const Expr *getLowerBoundOrNull() const { return LowerBound; }
 
   static bool classof(const ImpliedShapeSpec *) { return true; }
   static bool classof(const ArraySpec *AS) {

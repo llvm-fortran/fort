@@ -81,7 +81,7 @@ CharacterValueTy CharacterExprEmitter::VisitVarExpr(const VarExpr *E) {
     return CGF.ExtractCharacterValue(CGF.GetVarPtr(VD));
   else if(VD->isParameter())
     return EmitExpr(VD->getInit());
-  return CGF.GetCharacterValueFromAlloca(CGF.GetVarPtr(VD), VD->getType());
+  return CGF.GetCharacterValueFromPtr(CGF.GetVarPtr(VD), VD->getType());
 }
 
 CharacterValueTy CharacterExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
@@ -103,7 +103,7 @@ CharacterValueTy CharacterExprEmitter::VisitBinaryExprConcat(const BinaryExpr *E
     auto TempType = CGF.getContext().getExtQualType(CGF.getContext().CharacterTy.getTypePtr(),
                                                     Qualifiers(),
                                                     0, false, false, Size);
-    Dest = CGF.GetCharacterValueFromAlloca(
+    Dest = CGF.GetCharacterValueFromPtr(
              CGF.CreateTempAlloca(CGF.ConvertTypeForMem(TempType), "characters"),
              TempType);
   }
@@ -142,7 +142,7 @@ CharacterValueTy CharacterExprEmitter::VisitCallExpr(const CallExpr *E) {
   else {
     // FIXME function returning CHARACTER*(*)
     auto RetType = E->getFunction()->getType();
-    Dest = CGF.GetCharacterValueFromAlloca(
+    Dest = CGF.GetCharacterValueFromPtr(
              CGF.CreateTempAlloca(CGF.ConvertTypeForMem(RetType), "characters"),
              RetType);
   }
@@ -179,8 +179,8 @@ llvm::Value *CodeGenFunction::GetCharacterTypeLength(QualType T) {
                          getTypes().GetCharacterTypeLength(T));
 }
 
-CharacterValueTy CodeGenFunction::GetCharacterValueFromAlloca(llvm::Value *Ptr,
-                                                              QualType StorageType) {
+CharacterValueTy CodeGenFunction::GetCharacterValueFromPtr(llvm::Value *Ptr,
+                                                           QualType StorageType) {
   return CharacterValueTy(Builder.CreateConstInBoundsGEP2_32(Ptr, 0, 0),
                           GetCharacterTypeLength(StorageType));
 }

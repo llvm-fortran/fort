@@ -74,7 +74,7 @@ LValueTy LValueExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
 }
 
 LValueTy LValueExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
-  return LValueTy();//FIXME
+  return CGF.EmitArrayElementPtr(E->getTarget(), E->getSubscriptList());
 }
 
 LValueTy CodeGenFunction::EmitLValue(const Expr *E) {
