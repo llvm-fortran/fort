@@ -23,6 +23,7 @@ public:
     /// scalar - simple value.
     /// complex - aggregate value (real, im)
     /// character - aggregate value (ptr, len)
+    /// array without shape info - pointer to elements
     Value,
 
     /// Passes a scalar/complex by reference

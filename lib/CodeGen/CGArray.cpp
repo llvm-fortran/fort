@@ -28,6 +28,10 @@ llvm::Type *CodeGenTypes::GetFixedSizeArrayType(const ArrayType *T,
                               Size);
 }
 
+llvm::Type *CodeGenTypes::ConvertArrayType(const ArrayType *T) {
+  return llvm::PointerType::get(ConvertTypeForMem(T->getElementType()), 0);
+}
+
 llvm::Value *CodeGenFunction::CreateArrayAlloca(QualType T,
                                                 const llvm::Twine &Name,
                                                 bool IsTemp) {
@@ -138,7 +142,9 @@ void ArrayValueExprEmitter::VisitVarExpr(const VarExpr *E) {
     return; //FIXME?
   }
   if(VD->isArgument()) {
-    return; //FIXME: TODO.
+    CGF.GetArrayDimensionsInfo(VD->getType(), Dims);
+    Ptr = CGF.GetVarPtr(VD);
+    return;
   }
   CGF.GetArrayDimensionsInfo(VD->getType(), Dims);
   Ptr = Builder.CreateConstInBoundsGEP2_32(CGF.GetVarPtr(VD), 0, 0);
@@ -162,6 +168,13 @@ llvm::Value *CodeGenFunction::EmitArrayElementPtr(const Expr *Target,
     }
   }
   return Builder.CreateGEP(EV.getResultPtr(), Offset);
+}
+
+llvm::Value *CodeGenFunction::EmitArrayPtr(const Expr *E) {
+  ArrayValueExprEmitter EV(*this);
+  EV.EmitExpr(E);
+  // FIXME strided array - allocate memory and pack / unpack
+  return EV.getResultPtr();
 }
 
 }

@@ -295,6 +295,8 @@ public:
 
   void EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
                    const Expr *E, CGFunctionInfo::ArgInfo ArgInfo);
+  void EmitArrayCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+                        const Expr *E, CGFunctionInfo::ArgInfo ArgInfo);
   void EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
                    llvm::Value *Value, CGFunctionInfo::ArgInfo ArgInfo);
   void EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
@@ -323,6 +325,8 @@ public:
                                    llvm::Value *DimSizeProduct);
 
   void GetArrayDimensionsInfo(QualType T, SmallVectorImpl<ArrayDimensionValueTy> &Dims);
+
+  llvm::Value *EmitArrayPtr(const Expr *E);
 };
 
 }  // end namespace CodeGen

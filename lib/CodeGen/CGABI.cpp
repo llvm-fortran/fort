@@ -15,6 +15,8 @@ namespace CodeGen {
 ABIArgInfo FortranABI::GetArgABI(QualType ArgType) {
   if(ArgType->isCharacterType())
     return ABIArgInfo(ABIArgInfo::Value);
+  else if(ArgType->isArrayType())
+    return ABIArgInfo(ABIArgInfo::Value);
 
   return ABIArgInfo(ABIArgInfo::Reference);
 }

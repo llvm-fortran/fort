@@ -40,6 +40,8 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
   auto TPtr = T.getTypePtr();
   if(const BuiltinType *BTy = dyn_cast<BuiltinType>(TPtr))
     return ConvertBuiltInType(BTy, Ext);
+  else if(const ArrayType *ATy = dyn_cast<ArrayType>(TPtr))
+    return ConvertArrayType(ATy);
 
   return nullptr;
 }

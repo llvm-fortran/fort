@@ -168,6 +168,9 @@ void CodeGenFunction::EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
   if(E->getType()->isCharacterType()) {
     EmitCallArg(Args, EmitCharacterExpr(E), ArgInfo);
     return;
+  } else if(E->getType()->isArrayType()) {
+    EmitArrayCallArg(Args, E, ArgInfo);
+    return;
   }
   switch(ArgInfo.ABIInfo.getKind()) {
   case ABIArgInfo::Value:
@@ -187,6 +190,18 @@ void CodeGenFunction::EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
                                         EType.getExtQualsPtrOrNull(), EType))/8));
     break;
   }
+  }
+}
+
+void CodeGenFunction::EmitArrayCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+                                       const Expr *E, CGFunctionInfo::ArgInfo ArgInfo) {
+  switch(ArgInfo.ABIInfo.getKind()) {
+  case ABIArgInfo::Value:
+    Args.push_back(EmitArrayPtr(E));
+    break;
+
+  default:
+    llvm_unreachable("invalid array ABI");
   }
 }
 
