@@ -112,11 +112,14 @@ llvm::Value *ScalarExprEmitter::VisitUnaryExprPlus(const UnaryExpr *E) {
   return EmitExpr(E->getExpression());
 }
 
-llvm::Value *ScalarExprEmitter::VisitUnaryExprMinus(const UnaryExpr *E) {
-  auto Val = EmitExpr(E->getExpression());
-  return E->getType()->isIntegerType()?
+llvm::Value *CodeGenFunction::EmitScalarUnaryMinus(llvm::Value *Val) {
+  return Val->getType()->isIntegerTy()?
            Builder.CreateNeg(Val) :
            Builder.CreateFNeg(Val);
+}
+
+llvm::Value *ScalarExprEmitter::VisitUnaryExprMinus(const UnaryExpr *E) {
+  return CGF.EmitScalarUnaryMinus(EmitExpr(E->getExpression()));
 }
 
 llvm::Value *ScalarExprEmitter::VisitUnaryExprNot(const UnaryExpr *E) {
@@ -372,10 +375,9 @@ llvm::Value *CodeGenFunction::GetConstantOne(QualType T) {
                               llvm::ConstantFP::get(Type, 1.0);
 }
 
-llvm::Value *CodeGenFunction::GetConstantZero(QualType T) {
-  auto Type = ConvertType(T);
-  return Type->isIntegerTy()? llvm::ConstantInt::get(Type, 0) :
-                              llvm::ConstantFP::get(Type, 0.0);
+llvm::Value *CodeGenFunction::GetConstantZero(llvm::Type *T) {
+  return T->isIntegerTy()? llvm::ConstantInt::get(T, 0) :
+                           llvm::ConstantFP::get(T, 0.0);
 }
 
 }

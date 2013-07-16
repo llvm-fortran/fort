@@ -187,6 +187,7 @@ public:
   // scalar expressions.
   llvm::Value *EmitSizeIntExpr(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
+  llvm::Value *EmitScalarUnaryMinus(llvm::Value *Val);
   llvm::Value *EmitScalarBinaryExpr(BinaryExpr::Operator Op,
                                     llvm::Value *LHS,
                                     llvm::Value *RHS);
@@ -201,7 +202,10 @@ public:
   llvm::Value *ConvertComparisonResultToRelationalOp(BinaryExpr::Operator Op,
                                                      llvm::Value *Result);
 
-  llvm::Value *GetConstantZero(QualType T);
+  llvm::Value *GetConstantZero(llvm::Type *T);
+  llvm::Value *GetConstantZero(QualType T) {
+    return GetConstantZero(ConvertType(T));
+  }
   llvm::Value *GetConstantOne(QualType T);
 
   // complex expressions.
@@ -244,10 +248,15 @@ public:
                                                  llvm::Value *Value,
                                                  QualType ResultType);
   RValueTy EmitIntrinsicCallComplex(intrinsic::FunctionKind Func, ComplexValueTy Value);
-  llvm::Value* EmitIntrinsicCallScalarMath(intrinsic::FunctionKind Func,
+  llvm::Value *EmitIntrinsicCallScalarMath(intrinsic::FunctionKind Func,
                                            llvm::Value *A1, llvm::Value *A2 = nullptr);
+  llvm::Value *EmitIntrinsicMinMax(intrinsic::FunctionKind Func,
+                                   ArrayRef<Expr*> Arguments);
+  llvm::Value *EmitIntrinsicScalarMinMax(intrinsic::FunctionKind Func,
+                                         ArrayRef<llvm::Value*> Args);
   RValueTy EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
                                         ComplexValueTy Value);
+
 
   // calls
   RValueTy EmitCall(const CallExpr *E);

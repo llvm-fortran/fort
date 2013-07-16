@@ -28,21 +28,23 @@ namespace flang {
 namespace CodeGen {
 
 RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
-  auto Func = intrinsic::getGenericFunctionKind(E->getIntrinsicFunction());
-  auto Group = intrinsic::getFunctionGroup(Func);
+  using namespace intrinsic;
+
+  auto Func = getGenericFunctionKind(E->getIntrinsicFunction());
+  auto Group = getFunctionGroup(Func);
   auto Args = E->getArguments();
 
   switch(Group) {
-  case intrinsic::GROUP_CONVERSION:
-    if(Func == intrinsic::INT ||
-       Func == intrinsic::REAL) {
+  case GROUP_CONVERSION:
+    if(Func == INT ||
+       Func == REAL) {
       if(Args[0]->getType()->isComplexType())
         return EmitComplexToScalarConversion(EmitComplexExpr(Args[0]),
                                              E->getType());
       else
         return EmitScalarToScalarConversion(EmitScalarExpr(Args[0]),
                                             E->getType());
-    } else if(Func == intrinsic::CMPLX) {
+    } else if(Func == CMPLX) {
       if(Args[0]->getType()->isComplexType())
         return EmitComplexToComplexConversion(EmitComplexExpr(Args[0]),
                                               E->getType());
@@ -55,10 +57,10 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
         else return EmitScalarToComplexConversion(EmitScalarExpr(Args[0]),
                                                   E->getType());
       }
-    } else if(Func == intrinsic::ICHAR) {
+    } else if(Func == ICHAR) {
       auto Value = EmitCharacterDereference(EmitCharacterExpr(Args[0]));
       return Builder.CreateZExtOrTrunc(Value, ConvertType(getContext().IntegerTy));
-    } else if(Func == intrinsic::CHAR) {
+    } else if(Func == CHAR) {
       auto Temp = CreateTempAlloca(CGM.Int8Ty, "char");
       auto Value = CharacterValueTy(Temp,
                                     llvm::ConstantInt::get(CGM.SizeTy, 1));
@@ -68,39 +70,30 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
     } else llvm_unreachable("invalid conversion intrinsic");
     break;
 
-  case intrinsic::GROUP_TRUNCATION:
+  case GROUP_TRUNCATION:
     return EmitIntrinsicCallScalarTruncation(Func, EmitScalarExpr(Args[0]),
                                              E->getType());
 
-  case intrinsic::GROUP_COMPLEX:
+  case GROUP_COMPLEX:
     return EmitIntrinsicCallComplex(Func, EmitComplexExpr(Args[0]));
 
-  case intrinsic::GROUP_MATHS:
+  case GROUP_MATHS:
+    if(Func == MAX || Func == MIN)
+      return EmitIntrinsicMinMax(Func, Args);
     if(Args[0]->getType()->isComplexType())
       return EmitIntrinsicCallComplexMath(Func, EmitComplexExpr(Args[0]));
     return EmitIntrinsicCallScalarMath(Func, EmitScalarExpr(Args[0]),
                                        Args.size() == 2?
                                         EmitScalarExpr(Args[1]) : nullptr);
-  case intrinsic::GROUP_CHARACTER:
+  case GROUP_CHARACTER:
     if(Args.size() == 1)
       return EmitIntrinsicCallCharacter(Func, EmitCharacterExpr(Args[0]));
     else
       return EmitIntrinsicCallCharacter(Func, EmitCharacterExpr(Args[0]),
                                         EmitCharacterExpr(Args[1]));
   default:
+    llvm_unreachable("invalid intrinsic");
     break;
-  }
-
-  // other intrinsics
-  switch(Func) {
-  case intrinsic::DPROD: {
-    auto TargetType = getContext().DoublePrecisionTy;
-    auto A1 = EmitScalarExpr(Args[0]);
-    auto A2 = EmitScalarExpr(Args[1]);
-    return Builder.CreateFMul(EmitScalarToScalarConversion(A1, TargetType),
-                              EmitScalarToScalarConversion(A2, TargetType));
-  }
-
   }
 
   return RValueTy();
@@ -132,72 +125,104 @@ llvm::Value *CodeGenFunction::EmitIntrinsicCallScalarTruncation(intrinsic::Funct
 
 llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKind Func,
                                                           llvm::Value *A1, llvm::Value *A2) {
+  using namespace intrinsic;
+
   llvm::Value *FuncDecl = nullptr;
   auto ValueType = A1->getType();
   switch(Func) {
-  case intrinsic::ABS:
+  case ABS:
     if(ValueType->isIntegerTy()) {
       auto Condition = Builder.CreateICmpSGE(A1, llvm::ConstantInt::get(ValueType, 0));
       return Builder.CreateSelect(Condition, A1, Builder.CreateNeg(A1));
     }
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::fabs, ValueType);
     break;
-  case intrinsic::MOD:
+
+  case MOD:
     if(ValueType->isIntegerTy())
       return Builder.CreateSRem(A1, A2);
     else
       return Builder.CreateFRem(A1, A2);
     break;
-  case intrinsic::SQRT:
+
+  // |a1|  if a2 >= 0
+  // -|a1| if a2 < 0
+  case SIGN: {
+    auto A1Abs = EmitIntrinsicCallScalarMath(ABS, A1);
+    auto Cond = EmitScalarRelationalExpr(BinaryExpr::GreaterThanEqual,
+                                         A2, GetConstantZero(A2->getType()));
+    return Builder.CreateSelect(Cond, A1Abs, EmitScalarUnaryMinus(A1Abs));
+    break;
+  }
+
+  //a1-a2 if a1>a2
+  //  0   if a1<=a2
+  case DIM: {
+    auto Cond = EmitScalarRelationalExpr(BinaryExpr::GreaterThan,
+                                         A1, A2);
+    return Builder.CreateSelect(Cond,
+                                EmitScalarBinaryExpr(BinaryExpr::Minus,
+                                                     A1, A2),
+                                GetConstantZero(A1->getType()));
+    break;
+  }
+
+  case DPROD: {
+    auto TargetType = getContext().DoublePrecisionTy;
+    return Builder.CreateFMul(EmitScalarToScalarConversion(A1, TargetType),
+                              EmitScalarToScalarConversion(A2, TargetType));
+  }
+
+  case SQRT:
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::sqrt, ValueType);
     break;
-  case intrinsic::EXP:
+  case EXP:
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::exp, ValueType);
     break;
-  case intrinsic::LOG:
+  case LOG:
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::log, ValueType);
     break;
-  case intrinsic::LOG10:
+  case LOG10:
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::log10, ValueType);
     break;
-  case intrinsic::SIN:
+  case SIN:
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::sin, ValueType);
     break;
-  case intrinsic::COS:
+  case COS:
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::cos, ValueType);
     break;
-  case intrinsic::TAN:
+  case TAN:
     FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("tan", ValueType),
                                 ValueType, ValueType);
     break;
-  case intrinsic::ASIN:
+  case ASIN:
     FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("asin", ValueType),
                                 ValueType, ValueType);
     break;
-  case intrinsic::ACOS:
+  case ACOS:
     FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("acos", ValueType),
                                 ValueType, ValueType);
     break;
-  case intrinsic::ATAN:
+  case ATAN:
     FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("atan", ValueType),
                                 ValueType, ValueType);
     break;
-  case intrinsic::ATAN2: {
+  case ATAN2: {
     llvm::Type *Args[] = {ValueType, ValueType};
     FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("atan2", ValueType),
                                 llvm::makeArrayRef(Args, 2),
                                 ValueType);
     break;
   }
-  case intrinsic::SINH:
+  case SINH:
     FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("sinh", ValueType),
                                 ValueType, ValueType);
     break;
-  case intrinsic::COSH:
+  case COSH:
     FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("cosh", ValueType),
                                 ValueType, ValueType);
     break;
-  case intrinsic::TANH:
+  case TANH:
     FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("tanh", ValueType),
                                 ValueType, ValueType);
     break;
@@ -207,6 +232,25 @@ llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKin
   if(A2)
     return Builder.CreateCall2(FuncDecl, A1, A2);
   return Builder.CreateCall(FuncDecl, A1);
+}
+
+llvm::Value *CodeGenFunction::EmitIntrinsicMinMax(intrinsic::FunctionKind Func,
+                                                  ArrayRef<Expr*> Arguments) {
+  SmallVector<llvm::Value*, 8> Args(Arguments.size());
+  for(size_t I = 0; I < Arguments.size(); ++I)
+    Args[I] = EmitScalarExpr(Arguments[I]);
+  return EmitIntrinsicScalarMinMax(Func, Args);
+}
+
+llvm::Value *CodeGenFunction::EmitIntrinsicScalarMinMax(intrinsic::FunctionKind Func,
+                                                        ArrayRef<llvm::Value*> Args) {
+  auto Value = Args[0];
+  auto Op = Func == intrinsic::MAX? BinaryExpr::GreaterThanEqual :
+                                    BinaryExpr::LessThanEqual;
+  for(size_t I = 1; I < Args.size(); ++I)
+    Value = Builder.CreateSelect(EmitScalarRelationalExpr(Op,
+                                 Value, Args[I]), Value, Args[I]);
+  return Value;
 }
 
 // Lets pretend ** is an intrinsic
