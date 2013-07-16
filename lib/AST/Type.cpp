@@ -33,10 +33,34 @@ QualifierCollector::apply(const ASTContext &Context, const Type *T) const {
 //                             Subtype Methods
 //===----------------------------------------------------------------------===//
 
+ArrayType::ArrayType(ASTContext &C, TypeClass tc,
+                     QualType et, QualType can,
+                     ArrayRef<ArraySpec*> dims)
+  : Type(tc, can), ElementType(et) {
+  DimCount = dims.size();
+  Dims = new(C) ArraySpec*[DimCount];
+  for(unsigned I = 0; I < DimCount; ++I)
+    Dims[I] = dims[I];
+}
+
 ArrayType *ArrayType::Create(ASTContext &C, QualType ElemTy,
                              ArrayRef<ArraySpec*> Dims) {
   // forgot type alignment, what a day that was! full of debugging :/
-  return new (C, TypeAlignment) ArrayType(Array, ElemTy, QualType(), Dims);
+  return new (C, TypeAlignment) ArrayType(C, Array, ElemTy, QualType(), Dims);
+}
+
+bool ArrayType::EvaluateSize(uint64_t &Result, const ASTContext &Ctx) const {
+  Result = 1;
+  auto Dimensions = getDimensions();
+  for(size_t I = 0; I < Dimensions.size(); ++I) {
+    int64_t LowerBound, UpperBound;
+    if(!Dimensions[I]->EvaluateBounds(LowerBound, UpperBound, Ctx))
+      return false;
+    assert(LowerBound <= UpperBound);
+    Result *= uint64_t(UpperBound - LowerBound + 1);
+    // FIXME: overflow checks.
+  }
+  return true;
 }
 
 void BuiltinType::print(llvm::raw_ostream &O) const {
@@ -164,10 +188,10 @@ void ArrayType::print(raw_ostream &OS) const {
   ElementType.print(OS);
   OS << ", DIMENSION(";
 
-  for (SmallVectorImpl<ArraySpec*>::const_iterator
-         I = Dims.begin(), E = Dims.end(); I != E; ++I) {
-    if (I != Dims.begin()) OS << ", ";
-    (*I)->dump(OS);
+  auto Dims = getDimensions();
+  for (size_t I = 0; I < Dims.size(); ++I) {
+    if (I) OS << ", ";
+    Dims[I]->dump(OS);
   }
 
   OS << ")";

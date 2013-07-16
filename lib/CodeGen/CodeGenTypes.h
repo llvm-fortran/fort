@@ -95,6 +95,9 @@ public:
   llvm::Type *ConvertBuiltInType(BuiltinType::TypeSpec Spec,
                                  BuiltinType::TypeKind Kind);
 
+  llvm::Type *GetFixedSizeArrayType(const ArrayType *T,
+                                    uint64_t Size);
+
   llvm::Type *ConvertReturnType(QualType T,
                                 CGFunctionInfo::RetInfo &ReturnInfo);
 

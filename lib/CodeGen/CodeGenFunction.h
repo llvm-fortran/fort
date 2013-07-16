@@ -156,6 +156,10 @@ public:
 
   void EmitVarDecl(const VarDecl *D);
 
+  llvm::Value *CreateArrayAlloca(QualType T,
+                                 const llvm::Twine &Name = "",
+                                 bool IsTemp = false);
+
   /// CreateTempAlloca - This creates a alloca and inserts it into the entry
   /// block. The caller is responsible for setting an appropriate alignment on
   /// the alloca.
@@ -302,6 +306,9 @@ public:
   llvm::CallInst *EmitRuntimeCall(llvm::Value *Func);
   llvm::CallInst *EmitRuntimeCall(llvm::Value *Func, llvm::ArrayRef<llvm::Value*> Args);
   llvm::CallInst *EmitRuntimeCall2(llvm::Value *Func, llvm::Value *A1, llvm::Value *A2);
+
+  // arrays
+  RValueTy EmitArrayElementExpr(const ArrayElementExpr *E);
 
 };
 

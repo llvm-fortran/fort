@@ -44,6 +44,7 @@ public:
   ComplexValueTy VisitImplicitCastExpr(const ImplicitCastExpr *E);
   ComplexValueTy VisitCallExpr(const CallExpr *E);
   ComplexValueTy VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
+  ComplexValueTy VisitArrayElementExpr(const ArrayElementExpr *E);
 
 };
 
@@ -216,6 +217,10 @@ RValueTy CodeGenFunction::EmitIntrinsicCallComplex(intrinsic::FunctionKind Func,
 
 ComplexValueTy ComplexExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
   return CGF.EmitIntrinsicCall(E).asComplex();
+}
+
+ComplexValueTy ComplexExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
+  return CGF.EmitArrayElementExpr(E).asComplex();
 }
 
 ComplexValueTy CodeGenFunction::EmitComplexExpr(const Expr *E) {

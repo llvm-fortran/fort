@@ -53,7 +53,7 @@ public:
   llvm::Value *VisitImplicitCastExpr(const ImplicitCastExpr *E);
   llvm::Value *VisitCallExpr(const CallExpr *E);
   llvm::Value *VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
-
+  llvm::Value *VisitArrayElementExpr(const ArrayElementExpr *E);
 };
 
 ScalarExprEmitter::ScalarExprEmitter(CodeGenFunction &cgf)
@@ -345,6 +345,10 @@ llvm::Value *ScalarExprEmitter::VisitCallExpr(const CallExpr *E) {
 
 llvm::Value *ScalarExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
   return CGF.EmitIntrinsicCall(E).asScalar();
+}
+
+llvm::Value *ScalarExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
+  return CGF.EmitArrayElementExpr(E).asScalar();
 }
 
 llvm::Value *CodeGenFunction::EmitScalarExpr(const Expr *E) {

@@ -220,4 +220,18 @@ void Expr::GatherNonEvaluatableExpressions(const ASTContext &Ctx,
     Result.push_back(this);
 }
 
+bool ArraySpec::EvaluateBounds(int64_t &LB, int64_t &UB, const ASTContext &Ctx) const {
+  return false;
+}
+
+bool ExplicitShapeSpec::EvaluateBounds(int64_t &LB, int64_t &UB, const ASTContext &Ctx) const {
+  if(getLowerBound()) {
+    if(!getLowerBound()->EvaluateAsInt(LB, Ctx))
+      return false;
+  } else LB = 1;
+  if(!getUpperBound()->EvaluateAsInt(UB, Ctx))
+    return false;
+  return true;
+}
+
 } // end namespace flang

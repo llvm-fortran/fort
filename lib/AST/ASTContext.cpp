@@ -170,8 +170,8 @@ PointerType *ASTContext::getPointerType(const Type *Ty, unsigned NumDims) {
 /// getArrayType - Return the unique reference to the type for an array of the
 /// specified element type.
 QualType ASTContext::getArrayType(QualType EltTy,
-                                  ArrayRef<ArraySpec*> Dims) const {
-  ArrayType *New = new (*this, TypeAlignment) ArrayType(Type::Array, EltTy,
+                                  ArrayRef<ArraySpec*> Dims) {
+  ArrayType *New = new (*this, TypeAlignment) ArrayType(*this, Type::Array, EltTy,
                                                         QualType(), Dims);
   Types.push_back(New);
   return QualType(New, 0);

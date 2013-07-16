@@ -57,6 +57,7 @@ public:
   CharacterValueTy VisitSubstringExpr(const SubstringExpr *E);
   CharacterValueTy VisitCallExpr(const CallExpr *E);
   CharacterValueTy VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
+  CharacterValueTy VisitArrayElementExpr(const ArrayElementExpr *E);
 };
 
 CharacterExprEmitter::CharacterExprEmitter(CodeGenFunction &cgf)
@@ -153,6 +154,10 @@ CharacterValueTy CharacterExprEmitter::VisitCallExpr(const CallExpr *E) {
 
 CharacterValueTy CharacterExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
   return CGF.EmitIntrinsicCall(E).asCharacter();
+}
+
+CharacterValueTy CharacterExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
+  return CGF.EmitArrayElementExpr(E).asCharacter();
 }
 
 void CodeGenFunction::EmitCharacterAssignment(const Expr *LHS, const Expr *RHS) {

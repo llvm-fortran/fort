@@ -9,6 +9,7 @@ add_flang_library(flangCodeGen
   CGExprScalar.cpp
   CGExprComplex.cpp
   CGExprCharacter.cpp
+  CGArray.cpp
   CGIntrinsic.cpp
   CGCall.cpp
   CGIORuntime.cpp

@@ -421,6 +421,9 @@ public:
   void dump() const;
   void dump(llvm::raw_ostream &OS) const;
 
+  /// Returns true if the bounds of this dimension specification are constants.
+  virtual bool EvaluateBounds(int64_t &LB, int64_t &UB, const ASTContext &Ctx) const;
+
   static bool classof(const ArraySpec *) { return true; }
 };
 
@@ -442,6 +445,8 @@ public:
 
   Expr *getLowerBound() const { return LowerBound; }
   Expr *getUpperBound() const { return UpperBound; }
+
+  bool EvaluateBounds(int64_t &LB, int64_t &UB, const ASTContext &Ctx) const;
 
   static bool classof(const ExplicitShapeSpec *) { return true; }
   static bool classof(const ArraySpec *AS) {

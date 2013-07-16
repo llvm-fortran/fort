@@ -623,13 +623,15 @@ class ArraySpec;
 class ArrayType : public Type, public llvm::FoldingSetNode {
 private:
   QualType ElementType;
-  SmallVector<ArraySpec*, 4> Dims;
+  ArraySpec **Dims;
+  unsigned DimCount;
 protected:
   ArrayType(TypeClass tc, QualType et, QualType can)
-    : Type(tc, can), ElementType(et) {}
-  ArrayType(TypeClass tc, QualType et, QualType can,
-            ArrayRef<ArraySpec*> dims)
-    : Type(tc, can), ElementType(et), Dims(dims.begin(), dims.end()) {}
+    : Type(tc, can), ElementType(et),
+      Dims(nullptr), DimCount(0) {}
+  ArrayType(ASTContext &C, TypeClass tc,
+            QualType et, QualType can,
+            ArrayRef<ArraySpec*> dims);
 
   friend class ASTContext;  // ASTContext creates these.
 public:
@@ -639,14 +641,17 @@ public:
 
   QualType getElementType() const { return ElementType; }
 
-  typedef SmallVectorImpl<ArraySpec*>::iterator       dim_iterator;
-  typedef SmallVectorImpl<ArraySpec*>::const_iterator const_dim_iterator;
+  typedef ArraySpec**       dim_iterator;
 
-  dim_iterator begin() { return Dims.begin(); }
-  dim_iterator end()   { return Dims.end(); }
-  const_dim_iterator begin() const { return Dims.begin(); }
-  const_dim_iterator end() const   { return Dims.end(); }
-  size_t getDimensionCount() const { return Dims.size(); }
+  dim_iterator begin() const { return Dims; }
+  dim_iterator end()   const { return Dims + DimCount; }
+  size_t getDimensionCount() const { return DimCount; }
+  ArrayRef<ArraySpec*> getDimensions() const {
+    return ArrayRef<ArraySpec*>(Dims, DimCount);
+  }
+
+  /// EvaluateSize - Return true if the size of this array is a constant.
+  bool EvaluateSize(uint64_t &Result, const ASTContext &Ctx) const;
 
   void print(llvm::raw_ostream &OS) const;
 
