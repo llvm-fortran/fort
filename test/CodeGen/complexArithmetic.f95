@@ -1,4 +1,4 @@
-! RUN: %flang %s 2>&1 | %file_check %s
+! RUN: %flang -emit-llvm -o - %s | %file_check %s
 PROGRAM test
   COMPLEX C   ! CHECK: alloca { float, float }
   DOUBLE COMPLEX DC ! CHECK: alloca { double, double }

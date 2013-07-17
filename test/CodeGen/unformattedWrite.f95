@@ -1,4 +1,4 @@
-! RUN: %flang %s 2>&1
+! RUN: %flang -emit-llvm -o - %s
 PROGRAM test
 
   WRITE (*,*) 'Hello world!', 2, 3.5, .true., (1.0, 2.0)

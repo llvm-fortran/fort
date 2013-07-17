@@ -18,7 +18,21 @@
 #include "flang/Parse/Parser.h"
 #include "flang/Sema/Sema.h"
 #include "flang/CodeGen/ModuleBuilder.h"
+#include "flang/CodeGen/BackendUtil.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/PassManager.h"
+#include "llvm/Analysis/Verifier.h"
+#include "llvm/Analysis/Passes.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetOptions.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/Support/FormattedStream.h"
+#include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -65,7 +79,82 @@ namespace {
   cl::opt<bool>
   SyntaxOnly("fsyntax-only", cl::desc("Do not compile code"), cl::init(false));
 
+  cl::opt<bool>
+  EmitLLVM("emit-llvm", cl::desc("Emit llvm"), cl::init(false));
+
+  cl::opt<bool>
+  EmitASM("S", cl::desc("Emit assembly"), cl::init(false));
+
+  cl::opt<std::string>
+  OutputFile("o", cl::desc("<output file>"), cl::init(""));
+
 } // end anonymous namespace
+
+
+std::string GetOutputName(StringRef Filename,
+                          BackendAction Action) {
+  llvm::SmallString<256> Path(Filename.begin(), Filename.end());
+  switch(Action) {
+  case Backend_EmitObj:
+    llvm::sys::path::replace_extension(Path, ".o");
+    break;
+  case Backend_EmitAssembly:
+    llvm::sys::path::replace_extension(Path, ".s");
+    break;
+  case Backend_EmitBC:
+    llvm::sys::path::replace_extension(Path, ".bc");
+    break;
+  case Backend_EmitLL:
+    llvm::sys::path::replace_extension(Path, ".ll");
+    break;
+  }
+  return std::string(Path.begin(), Path.size());
+}
+
+static bool EmitFile(llvm::raw_ostream &Out,
+                     llvm::Module *Module,
+                     llvm::TargetMachine* TM,
+                     BackendAction Action) {
+  //write instructions to file
+  if(Action == Backend_EmitObj || Action == Backend_EmitAssembly){
+    llvm::Module &Mod = *Module;
+    llvm::TargetMachine &Target = *TM;
+    llvm::TargetMachine::CodeGenFileType FileType =
+      Action == Backend_EmitObj ? llvm::TargetMachine::CGFT_ObjectFile :
+                                  llvm::TargetMachine::CGFT_AssemblyFile;
+
+    llvm::PassManager PM;
+
+    Target.setAsmVerbosityDefault(true);
+    Target.setMCRelaxAll(true);
+    llvm::formatted_raw_ostream FOS(Out);
+
+    // Ask the target to add backend passes as necessary.
+    if (Target.addPassesToEmitFile(PM, FOS, FileType, true)) {
+      return true;
+    }
+
+    PM.run(Mod);
+  }
+  else if(Action == Backend_EmitBC ){
+    llvm::WriteBitcodeToFile(Module, Out);
+  } else if(Action == Backend_EmitLL ) {
+    Module->print(Out, nullptr);
+  }
+  return false;
+}
+
+static bool EmitOutputFile(const std::string &Input,
+                           llvm::Module *Module,
+                           llvm::TargetMachine* TM,
+                           BackendAction Action) {
+  std::string err;
+  llvm::raw_fd_ostream Out(Input.c_str(), err, llvm::raw_fd_ostream::F_Binary);
+  if (!err.empty()){
+    return true;
+  }
+  return EmitFile(Out, Module, TM, Action);
+}
 
 static bool ParseFile(const std::string &Filename,
                       const std::vector<std::string> &IncludeDirs) {
@@ -99,9 +188,6 @@ static bool ParseFile(const std::string &Filename,
   if(RunVerifier)
     Diag.setClient(new VerifyDiagnosticConsumer(Diag));
 
-#if 0
-  PrintAction PA(Diag);
-#endif
   ASTContext Context(SrcMgr, Opts);
   Sema SA(Context, Diag);
   Parser P(SrcMgr, Opts, Diag, SA);
@@ -115,9 +201,23 @@ static bool ParseFile(const std::string &Filename,
 
   if(!SyntaxOnly) {
     auto CG = CreateLLVMCodeGen(Diag, Filename == ""? std::string("module") : Filename,
-                                CodeGenOptions(), TargetOptions(), llvm::getGlobalContext());
+                                CodeGenOptions(), flang::TargetOptions(), llvm::getGlobalContext());
     CG->Initialize(Context);
     CG->HandleTranslationUnit(Context);
+
+    BackendAction BA = Backend_EmitObj;
+    if(EmitASM)   BA = Backend_EmitAssembly;
+    if(EmitLLVM)  BA = Backend_EmitLL;
+
+    llvm::Triple TheTriple(llvm::sys::getDefaultTargetTriple());
+    const llvm::Target *TheTarget = 0;
+    std::string Err;
+    TheTarget = llvm::TargetRegistry::lookupTarget(TheTriple.str(), Err);
+    auto TM = TheTarget->createTargetMachine(TheTriple.getTriple(), "", "", llvm::TargetOptions());
+    if(OutputFile == "-")
+      EmitFile(llvm::outs(), CG->GetModule(), TM, BA);
+    else
+      EmitOutputFile(GetOutputName(Filename, BA), CG->GetModule(), TM, BA);
   }
 
   return Diag.hadErrors() || Diag.hadWarnings();
@@ -136,6 +236,11 @@ int main(int argc, char **argv) {
     }
 
   llvm::sys::Path Path = GetExecutablePath(argv[0], CanonicalPrefixes);
+
+  llvm::InitializeAllTargets();
+  llvm::InitializeAllTargetMCs();
+  llvm::InitializeAllAsmPrinters();
+  llvm::InitializeAllAsmParsers();
 
   // Parse the input file.
   int Res = ParseFile(InputFilename, IncludeDirs);

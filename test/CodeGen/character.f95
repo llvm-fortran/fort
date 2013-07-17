@@ -1,4 +1,4 @@
-! RUN: %flang %s 2>&1 | %file_check %s
+! RUN: %flang -emit-llvm -o - %s | %file_check %s
 
 SUBROUTINE FOO(STR) ! CHECK: define void @FOO({ i8*, i64 }
   CHARACTER*(*) STR

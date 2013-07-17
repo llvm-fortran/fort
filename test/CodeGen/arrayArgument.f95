@@ -1,4 +1,4 @@
-! RUN: %flang %s 2>&1 | %file_check %s
+! RUN: %flang -emit-llvm -o - %s | %file_check %s
 
 SUBROUTINE SUB(IARR, IARR2, LEN, RARR)
   INTEGER IARR(10), IARR2(*)
@@ -35,3 +35,4 @@ PROGRAM f77ArrayArgs
   CALL sub(i1, i2, xdim, r1)
 
 END
+

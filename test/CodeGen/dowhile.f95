@@ -1,4 +1,4 @@
-! RUN: %flang %s 2>&1 | %file_check %s
+! RUN: %flang -emit-llvm -o - %s | %file_check %s
 PROGRAM dowhiletest
   INTEGER I
 

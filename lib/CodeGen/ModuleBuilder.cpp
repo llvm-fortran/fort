@@ -79,9 +79,6 @@ namespace {
           Builder->EmitTopLevelDecl(*I);
       }
 
-      //FIXME: debugging
-      M->dump();
-
       if (Builder)
         Builder->Release();
     }
