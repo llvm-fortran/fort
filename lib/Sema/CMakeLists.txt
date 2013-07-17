@@ -2,6 +2,7 @@ add_flang_library(flangSema
   DeclSpec.cpp
   Scope.cpp
   Sema.cpp
+  SemaDataStmt.cpp
   SemaExpr.cpp
   SemaChecking.cpp
   SemaIntrinsic.cpp

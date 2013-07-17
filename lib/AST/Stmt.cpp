@@ -274,8 +274,9 @@ IntrinsicStmt *IntrinsicStmt::Create(ASTContext &C, SourceLocation Loc,
 DataStmt::DataStmt(ASTContext &C, SourceLocation Loc,
                    ArrayRef<Expr*> Names,
                    ArrayRef<Expr*> Values,
+                   Stmt *BodyStmt,
                    Expr *StmtLabel)
-  : Stmt(DataStmtClass, Loc, StmtLabel) {
+  : Stmt(DataStmtClass, Loc, StmtLabel), Body(BodyStmt) {
   NumNames = Names.size();
   NameList = new (C) Expr* [NumNames];
   for(size_t I = 0; I < Names.size(); ++I)
@@ -289,9 +290,9 @@ DataStmt::DataStmt(ASTContext &C, SourceLocation Loc,
 
 DataStmt *DataStmt::Create(ASTContext &C, SourceLocation Loc,
                            ArrayRef<Expr*> Names,
-                           ArrayRef<Expr*> Values,
+                           ArrayRef<Expr*> Values, Stmt *Body,
                            Expr *StmtLabel) {
-  return new(C) DataStmt(C, Loc, Names, Values, StmtLabel);
+  return new(C) DataStmt(C, Loc, Names, Values, Body, StmtLabel);
 }
 
 //===----------------------------------------------------------------------===//

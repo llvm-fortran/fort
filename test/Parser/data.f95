@@ -13,6 +13,7 @@ PROGRAM datatest
 
   DATA ! expected-error {{expected an expression}}
 
-  DATA (I_ARR(I), I = 1,10) / 10*0 /
+  ! FIXME: sema
+  !DATA (I_ARR(I), I = 1,10) / 10*0 /
 
 END PROGRAM

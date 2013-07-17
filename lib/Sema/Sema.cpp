@@ -744,58 +744,6 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
-/// FIXME: add sema
-StmtResult Sema::ActOnDATA(ASTContext &C, SourceLocation Loc,
-                           ArrayRef<ExprResult> LHS,
-                           ArrayRef<ExprResult> RHS,
-                           Expr *StmtLabel) {
-  SmallVector<Expr*, 8> Names (LHS.size());
-  SmallVector<Expr*, 8> Values(RHS.size());
-  for(size_t I = 0; I < LHS.size(); ++I)
-    Names[I] = LHS[I].take();
-  for(size_t I = 0; I < RHS.size(); ++I)
-    Values[I] = RHS[I].take();
-
-  return DataStmt::Create(C, Loc, Names, Values, StmtLabel);
-}
-
-ExprResult Sema::ActOnDATAConstantExpr(ASTContext &C,
-                                       SourceLocation RepeatLoc,
-                                       ExprResult RepeatCount,
-                                       ExprResult Value) {
-  IntegerConstantExpr *RepeatExpr = nullptr;
-  bool HasErrors = false;
-
-  if(RepeatCount.isUsable()) {
-    RepeatExpr = dyn_cast<IntegerConstantExpr>(RepeatCount.get());
-    if(!RepeatExpr ||
-       RepeatExpr->getValue().isNegative() ||
-       !RepeatExpr->getValue()) {
-      Diags.Report(RepeatCount.get()->getLocation(),
-                   diag::err_expected_integer_gt_0)
-        << RepeatCount.get()->getSourceRange();
-      HasErrors = true;
-    }
-  }
-
-  auto Constant = dyn_cast<ConstantExpr>(Value.get());
-  if(!Constant) {
-    /// the value can also be a constant variable
-    VarExpr *Var = dyn_cast<VarExpr>(Value.get());
-    if(!(Var && Var->getVarDecl()->isParameter())) {
-      Diags.Report(Value.get()->getLocation(),
-                   diag::err_expected_constant_expr)
-        << Value.get()->getSourceRange();
-      HasErrors = true;
-    }
-  }
-
-  if(HasErrors) return ExprError();
-  return RepeatExpr? RepeatedConstantExpr::Create(C, RepeatLoc,
-                                                  RepeatExpr, Value.take())
-                   : Value;
-}
-
 /// FIXME: allow outer scope integer constants.
 /// FIXME: walk constant expressions like 1+1.
 ExprResult Sema::ActOnDATAOuterImpliedDoExpr(ASTContext &C,

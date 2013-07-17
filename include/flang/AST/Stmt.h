@@ -545,15 +545,18 @@ class DataStmt : public Stmt {
   unsigned NumNames;
   unsigned NumValues;
   Expr **NameList, **ValueList;
+  Stmt *Body;
 
   DataStmt(ASTContext &C, SourceLocation Loc,
            ArrayRef<Expr*> Names,
            ArrayRef<Expr*> Values,
+           Stmt *BodyStmt,
            Expr *StmtLabel);
 public:
   static DataStmt *Create(ASTContext &C, SourceLocation Loc,
                           ArrayRef<Expr*> Names,
                           ArrayRef<Expr*> Values,
+                          Stmt *Body,
                           Expr *StmtLabel);
 
   ArrayRef<Expr*> getNames() const {
@@ -561,6 +564,9 @@ public:
   }
   ArrayRef<Expr*> getValues() const {
     return ArrayRef<Expr*>(ValueList, NumValues);
+  }
+  const Stmt *getBody() const {
+    return Body;
   }
 
   static bool classof(const DataStmt*) { return true; }

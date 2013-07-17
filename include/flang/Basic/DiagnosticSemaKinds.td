@@ -189,6 +189,13 @@ def err_func_invalid_type : Error<
 def err_invalid_kind_selector : Error<
   "invalid kind selector '%0' for type %1">;
 
+def err_data_stmt_too_many_values : Error<
+  "excess values in a 'DATA' statement">;
+def err_data_stmt_not_enought_values : Error<
+  "not enough values in a 'DATA' statement">;
+def err_data_stmt_invalid_item : Error<
+  "invalid item for a 'DATA' statement">;
+
 }
 
 }

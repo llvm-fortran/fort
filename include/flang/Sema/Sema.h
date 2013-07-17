@@ -72,6 +72,8 @@ public:
   Sema(ASTContext &ctxt, DiagnosticsEngine &Diags);
   ~Sema();
 
+  ASTContext &getContext() { return Context; }
+
   DeclContext *getContainingDC(DeclContext *DC);
 
   inline StmtLabelScope *getCurrentStmtLabelScope() const {
@@ -385,8 +387,6 @@ public:
                                              IntegerConstantExpr *RepeatCount,
                                              ArrayRef<FormatItem*> Items);
 
-
-private:
 
   /// Returns evaluated integer,
   /// or an ErrorValue if the expression couldn't

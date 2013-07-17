@@ -864,6 +864,12 @@ public:
   }
 
   inline Expr *getInit() const { return Init; }
+  bool hasInit() const {
+    return Init != nullptr;
+  }
+  void setInit(Expr *E) const {
+    Init = E;
+  }
 
   inline bool isLocalVariable() const { return SubDeclKind == LocalVariable; }
   inline bool isParameter() const { return SubDeclKind == ParameterVariable; }
