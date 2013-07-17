@@ -64,7 +64,7 @@ llvm::sys::Path GetExecutablePath(const char *Argv0, bool CanonicalPrefixes) {
 namespace {
 
   cl::opt<std::string>
-  InputFilename(cl::Positional, cl::desc("<input file>"), cl::init("-"));
+  InputFiles(cl::Positional, cl::desc("<input file>"), cl::init("-"));
 
   cl::list<std::string>
   IncludeDirs("I", cl::desc("Directory of include files"),
@@ -87,6 +87,15 @@ namespace {
 
   cl::opt<std::string>
   OutputFile("o", cl::desc("<output file>"), cl::init(""));
+
+  cl::list<std::string>
+  LinkDirectories("L", cl::desc("Additional directory for library files"));
+
+  cl::list<std::string>
+  LinkLibraries("l", cl::desc("Additional libraries"));
+
+  cl::opt<bool>
+  CompileOnly("c", cl::desc("compile only, do not link"), cl::init(false));
 
 } // end anonymous namespace
 
@@ -156,8 +165,27 @@ static bool EmitOutputFile(const std::string &Input,
   return EmitFile(Out, Module, TM, Action);
 }
 
+static bool LinkFiles(ArrayRef<std::string> OutputFiles) {
+  const char *Driver = "gcc";
+  std::string Cmd;
+  llvm::raw_string_ostream OS(Cmd);
+  OS << Driver;
+  for(const std::string &I : OutputFiles)
+    OS << " " << I;
+  for(const std::string &I : LinkDirectories)
+    OS << " -L " << I;
+  for(const std::string &I : LinkLibraries)
+    OS << " -l " << I;
+  OS << " -l libflang";
+  if(OutputFile.size())
+    OS << " -o " << OutputFile;
+  Cmd = OS.str();
+  return system(Cmd.c_str());
+}
+
 static bool ParseFile(const std::string &Filename,
-                      const std::vector<std::string> &IncludeDirs) {
+                      const std::vector<std::string> &IncludeDirs,
+                      SmallVectorImpl<std::string> &OutputFiles) {
   llvm::OwningPtr<llvm::MemoryBuffer> MB;
   if (llvm::error_code ec = llvm::MemoryBuffer::getFileOrSTDIN(Filename.c_str(),
                                                                MB)) {
@@ -199,7 +227,7 @@ static bool ParseFile(const std::string &Filename,
   Dumper->HandleTranslationUnit(Context);
 
 
-  if(!SyntaxOnly) {
+  if(!SyntaxOnly && !Diag.hadErrors()) {
     auto CG = CreateLLVMCodeGen(Diag, Filename == ""? std::string("module") : Filename,
                                 CodeGenOptions(), flang::TargetOptions(), llvm::getGlobalContext());
     CG->Initialize(Context);
@@ -216,11 +244,13 @@ static bool ParseFile(const std::string &Filename,
     auto TM = TheTarget->createTargetMachine(TheTriple.getTriple(), "", "", llvm::TargetOptions());
     if(OutputFile == "-")
       EmitFile(llvm::outs(), CG->GetModule(), TM, BA);
-    else
-      EmitOutputFile(GetOutputName(Filename, BA), CG->GetModule(), TM, BA);
+    else {
+      OutputFiles.push_back(GetOutputName(Filename, BA));
+      EmitOutputFile(OutputFiles.back(), CG->GetModule(), TM, BA);
+    }
   }
 
-  return Diag.hadErrors() || Diag.hadWarnings();
+  return Diag.hadErrors();
 }
 
 int main(int argc, char **argv) {
@@ -243,12 +273,20 @@ int main(int argc, char **argv) {
   llvm::InitializeAllAsmParsers();
 
   // Parse the input file.
-  int Res = ParseFile(InputFilename, IncludeDirs);
+  bool HadErrors = false;
+  SmallVector <std::string, 32> OutputFiles;
+  OutputFiles.reserve(1);
+
+  if(ParseFile(InputFiles, IncludeDirs, OutputFiles)) {
+    HadErrors = true;
+  }
+  if(!HadErrors && !CompileOnly && !EmitLLVM && !EmitASM)
+    LinkFiles(OutputFiles);
 
   // If any timers were active but haven't been destroyed yet, print their
   // results now. This happens in -disable-free mode.
   llvm::TimerGroup::printAll(llvm::errs());
 
   llvm::llvm_shutdown();
-  return Res;
+  return HadErrors;
 }
