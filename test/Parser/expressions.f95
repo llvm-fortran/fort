@@ -1,32 +1,32 @@
 ! RUN: %flang -fsyntax-only -verify < %s
 ! RUN: %flang -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
 PROGRAM expressions
-  REAL X,Y,Z,W
-  LOGICAL L
+  REAL x,y,z,w
+  LOGICAL l
 
   X = 2.0
-  Y = 1.0
+  y = 1.0
   Z = 2.0
   W = 3.0
 
-  X = X + Y-Z + W ! CHECK: (((X+Y)-Z)+W)
-  X = X+Y * Z ! CHECK: (X+(Y*Z))
-  X = X * Y + Z ! CHECK: ((X*Y)+Z)
-  X = (X + Y) * Z ! CHECK: ((X+Y)*Z)
-  X = X * Y ** Z ! CHECK: (X*(Y**Z))
-  X = X + Y ** Z / W ! CHECK: (X+((Y**Z)/W))
-  X = X+Y ** (Z / W) ! CHECK: (X+(Y**(Z/W)))
+  x = x + y-z + w ! CHECK: (((x+y)-z)+w)
+  x = x+y * Z ! CHECK: (x+(y*z))
+  x = x * y + z ! CHECK: ((x*y)+z)
+  x = (x + Y) * z ! CHECK: ((x+y)*z)
+  x = x * y ** z ! CHECK: (x*(y**z))
+  x = x + y ** z / w ! CHECK: (x+((y**z)/w))
+  x = x+y ** (z / w) ! CHECK: (x+(y**(z/w)))
 
-  X = (X + Y) * Z - W ! CHECK: (((X+Y)*Z)-W)
-  X = X + Y * -Z ! CHECK: (X+(Y*(-Z)))
+  x = (X + y) * z - w ! CHECK: (((x+y)*z)-w)
+  x = x + y * -z ! CHECK: (x+(y*(-z)))
 
-  L = X + Y .EQ. Z ! CHECK: ((X+Y)==Z)
-  L = X / Y .LT. Z ! CHECK: ((X/Y)<Z)
-  L = X - Y .GT. Z ** W ! CHECK: ((X-Y)>(Z**W))
+  l = x + y .EQ. z ! CHECK: ((x+y)==z)
+  l = x / y .LT. z ! CHECK: ((x/y)<z)
+  l = x - y .GT. z ** w ! CHECK: ((x-y)>(z**w))
 
-  X = X
-  X = (X)
-  X = (3 ! expected-error {{expected ')'}}
-  X = ! expected-error {{expected an expression after '='}}
-  X = A ! expected-error {{use of undeclared identifier 'A'}}
+  x = x
+  x = (x)
+  x = (3 ! expected-error {{expected ')'}}
+  x = ! expected-error {{expected an expression after '='}}
+  x = A ! expected-error {{use of undeclared identifier 'a'}}
 ENDPROGRAM expressions

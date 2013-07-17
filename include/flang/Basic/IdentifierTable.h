@@ -169,7 +169,7 @@ public:
   IdentifierInfo &get(std::string &Name) {
     std::string UCName = Name;
     for (size_t I = 0, E = UCName.size(); I != E; ++I)
-      UCName[I] = ::toupper(UCName[I]);
+      UCName[I] = ::tolower(UCName[I]);
 
     llvm::StringMapEntry<IdentifierInfo*> &Entry =
       IdentifierHashTable.GetOrCreateValue(UCName);
@@ -202,7 +202,7 @@ public:
   IdentifierInfo &getKeyword(llvm::StringRef Name, tok::TokenKind TokenCode) {
     std::string UCName(Name);
     for (size_t I = 0, E = UCName.size(); I != E; ++I)
-      UCName[I] = ::toupper(UCName[I]);
+      UCName[I] = ::tolower(UCName[I]);
 
     llvm::StringMapEntry<IdentifierInfo*> &Entry =
       KeywordHashTable.GetOrCreateValue(UCName);
@@ -236,7 +236,7 @@ public:
   IdentifierInfo &getFormatSpec(llvm::StringRef Name, tok::TokenKind TokenCode) {
     std::string UCName(Name);
     for (size_t I = 0, E = UCName.size(); I != E; ++I)
-      UCName[I] = ::toupper(UCName[I]);
+      UCName[I] = ::tolower(UCName[I]);
 
     llvm::StringMapEntry<IdentifierInfo*> &Entry =
       FormatSpecHashTable.GetOrCreateValue(UCName);
@@ -271,7 +271,7 @@ public:
   IdentifierInfo *lookupIdentifier(std::string &Name) const {
     std::string UCName = Name;
     for (size_t I = 0, E = UCName.size(); I != E; ++I)
-      UCName[I] = ::toupper(UCName[I]);
+      UCName[I] = ::tolower(UCName[I]);
 
     HashTableTy::const_iterator Iter = IdentifierHashTable.find(UCName);
     return Iter != IdentifierHashTable.end() ? Iter->getValue() : 0;
@@ -281,7 +281,7 @@ public:
   IdentifierInfo *lookupKeyword(std::string &Name) const {
     std::string UCName = Name;
     for (size_t I = 0, E = UCName.size(); I != E; ++I)
-      UCName[I] = ::toupper(UCName[I]);
+      UCName[I] = ::tolower(UCName[I]);
 
     HashTableTy::const_iterator Iter = KeywordHashTable.find(UCName);
     return Iter != KeywordHashTable.end() ? Iter->getValue() : 0;
@@ -292,7 +292,7 @@ public:
     if(Name.size() > 2) return nullptr;
     char UCName[4] = {0,0,0,0};
     for (size_t I = 0, E = Name.size(); I != E; ++I)
-      UCName[I] = ::toupper(Name[I]);
+      UCName[I] = ::tolower(Name[I]);
 
     HashTableTy::const_iterator Iter = FormatSpecHashTable.find(UCName);
     return Iter != FormatSpecHashTable.end() ? Iter->getValue() : nullptr;

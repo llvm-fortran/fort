@@ -5,7 +5,7 @@ PROGRAM imptest
   INTEGER X
 
   X = 1
-  Y = X ! expected-error {{use of undeclared identifier 'Y'}}
-  I = 0 ! expected-error {{use of undeclared identifier 'I'}}
+  Y = X ! expected-error {{use of undeclared identifier 'y'}}
+  I = 0 ! expected-error {{use of undeclared identifier 'i'}}
 
 END PROGRAM imptest

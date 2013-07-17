@@ -3,18 +3,18 @@
 PROGRAM imptest
   IMPLICIT INTEGER (A, B)
   IMPLICIT REAL (C-E, F)
-  IMPLICIT REAL (A) ! expected-error {{redefinition of implicit rule 'A'}}
-  IMPLICIT INTEGER (F-G) ! expected-error {{redefinition of implicit rule in the range 'F' - 'G'}}
-  IMPLICIT INTEGER (L, P, B) ! expected-error {{redefinition of implicit rule 'B'}}
-  IMPLICIT INTEGER (Z-X) ! expected-error {{the range 'Z' - 'X' isn't alphabetically ordered}}
+  IMPLICIT REAL (A) ! expected-error {{redefinition of implicit rule 'a'}}
+  IMPLICIT INTEGER (F-G) ! expected-error {{redefinition of implicit rule in the range 'f' - 'g'}}
+  IMPLICIT INTEGER (L, P, B) ! expected-error {{redefinition of implicit rule 'b'}}
+  IMPLICIT INTEGER (Z-X) ! expected-error {{the range 'z' - 'x' isn't alphabetically ordered}}
 
-  A = 1 ! CHECK: A = 1
-  B = 2.0 ! CHECK: B = INT(2)
+  A = 1 ! CHECK: a = 1
+  B = 2.0 ! CHECK: b = INT(2)
 
-  C = A ! CHECK: C = REAL(A)
-  D = C ! CHECK: D = C
-  E = -1.0 ! CHECK: E = (-1)
-  F = C ! CHECK: F = C
+  C = A ! CHECK: c = REAL(a)
+  D = C ! CHECK: d = c
+  E = -1.0 ! CHECK: e = (-1)
+  F = C ! CHECK: f = c
 
-  I = 0 ! CHECK: I = 0
+  I = 0 ! CHECK: i = 0
 END PROGRAM imptest

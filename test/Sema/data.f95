@@ -25,7 +25,7 @@ PROGRAM datatest
   ! DATA (I_ARR(I), I = 1,10) / 10*0 /
   ! DATA (I_ARR(I), I = 0 + 1, 20/2) / 10*0 /
 
-  DATA (I_ARR(WHAT), I = 1,10) / 10*0 / ! expected-error {{use of undeclared identifier 'WHAT'}}
+  DATA (I_ARR(WHAT), I = 1,10) / 10*0 / ! expected-error {{use of undeclared identifier 'what'}}
 
   DATA (ZZZ, I = 1,10) / 1 / ! expected-error {{expected an implied do or an array element expression}}
 

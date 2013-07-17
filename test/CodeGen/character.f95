@@ -1,11 +1,11 @@
 ! RUN: %flang -emit-llvm -o - %s | %file_check %s
 
-SUBROUTINE FOO(STR) ! CHECK: define void @FOO({ i8*, i64 }
+SUBROUTINE FOO(STR) ! CHECK: define void @foo_({ i8*, i64 }
   CHARACTER*(*) STR
   STR = 'AGAIN'
 END
 
-CHARACTER*10 FUNCTION BAR(I) ! CHECK: define void @BAR
+CHARACTER*10 FUNCTION BAR(I) ! CHECK: define void @bar_
   INTEGER I
   BAR = 'STRING'
   BAR = BAR

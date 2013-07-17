@@ -14,6 +14,6 @@ PROGRAM test
   CHARACTER RTS*(FOO)
   CHARACTER STRE*(-11) ! expected-error {{expected an integer greater than 0}}
   CHARACTER STRING*(STR) ! expected-error {{expected an integer constant expression}}
-  CHARACTER STR2*(*) ! expected-error {{use of character length declarator '*' for a local variable 'STR2'}}
+  CHARACTER STR2*(*) ! expected-error {{use of character length declarator '*' for a local variable 'str2'}}
   CHARACTER*10 STR3*10 ! expected-error {{duplicate character length declaration specifier}}
 END

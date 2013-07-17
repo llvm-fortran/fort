@@ -9,15 +9,15 @@ PROGRAM paramtest
   INTEGER NUMBER
   PARAMETER (NUMBER = .false.) ! expected-error {{assigning to 'INTEGER' from incompatible type 'LOGICAL'}}
 
-  REAL w ! expected-error {{redefinition of 'W'}}
+  REAL w ! expected-error {{redefinition of 'w'}}
 
   PARAMETER (exprs = 1 + 2 * 7) ! expected-note@+2 {{this expression is not allowed in a constant expression}}
 
-  PARAMETER (fail = C(1:1)) ! expected-error {{parameter 'FAIL' must be initialized by a constant expression}}
+  PARAMETER (fail = C(1:1)) ! expected-error {{parameter 'fail' must be initialized by a constant expression}}
 
   INTEGER VAR ! expected-note@+1 {{this expression is not allowed in a constant expression}}
-  PARAMETER (epicFail = VAR + 1) ! expected-error {{parameter 'EPICFAIL' must be initialized by a constant expression}}
+  PARAMETER (epicFail = VAR + 1) ! expected-error {{parameter 'epicfail' must be initialized by a constant expression}}
 
-  PARAMETER (x = 22) ! expected-error {{redefinition of 'X'}}
+  PARAMETER (x = 22) ! expected-error {{redefinition of 'x'}}
 
 END PROGRAM paramtest

@@ -2,10 +2,10 @@
 PROGRAM intrintest
   INTRINSIC INT, MOD ! expected-note {{previous definition is here}}
 
-  INTRINSIC FAIL ! expected-error {{invalid function name 'FAIL' in an intrinsic statement}}
-  INTRINSIC ABS, SAB ! expected-error {{invalid function name 'SAB' in an intrinsic statement}}
+  INTRINSIC FAIL ! expected-error {{invalid function name 'fail' in an intrinsic statement}}
+  INTRINSIC ABS, SAB ! expected-error {{invalid function name 'sab' in an intrinsic statement}}
 
-  INTRINSIC MOD ! expected-error {{redefinition of 'MOD'}}
+  INTRINSIC MOD ! expected-error {{redefinition of 'mod'}}
 
   INTEGER I
 

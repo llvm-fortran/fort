@@ -5,38 +5,38 @@
 PROGRAM doubletest
   IMPLICIT NONE
 
-  DOUBLE PRECISION DBL
-  DOUBLE COMPLEX DC
-  COMPLEX*16 DCC
+  DOUBLE PRECISION dbl
+  DOUBLE COMPLEX dc
+  COMPLEX*16 dcc
 
-  REAL R
-  COMPLEX C
+  REAL r
+  COMPLEX c
 
   INTRINSIC DCMPLX, CDABS, DCONJG, DIMAG
 
-  R = DBL ! CHECK: R = REAL(DBL)
-  C = DC  ! CHECK: C = CMPLX(DC)
-  DBL = R ! CHECK: DBL = REAL(R,Kind=8)
-  DC = C  ! CHECK: DC = CMPLX(C,Kind=8)
+  r = dbl ! CHECK: r = REAL(dbl)
+  c = dc  ! CHECK: c = CMPLX(dc)
+  dbl = r ! CHECK: dbl = REAL(r,Kind=8)
+  dc = c  ! CHECK: dc = CMPLX(c,Kind=8)
 
-  DC = (1,2) ! CHECK: DC = CMPLX((1,2),Kind=8)
+  dc = (1,2) ! CHECK: dc = CMPLX((1,2),Kind=8)
   ! create a double precision complex when a part has double precision
-  DC = (1D1,2) ! CHECK: DC = (10,2)
-  DC = (0,20D-1) ! CHECK: DC = (0,2)
-  DC = (1d1, 25d-1) ! CHECK: DC = (10,2.5)
+  dc = (1D1,2) ! CHECK: dc = (10,2)
+  dc = (0,20D-1) ! CHECK: dc = (0,2)
+  dc = (1d1, 25d-1) ! CHECK: dc = (10,2.5)
 
-  DC = C + DC + R ! CHECK: DC = ((CMPLX(C,Kind=8)+DC)+CMPLX(R,Kind=8))
-  DBL = R + DBL ! CHECK: DBL = (REAL(R,Kind=8)+DBL)
+  dc = c + dc + r ! CHECK: dc = ((CMPLX(c,Kind=8)+dc)+CMPLX(r,Kind=8))
+  dbl = r + dbl ! CHECK: dbl = (REAL(r,Kind=8)+dbl)
 
-  DC = DCMPLX(R) ! CHECK: DC = DCMPLX(R)
-  R = CDABS(DC) ! CHECK: R = REAL(CDABS(DC))
-  DC = DCONJG(DC) ! CHECK: DC = DCONJG(DC)
-  DC = DCONJG(C) ! expected-error{{passing 'COMPLEX' to parameter of incompatible type 'DOUBLE COMPLEX'}}
+  dc = DCMPLX(r) ! CHECK: dc = dcmplx(r)
+  r = CDABS(dc) ! CHECK: r = REAL(cdabs(dc))
+  dc = DCONJG(dc) ! CHECK: dc = dconjg(dc)
+  dc = DCONJG(c) ! expected-error{{passing 'COMPLEX' to parameter of incompatible type 'DOUBLE COMPLEX'}}
 
-  DBL = DIMAG(DC) ! CHECK: DBL = DIMAG(DC)
+  dbl = DIMAG(dc) ! CHECK: dbl = dimag(dc)
 
-  DC = DC/DBL ! CHECK: DC = (DC/CMPLX(DBL,Kind=8))
+  dc = dc/dbl ! CHECK: dc = (dc/CMPLX(dbl,Kind=8))
 
-  DC = DCC ! CHECK: DC = DCC
+  dc = dcc ! CHECK: dc = dcc
 
 END PROGRAM

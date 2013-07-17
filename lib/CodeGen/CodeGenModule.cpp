@@ -123,7 +123,8 @@ CGFunction CodeGenModule::GetFunction(const FunctionDecl *Function) {
 
   auto Func = llvm::Function::Create(FunctionInfo->getFunctionType(),
                                      llvm::GlobalValue::ExternalLinkage,
-                                     Function->getName(), &TheModule);
+                                     llvm::Twine(Function->getName()) + "_",
+                                     &TheModule);
   Func->setCallingConv(FunctionInfo->getCallingConv());
   auto Result = CGFunction(FunctionInfo, Func);
   Functions.insert(std::make_pair(Function, Result));

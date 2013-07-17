@@ -1,11 +1,11 @@
 ! RUN: %flang -fsyntax-only -verify < %s
 ! RUN: %flang -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
 PROGRAM intrinfuntest
-  INTEGER I
-  REAL R
-  DOUBLE PRECISION D
-  COMPLEX C
-  CHARACTER (LEN=100) STRING
+  INTEGER i
+  REAL r
+  DOUBLE PRECISION d
+  COMPLEX c
+  CHARACTER (LEN=100) string
   LOGICAL logicalResult
 
   INTRINSIC INT, IFIX, IDINT
@@ -29,123 +29,123 @@ PROGRAM intrinfuntest
 
 !! conversion functions
 
-  I = INT(2.0) ! CHECK: I = INT(2)
-  I = int(2.0D1) ! CHECK: I = INT(20)
-  I = INT((1,2)) ! CHECK: I = INT((1,2))
-  I = ifix(1.0) ! CHECK: I = IFIX(1)
-  I = IDINT(4.25D1) ! CHECK: I = IDINT(42.5)
-  R = INT(22) ! CHECK: R = REAL(INT(22))
+  i = INT(2.0) ! CHECK: i = int(2)
+  i = int(2.0D1) ! CHECK: i = int(20)
+  i = INT((1,2)) ! CHECK: i = int((1,2))
+  i = ifix(1.0) ! CHECK: i = ifix(1)
+  i = IDINT(4.25D1) ! CHECK: i = idint(42.5)
+  r = INT(22) ! CHECK: r = REAL(int(22))
 
-  I = INT() ! expected-error {{too few arguments to intrinsic function call, expected 1, have 0}}
-  I = INT(1,2) ! expected-error {{too many arguments to intrinsic function call, expected 1, have 2}}
+  i = INT() ! expected-error {{too few arguments to intrinsic function call, expected 1, have 0}}
+  i = INT(1,2) ! expected-error {{too many arguments to intrinsic function call, expected 1, have 2}}
 
-  I = IFIX(22) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'REAL'}}
-  I = idint(22) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'DOUBLE PRECISION'}}
-  I = int(.true.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'INTEGER' or 'REAL' or 'COMPLEX'}}
+  i = IFIX(22) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'REAL'}}
+  i = idint(22) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'DOUBLE PRECISION'}}
+  i = int(.true.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'INTEGER' or 'REAL' or 'COMPLEX'}}
 
-  R = REAL(42) ! CHECK: R = REAL(42)
-  R = real(1D1) ! CHECK: R = REAL(10)
-  R = float(13) ! CHECK: R = FLOAT(13)
-  R = SNGL(0d0) ! CHECK: R = SNGL(0)
+  r = REAL(42) ! CHECK: r = real(42)
+  r = real(1D1) ! CHECK: r = real(10)
+  r = float(13) ! CHECK: r = float(13)
+  r = SNGL(0d0) ! CHECK: r = sngl(0)
 
-  R = FLOAT(12.1) ! expected-error {{passing 'REAL' to parameter of incompatible type 'INTEGER'}}
-  R = sngl(12) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'DOUBLE PRECISION'}}
+  r = FLOAT(12.1) ! expected-error {{passing 'REAL' to parameter of incompatible type 'INTEGER'}}
+  r = sngl(12) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'DOUBLE PRECISION'}}
 
-  D = DBLE(I) ! CHECK: D = DBLE(I)
-  D = DBLE(R) ! CHECK: D = DBLE(R)
-  R = DBLE(I) ! CHECK: R = REAL(DBLE(I))
+  d = DBLE(i) ! CHECK: d = dble(i)
+  d = DBLE(r) ! CHECK: d = dble(r)
+  r = DBLE(i) ! CHECK: r = REAL(dble(i))
 
-  C = cmplx(2.0)
-  C = CMPLX(33)
-  C = CMPLX(1,2)
-  C = CMPLX() ! expected-error {{too few arguments to intrinsic function call, expected 1 or 2, have 0}}
-  C = CMPLX(1,2,3,4) ! expected-error {{too many arguments to intrinsic function call, expected 1 or 2, have 4}}
-  C = CMPLX(1.0, .false.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'INTEGER' or 'REAL' or 'COMPLEX'}}
+  c = cmplx(2.0)
+  c = CMPLX(33)
+  c = CMPLX(1,2)
+  c = CMPLX() ! expected-error {{too few arguments to intrinsic function call, expected 1 or 2, have 0}}
+  c = CMPLX(1,2,3,4) ! expected-error {{too many arguments to intrinsic function call, expected 1 or 2, have 4}}
+  c = CMPLX(1.0, .false.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'INTEGER' or 'REAL' or 'COMPLEX'}}
 
-  I = ICHAR('HELLO')
-  I = ichar(.false.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'CHARACTER'}}
+  i = ICHAR('HELLO')
+  i = ichar(.false.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'CHARACTER'}}
 
-  STRING = CHAR(65)
-  STRING = char('TRUTH') ! expected-error {{passing 'CHARACTER' to parameter of incompatible type 'INTEGER'}}
+  string = CHAR(65)
+  string = char('TRUTH') ! expected-error {{passing 'CHARACTER' to parameter of incompatible type 'INTEGER'}}
 
 !! misc and maths functions
 
-  R = AINT(R) ! CHECK: R = AINT(R)
-  D = AINT(D) ! CHECK: D = AINT(D)
-  D = DINT(D) ! CHECK: D = DINT(D)
-  D = DINT(R) ! expected-error {{passing 'REAL' to parameter of incompatible type 'DOUBLE PRECISION'}}
+  r = AINT(r) ! CHECK: r = aint(r)
+  d = AINT(d) ! CHECK: d = aint(d)
+  d = DINT(d) ! CHECK: d = dint(d)
+  d = DINT(r) ! expected-error {{passing 'REAL' to parameter of incompatible type 'DOUBLE PRECISION'}}
 
-  R = ANINT(R) ! CHECK: R = ANINT(R)
-  D = ANINT(D) ! CHECK: D = ANINT(D)
-  D = DNINT(D) ! CHECK: D = DNINT(D)
-  D = DNINT(R) ! expected-error {{passing 'REAL' to parameter of incompatible type 'DOUBLE PRECISION'}}
+  r = ANINT(r) ! CHECK: r = anint(r)
+  d = ANINT(d) ! CHECK: d = anint(d)
+  d = DNINT(d) ! CHECK: d = dnint(d)
+  d = DNINT(r) ! expected-error {{passing 'REAL' to parameter of incompatible type 'DOUBLE PRECISION'}}
 
-  I = NINT(R) ! CHECK: I = NINT(R)
-  I = NINT(D) ! CHECK: I = NINT(D)
-  I = IDNINT(D) ! CHECK: I = IDNINT(D)
-  I = IDNINT(R) ! expected-error {{passing 'REAL' to parameter of incompatible type 'DOUBLE PRECISION'}}
+  i = NINT(r) ! CHECK: i = nint(r)
+  i = NINT(d) ! CHECK: i = nint(d)
+  i = IDNINT(d) ! CHECK: i = idnint(d)
+  i = IDNINT(r) ! expected-error {{passing 'REAL' to parameter of incompatible type 'DOUBLE PRECISION'}}
 
-  I = ABS(I) ! CHECK: I = ABS(I)
-  R = ABS(R) ! CHECK: R = ABS(R)
-  D = ABS(D) ! CHECK: D = ABS(D)
-  R = ABS(C) ! CHECK: R = ABS(C)
-  I = IABS(I) ! CHECK: I = IABS(I)
-  D = DABS(D) ! CHECK: D = DABS(D)
-  R = CABS(C) ! CHECK: R = CABS(C)
+  i = ABS(i) ! CHECK: i = abs(i)
+  r = ABS(r) ! CHECK: r = abs(r)
+  d = ABS(d) ! CHECK: d = abs(d)
+  r = ABS(c) ! CHECK: r = abs(c)
+  i = IABS(i) ! CHECK: i = iabs(i)
+  d = DABS(d) ! CHECK: d = dabs(d)
+  r = CABS(c) ! CHECK: r = cabs(c)
 
-  I = MOD(3,I)     ! CHECK: I = MOD(3, I)
-  R = MOD(R, 3.0)  ! CHECK: R = MOD(R, 3)
-  R = SIGN(R, 0.0) ! CHECK: R = SIGN(R, 0)
-  D = DPROD(R, R)  ! CHECK: D = DPROD(R, R)
-  R = max(1.0, R)  ! CHECK: R = MAX(1, R)
-  I = min(I, 11)
+  i = MOD(3,i)     ! CHECK: i = mod(3, i)
+  r = MOD(r, 3.0)  ! CHECK: r = mod(r, 3)
+  r = SIGN(r, 0.0) ! CHECK: r = sign(r, 0)
+  d = DPROD(r, r)  ! CHECK: d = dprod(r, r)
+  r = max(1.0, r)  ! CHECK: r = max(1, r)
+  i = min(i, 11)
 
-  I = LEN(STRING) ! CHECK: I = LEN(STRING)
-  I = len_trim(STRING) ! CHECK: I = LEN_TRIM(STRING)
-  I = LEN(22) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'CHARACTER'}}
-  I = INDEX(STRING, STRING) ! CHECK: I = INDEX(STRING, STRING)
+  i = LEN(string) ! CHECK: i = len(string)
+  i = len_trim(string) ! CHECK: i = len_trim(string)
+  i = LEN(22) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'CHARACTER'}}
+  i = INDEX(string, string) ! CHECK: i = index(string, string)
 
-  R = aimag(C) ! CHECK: R = AIMAG(C)
-  C = CONJG(C) ! CHECK: C = CONJG(C)
-  C = CONJG(R) ! expected-error {{passing 'REAL' to parameter of incompatible type 'COMPLEX'}}
+  r = aimag(c) ! CHECK: r = aimag(c)
+  c = CONJG(c) ! CHECK: c = conjg(c)
+  c = CONJG(r) ! expected-error {{passing 'REAL' to parameter of incompatible type 'COMPLEX'}}
 
-  R = SQRT(R) ! CHECK: R = SQRT(R)
-  D = SQRT(D) ! CHECK: D = SQRT(D)
-  C = SQRT(C) ! CHECK: C = SQRT(C)
+  r = SQRT(r) ! CHECK: r = sqrt(r)
+  d = SQRT(d) ! CHECK: d = sqrt(d)
+  c = SQRT(c) ! CHECK: c = sqrt(c)
 
-  R = EXP(R) ! CHECK: R = EXP(R)
-  D = EXP(D) ! CHECK: D = EXP(D)
-  C = EXP(C) ! CHECK: C = EXP(C)
+  r = EXP(r) ! CHECK: r = exp(r)
+  d = EXP(d) ! CHECK: d = exp(d)
+  c = EXP(c) ! CHECK: c = exp(c)
 
-  R = SQRT(.false.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'REAL' or 'COMPLEX'}}
+  r = SQRT(.false.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'REAL' or 'COMPLEX'}}
 
-  R = LOG(R) ! CHECK: R = LOG(R)
-  D = LOG(D) ! CHECK: D = LOG(D)
-  C = LOG(C) ! CHECK: C = LOG(C)
+  r = LOG(r) ! CHECK: r = log(r)
+  d = LOG(d) ! CHECK: d = log(d)
+  c = LOG(c) ! CHECK: c = log(c)
 
-  R = Log10(R) ! CHECK: R = LOG10(R)
-  D = Log10(D) ! CHECK: D = LOG10(D)
-  C = Log10(C) ! expected-error {{passing 'COMPLEX' to parameter of incompatible type 'REAL'}}
+  r = Log10(r) ! CHECK: r = log10(r)
+  d = Log10(d) ! CHECK: d = log10(d)
+  c = Log10(c) ! expected-error {{passing 'COMPLEX' to parameter of incompatible type 'REAL'}}
 
-  R = SIN(R) ! CHECK: R = SIN(R)
-  D = SIN(D) ! CHECK: D = SIN(D)
-  C = SIN(C) ! CHECK: C = SIN(C)
+  r = SIN(r) ! CHECK: r = sin(r)
+  d = SIN(d) ! CHECK: d = sin(d)
+  c = SIN(c) ! CHECK: c = sin(c)
 
-  R = TAN(R) ! CHECK: R = TAN(R)
-  D = TAN(D) ! CHECK: D = TAN(D)
+  r = TAN(r) ! CHECK: r = tan(r)
+  d = TAN(d) ! CHECK: d = tan(d)
 
-  R = ALOG10(R) ! CHECK: R = ALOG10(R)
-  D = DLOG10(D) ! CHECK: D = DLOG10(D)
-  C = CLOG(C) ! CHECK: C = CLOG(C)
+  r = ALOG10(r) ! CHECK: r = alog10(r)
+  d = DLOG10(d) ! CHECK: d = dlog10(d)
+  c = CLOG(c) ! CHECK: c = clog(c)
 
-  R = ATAN2(R, 1.0) ! CHECK: R = ATAN2(R, 1)
-  D = ATAN2(D, 1D0) ! CHECK: D = ATAN2(D, 1)
+  r = ATAN2(r, 1.0) ! CHECK: r = atan2(r, 1)
+  d = ATAN2(d, 1D0) ! CHECK: d = atan2(d, 1)
 
 !! lexical comparison functions
 
-  logicalResult = lge(STRING, STRING) ! CHECK: LOGICALRESULT = LGE(STRING, STRING)
-  logicalResult = lgt(STRING, STRING) ! CHECK: LOGICALRESULT = LGT(STRING, STRING)
-  logicalResult = lle(STRING, STRING) ! CHECK: LOGICALRESULT = LLE(STRING, STRING)
-  logicalResult = llt(STRING, STRING) ! CHECK: LOGICALRESULT = LLT(STRING, STRING)
+  logicalResult = lge(string, string) ! CHECK: logicalresult = lge(string, string)
+  logicalResult = lgt(string, string) ! CHECK: logicalresult = lgt(string, string)
+  logicalResult = lle(string, string) ! CHECK: logicalresult = lle(string, string)
+  logicalResult = llt(string, string) ! CHECK: logicalresult = llt(string, string)
 
 END PROGRAM

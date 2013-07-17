@@ -2,41 +2,41 @@
 ! RUN: %flang -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
 PROGRAM relexpressions
   IMPLICIT NONE
-  INTEGER I
-  REAL R
-  COMPLEX C
-  LOGICAL L
+  INTEGER i
+  REAL r
+  COMPLEX c
+  LOGICAL l
 
-  I = 0
-  R = 2.0
-  C = (1.0,1.0)
+  i = 0
+  r = 2.0
+  c = (1.0,1.0)
 
-  L = I .LT. I ! CHECK: (I<I)
-  L = I .EQ. 2 ! CHECK: (I==2)
-  L = 3 .NE. I ! CHECK: (3/=I)
-  L = I .GT. R ! CHECK: (REAL(I)>R)
-  L = I .LE. R ! CHECK: (REAL(I)<=R)
-  L = I .GE. I ! CHECK: (I>=I)
+  l = i .LT. i ! CHECK: (i<i)
+  l = i .EQ. 2 ! CHECK: (i==2)
+  l = 3 .NE. i ! CHECK: (3/=i)
+  l = i .GT. r ! CHECK: (REAL(i)>r)
+  l = i .LE. r ! CHECK: (REAL(i)<=r)
+  l = i .GE. i ! CHECK: (i>=i)
 
-  L = R .LT. R ! CHECK: (R<R)
-  L = R .GT. 2.0 ! CHECK: (R>2)
+  l = r .LT. r ! CHECK: (r<r)
+  l = r .GT. 2.0 ! CHECK: (r>2)
 
-  L = C .EQ. C ! CHECK: (C==C)
-  L = C .NE. C ! CHECK: (C/=C)
-  L = C .NE. R ! CHECK: (C/=CMPLX(R))
-  L = C .LE. C ! expected-error {{invalid operands to a relational binary expression ('COMPLEX' and 'COMPLEX')}}
-  L = C .EQ. 2.0 ! CHECK: (C==CMPLX(2))
+  l = c .EQ. c ! CHECK: (c==c)
+  l = c .NE. c ! CHECK: (c/=c)
+  l = c .NE. r ! CHECK: (c/=CMPLX(r))
+  l = c .LE. c ! expected-error {{invalid operands to a relational binary expression ('COMPLEX' and 'COMPLEX')}}
+  l = c .EQ. 2.0 ! CHECK: (c==CMPLX(2))
   ! FIXME: make F77 only
-  L = C .EQ. 2.0d-1 ! expected-error {{invalid operands to a relational binary expression ('COMPLEX' and 'DOUBLE PRECISION')}}
+  l = c .EQ. 2.0d-1 ! expected-error {{invalid operands to a relational binary expression ('COMPLEX' and 'DOUBLE PRECISION')}}
 
-  L = 'HELLO' .EQ. 'WORLD'
-  L = 'HELLO' .NE. 'WORLD'
+  l = 'HELLO' .EQ. 'WORLD'
+  l = 'HELLO' .NE. 'WORLD'
 
-  I = 1 .NE. 2 ! expected-error {{assigning to 'INTEGER' from incompatible type 'LOGICAL'}}
-  R = 2.0 .LT. 1 ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
+  i = 1 .NE. 2 ! expected-error {{assigning to 'INTEGER' from incompatible type 'LOGICAL'}}
+  r = 2.0 .LT. 1 ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
 
-  L = L .EQ. L ! expected-error {{invalid operands to a relational binary expression ('LOGICAL' and 'LOGICAL')}}
-  L = .TRUE. .NE. L ! expected-error {{invalid operands to a relational binary expression ('LOGICAL' and 'LOGICAL')}}
-  L = L .LT. .FALSE. ! expected-error {{invalid operands to a relational binary expression ('LOGICAL' and 'LOGICAL')}}
+  l = l .EQ. l ! expected-error {{invalid operands to a relational binary expression ('LOGICAL' and 'LOGICAL')}}
+  l = .TRUE. .NE. l ! expected-error {{invalid operands to a relational binary expression ('LOGICAL' and 'LOGICAL')}}
+  l = l .LT. .FALSE. ! expected-error {{invalid operands to a relational binary expression ('LOGICAL' and 'LOGICAL')}}
 
 END PROGRAM
