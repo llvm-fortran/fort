@@ -80,6 +80,12 @@ namespace {
   SyntaxOnly("fsyntax-only", cl::desc("Do not compile code"), cl::init(false));
 
   cl::opt<bool>
+  PrintAST("ast-print", cl::desc("Prints AST"), cl::init(false));
+
+  cl::opt<bool>
+  DumpAST("ast-dump", cl::desc("Dumps AST"), cl::init(false));
+
+  cl::opt<bool>
   EmitLLVM("emit-llvm", cl::desc("Emit llvm"), cl::init(false));
 
   cl::opt<bool>
@@ -88,8 +94,11 @@ namespace {
   cl::opt<std::string>
   OutputFile("o", cl::desc("<output file>"), cl::init(""));
 
+  cl::opt<bool>
+  EmitDebugInfo("g", cl::desc("Emit debugging info"), cl::init(false));
+
   cl::list<std::string>
-  LinkDirectories("L", cl::desc("Additional directory for library files"));
+  LinkDirectories("L", cl::desc("Additional directories for library files"));
 
   cl::list<std::string>
   LinkLibraries("l", cl::desc("Additional libraries"));
@@ -160,6 +169,8 @@ static bool EmitOutputFile(const std::string &Input,
   std::string err;
   llvm::raw_fd_ostream Out(Input.c_str(), err, llvm::raw_fd_ostream::F_Binary);
   if (!err.empty()){
+    llvm::errs() << "Could not open output file '" << Input << "': "
+                 << err <<"\n";
     return true;
   }
   return EmitFile(Out, Module, TM, Action);
@@ -220,13 +231,17 @@ static bool ParseFile(const std::string &Filename,
   Sema SA(Context, Diag);
   Parser P(SrcMgr, Opts, Diag, SA);
   Diag.getClient()->BeginSourceFile(Opts, &P.getLexer());
-  bool result = P.ParseProgramUnits();
+  P.ParseProgramUnits();
   Diag.getClient()->EndSourceFile();
-  // dump
-  auto Dumper = CreateASTDumper("");
-  Dumper->HandleTranslationUnit(Context);
 
+  // Dump
+  if(PrintAST || DumpAST) {
+    auto Dumper = CreateASTDumper("");
+    Dumper->HandleTranslationUnit(Context);
+    delete Dumper;
+  }
 
+  // Emit
   if(!SyntaxOnly && !Diag.hadErrors()) {
     auto CG = CreateLLVMCodeGen(Diag, Filename == ""? std::string("module") : Filename,
                                 CodeGenOptions(), flang::TargetOptions(), llvm::getGlobalContext());
@@ -248,6 +263,7 @@ static bool ParseFile(const std::string &Filename,
       OutputFiles.push_back(GetOutputName(Filename, BA));
       EmitOutputFile(OutputFiles.back(), CG->GetModule(), TM, BA);
     }
+    delete CG;
   }
 
   return Diag.hadErrors();

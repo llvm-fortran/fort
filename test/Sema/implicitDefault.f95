@@ -1,5 +1,5 @@
 ! RUN: %flang -fsyntax-only < %s
-! RUN: %flang -fsyntax-only %s 2>&1 | %file_check %s
+! RUN: %flang -fsyntax-only -ast-print %s 2>&1 | %file_check %s
 PROGRAM imptest
   !Unless specified otherwise,
   !all variables starting with letters I, J, K, L, M and N are default INTEGERs,
