@@ -290,7 +290,9 @@ void ASTDumper::VisitDataStmt(const DataStmt *S) {
   dumpExprList(S->getNames());
   OS << " / ";
   dumpExprList(S->getValues());
-  OS << " /\n";
+  OS << " /";
+  if(S->getBody())
+    dumpStmt(S->getBody());
 }
 
 void ASTDumper::VisitBlockStmt(const BlockStmt *S) {

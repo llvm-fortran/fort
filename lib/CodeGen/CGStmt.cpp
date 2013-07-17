@@ -31,6 +31,13 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
 
     Visitor(CodeGenFunction *P) : CG(P) {}
 
+    void VisitCompoundStmt(const CompoundStmt *S) {
+      for(auto I : S->getBody())
+        CG->EmitStmt(I);
+    }
+    void VisitDataStmt(const DataStmt *S) {
+      CG->EmitStmt(S->getBody());
+    }
     void VisitBlockStmt(const BlockStmt *S) {
       for(auto I : S->getStatements())
         CG->EmitStmt(I);
