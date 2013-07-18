@@ -185,12 +185,20 @@ void CodeGenFunction::EmitDoStmt(const DoStmt *S) {
   auto InitValue = EmitScalarExpr(S->getInitialParameter());
   Builder.CreateStore(InitValue, VarPtr);  
   auto EndValue = EmitScalarExpr(S->getTerminalParameter());
-  auto IncValue = S->getIncrementationParameter()?
-                    EmitScalarExpr(S->getIncrementationParameter()) :
-                    GetConstantOne(S->getDoVar()->getType());
-
-  // FIXME: Iteration count doesn't need to be used for all loops.
+  llvm::Value *IncValue;
   bool UseIterationCount = true;
+  if(S->getIncrementationParameter())
+    IncValue = EmitScalarExpr(S->getIncrementationParameter());
+  else {
+    IncValue = GetConstantOne(S->getDoVar()->getType());
+    if(S->getDoVar()->getType()->isIntegerType())
+      UseIterationCount = false;
+  }
+
+  auto Loop = createBasicBlock("do");
+  auto LoopBody = createBasicBlock("loop");
+  auto LoopIncrement = createBasicBlock("loop-inc");
+  auto EndLoop = createBasicBlock("end-do");
 
   // IterationCount = MAX( INT( (m2 - m1 + m3)/m3), 0)
   llvm::Value *IterationCountVar;
@@ -211,12 +219,13 @@ void CodeGenFunction::EmitDoStmt(const DoStmt *S) {
     Val = Builder.CreateSelect(Builder.CreateICmpSGE(Val, Zero),
                                Val, Zero, "max");
     Builder.CreateStore(Val, IterationCountVar);
+  } else {
+    // DO i = -1, -5 => IterationCount is 0 => don't run
+    auto Cond = EmitScalarRelationalExpr(
+                  BinaryExpr::GreaterThanEqual,
+                  EndValue, InitValue);
+    Builder.CreateCondBr(Cond, Loop, EndLoop);
   }
-
-  auto Loop = createBasicBlock("do");
-  auto LoopBody = createBasicBlock("loop");
-  auto LoopIncrement = createBasicBlock("loop-inc");
-  auto EndLoop = createBasicBlock("end-do");
 
   LoopScope Scope(this, S, LoopIncrement, EndLoop);
 
