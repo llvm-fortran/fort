@@ -19,14 +19,30 @@ namespace flang   {
 namespace CodeGen {
 
 class CallArgList {
-public:
   SmallVector<llvm::Value*, 16> Values;
+  SmallVector<llvm::Value*, 4>  AdditionalValues;
   RValueTy ReturnValue;
+public:
+
+  void add(llvm::Value *Arg) {
+    Values.push_back(Arg);
+  }
+
+  void addAditional(llvm::Value *Arg) {
+    AdditionalValues.push_back(Arg);
+  }
 
   void addReturnValueArg(RValueTy Value) {
     ReturnValue = Value;
   }
-  ArrayRef<llvm::Value*> getValues() {
+
+  RValueTy getReturnValueArg() const {
+    return ReturnValue;
+  }
+
+  ArrayRef<llvm::Value*> createValues() {
+    for(auto I : AdditionalValues)
+      Values.push_back(I);
     return Values;
   }
 };

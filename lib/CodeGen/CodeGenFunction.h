@@ -69,14 +69,30 @@ class CodeGenFunction {
 
   llvm::BasicBlock *ReturnBlock;
 
-  llvm::DenseMap<const Stmt*, llvm::BasicBlock*> GotoTargets;
+  ArrayRef<CGFunctionInfo::ArgInfo> ArgsInfo;
+  ArrayRef<VarDecl*> ArgsList;
 
-  llvm::DenseMap<const VarDecl*, llvm::Value*> LocalVariables;
+  struct ExpandedArg {
+    const VarDecl *Decl;
+    llvm::Function::arg_iterator A1;
+    llvm::Function::arg_iterator A2;
+  };
+  llvm::SmallVector<ExpandedArg, 4> ExpandedArgs;
+
+  ExpandedArg GetExpandedArg(const VarDecl *Arg) const {
+    for(auto I : ExpandedArgs) {
+      if(I.Decl == Arg) return I;
+    }
+    return ExpandedArg();
+  }
+
+  llvm::DenseMap<const Stmt*, llvm::BasicBlock*> GotoTargets;
+  llvm::DenseMap<const VarDecl*, llvm::Value*>   LocalVariables;
+  llvm::DenseMap<const VarDecl*, CharacterValueTy> CharacterArgs;
 
   llvm::Value *ReturnValuePtr;
 
   bool IsMainProgram;
-
 public:
   CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn);
   ~CodeGenFunction();
@@ -89,10 +105,13 @@ public:
     return CGM.getTypes();
   }
 
-  //CodeGenTypes &getTypes() const { return CGM.getTypes(); }
-  ASTContext &getContext() const { return CGM.getContext(); }
+  ASTContext &getContext() const {
+    return CGM.getContext();
+  }
 
-  CGBuilderTy &getBuilder() { return Builder; }
+  CGBuilderTy &getBuilder() {
+    return Builder;
+  }
 
   llvm::BasicBlock *getUnreachableBlock() {
     if (!UnreachableBlock) {
@@ -145,9 +164,16 @@ public:
   llvm::Value *GetVarPtr(const VarDecl *D);
   llvm::Value *GetRetVarPtr();
 
+  /// \brief Returns the argument info for the given arg.
+  CGFunctionInfo::ArgInfo GetArgInfo(const VarDecl *Arg) const;
+
+  /// \brief Returns the value of the given character argument.
+  CharacterValueTy GetCharacterArg(const VarDecl *Arg);
+
   void EmitFunctionDecls(const DeclContext *DC);
   void EmitMainProgramBody(const DeclContext *DC, const Stmt *S);
-  void EmitFunctionArguments(const FunctionDecl *Func);
+  void EmitFunctionArguments(const FunctionDecl *Func,
+                             const CGFunctionInfo *Info);
   void EmitFunctionPrologue(const FunctionDecl *Func,
                             const CGFunctionInfo *Info);
   void EmitFunctionBody(const DeclContext *DC, const Stmt *S);
@@ -293,15 +319,15 @@ public:
     return EmitCall(Func, llvm::makeArrayRef(Args, 3));
   }
 
-  void EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+  void EmitCallArg(CallArgList &Args,
                    const Expr *E, CGFunctionInfo::ArgInfo ArgInfo);
-  void EmitArrayCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+  void EmitArrayCallArg(CallArgList &ArgBuilder,
                         const Expr *E, CGFunctionInfo::ArgInfo ArgInfo);
-  void EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+  void EmitCallArg(CallArgList &Args,
                    llvm::Value *Value, CGFunctionInfo::ArgInfo ArgInfo);
-  void EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+  void EmitCallArg(CallArgList &Args,
                    ComplexValueTy Value, CGFunctionInfo::ArgInfo ArgInfo);
-  void EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+  void EmitCallArg(CallArgList &Args,
                    CharacterValueTy Value, CGFunctionInfo::ArgInfo ArgInfo);
   llvm::Value *EmitCallArgPtr(const Expr *E);
 

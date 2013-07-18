@@ -39,6 +39,12 @@ public:
     /// character - two arguments (ptr, len)
     Expand,
 
+    /// Passes a character aggregate as two separate
+    /// arguments. The pointer is passed in place of
+    /// the actual argument, and the length is passed
+    /// in the additional arguments as an integer.
+    ExpandCharacterPutLengthToAdditionalArgsAsInt,
+
     /// Passes a complex by value using a vector type.
     ComplexValueAsVector
   };

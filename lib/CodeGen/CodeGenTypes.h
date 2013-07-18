@@ -103,6 +103,7 @@ public:
                                 CGFunctionInfo::RetInfo &ReturnInfo);
 
   void ConvertArgumentType(SmallVectorImpl<llvm::Type *> &ArgTypes,
+                           SmallVectorImpl<llvm::Type *> &AdditionalArgTypes,
                            QualType T,
                            CGFunctionInfo::ArgInfo &ArgInfo);
 

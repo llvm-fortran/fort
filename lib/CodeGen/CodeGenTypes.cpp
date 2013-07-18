@@ -143,19 +143,22 @@ const CGFunctionInfo *CodeGenTypes::GetFunctionType(const FunctionDecl *FD) {
   auto ReturnType = ConvertReturnType(FD->getType(), ReturnInfo);
 
   auto Args = FD->getArguments();
-  SmallVector<CGFunctionInfo::ArgInfo, 8> ArgInfo;
-  SmallVector<llvm::Type*, 8> ArgTypes;
+  SmallVector<CGFunctionInfo::ArgInfo, 16> ArgInfo;
+  SmallVector<llvm::Type*, 16> ArgTypes;
+  SmallVector<llvm::Type*, 4> AdditionalArgTypes;
   for(size_t I = 0; I < Args.size(); ++I) {
     auto ArgType = Args[I]->getType();
     CGFunctionInfo::ArgInfo Info;
     Info.ABIInfo = DefaultABI.GetArgABI(ArgType);
-    ConvertArgumentType(ArgTypes, ArgType, Info);
+    ConvertArgumentType(ArgTypes, AdditionalArgTypes, ArgType, Info);
     ArgInfo.push_back(Info);
   }
   if(ReturnInfo.ABIInfo.getKind() == ABIRetInfo::CharacterValueAsArg) {
     ArgInfo.push_back(ReturnInfo.ReturnArgInfo);
-    ConvertArgumentType(ArgTypes, FD->getType(), ReturnInfo.ReturnArgInfo);
+    ConvertArgumentType(ArgTypes, AdditionalArgTypes,
+                        FD->getType(), ReturnInfo.ReturnArgInfo);
   }
+  for(auto I : AdditionalArgTypes) ArgTypes.push_back(I);
 
   // FIXME: fold same infos into one?
   auto Result = CGFunctionInfo::Create(Context, llvm::CallingConv::C,
@@ -183,17 +186,20 @@ CodeGenTypes::GetFunctionType(FortranABI &ABI,
 
   SmallVector<CGFunctionInfo::ArgInfo, 8> ArgInfo;
   SmallVector<llvm::Type*, 8> ArgTypes;
+  SmallVector<llvm::Type*, 4> AdditionalArgTypes;
   for(size_t I = 0; I < Args.size(); ++I) {
     CGFunctionInfo::ArgInfo Info;
     if(Args[I].isQualType()) {
       Info.ABIInfo = ABI.GetArgABI(Args[I].asQualType());
-      ConvertArgumentType(ArgTypes, Args[I].asQualType(), Info);
+      ConvertArgumentType(ArgTypes, AdditionalArgTypes,
+                          Args[I].asQualType(), Info);
     } else {
       Info.ABIInfo = ABIArgInfo(ABIArgInfo::Value);
       ArgTypes.push_back(Args[I].asLLVMType());
     }
     ArgInfo.push_back(Info);
   }
+  for(auto I : AdditionalArgTypes) ArgTypes.push_back(I);
 
   auto Result = CGFunctionInfo::Create(Context, llvm::CallingConv::C,
                                        llvm::FunctionType::get(RetType, ArgTypes, false),

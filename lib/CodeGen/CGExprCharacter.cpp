@@ -78,7 +78,7 @@ CharacterValueTy CharacterExprEmitter::VisitCharacterConstantExpr(const Characte
 CharacterValueTy CharacterExprEmitter::VisitVarExpr(const VarExpr *E) {
   auto VD = E->getVarDecl();
   if(VD->isArgument())
-    return CGF.ExtractCharacterValue(CGF.GetVarPtr(VD));
+    return CGF.GetCharacterArg(VD);
   else if(VD->isParameter())
     return EmitExpr(VD->getInit());
   return CGF.GetCharacterValueFromPtr(CGF.GetVarPtr(VD), VD->getType());

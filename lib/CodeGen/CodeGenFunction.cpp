@@ -74,20 +74,41 @@ void CodeGenFunction::EmitMainProgramBody(const DeclContext *DC, const Stmt *S) 
   Builder.CreateRet(ReturnValue);
 }
 
-void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func) {
+void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func,
+                                            const CGFunctionInfo *Info) {
+  ArgsList = Func->getArguments();
+  ArgsInfo = Info->getArguments();
+
   size_t I = 0;
-  auto Arguments = Func->getArguments();
   auto Arg = CurFn->arg_begin();
-  for(; I < Arguments.size(); ++Arg, ++I) {
-    Arg->setName(Arguments[I]->getName());
-    LocalVariables.insert(std::make_pair(Arguments[I], Arg));
+
+  for(; I < ArgsList.size(); ++Arg, ++I) {
+    auto ArgDecl = ArgsList[I];
+    auto Info = GetArgInfo(ArgDecl);
+
+    if(Info.ABIInfo.getKind() == ABIArgInfo::ExpandCharacterPutLengthToAdditionalArgsAsInt) {
+      ExpandedArg AArg;
+      AArg.Decl = ArgDecl;
+      AArg.A1 = Arg;
+      ExpandedArgs.push_back(AArg);
+    }
+    else
+      LocalVariables.insert(std::make_pair(ArgDecl, Arg));
+
+    Arg->setName(ArgDecl->getName());
   }
 
   // Extra argument for the returned data.
-  if(Arg != CurFn->arg_end()) {
+  if(Info->getReturnInfo().ABIInfo.getKind() == ABIRetInfo::CharacterValueAsArg) {
     Arg->setName(Func->getName());
     ReturnValuePtr = Arg;
-    assert(Arg + 1 == CurFn->arg_end());
+    ++Arg;
+  }
+
+  // Additional arguments.
+  for(I = 0; I < ExpandedArgs.size(); ++Arg, ++I) {
+    Arg->setName(llvm::Twine(ExpandedArgs[I].Decl->getName()) + ".length");
+    ExpandedArgs[I].A2 = Arg;
   }
 }
 
@@ -149,6 +170,14 @@ llvm::Value *CodeGenFunction::GetVarPtr(const VarDecl *D) {
 
 llvm::Value *CodeGenFunction::GetRetVarPtr() {
   return ReturnValuePtr;
+}
+
+CGFunctionInfo::ArgInfo CodeGenFunction::GetArgInfo(const VarDecl *Arg) const {
+  for(size_t I = 0; I < ArgsList.size(); ++I) {
+    if(ArgsList[I] == Arg) return ArgsInfo[I];
+  }
+  assert(false && "Invalid argument");
+  return CGFunctionInfo::ArgInfo();
 }
 
 llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID,

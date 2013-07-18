@@ -47,6 +47,7 @@ llvm::Type *CodeGenTypes::ConvertReturnType(QualType T,
 }
 
 void CodeGenTypes::ConvertArgumentType(SmallVectorImpl<llvm::Type*> &ArgTypes,
+                                       SmallVectorImpl<llvm::Type*> &AdditionalArgTypes,
                                        QualType T,
                                        CGFunctionInfo::ArgInfo &ArgInfo) {
   switch(ArgInfo.ABIInfo.getKind()) {
@@ -73,6 +74,12 @@ void CodeGenTypes::ConvertArgumentType(SmallVectorImpl<llvm::Type*> &ArgTypes,
       ArgTypes.push_back(CGM.SizeTy);
     } else
       llvm_unreachable("invalid expand abi");
+    break;
+
+  case ABIArgInfo::ExpandCharacterPutLengthToAdditionalArgsAsInt:
+    assert(T->isCharacterType());
+    ArgTypes.push_back(CGM.Int8PtrTy);
+    AdditionalArgTypes.push_back(CGM.Int32Ty);
     break;
 
   case ABIArgInfo::ComplexValueAsVector:
@@ -119,14 +126,14 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
                                    bool ReturnsNothing) {
   auto ArgumentInfo = FuncInfo->getArguments();
   for(size_t I = 0; I < Arguments.size(); ++I)
-    EmitCallArg(ArgList.Values, Arguments[I], ArgumentInfo[I]);
+    EmitCallArg(ArgList, Arguments[I], ArgumentInfo[I]);
   auto ReturnInfo = FuncInfo->getReturnInfo().ABIInfo.getKind();
   if(ReturnInfo == ABIRetInfo::CharacterValueAsArg)
-    EmitCallArg(ArgList.Values, ArgList.ReturnValue.asCharacter(),
+    EmitCallArg(ArgList, ArgList.getReturnValueArg().asCharacter(),
                 FuncInfo->getReturnInfo().ReturnArgInfo);
 
   auto Result = Builder.CreateCall(Callee,
-                                   ArgList.Values, "call");
+                                   ArgList.createValues(), "call");
   Result->setCallingConv(FuncInfo->getCallingConv());
 
   if(ReturnsNothing ||
@@ -136,34 +143,34 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
           FuncInfo->getReturnInfo().Kind == CGFunctionInfo::RetInfo::ComplexValue)
     return ExtractComplexValue(Result);
   else if(ReturnInfo == ABIRetInfo::CharacterValueAsArg)
-    return ArgList.ReturnValue;
+    return ArgList.getReturnValueArg();
   return Result;
 }
 
 RValueTy CodeGenFunction::EmitCall(CGFunction Func,
                                    ArrayRef<RValueTy> Arguments) {
   auto FuncInfo = Func.getInfo();
-  SmallVector<llvm::Value*, 8> Args;
   auto ArgumentInfo = FuncInfo->getArguments();
+
+  CallArgList ArgList;
   for(size_t I = 0; I < Arguments.size(); ++I) {
     if(Arguments[I].isScalar())
-      EmitCallArg(Args, Arguments[I].asScalar(), ArgumentInfo[I]);
+      EmitCallArg(ArgList, Arguments[I].asScalar(), ArgumentInfo[I]);
     else if(Arguments[I].isComplex())
-      EmitCallArg(Args, Arguments[I].asComplex(), ArgumentInfo[I]);
+      EmitCallArg(ArgList, Arguments[I].asComplex(), ArgumentInfo[I]);
     else
-      EmitCallArg(Args, Arguments[I].asCharacter(), ArgumentInfo[I]);
+      EmitCallArg(ArgList, Arguments[I].asCharacter(), ArgumentInfo[I]);
   }
 
-  auto s = Args.size();
   auto Result = Builder.CreateCall(Func.getFunction(),
-                                   Args, "call");
+                                   ArgList.createValues(), "call");
   Result->setCallingConv(FuncInfo->getCallingConv());
   if(FuncInfo->getReturnInfo().Kind == CGFunctionInfo::RetInfo::ComplexValue)
     return ExtractComplexValue(Result);
   return Result;
 }
 
-void CodeGenFunction::EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+void CodeGenFunction::EmitCallArg(CallArgList &Args,
                                   const Expr *E, CGFunctionInfo::ArgInfo ArgInfo) {
   if(E->getType()->isCharacterType()) {
     EmitCallArg(Args, EmitCharacterExpr(E), ArgInfo);
@@ -174,30 +181,30 @@ void CodeGenFunction::EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
   }
   switch(ArgInfo.ABIInfo.getKind()) {
   case ABIArgInfo::Value:
-    Args.push_back(EmitScalarExpr(E));
+    Args.add(EmitScalarExpr(E));
     break;
 
   case ABIArgInfo::Reference:
-    Args.push_back(EmitCallArgPtr(E));
+    Args.add(EmitCallArgPtr(E));
     break;
 
   case ABIArgInfo::ReferenceAsVoidExtraSize: {
     auto EType = E->getType();
     auto Ptr = EmitCallArgPtr(E);
-    Args.push_back(Builder.CreateBitCast(Ptr, CGM.VoidPtrTy));
-    Args.push_back(Builder.getInt32(getContext().getTypeKindBitWidth(
-                                      getContext().getArithmeticOrLogicalTypeKind(
-                                        EType.getExtQualsPtrOrNull(), EType))/8));
+    Args.add(Builder.CreateBitCast(Ptr, CGM.VoidPtrTy));
+    Args.add(Builder.getInt32(getContext().getTypeKindBitWidth(
+                                getContext().getArithmeticOrLogicalTypeKind(
+                                  EType.getExtQualsPtrOrNull(), EType))/8));
     break;
   }
   }
 }
 
-void CodeGenFunction::EmitArrayCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+void CodeGenFunction::EmitArrayCallArg(CallArgList &Args,
                                        const Expr *E, CGFunctionInfo::ArgInfo ArgInfo) {
   switch(ArgInfo.ABIInfo.getKind()) {
   case ABIArgInfo::Value:
-    Args.push_back(EmitArrayPtr(E));
+    Args.add(EmitArrayPtr(E));
     break;
 
   default:
@@ -205,44 +212,81 @@ void CodeGenFunction::EmitArrayCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args
   }
 }
 
-void CodeGenFunction::EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+void CodeGenFunction::EmitCallArg(CallArgList &Args,
                                   llvm::Value *Value, CGFunctionInfo::ArgInfo ArgInfo) {
   assert(ArgInfo.ABIInfo.getKind() == ABIArgInfo::Value);
-  Args.push_back(Value);
+  Args.add(Value);
 }
 
-void CodeGenFunction::EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+void CodeGenFunction::EmitCallArg(CallArgList &Args,
                                   ComplexValueTy Value, CGFunctionInfo::ArgInfo ArgInfo) {
   assert(ArgInfo.ABIInfo.getKind() != ABIArgInfo::Reference);
   switch(ArgInfo.ABIInfo.getKind()) {
   case ABIArgInfo::Value:
-    Args.push_back(CreateComplexAggregate(Value));
+    Args.add(CreateComplexAggregate(Value));
     break;
 
   case ABIArgInfo::Expand:
-    Args.push_back(Value.Re);
-    Args.push_back(Value.Im);
+    Args.add(Value.Re);
+    Args.add(Value.Im);
     break;
 
   case ABIArgInfo::ComplexValueAsVector:
-    Args.push_back(CreateComplexVector(Value));
+    Args.add(CreateComplexVector(Value));
     break;
   }
 }
 
-void CodeGenFunction::EmitCallArg(llvm::SmallVectorImpl<llvm::Value*> &Args,
+void CodeGenFunction::EmitCallArg(CallArgList &Args,
                                   CharacterValueTy Value, CGFunctionInfo::ArgInfo ArgInfo) {
   assert(ArgInfo.ABIInfo.getKind() != ABIArgInfo::Reference);
   switch(ArgInfo.ABIInfo.getKind()) {
   case ABIArgInfo::Value:
-    Args.push_back(CreateCharacterAggregate(Value));
+    Args.add(CreateCharacterAggregate(Value));
     break;
 
   case ABIArgInfo::Expand:
-    Args.push_back(Value.Ptr);
-    Args.push_back(Value.Len);
+    Args.add(Value.Ptr);
+    Args.add(Value.Len);
+    break;
+
+  case ABIArgInfo::ExpandCharacterPutLengthToAdditionalArgsAsInt:
+    Args.add(Value.Ptr);
+    Args.addAditional(Builder.CreateSExtOrTrunc(Value.Len, CGM.Int32Ty));
     break;
   }
+}
+
+CharacterValueTy CodeGenFunction::GetCharacterArg(const VarDecl *Arg) {
+  auto Result = CharacterArgs.find(Arg);
+  if(Result == CharacterArgs.end()) {
+    CharacterValueTy Val;
+    switch(GetArgInfo(Arg).ABIInfo.getKind()) {
+    case ABIArgInfo::Value:
+      Val = ExtractCharacterValue(GetVarPtr(Arg));
+      break;
+
+    case ABIArgInfo::Expand: {
+      auto ExpansionInfo = GetExpandedArg(Arg);
+      Val = CharacterValueTy(ExpansionInfo.A1,
+                             ExpansionInfo.A2);
+      break;
+    }
+
+    case ABIArgInfo::ExpandCharacterPutLengthToAdditionalArgsAsInt: {
+      auto ExpansionInfo = GetExpandedArg(Arg);
+      Val = CharacterValueTy(ExpansionInfo.A1,
+                             Builder.CreateSExtOrTrunc(ExpansionInfo.A2,
+                                                       CGM.SizeTy));
+      break;
+    }
+
+    }
+    CharacterArgs.insert(std::make_pair(Arg, Val));
+    return Val;
+  }
+
+  return Result->second;
 }
 
 llvm::Value *CodeGenFunction::EmitCallArgPtr(const Expr *E) {
@@ -253,6 +297,8 @@ llvm::Value *CodeGenFunction::EmitCallArgPtr(const Expr *E) {
   }
   else if(isa<ReturnedValueExpr>(E))
     return GetRetVarPtr();
+  else if(auto ArrEl = dyn_cast<ArrayElementExpr>(E))
+    return EmitArrayElementPtr(ArrEl->getTarget(), ArrEl->getSubscriptList());
 
   auto Value = EmitRValue(E);
   auto Temp  = CreateTempAlloca(ConvertType(E->getType()));

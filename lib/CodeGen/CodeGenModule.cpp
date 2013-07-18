@@ -163,7 +163,7 @@ void CodeGenModule::EmitFunctionDecl(const FunctionDecl *Function) {
   auto FuncInfo = GetFunction(Function);
 
   CodeGenFunction CGF(*this, FuncInfo.getFunction());
-  CGF.EmitFunctionArguments(Function);
+  CGF.EmitFunctionArguments(Function, FuncInfo.getInfo());
   CGF.EmitFunctionPrologue(Function, FuncInfo.getInfo());
   CGF.EmitFunctionBody(Function, Function->getBody());
   CGF.EmitFunctionEpilogue(Function, FuncInfo.getInfo());

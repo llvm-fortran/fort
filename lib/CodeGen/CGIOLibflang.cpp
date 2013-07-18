@@ -123,8 +123,8 @@ void CGLibflangWriteEmitter::EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
     break;
   }
   CallArgList ArgList;
-  CGF.EmitCallArg(ArgList.Values, ControllerPtr, Func.getInfo()->getArguments()[0]);
-  CGF.EmitCallArg(ArgList.Values, E, Func.getInfo()->getArguments()[1]);
+  CGF.EmitCallArg(ArgList, ControllerPtr, Func.getInfo()->getArguments()[0]);
+  CGF.EmitCallArg(ArgList, E, Func.getInfo()->getArguments()[1]);
   CGF.EmitCall(Func.getFunction(), Func.getInfo(), ArgList, ArrayRef<Expr*>(), true);
 }
 
