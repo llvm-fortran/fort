@@ -21,6 +21,7 @@
 #include "flang/CodeGen/BackendUtil.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/DataLayout.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/PassManager.h"
 #include "llvm/Transforms/IPO.h"
@@ -258,30 +259,50 @@ static bool ParseFile(const std::string &Filename,
     if(EmitASM)   BA = Backend_EmitAssembly;
     if(EmitLLVM)  BA = Backend_EmitLL;
 
-    if(!(EmitLLVM && OptLevel == 0)) {
-      auto PM = new PassManager();
+    llvm::Triple TheTriple(llvm::sys::getDefaultTargetTriple());
+    auto CPU = llvm::sys::getHostCPUName();
+    const llvm::Target *TheTarget = 0;
+    std::string Err;
+    TheTarget = llvm::TargetRegistry::lookupTarget(TheTriple.str(), Err);
 
+
+    CodeGenOpt::Level TMOptLevel = CodeGenOpt::Default;
+    switch(OptLevel) {
+    case 0:  TMOptLevel = CodeGenOpt::None; break;
+    case 3:  TMOptLevel = CodeGenOpt::Aggressive; break;
+    }
+
+    llvm::TargetOptions Options;
+
+    auto TM = TheTarget->createTargetMachine(TheTriple.getTriple(), CPU, "", Options,
+                                             Reloc::Default, CodeModel::Default,
+                                             TMOptLevel);
+
+    if(!(EmitLLVM && OptLevel == 0)) {
+      auto TheModule = CG->GetModule();
+      auto PM = new PassManager();
+      PM->add(new DataLayout(TheModule));
+      TM->addAnalysisPasses(*PM);
       PM->add(createPromoteMemoryToRegisterPass());
 
       PassManagerBuilder PMBuilder;
       PMBuilder.OptLevel = OptLevel;
       PMBuilder.SizeLevel = 0;
+      PMBuilder.LoopVectorize = true;
+      PMBuilder.SLPVectorize = true;
+      PMBuilder.BBVectorize = true;
       unsigned Threshold = 225;
       if (OptLevel > 2)
         Threshold = 275;
       PMBuilder.Inliner = createFunctionInliningPass(Threshold);
 
+
       PMBuilder.populateModulePassManager(*PM);
 
-      PM->run(*CG->GetModule());
+      PM->run(*TheModule);
       delete PM;
     }
 
-    llvm::Triple TheTriple(llvm::sys::getDefaultTargetTriple());
-    const llvm::Target *TheTarget = 0;
-    std::string Err;
-    TheTarget = llvm::TargetRegistry::lookupTarget(TheTriple.str(), Err);
-    auto TM = TheTarget->createTargetMachine(TheTriple.getTriple(), "", "", llvm::TargetOptions());
     if(OutputFile == "-")
       EmitFile(llvm::outs(), CG->GetModule(), TM, BA);
     else {
