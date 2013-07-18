@@ -5,14 +5,14 @@ SUBROUTINE FOO(STR) ! CHECK: define void @foo_(i8* %str, i32 %str.length)
   STR = 'AGAIN'
 END
 
-SUBROUTINE OOF(STR, R) ! CHECK: define void @oof_(i8* %str, float* %r, i32 %str.length)
+SUBROUTINE OOF(STR, R) ! CHECK: define void @oof_(i8* %str, float* noalias %r, i32 %str.length)
   CHARACTER*(*) STR
   REAL R
   STR = 'AGAIN'
 END
 
 
-CHARACTER*10 FUNCTION BAR(I) ! CHECK: define void @bar_(i32* %i, { i8*, i64 } %bar)
+CHARACTER*10 FUNCTION BAR(I) ! CHECK: define void @bar_(i32* noalias %i, { i8*, i64 } %bar)
   INTEGER I
   BAR = 'STRING'
   BAR = BAR

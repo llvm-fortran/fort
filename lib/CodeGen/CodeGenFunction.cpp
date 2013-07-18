@@ -76,7 +76,8 @@ void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func,
     auto ArgDecl = ArgsList[I];
     auto Info = GetArgInfo(ArgDecl);
 
-    if(Info.ABIInfo.getKind() == ABIArgInfo::ExpandCharacterPutLengthToAdditionalArgsAsInt) {
+    auto ABI = Info.ABIInfo.getKind();
+    if(ABI == ABIArgInfo::ExpandCharacterPutLengthToAdditionalArgsAsInt) {
       ExpandedArg AArg;
       AArg.Decl = ArgDecl;
       AArg.A1 = Arg;
@@ -86,7 +87,8 @@ void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func,
       LocalVariables.insert(std::make_pair(ArgDecl, Arg));
 
     Arg->setName(ArgDecl->getName());
-    if(ArgDecl->getType()->isArrayType()) {
+    if(ArgDecl->getType()->isArrayType() ||
+       ABI == ABIArgInfo::Reference) {
       llvm::AttrBuilder Attributes;
       Attributes.addAttribute(llvm::Attribute::NoAlias);
       Arg->addAttr(llvm::AttributeSet::get(CGM.getLLVMContext(), 0, Attributes));

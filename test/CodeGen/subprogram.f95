@@ -3,7 +3,7 @@
 SUBROUTINE SUB ! CHECK: define void @sub_()
 END            ! CHECK: ret void
 
-SUBROUTINE SUB2(I, R, C, L) ! CHECK: define void @sub2_(i32* %i, float* %r, { float, float }* %c, i32* %l)
+SUBROUTINE SUB2(I, R, C, L) ! CHECK: define void @sub2_(i32* noalias %i, float* noalias %r, { float, float }* noalias %c, i32* noalias %l)
   INTEGER I
   REAL R
   COMPLEX C
@@ -19,7 +19,7 @@ SUBROUTINE SUB2(I, R, C, L) ! CHECK: define void @sub2_(i32* %i, float* %r, { fl
 
 END ! CHECK: ret void
 
-REAL FUNCTION SQUARE(X) ! CHECK: define float @square_(float* %x)
+REAL FUNCTION SQUARE(X) ! CHECK: define float @square_(float* noalias %x)
   REAL X                ! CHECK: alloca float
   SQUARE = X * X
   RETURN                ! CHECK: ret float
