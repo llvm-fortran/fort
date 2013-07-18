@@ -1054,6 +1054,7 @@ static void ResolveGotoStmtLabel(DiagnosticsEngine &Diags,
                                  const StmtLabelScope::ForwardDecl &Self,
                                  Stmt *Destination) {
   cast<GotoStmt>(Self.Statement)->setDestination(StmtLabelReference(Destination));
+  Destination->setStmtLabelUsedAsGotoTarget();
 }
 
 StmtResult Sema::ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
@@ -1065,8 +1066,10 @@ StmtResult Sema::ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
     getCurrentStmtLabelScope()->DeclareForwardReference(
       StmtLabelScope::ForwardDecl(Destination.get(), Result,
                                   ResolveGotoStmtLabel));
-  } else
+  } else {
     Result = GotoStmt::Create(C, Loc, StmtLabelReference(Decl), StmtLabel);
+    Decl->setStmtLabelUsedAsGotoTarget();
+  }
 
   getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);

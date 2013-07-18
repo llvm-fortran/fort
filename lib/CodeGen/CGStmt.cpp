@@ -116,8 +116,10 @@ void CodeGenFunction::EmitBranchOnLogicalExpr(const Expr *Condition,
   Builder.CreateCondBr(CV, ThenBB, ElseBB);
 }
 
-// FIXME: create blocks only when used.
 void CodeGenFunction::EmitStmtLabel(const Stmt *S) {
+  if(!S->isStmtLabelUsedAsGotoTarget())
+    return;
+
   auto AlreadyCreated = GotoTargets.find(S);
   if(AlreadyCreated != GotoTargets.end()) {
     auto Block = AlreadyCreated->second;
