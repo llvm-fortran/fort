@@ -86,6 +86,11 @@ void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func,
       LocalVariables.insert(std::make_pair(ArgDecl, Arg));
 
     Arg->setName(ArgDecl->getName());
+    if(ArgDecl->getType()->isArrayType()) {
+      llvm::AttrBuilder Attributes;
+      Attributes.addAttribute(llvm::Attribute::NoAlias);
+      Arg->addAttr(llvm::AttributeSet::get(CGM.getLLVMContext(), 0, Attributes));
+    }
   }
 
   // Extra argument for the returned data.
