@@ -29,9 +29,7 @@ namespace CodeGen {
 /// block.
 llvm::AllocaInst *CodeGenFunction::CreateTempAlloca(llvm::Type *Ty,
                                                     const llvm::Twine &Name) {
-  auto Block = Builder.GetInsertBlock();
-  llvm::IRBuilder<> Builder_(Block, Block->begin());
-  return Builder_.CreateAlloca(Ty, nullptr, Name);
+  return new llvm::AllocaInst(Ty, 0, Name, AllocaInsertPt);
 }
 
 RValueTy CodeGenFunction::EmitRValue(const Expr *E) {

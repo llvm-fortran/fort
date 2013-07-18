@@ -92,6 +92,8 @@ class CodeGenFunction {
 
   llvm::Value *ReturnValuePtr;
 
+  llvm::Instruction *AllocaInsertPt;
+
   bool IsMainProgram;
 public:
   CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn);

@@ -31,7 +31,7 @@ CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn)
   : CGM(cgm), /*, Target(cgm.getTarget()),*/
     Builder(cgm.getModule().getContext()),
     UnreachableBlock(nullptr), CurFn(Fn), IsMainProgram(false),
-    ReturnValuePtr(nullptr) {
+    ReturnValuePtr(nullptr), AllocaInsertPt(nullptr) {
 }
 
 CodeGenFunction::~CodeGenFunction() {
@@ -53,23 +53,13 @@ void CodeGenFunction::EmitFunctionDecls(const DeclContext *DC) {
 }
 
 void CodeGenFunction::EmitMainProgramBody(const DeclContext *DC, const Stmt *S) {
-  auto Block = createBasicBlock("program_entry",getCurrentFunction());
-  Builder.SetInsertPoint(Block);
+  EmitBlock(createBasicBlock("program_entry"));
   IsMainProgram = true;
 
-  EmitFunctionDecls(DC);
+  ReturnBlock = createBasicBlock("program_exit");
+  EmitFunctionBody(DC, S);
 
-  ReturnBlock = createBasicBlock("program_exit",getCurrentFunction());
-  if(S) {
-    EmitStmt(S);
-  }
-
-  Block = Builder.GetInsertBlock();
-  ReturnBlock->moveAfter(Block);
-  //if(!isa<llvm::BranchInst>(Block->getTerminator())) {
-    Builder.CreateBr(ReturnBlock);
-  //}
-  Builder.SetInsertPoint(ReturnBlock);
+  EmitBlock(ReturnBlock);
   auto ReturnValue = Builder.getInt32(0);
   Builder.CreateRet(ReturnValue);
 }
@@ -125,6 +115,9 @@ void CodeGenFunction::EmitFunctionPrologue(const FunctionDecl *Func,
 
 void CodeGenFunction::EmitFunctionBody(const DeclContext *DC, const Stmt *S) {
   EmitFunctionDecls(DC);
+  auto BodyBB = createBasicBlock("body");
+  AllocaInsertPt = Builder.CreateBr(BodyBB);
+  EmitBlock(BodyBB);
   if(S)
     EmitStmt(S);
 }
