@@ -94,6 +94,10 @@ public:
 
   void VisitExpr(Expr *E);
   void VisitVarExpr(VarExpr *E);
+  void VisitArrayElementExpr(ArrayElementExpr *E);
+  void VisitSubstringExpr(SubstringExpr *E);
+
+  void EmitAssignment(Expr *LHS);
 
   void Emit(Stmt *S);
   ArrayRef<Stmt*> getEmittedStmtList() const {
@@ -150,6 +154,23 @@ void DataValueAssigner::VisitVarExpr(VarExpr *E) {
                                   E, Value, nullptr));
     }
   }
+}
+
+void DataValueAssigner::EmitAssignment(Expr *LHS) {
+  if(!HasValues()) return;
+  auto Value = Values.getValue();
+  Values.advance();
+  auto Result = Sema.ActOnAssignmentStmt(Sema.getContext(), Value->getLocation(), LHS, Value, nullptr);
+  if(Result.isUsable())
+    Emit(Result.get());
+}
+
+void DataValueAssigner::VisitArrayElementExpr(ArrayElementExpr *E) {
+  EmitAssignment(E);
+}
+
+void DataValueAssigner::VisitSubstringExpr(SubstringExpr *E) {
+  EmitAssignment(E);
 }
 
 /// FIXME add checking for implied do

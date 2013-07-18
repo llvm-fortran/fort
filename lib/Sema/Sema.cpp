@@ -884,8 +884,6 @@ ExprResult Sema::ActOnDATAImpliedDoExpr(ASTContext &C, SourceLocation Loc,
                                E1.take(), E2.take(), E3.take());
 }
 
-
-
 StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                      ExprResult LHS,
                                      ExprResult RHS, Expr *StmtLabel) {

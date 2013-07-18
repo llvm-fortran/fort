@@ -4,6 +4,8 @@ PROGRAM datatest
   REAL X,Y,Z, A, ZZZ
   INTEGER I_ARR(10)
   INTEGER I_ARR2(2,2)
+  REAL R_ARR(10)
+  CHARACTER*(10) STR, STR_ARR(11)
 
   PARAMETER (PI = 3.14, INDEX = 1)
 
@@ -20,6 +22,15 @@ PROGRAM datatest
 
   DATA A / .false. / ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
   DATA N / 'STR' /   ! expected-error {{assigning to 'INTEGER' from incompatible type 'CHARACTER'}}
+
+  DATA R_ARR(1) / 1.0 / R_ARR(2), R_ARR(3) / 2*0.0 /
+
+  DATA R_ARR(4) / .false. / ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
+
+  DATA STR / 'Hello' / STR_ARR(1)(:), STR_ARR(2) / 2*'World' /
+  DATA STR_ARR(3)(2:4) / 'STR' /
+
+  DATA STR_ARR(4)(:4) / 1 / ! expected-error {{assigning to 'CHARACTER' from incompatible type 'INTEGER'}}
 
   ! FIXME:
   ! DATA (I_ARR(I), I = 1,10) / 10*0 /

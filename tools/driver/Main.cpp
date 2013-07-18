@@ -321,7 +321,7 @@ int main(int argc, char **argv) {
   if(ParseFile(InputFiles, IncludeDirs, OutputFiles)) {
     HadErrors = true;
   }
-  if(!HadErrors && !CompileOnly && !EmitLLVM && !EmitASM)
+  if(OutputFiles.size() && !HadErrors && !CompileOnly && !EmitLLVM && !EmitASM)
     LinkFiles(OutputFiles);
 
   // If any timers were active but haven't been destroyed yet, print their
