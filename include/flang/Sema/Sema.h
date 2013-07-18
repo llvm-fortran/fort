@@ -504,7 +504,8 @@ public:
   /// Performs assignment typechecking.
   ExprResult TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
                                  SourceLocation Loc = SourceLocation(),
-                                 SourceLocation MinLoc = SourceLocation());
+                                 SourceLocation MinLoc = SourceLocation(),
+                                 SourceRange ExtraRange = SourceRange());
 
   /// Returns true if the subscript expression has the
   /// right amount of dimensions.

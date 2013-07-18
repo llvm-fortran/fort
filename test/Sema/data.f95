@@ -1,6 +1,6 @@
 ! RUN: %flang -fsyntax-only -verify < %s
 PROGRAM datatest
-  INTEGER I, J, K, M, N
+  INTEGER I, J, K, M, NNN, O, P, Q
   REAL X,Y,Z, A, ZZZ
   INTEGER I_ARR(10)
   INTEGER I_ARR2(2,2)
@@ -20,8 +20,13 @@ PROGRAM datatest
 
   DATA X / 1 /
 
+  DATA NNN / 1, 234, 22 / ! expected-error {{excess values in a 'DATA' statement}}
+  DATA NNN / 2*2 /  ! expected-error {{excess values in a 'DATA' statement}}
+
+  DATA O, P / 0 / ! expected-error {{not enough values in a 'DATA' statement}}
+
   DATA A / .false. / ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
-  DATA N / 'STR' /   ! expected-error {{assigning to 'INTEGER' from incompatible type 'CHARACTER'}}
+  DATA NNN / 'STR' /   ! expected-error {{assigning to 'INTEGER' from incompatible type 'CHARACTER'}}
 
   DATA R_ARR(1) / 1.0 / R_ARR(2), R_ARR(3) / 2*0.0 /
 
@@ -31,6 +36,12 @@ PROGRAM datatest
   DATA STR_ARR(3)(2:4) / 'STR' /
 
   DATA STR_ARR(4)(:4) / 1 / ! expected-error {{assigning to 'CHARACTER' from incompatible type 'INTEGER'}}
+
+  DATA R_ARR / 10*1.0 /
+
+  DATA R_ARR / 5*1.0 / ! expected-error {{not enough values in a 'DATA' statement}}
+
+  DATA R_ARR / 11*1.0 / ! expected-error {{excess values in a 'DATA' statement}}
 
   ! FIXME:
   ! DATA (I_ARR(I), I = 1,10) / 10*0 /

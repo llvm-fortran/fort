@@ -48,6 +48,14 @@ public:
     return Value;
   }
 
+  Expr *getActualValue() const {
+    return Values[ValueOffset];
+  }
+
+  Expr *getActualLastValue() const {
+    return Values.back();
+  }
+
   bool isEmpty() const {
     return ValueOffset >= Values.size();
   }
@@ -83,14 +91,19 @@ class DataValueAssigner : public ExprVisitor<DataValueAssigner> {
   SourceLocation DataStmtLoc;
 
   SmallVector<Stmt*, 16> ResultingAST;
+  bool Done;
 public:
   DataValueAssigner(DataValueIterator &Vals, flang::Sema &S,
                     DiagnosticsEngine &Diag, SourceLocation Loc)
     : Values(Vals), Sema(S), Diags(Diag),
-      DataStmtLoc(Loc) {
+      DataStmtLoc(Loc), Done(false) {
   }
 
-  bool HasValues();
+  bool HasValues(const Expr *Where);
+
+  bool IsDone() const {
+    return Done;
+  }
 
   void VisitExpr(Expr *E);
   void VisitVarExpr(VarExpr *E);
@@ -109,10 +122,12 @@ void DataValueAssigner::Emit(Stmt *S) {
   ResultingAST.push_back(S);
 }
 
-bool DataValueAssigner::HasValues() {
+bool DataValueAssigner::HasValues(const Expr *Where) {
   if(Values.isEmpty()) {
     // more items than values.
-    Diags.Report(DataStmtLoc, diag::err_data_stmt_not_enought_values);
+    Diags.Report(DataStmtLoc, diag::err_data_stmt_not_enought_values)
+      << Where->getSourceRange();
+    Done = true;
     return false;
   }
   return true;
@@ -138,16 +153,23 @@ void DataValueAssigner::VisitVarExpr(VarExpr *E) {
   if(auto ATy = dyn_cast<ArrayType>(Type.getTypePtr())) {
     uint64_t ArraySize;
     if(!ATy->EvaluateSize(ArraySize, Sema.getContext())) {
-      // FIXME
+      VisitExpr(E);
+    }
+    // FIXME code gen.
+    for(uint64_t I = 0; I < ArraySize; ++I) {
+      if(!HasValues(E)) return;
+      auto Value = Values.getValue();
+      Values.advance();
     }
   } else {
     // single item
-    if(!HasValues()) return;
+    if(!HasValues(E)) return;
     auto Value = Values.getValue();
     Values.advance();
     Value = Sema.TypecheckAssignment(Type, Value,
-                                     Value->getLocation(),
-                                     Value->getLocEnd()).get();
+                                     E->getLocation(),
+                                     Value->getLocStart(),
+                                     E->getSourceRange()).get();
     if(Value) {
       VD->setInit(Value);
       Emit(AssignmentStmt::Create(Sema.getContext(), Value->getLocation(),
@@ -157,10 +179,11 @@ void DataValueAssigner::VisitVarExpr(VarExpr *E) {
 }
 
 void DataValueAssigner::EmitAssignment(Expr *LHS) {
-  if(!HasValues()) return;
+  if(!HasValues(LHS)) return;
   auto Value = Values.getValue();
   Values.advance();
-  auto Result = Sema.ActOnAssignmentStmt(Sema.getContext(), Value->getLocation(), LHS, Value, nullptr);
+  auto Result = Sema.ActOnAssignmentStmt(Sema.getContext(), Value->getLocation(),
+                                         LHS, Value, nullptr);
   if(Result.isUsable())
     Emit(Result.get());
 }
@@ -191,14 +214,16 @@ StmtResult Sema::ActOnDATA(ASTContext &C, SourceLocation Loc,
   DataValueIterator ValuesIt(Values);
   DataValueAssigner LHSVisitor(ValuesIt, *this, Diags, Loc);
   for(size_t I = 0; I < Items.size(); ++I) {
-    if(I > 0 && ValuesIt.isEmpty())
-      break;
     LHSVisitor.Visit(Items[I]);
+    if(LHSVisitor.IsDone()) break;
   }
 
   if(!ValuesIt.isEmpty()) {
     // more items than values
-    Diags.Report(Loc, diag::err_data_stmt_too_many_values);
+    auto FirstVal = ValuesIt.getActualValue();
+    auto LastVal = ValuesIt.getActualLastValue();
+    Diags.Report(FirstVal->getLocation(), diag::err_data_stmt_too_many_values)
+      << SourceRange(FirstVal->getLocStart(), LastVal->getLocEnd());
   }
 
   Stmt *ResultStmt;

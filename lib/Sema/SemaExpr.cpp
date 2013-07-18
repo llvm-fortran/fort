@@ -164,7 +164,8 @@ static QualType TypeWithKind(ASTContext &C, QualType T, QualType TKind) {
 }
 
 ExprResult Sema::TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
-                                     SourceLocation Loc, SourceLocation MinLoc) {
+                                     SourceLocation Loc, SourceLocation MinLoc,
+                                     SourceRange ExtraRange) {
   const Type *LHSType = LHSTypeof.getTypePtr();
   auto RHSTypeof = RHS.get()->getType();
   const Type *RHSType = RHSTypeof.getTypePtr();
@@ -216,10 +217,12 @@ ExprResult Sema::TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
 
   return RHS;
 typeError:
-  Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
+  auto Reporter = Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
       << LHSTypeof << RHS.get()->getType()
       << SourceRange(MinLoc,
                      RHS.get()->getLocEnd());
+  if(ExtraRange.isValid())
+    Reporter << ExtraRange;
   return ExprError();
 }
 
