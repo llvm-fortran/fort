@@ -23,6 +23,9 @@
 #include "llvm/IR/Module.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/PassManager.h"
+#include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include "llvm/Transforms/Instrumentation.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Analysis/Passes.h"
 #include "llvm/Transforms/Scalar.h"
@@ -94,14 +97,17 @@ namespace {
   cl::opt<std::string>
   OutputFile("o", cl::desc("<output file>"), cl::init(""));
 
+  cl::opt<int>
+  OptLevel("O", cl::desc("optimization level"), cl::init(0), cl::Prefix);
+
   cl::opt<bool>
   EmitDebugInfo("g", cl::desc("Emit debugging info"), cl::init(false));
 
   cl::list<std::string>
-  LinkDirectories("L", cl::desc("Additional directories for library files"));
+  LinkDirectories("L", cl::desc("Additional directories for library files"), cl::Prefix);
 
   cl::list<std::string>
-  LinkLibraries("l", cl::desc("Additional libraries"));
+  LinkLibraries("l", cl::desc("Additional libraries"), cl::Prefix);
 
   cl::opt<bool>
   CompileOnly("c", cl::desc("compile only, do not link"), cl::init(false));
@@ -251,6 +257,25 @@ static bool ParseFile(const std::string &Filename,
     BackendAction BA = Backend_EmitObj;
     if(EmitASM)   BA = Backend_EmitAssembly;
     if(EmitLLVM)  BA = Backend_EmitLL;
+
+    if(!(EmitLLVM && OptLevel == 0)) {
+      auto PM = new PassManager();
+
+      PM->add(createPromoteMemoryToRegisterPass());
+
+      PassManagerBuilder PMBuilder;
+      PMBuilder.OptLevel = OptLevel;
+      PMBuilder.SizeLevel = 0;
+      unsigned Threshold = 225;
+      if (OptLevel > 2)
+        Threshold = 275;
+      PMBuilder.Inliner = createFunctionInliningPass(Threshold);
+
+      PMBuilder.populateModulePassManager(*PM);
+
+      PM->run(*CG->GetModule());
+      delete PM;
+    }
 
     llvm::Triple TheTriple(llvm::sys::getDefaultTargetTriple());
     const llvm::Target *TheTarget = 0;
