@@ -405,6 +405,9 @@ Parser::StmtResult Parser::ParseCallStmt() {
     Diag.Report(getExpectedLoc(), diag::err_expected_ident);
     return StmtError();
   }
+  auto FuncIdRange = SourceRange(Tok.getLocation(),
+                                 getMaxLocationOfCurrentToken());
+
   auto Decl = Actions.ResolveIdentifier(Tok.getIdentifierInfo());
   auto FD = dyn_cast_or_null<FunctionDecl>(Decl);
   if(!FD) {
@@ -415,9 +418,10 @@ Parser::StmtResult Parser::ParseCallStmt() {
   Lex();
 
   SmallVector<ExprResult, 8> Arguments;
+  SourceLocation RParenLoc = Loc;
   if(!Tok.isAtStartOfStatement()) {
     if(Tok.is(tok::l_paren)) {
-      if(ParseFunctionCallArgumentList(Arguments).isInvalid())
+      if(ParseFunctionCallArgumentList(Arguments, RParenLoc).isInvalid())
         LexToEndOfStatement();
     } else {
       Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
@@ -425,7 +429,7 @@ Parser::StmtResult Parser::ParseCallStmt() {
     }
   }
 
-  return Actions.ActOnCallStmt(Context, Loc, FD, Arguments, StmtLabel);
+  return Actions.ActOnCallStmt(Context, Loc, RParenLoc, FuncIdRange, FD, Arguments, StmtLabel);
 }
 
 /// ParseAssignmentStmt

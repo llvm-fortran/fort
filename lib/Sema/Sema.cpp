@@ -1360,13 +1360,15 @@ StmtResult Sema::ActOnReturnStmt(ASTContext &C, SourceLocation Loc, ExprResult E
   return Result;
 }
 
-StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc, FunctionDecl *Function,
+StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
+                               SourceRange IdRange,
+                               FunctionDecl *Function,
                                ArrayRef<ExprResult> Arguments, Expr *StmtLabel) {
   SmallVector<Expr*, 8> Args(Arguments.size());
   for(size_t I = 0; I < Arguments.size(); ++I)
     Args[I] = Arguments[I].take();
 
-  CheckCallArgumentCount(Function, Args, Loc);
+  CheckCallArgumentCount(Function, Args, RParenLoc, IdRange);
 
   auto Result = CallStmt::Create(C, Loc, Function, Args, StmtLabel);
   getCurrentBody()->Append(Result);

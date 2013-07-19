@@ -530,7 +530,8 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResul
   return ArrayElementExpr::Create(C, Loc, Target.take(), Subs);
 }
 
-bool Sema::CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Arguments, SourceLocation Loc) {
+bool Sema::CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Arguments, SourceLocation Loc,
+                                  SourceRange FuncNameRange) {
   if(Function->isExternal()) {
     if(Arguments.empty()) return true;
     if(Function->getArguments().empty()) {
@@ -547,31 +548,41 @@ bool Sema::CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Argume
   }
 
   // check the arguments.
+  // NB: Highlight as clang does:
+  // Too few args, range with function name, loc - ')' location
+  // Too many args, range with function name, loc and range - extra arguments.
   auto FunctionArgs = Function->getArguments();
   if(Arguments.size() != FunctionArgs.size()) {
-    unsigned ArgCountDiag;
-    if(Arguments.size() < FunctionArgs.size())
-      ArgCountDiag = diag::err_typecheck_call_too_few_args;
-    else
-      ArgCountDiag = diag::err_typecheck_call_too_many_args;
-    Diags.Report(Loc, ArgCountDiag)
-        << /*function=*/ (Function->isSubroutine()? 2 : 1) << unsigned(FunctionArgs.size())
-        << unsigned(Arguments.size());
+    unsigned FuncType = /*function=*/ (Function->isSubroutine()? 2 : 1);
+    if(Arguments.size() < FunctionArgs.size()) {
+      Diags.Report(Loc, diag::err_typecheck_call_too_few_args)
+          << FuncType << unsigned(FunctionArgs.size())
+          << unsigned(Arguments.size())
+          << FuncNameRange;
+    } else {
+      auto LocStart = Arguments[FunctionArgs.size()]->getLocStart();
+      auto LocEnd   = Arguments.back()->getLocEnd();
+      Diags.Report(LocStart, diag::err_typecheck_call_too_many_args)
+          << FuncType << unsigned(FunctionArgs.size())
+          << unsigned(Arguments.size())
+          << FuncNameRange << SourceRange(LocStart, LocEnd);
+    }
     return false;
   }
 
   return true;
 }
 
-ExprResult Sema::ActOnCallExpr(ASTContext &C, SourceLocation Loc, FunctionDecl *Function,
-                               ArrayRef<ExprResult> Arguments) {
+ExprResult Sema::ActOnCallExpr(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
+                               SourceRange IdRange,
+                               FunctionDecl *Function, ArrayRef<ExprResult> Arguments) {
   assert(!Function->isSubroutine());
 
   SmallVector<Expr*, 8> Args(Arguments.size());
   for(size_t I = 0; I < Arguments.size(); ++I)
     Args[I] = Arguments[I].take();
 
-  CheckCallArgumentCount(Function, Args, Loc);
+  CheckCallArgumentCount(Function, Args, RParenLoc, IdRange);
 
   return CallExpr::Create(C, Loc, Function, Args);
 }

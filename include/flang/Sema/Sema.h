@@ -299,7 +299,9 @@ public:
 
   StmtResult ActOnReturnStmt(ASTContext &C, SourceLocation Loc, ExprResult E, Expr *StmtLabel);
 
-  StmtResult ActOnCallStmt(ASTContext &C, SourceLocation Loc, FunctionDecl *Function,
+  StmtResult ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
+                           SourceRange IdRange,
+                           FunctionDecl *Function,
                            ArrayRef<ExprResult> Arguments, Expr *StmtLabel);
 
   StmtResult ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,
@@ -342,8 +344,9 @@ public:
   ExprResult ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
                                 llvm::ArrayRef<ExprResult> Subscripts);
 
-  ExprResult ActOnCallExpr(ASTContext &C, SourceLocation Loc, FunctionDecl *Function,
-                           ArrayRef<ExprResult> Arguments);
+  ExprResult ActOnCallExpr(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
+                           SourceRange IdRange,
+                           FunctionDecl *Function, ArrayRef<ExprResult> Arguments);
 
   ExprResult ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
                                             const IntrinsicFunctionDecl *FunctionDecl,
@@ -498,7 +501,7 @@ public:
 
   /// Returns true if the call expression has the right amount of arguments
   bool CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Arguments,
-                              SourceLocation Loc);
+                              SourceLocation Loc, SourceRange FuncNameRange);
 
   /// Returns true if the array shape bound is valid
   bool CheckArrayBoundValue(Expr *E);

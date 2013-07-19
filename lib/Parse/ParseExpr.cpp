@@ -627,10 +627,12 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
 
   if(!VD) {
     auto Loc = Tok.getLocation();
+    auto Range = SourceRange(Loc, getMaxLocationOfCurrentToken());
     Lex();
     if(IntrinsicFunctionDecl *IFunc = dyn_cast<IntrinsicFunctionDecl>(Declaration)) {
       SmallVector<ExprResult, 8> Arguments;
-      auto Result = ParseFunctionCallArgumentList(Arguments);
+      SourceLocation RParenLoc;
+      auto Result = ParseFunctionCallArgumentList(Arguments, RParenLoc);
       if(Result.isInvalid())
         return ExprError();
       return Actions.ActOnIntrinsicFunctionCallExpr(Context, Loc, IFunc, Arguments);
@@ -643,10 +645,11 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
     else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
       if(!Func->isSubroutine()) {
         SmallVector<ExprResult, 8> Arguments;
-        auto Result = ParseFunctionCallArgumentList(Arguments);
+        SourceLocation RParenLoc;
+        auto Result = ParseFunctionCallArgumentList(Arguments, RParenLoc);
         if(Result.isInvalid())
           return ExprError();
-        return Actions.ActOnCallExpr(Context, Loc, Func, Arguments);
+        return Actions.ActOnCallExpr(Context, Loc, RParenLoc, Range, Func, Arguments);
       }
     }
     Diag.Report(Loc, diag::err_expected_var);
@@ -679,7 +682,8 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
   return E;
 }
 
-ExprResult Parser::ParseFunctionCallArgumentList(SmallVectorImpl<ExprResult> &Args) {
+ExprResult Parser::ParseFunctionCallArgumentList(SmallVectorImpl<ExprResult> &Args, SourceLocation &RParenLoc) {
+  RParenLoc = getExpectedLoc();
   if(!EatIfPresentInSameStmt(tok::l_paren)) {
     Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
     return ExprError();
@@ -693,6 +697,7 @@ ExprResult Parser::ParseFunctionCallArgumentList(SmallVectorImpl<ExprResult> &Ar
     Args.push_back(E);
   } while (EatIfPresentInSameStmt(tok::comma));
 
+  RParenLoc = getExpectedLoc();
   if(!EatIfPresentInSameStmt(tok::r_paren)) {
     Diag.Report(getExpectedLoc(), diag::err_expected_rparen);
     return ExprError();
