@@ -23,6 +23,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/ExecutionEngine/JIT.h"
 #include "llvm/PassManager.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
@@ -113,8 +114,60 @@ namespace {
   cl::opt<bool>
   CompileOnly("c", cl::desc("compile only, do not link"), cl::init(false));
 
+  cl::opt<bool>
+  Interpret("interpret", cl::desc("run the code from the given input"), cl::init(false));
+
 } // end anonymous namespace
 
+
+extern "C" void jit_write_start(void *) { }
+
+extern "C" void jit_write_character(void *,const char *Ptr, size_t Length) {
+  for(size_t I = 0; I < Length; ++I)
+    llvm::outs() << Ptr[I];
+}
+
+extern "C" void jit_write_integer(void *,const void *Ptr, int32_t Size) {
+  llvm::outs() << *reinterpret_cast<const int32_t*>(Ptr);
+}
+
+extern "C" void jit_write_end(void *) {
+  llvm::outs() << "\n";
+}
+
+static int Execute(llvm::Module *Module, const char * const *envp) {
+  std::string Error;
+  OwningPtr<llvm::ExecutionEngine> EE(
+    llvm::ExecutionEngine::createJIT(Module, &Error));
+  if (!EE) {
+    llvm::errs() << "unable to make execution engine: " << Error << "\n";
+    return -1;
+  }
+
+  llvm::Function *EntryFn = Module->getFunction("main");
+  if (!EntryFn) {
+    llvm::errs() << "'main' function not found in module.\n";
+    return -1;
+  }
+
+  if(auto F = Module->getFunction("libflang_write_start")) {
+    EE->addGlobalMapping(F, (void*) &jit_write_start);
+  }
+  if(auto F = Module->getFunction("libflang_write_end")) {
+    EE->addGlobalMapping(F, (void*) &jit_write_end);
+  }
+  if(auto F = Module->getFunction("libflang_write_character")) {
+    EE->addGlobalMapping(F, (void*) &jit_write_character);
+  }
+  if(auto F = Module->getFunction("libflang_write_integer")) {
+    EE->addGlobalMapping(F, (void*) &jit_write_integer);
+  }
+
+  std::vector<std::string> Args;
+  Args.push_back(Module->getModuleIdentifier());
+
+  return EE->runFunctionAsMain(EntryFn, Args, envp);
+}
 
 std::string GetOutputName(StringRef Filename,
                           BackendAction Action) {
@@ -290,7 +343,6 @@ static bool ParseFile(const std::string &Filename,
       PMBuilder.SizeLevel = 0;
       PMBuilder.LoopVectorize = true;
       PMBuilder.SLPVectorize = true;
-      PMBuilder.BBVectorize = true;
       unsigned Threshold = 225;
       if (OptLevel > 2)
         Threshold = 275;
@@ -303,7 +355,10 @@ static bool ParseFile(const std::string &Filename,
       delete PM;
     }
 
-    if(OutputFile == "-")
+    if(Interpret) {
+      const char *Env[] = { "", nullptr };
+      Execute(CG->ReleaseModule(), Env);
+    } else if(OutputFile == "-")
       EmitFile(llvm::outs(), CG->GetModule(), TM, BA);
     else {
       OutputFiles.push_back(GetOutputName(Filename, BA));

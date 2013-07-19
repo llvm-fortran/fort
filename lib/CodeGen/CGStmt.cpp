@@ -143,6 +143,7 @@ void CodeGenFunction::EmitGotoStmt(const GotoStmt *S) {
   auto Block = createBasicBlock("");
   Builder.CreateBr(Block);
   GotoTargets.insert(std::make_pair(Dest, Block));
+  EmitBlock(createBasicBlock("next"));
 }
 
 void CodeGenFunction::EmitIfStmt(const IfStmt *S) {

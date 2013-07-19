@@ -6,6 +6,9 @@ set( LLVM_LINK_COMPONENTS
   codegen
   ipo
   selectiondag
+  jit
+  interpreter
+  linker
   )
 
 add_flang_executable(flang
