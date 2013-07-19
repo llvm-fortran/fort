@@ -49,6 +49,7 @@ private:
   unsigned StmtID : 16;
   unsigned IsStmtLabelUsed : 1;
   unsigned IsStmtLabelUsedAsGotoTarget : 1;
+  unsigned IsStmtLabelUsedAsAssignTarget : 1;
   SourceLocation Loc;
   Expr *StmtLabel;
 
@@ -67,7 +68,8 @@ protected:
   Stmt(StmtClass ID, SourceLocation L, Expr *SLT)
     : StmtID(ID), Loc(L), StmtLabel(SLT),
       IsStmtLabelUsed(0),
-      IsStmtLabelUsedAsGotoTarget(0) {}
+      IsStmtLabelUsedAsGotoTarget(0),
+      IsStmtLabelUsedAsAssignTarget(0) {}
 public:
   virtual ~Stmt();
 
@@ -110,6 +112,15 @@ public:
   void setStmtLabelUsedAsGotoTarget() {
     IsStmtLabelUsed = true;
     IsStmtLabelUsedAsGotoTarget = true;
+  }
+
+  bool isStmtLabelUsedAsAssignTarget() const {
+    return IsStmtLabelUsedAsAssignTarget;
+  }
+
+  void setStmtLabelUsedAsAssignTarget() {
+    setStmtLabelUsedAsGotoTarget();
+    IsStmtLabelUsedAsAssignTarget = true;
   }
 
   void dump() const;

@@ -16,6 +16,7 @@
 #include "flang/Sema/DeclSpec.h"
 #include "flang/Parse/ParseDiagnostic.h"
 #include "flang/Sema/SemaDiagnostic.h"
+#include "flang/Sema/SemaInternal.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
@@ -112,11 +113,13 @@ static void ReportUnterminatedStmt(DiagnosticsEngine &Diags,
 }
 
 void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
+
   // Fix the forward statement label references
   auto StmtLabelForwardDecls = CurStmtLabelScope->getForwardDecls();
-  for(size_t I = 0; I < StmtLabelForwardDecls.size(); ++I) {
+  StmtLabelResolver Resolver(*this, Diags);
+  for(size_t I = 0; I < StmtLabelForwardDecls.size(); ++I) {    
     if(auto Decl = CurStmtLabelScope->Resolve(StmtLabelForwardDecls[I].StmtLabel))
-      StmtLabelForwardDecls[I].ResolveCallback(Diags, StmtLabelForwardDecls[I], Decl);
+      Resolver.ResolveForwardUsage(StmtLabelForwardDecls[I], Decl);
     else {
       std::string Str;
       llvm::raw_string_ostream Stream(Str);
@@ -127,7 +130,6 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
           << StmtLabelForwardDecls[I].StmtLabel->getSourceRange();
     }
   }
-  // FIXME: gather usage data.
   for(auto I = CurStmtLabelScope->decl_begin();
       I != CurStmtLabelScope->decl_end(); ++I) {
     auto Stmt = I->second;
@@ -994,10 +996,9 @@ bool Sema::CheckCharacterLengthDeclarationCompability(QualType T, VarDecl *VD) {
   return true;
 }
 
-static void ResolveAssignStmtLabel(DiagnosticsEngine &Diags,
-                                   const StmtLabelScope::ForwardDecl &Self,
-                                   Stmt *Destination) {
-  cast<AssignStmt>(Self.Statement)->setAddress(StmtLabelReference(Destination));
+void StmtLabelResolver::VisitAssignStmt(AssignStmt *S) {
+  S->setAddress(StmtLabelReference(StmtLabelDecl));
+  StmtLabelDecl->setStmtLabelUsedAsAssignTarget();
 }
 
 StmtResult Sema::ActOnAssignStmt(ASTContext &C, SourceLocation Loc,
@@ -1008,22 +1009,20 @@ StmtResult Sema::ActOnAssignStmt(ASTContext &C, SourceLocation Loc,
   if(!Decl) {
     Result = AssignStmt::Create(C, Loc, StmtLabelReference(),VarRef, StmtLabel);
     getCurrentStmtLabelScope()->DeclareForwardReference(
-      StmtLabelScope::ForwardDecl(Value.get(), Result,
-                                  ResolveAssignStmtLabel));
-  } else
+      StmtLabelScope::ForwardDecl(Value.get(), Result));
+  } else {
     Result = AssignStmt::Create(C, Loc, StmtLabelReference(Decl),
                                 VarRef, StmtLabel);
+    Decl->setStmtLabelUsedAsAssignTarget();
+  }
 
   getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
-static void ResolveAssignedGotoStmtLabel(DiagnosticsEngine &Diags,
-                                         const StmtLabelScope::ForwardDecl &Self,
-                                         Stmt *Destination) {
-  cast<AssignedGotoStmt>(Self.Statement)->
-    setAllowedValue(Self.ResolveCallbackData,StmtLabelReference(Destination));
+void StmtLabelResolver::VisitAssignedGotoStmt(AssignedGotoStmt *S) {
+  S->setAllowedValue(Info.ResolveCallbackData,StmtLabelReference(StmtLabelDecl));
 }
 
 StmtResult Sema::ActOnAssignedGotoStmt(ASTContext &C, SourceLocation Loc,
@@ -1040,8 +1039,7 @@ StmtResult Sema::ActOnAssignedGotoStmt(ASTContext &C, SourceLocation Loc,
   for(size_t I = 0; I < AllowedValues.size(); ++I) {
     if(!AllowedLabels[I].Statement) {
       getCurrentStmtLabelScope()->DeclareForwardReference(
-        StmtLabelScope::ForwardDecl(AllowedValues[I].get(), Result,
-                                             ResolveAssignedGotoStmtLabel, I));
+        StmtLabelScope::ForwardDecl(AllowedValues[I].get(), Result, I));
     }
   }
 
@@ -1050,11 +1048,9 @@ StmtResult Sema::ActOnAssignedGotoStmt(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
-static void ResolveGotoStmtLabel(DiagnosticsEngine &Diags,
-                                 const StmtLabelScope::ForwardDecl &Self,
-                                 Stmt *Destination) {
-  cast<GotoStmt>(Self.Statement)->setDestination(StmtLabelReference(Destination));
-  Destination->setStmtLabelUsedAsGotoTarget();
+void StmtLabelResolver::VisitGotoStmt(GotoStmt *S) {
+  S->setDestination(StmtLabelReference(StmtLabelDecl));
+  StmtLabelDecl->setStmtLabelUsedAsGotoTarget();
 }
 
 StmtResult Sema::ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
@@ -1064,8 +1060,7 @@ StmtResult Sema::ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
   if(!Decl) {
     Result = GotoStmt::Create(C, Loc, StmtLabelReference(), StmtLabel);
     getCurrentStmtLabelScope()->DeclareForwardReference(
-      StmtLabelScope::ForwardDecl(Destination.get(), Result,
-                                  ResolveGotoStmtLabel));
+      StmtLabelScope::ForwardDecl(Destination.get(), Result));
   } else {
     Result = GotoStmt::Create(C, Loc, StmtLabelReference(Decl), StmtLabel);
     Decl->setStmtLabelUsedAsGotoTarget();
@@ -1159,12 +1154,6 @@ StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLab
   return Result;
 }
 
-static void ResolveDoStmtLabel(DiagnosticsEngine &Diags,
-                               const StmtLabelScope::ForwardDecl &Self,
-                               Stmt *Destination) {
-  cast<DoStmt>(Self.Statement)->setTerminatingStmt(StmtLabelReference(Destination));
-}
-
 static int ExpectRealOrIntegerOrDoublePrec(DiagnosticsEngine &Diags, const Expr *E,
                                            unsigned DiagType = diag::err_typecheck_expected_do_expr) {
   auto T = E->getType();
@@ -1207,6 +1196,10 @@ static bool IsValidDoTerminatingStatement(Stmt *S) {
   }
 }
 
+void StmtLabelResolver::VisitDoStmt(DoStmt *S) {
+  S->setTerminatingStmt(StmtLabelReference(StmtLabelDecl));
+}
+
 /// FIXME: TODO Transfer of control into the range of a DO-loop from outside the range is not permitted.
 StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult TerminatingStmt,
                              VarExpr *DoVar, ExprResult E1, ExprResult E2,
@@ -1247,8 +1240,7 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult Termi
   getCurrentBody()->Append(Result);
   if(TerminatingStmt.get())
     getCurrentStmtLabelScope()->DeclareForwardReference(
-      StmtLabelScope::ForwardDecl(TerminatingStmt.get(), Result,
-                                           ResolveDoStmtLabel));
+      StmtLabelScope::ForwardDecl(TerminatingStmt.get(), Result));
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   if(TerminatingStmt.get())
     getCurrentBody()->Enter(BlockStmtBuilder::Entry(

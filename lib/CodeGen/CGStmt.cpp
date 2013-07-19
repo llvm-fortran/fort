@@ -45,6 +45,12 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
     void VisitGotoStmt(const GotoStmt *S) {
       CG->EmitGotoStmt(S);
     }
+    void VisitAssignStmt(const AssignStmt *S) {
+      CG->EmitAssignStmt(S);
+    }
+    void VisitAssignedGotoStmt(const AssignedGotoStmt *S) {
+      CG->EmitAssignedGotoStmt(S);
+    }
     void VisitIfStmt(const IfStmt *S) {
       CG->EmitIfStmt(S);
     }
@@ -119,6 +125,8 @@ void CodeGenFunction::EmitBranchOnLogicalExpr(const Expr *Condition,
 void CodeGenFunction::EmitStmtLabel(const Stmt *S) {
   if(!S->isStmtLabelUsedAsGotoTarget())
     return;
+  if(S->isStmtLabelUsedAsAssignTarget())
+    AssignedGotoTargets.push_back(S);
 
   auto AlreadyCreated = GotoTargets.find(S);
   if(AlreadyCreated != GotoTargets.end()) {
@@ -144,6 +152,45 @@ void CodeGenFunction::EmitGotoStmt(const GotoStmt *S) {
   Builder.CreateBr(Block);
   GotoTargets.insert(std::make_pair(Dest, Block));
   EmitBlock(createBasicBlock("next"));
+}
+
+void CodeGenFunction::EmitAssignStmt(const AssignStmt *S) {
+  auto Val = EmitScalarExpr(S->getAddress().Statement->getStmtLabel());
+  // FIXME: verify that destination type can actually hold the value of a statement label
+  EmitAssignment(EmitLValue(S->getDestination()),
+                   EmitScalarToScalarConversion(
+                     Val, S->getDestination()->getType()));
+}
+
+void CodeGenFunction::EmitAssignedGotoStmt(const AssignedGotoStmt *S) {
+  if(!AssignedGotoVarPtr)
+    AssignedGotoVarPtr = CreateTempAlloca(CGM.Int64Ty, "assigned-goto-val");
+  auto Val = Builder.CreateZExtOrTrunc(EmitScalarExpr(S->getDestination()),
+                                       CGM.Int64Ty);
+  Builder.CreateStore(Val, AssignedGotoVarPtr);
+  if(!AssignedGotoDispatchBlock)
+    AssignedGotoDispatchBlock = createBasicBlock("assigned-goto-dispatch");
+  Builder.CreateBr(AssignedGotoDispatchBlock);
+  EmitBlock(createBasicBlock("assigned-goto-after"));
+}
+
+void CodeGenFunction::EmitAssignedGotoDispatcher() {
+  assert(AssignedGotoDispatchBlock);
+  EmitBlock(AssignedGotoDispatchBlock);
+  auto DefaultCase = createBasicBlock("assigned-goto-dispatch-failed");
+  auto VarVal = Builder.CreateLoad(AssignedGotoVarPtr);
+  auto Switch = Builder.CreateSwitch(VarVal, DefaultCase,
+                                     AssignedGotoTargets.size());
+  for(size_t I = 0; I < AssignedGotoTargets.size(); ++I) {
+    auto Target = AssignedGotoTargets[I];
+    auto Dest = GotoTargets[Target];
+    auto Val = llvm::ConstantInt::get(VarVal->getType(),
+                                      cast<IntegerConstantExpr>(Target->getStmtLabel())->getValue());
+    Switch->addCase(cast<llvm::ConstantInt>(Val), Dest);
+  }
+  EmitBlock(DefaultCase);
+  // FiXME raise error
+  Builder.CreateUnreachable();
 }
 
 void CodeGenFunction::EmitIfStmt(const IfStmt *S) {

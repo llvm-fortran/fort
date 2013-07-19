@@ -99,28 +99,19 @@ public:
   /// some statement.
   struct ForwardDecl {
     Expr *StmtLabel;
-    union {
-      Stmt *Statement;
-      FormatSpec *FS;
-    };
-    typedef void (*StmtLabelResolveFunctionTy)(DiagnosticsEngine &Diags,
-                                               const ForwardDecl &Self,
-                                               Stmt *Decl);
-    /// This callback gets executed when the statement label is resolved.
-    StmtLabelResolveFunctionTy ResolveCallback;
+    Stmt *Statement;
+    FormatSpec *FS;
     size_t ResolveCallbackData;
 
     ForwardDecl(Expr *SLabel, Stmt *S,
-                StmtLabelResolveFunctionTy Callback,
                 size_t CallbackData = 0)
-      : StmtLabel(SLabel), Statement(S), ResolveCallback(Callback),
+      : StmtLabel(SLabel), Statement(S), FS(nullptr),
         ResolveCallbackData(CallbackData) {
     }
 
     ForwardDecl(Expr *SLabel, FormatSpec *fs,
-                StmtLabelResolveFunctionTy Callback,
                 size_t CallbackData = 0)
-      : StmtLabel(SLabel), FS(fs), ResolveCallback(Callback),
+      : StmtLabel(SLabel), Statement(nullptr), FS(fs),
         ResolveCallbackData(CallbackData) {
     }
   };
@@ -156,6 +147,8 @@ public:
   void Declare(Expr *StmtLabel, Stmt *Statement);
 
   /// \brief Tries to resolve a statement label reference.
+  /// If the reference is resolved, the statement with the label
+  /// is notified that the label is used.
   Stmt *Resolve(Expr *StmtLabel) const;
 
   /// \brief Declares a forward reference of some statement label.

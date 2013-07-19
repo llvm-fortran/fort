@@ -86,13 +86,16 @@ class CodeGenFunction {
     return ExpandedArg();
   }
 
-  llvm::DenseMap<const Stmt*, llvm::BasicBlock*> GotoTargets;
   llvm::DenseMap<const VarDecl*, llvm::Value*>   LocalVariables;
   llvm::DenseMap<const VarDecl*, CharacterValueTy> CharacterArgs;
-
   llvm::Value *ReturnValuePtr;
-
   llvm::Instruction *AllocaInsertPt;
+
+  llvm::DenseMap<const Stmt*, llvm::BasicBlock*> GotoTargets;
+  llvm::SmallVector<const Stmt*, 8> AssignedGotoTargets;
+  llvm::Value *AssignedGotoVarPtr;
+  llvm::BasicBlock *AssignedGotoDispatchBlock;
+
 
   bool IsMainProgram;
 public:
@@ -203,6 +206,9 @@ public:
   void EmitStmtLabel(const Stmt *S);
 
   void EmitGotoStmt(const GotoStmt *S);
+  void EmitAssignStmt(const AssignStmt *S);
+  void EmitAssignedGotoStmt(const AssignedGotoStmt *S);
+  void EmitAssignedGotoDispatcher();
   void EmitIfStmt(const IfStmt *S);
   void EmitDoStmt(const DoStmt *S);
   void EmitDoWhileStmt(const DoWhileStmt *S);

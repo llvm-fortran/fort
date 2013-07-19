@@ -10,6 +10,7 @@
 #include "flang/Sema/Sema.h"
 #include "flang/Sema/DeclSpec.h"
 #include "flang/Sema/SemaDiagnostic.h"
+#include "flang/Sema/SemaInternal.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
@@ -38,11 +39,9 @@ static void CheckStmtLabelIsFormat(DiagnosticsEngine &Diags, Stmt *S, Expr *Labe
   }
 }
 
-static void ResolveLabelFormatSpecStmtLabel(DiagnosticsEngine &Diags,
-                                            const StmtLabelScope::ForwardDecl &Self,
-                                            Stmt *Decl) {
-  CheckStmtLabelIsFormat(Diags, Decl, Self.StmtLabel);
-  cast<LabelFormatSpec>(Self.FS)->setLabel(StmtLabelReference(Decl));
+void StmtLabelResolver::VisitLabelFormatSpec(LabelFormatSpec *FS) {
+  CheckStmtLabelIsFormat(Diags, StmtLabelDecl, Info.StmtLabel);
+  FS->setLabel(StmtLabelReference(StmtLabelDecl));
 }
 
 LabelFormatSpec *Sema::ActOnLabelFormatSpec(ASTContext &C, SourceLocation Loc,
@@ -52,8 +51,7 @@ LabelFormatSpec *Sema::ActOnLabelFormatSpec(ASTContext &C, SourceLocation Loc,
     if(!Decl) {
       auto Result = LabelFormatSpec::Create(C, Loc, StmtLabelReference());
       getCurrentStmtLabelScope()->DeclareForwardReference(
-      StmtLabelScope::ForwardDecl(Label.get(), Result,
-                                  ResolveLabelFormatSpecStmtLabel));
+      StmtLabelScope::ForwardDecl(Label.get(), Result));
       return Result;
     } else {
       CheckStmtLabelIsFormat(Diags, Decl, Label.get());

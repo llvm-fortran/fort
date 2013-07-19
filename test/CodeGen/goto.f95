@@ -4,7 +4,7 @@ PROGRAM gototest
 1000 CONTINUE   ! CHECK: ; <label>:2
      GOTO 1000  ! CHECK: br label %2
 
-     GOTO 2000  ! CHECK: br label %3
-2000 CONTINUE   ! CHECK: ; <label>:3
+     GOTO 2000
+2000 CONTINUE
 
 END

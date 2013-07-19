@@ -46,7 +46,8 @@ Stmt *StmtLabelScope::Resolve(Expr *StmtLabel) const {
   auto Key = GetStmtLabelValue(StmtLabel);
   auto Result = StmtLabelDeclsInScope.find(Key);
   if(Result == StmtLabelDeclsInScope.end()) return 0;
-  else return Result->second;
+  Result->second->setStmtLabelUsed();
+  return Result->second;
 }
 
 /// \brief Declares a forward reference of some statement label.

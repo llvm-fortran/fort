@@ -31,7 +31,8 @@ CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn)
   : CGM(cgm), /*, Target(cgm.getTarget()),*/
     Builder(cgm.getModule().getContext()),
     UnreachableBlock(nullptr), CurFn(Fn), IsMainProgram(false),
-    ReturnValuePtr(nullptr), AllocaInsertPt(nullptr) {
+    ReturnValuePtr(nullptr), AllocaInsertPt(nullptr),
+    AssignedGotoVarPtr(nullptr), AssignedGotoDispatchBlock(nullptr) {
 }
 
 CodeGenFunction::~CodeGenFunction() {
@@ -62,6 +63,8 @@ void CodeGenFunction::EmitMainProgramBody(const DeclContext *DC, const Stmt *S) 
   EmitBlock(ReturnBlock);
   auto ReturnValue = Builder.getInt32(0);
   Builder.CreateRet(ReturnValue);
+  if(AssignedGotoDispatchBlock)
+    EmitAssignedGotoDispatcher();
 }
 
 void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func,
@@ -130,7 +133,7 @@ void CodeGenFunction::EmitFunctionBody(const DeclContext *DC, const Stmt *S) {
 }
 
 void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func,
-                                           const CGFunctionInfo *Info) {
+                                           const CGFunctionInfo *Info) {  
   EmitBlock(ReturnBlock);
   if(auto RetVar = GetRetVarPtr()) {
     auto ReturnInfo = Info->getReturnInfo();
@@ -149,6 +152,8 @@ void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func,
     else Builder.CreateRetVoid();
   } else
     Builder.CreateRetVoid();
+  if(AssignedGotoDispatchBlock)
+    EmitAssignedGotoDispatcher();
 }
 
 void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
