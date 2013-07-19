@@ -24,6 +24,10 @@ def err_expected_integer_or_real_constant_expr : Error<
   "expected an integer or a real constant expression">;
 def err_expected_integer_constant_expr : Error<
   "expected an integer constant expression">;
+def err_expected_scalar_or_character_expr : Error<
+  "expected an integer, real, complex or character expression">;
+def err_expected_scalar_or_character_constant_expr : Error<
+  "expected an integer, real, complex or character constant expression">;
 
 def err_expr_not_assignable : Error<
   "expression is not assignable">;
@@ -52,6 +56,9 @@ def err_typecheck_expected_do_var : Error<
   "expected a real or an integer variable instead of variable with type %0">;
 def err_typecheck_expected_do_expr : Error<
   "expected a real or an integer expression">;
+
+def err_typecheck_array_constructor_invalid_item : Error<
+  "invalid item in an array constructor with element type %0">;
 
 def err_char_star_length_incompatible : Error<
   "use of character length declarator '*' for a "

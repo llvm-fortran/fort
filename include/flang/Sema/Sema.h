@@ -407,9 +407,17 @@ public:
   /// fot the character type.
   unsigned EvalAndCheckCharacterLength(const Expr *E);
 
+  /// Returns true if an expression is constant(i.e. evaluatable)
+  bool CheckConstantExpression(const Expr *E);
+
   /// Returns true if two types have the same type class
   /// and kind.
   bool CheckTypesSameKind(QualType A, QualType B) const;
+
+  /// Returns true if the given Type is a scalar(integer,
+  /// real, complex) or character
+  bool CheckTypeScalarOrCharacter(const Expr *E, QualType T,
+                                  bool IsConstant = false);
 
   /// Checks that all of the expressions have the same type
   /// class and kind.
@@ -512,6 +520,12 @@ public:
   bool CheckSubscriptExprDimensionCount(SourceLocation Loc,
                                         ExprResult Target,
                                         ArrayRef<ExprResult> Arguments);
+
+  /// Returns true if the items in the array constructor
+  /// satisfy all the constraints.
+  /// As a bonus it also returns the Element type in ObtainedElementType.
+  bool CheckArrayConstructorItems(ArrayRef<Expr*> Items,
+                                  QualType &ObtainedElementType);
 
 };
 

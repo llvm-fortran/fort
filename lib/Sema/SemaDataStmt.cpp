@@ -150,31 +150,46 @@ void DataValueAssigner::VisitVarExpr(VarExpr *E) {
   }
 
   auto Type = VD->getType();
+  Expr *Value = nullptr;
+
   if(auto ATy = dyn_cast<ArrayType>(Type.getTypePtr())) {
+    ASTContext &C = Sema.getContext();
+
     uint64_t ArraySize;
-    if(!ATy->EvaluateSize(ArraySize, Sema.getContext())) {
+    if(!ATy->EvaluateSize(ArraySize, C)) {
       VisitExpr(E);
     }
-    // FIXME code gen.
+    SmallVector<Expr*, 32> Items;
+    auto ElementType = ATy->getElementType();
     for(uint64_t I = 0; I < ArraySize; ++I) {
       if(!HasValues(E)) return;
       auto Value = Values.getValue();
       Values.advance();
+      Value = Sema.TypecheckAssignment(ElementType, Value,
+                                       E->getLocation(),
+                                       Value->getLocStart(),
+                                       E->getSourceRange()).get();
+      if(Value)
+        Items.push_back(Value);
     }
+
+    Value = ArrayConstructorConstantExpr::Create(C, SourceLocation(),
+                                                 Items, Type);
   } else {
     // single item
     if(!HasValues(E)) return;
-    auto Value = Values.getValue();
+    Value = Values.getValue();
     Values.advance();
     Value = Sema.TypecheckAssignment(Type, Value,
                                      E->getLocation(),
                                      Value->getLocStart(),
                                      E->getSourceRange()).get();
-    if(Value) {
-      VD->setInit(Value);
-      Emit(AssignmentStmt::Create(Sema.getContext(), Value->getLocation(),
-                                  E, Value, nullptr));
-    }
+  }
+
+  if(Value) {
+    VD->setInit(Value);
+    Emit(AssignmentStmt::Create(Sema.getContext(), Value->getLocation(),
+                                E, Value, nullptr));
   }
 }
 
@@ -259,17 +274,8 @@ ExprResult Sema::ActOnDATAConstantExpr(ASTContext &C,
     }
   }
 
-  auto Constant = dyn_cast<ConstantExpr>(Value.get());
-  if(!Constant) {
-    /// the value can also be a constant variable
-    VarExpr *Var = dyn_cast<VarExpr>(Value.get());
-    if(!(Var && Var->getVarDecl()->isParameter())) {
-      Diags.Report(Value.get()->getLocation(),
-                   diag::err_expected_constant_expr)
-        << Value.get()->getSourceRange();
-      HasErrors = true;
-    }
-  }
+  if(!CheckConstantExpression(Value.get()))
+    HasErrors = true;
 
   if(HasErrors) return ExprError();
   return RepeatExpr? RepeatedConstantExpr::Create(C, RepeatLoc,

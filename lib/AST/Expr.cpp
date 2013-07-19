@@ -154,9 +154,10 @@ SourceLocation RepeatedConstantExpr::getLocEnd() const {
 }
 
 MultiArgumentExpr::MultiArgumentExpr(ASTContext &C, ArrayRef<Expr*> Args) {
-  assert(Args.size() > 0);
   NumArguments = Args.size();
-  if(NumArguments == 1)
+  if(NumArguments == 0)
+    Arguments = nullptr;
+  else if(NumArguments == 1)
     Argument = Args[0];
   else {
     Arguments = new (C) Expr *[NumArguments];
@@ -366,6 +367,41 @@ ImpliedDoExpr *ImpliedDoExpr::Create(ASTContext &C, SourceLocation Loc,
 
 SourceLocation ImpliedDoExpr::getLocEnd() const {
   return Terminate->getLocEnd();
+}
+
+ArrayConstructorConstantExpr::ArrayConstructorConstantExpr(ASTContext &C, SourceLocation Loc,
+                                                            ArrayRef<Expr*> Items, QualType Ty)
+  : ConstantExpr(ArrayConstructorConstantExprClass, Ty, Loc, Loc),
+    MultiArgumentExpr(C, Items) {
+}
+
+ArrayConstructorConstantExpr
+*ArrayConstructorConstantExpr::Create(ASTContext &C, SourceLocation Loc,
+                                      ArrayRef<Expr*> Items, QualType Ty) {
+  return new(C) ArrayConstructorConstantExpr(C, Loc, Items, Ty);
+}
+
+SourceLocation ArrayConstructorConstantExpr::getLocEnd() const {
+  if(getItems().empty())
+    return getLocation();
+  return getItems().back()->getLocEnd();
+}
+
+ArrayConstructorExpr::ArrayConstructorExpr(ASTContext &C, SourceLocation Loc,
+                                           ArrayRef<Expr*> Items, QualType Ty)
+  : Expr(ArrayConstructorExprClass, Ty, Loc),
+    MultiArgumentExpr(C, Items) {
+}
+
+ArrayConstructorExpr *ArrayConstructorExpr::Create(ASTContext &C, SourceLocation Loc,
+                                                   ArrayRef<Expr*> Items, QualType Ty) {
+  return new(C) ArrayConstructorExpr(C, Loc, Items, Ty);
+}
+
+SourceLocation ArrayConstructorExpr::getLocEnd() const {
+  if(getItems().empty())
+    return getLocation();
+  return getItems().back()->getLocEnd();
 }
 
 //===----------------------------------------------------------------------===//

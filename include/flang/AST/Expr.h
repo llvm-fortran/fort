@@ -88,6 +88,23 @@ public:
   static bool classof(const Expr *) { return true; }
 };
 
+/// An expression with multiple arguments.
+class MultiArgumentExpr {
+private:
+  unsigned NumArguments;
+  union {
+    Expr **Arguments;
+    Expr *Argument;
+  };
+public:
+  MultiArgumentExpr(ASTContext &C, ArrayRef<Expr*> Args);
+
+  ArrayRef<Expr*> getArguments() const {
+    return NumArguments == 1? ArrayRef<Expr*>(Argument) :
+                              ArrayRef<Expr*>(Arguments,NumArguments);
+  }
+};
+
 /// ConstantExpr - The base class for all constant expressions.
 class ConstantExpr : public Expr {
   Expr *Kind;                   // Optional Kind Selector
@@ -313,21 +330,22 @@ public:
   static bool classof(const RepeatedConstantExpr *) { return true; }
 };
 
-/// An expression with multiple arguments.
-class MultiArgumentExpr {
-private:
-  unsigned NumArguments;
-  union {
-    Expr **Arguments;
-    Expr *Argument;
-  };
+/// Represents a (/ /) expression, where all items are constants.
+class ArrayConstructorConstantExpr : public ConstantExpr, protected MultiArgumentExpr {
+  ArrayConstructorConstantExpr(ASTContext &C, SourceLocation Loc,
+                               ArrayRef<Expr*> Items, QualType Ty);
 public:
-  MultiArgumentExpr(ASTContext &C, ArrayRef<Expr*> Args);
+  static ArrayConstructorConstantExpr *Create(ASTContext &C, SourceLocation Loc,
+                                              ArrayRef<Expr*> Items, QualType Ty);
 
-  ArrayRef<Expr*> getArguments() const {
-    return NumArguments == 1? ArrayRef<Expr*>(Argument) :
-                              ArrayRef<Expr*>(Arguments,NumArguments);
+  ArrayRef<Expr*> getItems() const { return getArguments(); }
+
+  SourceLocation getLocEnd() const;
+
+  static bool classof(const Expr *E) {
+    return E->getExprClass() == ArrayConstructorConstantExprClass;
   }
+  static bool classof(const ArrayConstructorConstantExpr *) { return true; }
 };
 
 //===----------------------------------------------------------------------===//
@@ -826,6 +844,24 @@ public:
     return E->getExprClass() == ImpliedDoExprClass;
   }
   static bool classof(const IntrinsicCallExpr *) { return true; }
+};
+
+/// ArrayConstructorExpr - (/ /)
+class ArrayConstructorExpr : public Expr, protected MultiArgumentExpr {
+  ArrayConstructorExpr(ASTContext &C, SourceLocation Loc,
+                       ArrayRef<Expr*> Items, QualType Ty);
+public:
+  static ArrayConstructorExpr *Create(ASTContext &C, SourceLocation Loc,
+                                      ArrayRef<Expr*> Items, QualType Ty);
+
+  ArrayRef<Expr*> getItems() const { return getArguments(); }
+
+  SourceLocation getLocEnd() const;
+
+  static bool classof(const Expr *E) {
+    return E->getExprClass() == ArrayConstructorExprClass;
+  }
+  static bool classof(const ArrayConstructorExpr *) { return true; }
 };
 
 } // end flang namespace

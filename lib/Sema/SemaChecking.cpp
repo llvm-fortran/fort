@@ -85,6 +85,16 @@ unsigned Sema::EvalAndCheckCharacterLength(const Expr *E) {
   return Result;
 }
 
+bool Sema::CheckConstantExpression(const Expr *E) {
+  if(!E->isEvaluatable(Context)) {
+    Diags.Report(E->getLocation(),
+                 diag::err_expected_constant_expr)
+      << E->getSourceRange();
+    return false;
+  }
+  return true;
+}
+
 bool Sema::CheckTypesSameKind(QualType A, QualType B) const {
   if(auto ABTy = dyn_cast<BuiltinType>(A.getTypePtr())) {
     auto BBTy = dyn_cast<BuiltinType>(B.getTypePtr());
@@ -110,6 +120,15 @@ bool Sema::CheckTypesSameKind(QualType A, QualType B) const {
              Context.getLogicalTypeKind(BExt);
     }
   }
+  return false;
+}
+
+bool Sema::CheckTypeScalarOrCharacter(const Expr *E, QualType T, bool IsConstant) {
+  if(isa<BuiltinType>(T.getTypePtr())) return true;
+  Diags.Report(E->getLocation(), IsConstant?
+                 diag::err_expected_scalar_or_character_constant_expr :
+                 diag::err_expected_scalar_or_character_expr)
+    << E->getSourceRange();
   return false;
 }
 
@@ -254,6 +273,39 @@ bool Sema::CheckRealOrComplexArgument(const Expr *E) {
     return true;
   }
   return false;
+}
+
+// FIXME: Items can be implied do and other array constructors..
+bool Sema::CheckArrayConstructorItems(ArrayRef<Expr*> Items,
+                                      QualType &ObtainedElementType) {
+  if(Items.empty()) return true;
+
+  bool Result = true;
+  size_t I;
+  QualType ElementType;
+  // Set the first valid type to be the element type
+  for(size_t I = 0; I < Items.size(); ++I) {
+    auto ElementType = Items[I]->getType();
+    if(CheckTypeScalarOrCharacter(Items[I], ElementType, true))
+      break;
+    Result = false;
+  }
+
+  // NB: ignore character value same length constraint.
+  // Constraint: Each ac-value expression in the array-constructor
+  // shall have the same type and kind type parameter.
+  for(; I < Items.size(); ++I) {
+    auto T = Items[I]->getType();
+    if(!CheckTypesSameKind(ElementType, T)) {
+      Diags.Report(Items[I]->getLocation(),
+                   diag::err_typecheck_array_constructor_invalid_item)
+        << Items[I]->getSourceRange();
+      Result = false;
+    }
+  }
+
+  ObtainedElementType = ElementType;
+  return Result;
 }
 
 } // end namespace flang
