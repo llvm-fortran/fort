@@ -330,24 +330,6 @@ public:
   static bool classof(const RepeatedConstantExpr *) { return true; }
 };
 
-/// Represents a (/ /) expression, where all items are constants.
-class ArrayConstructorConstantExpr : public ConstantExpr, protected MultiArgumentExpr {
-  ArrayConstructorConstantExpr(ASTContext &C, SourceLocation Loc,
-                               ArrayRef<Expr*> Items, QualType Ty);
-public:
-  static ArrayConstructorConstantExpr *Create(ASTContext &C, SourceLocation Loc,
-                                              ArrayRef<Expr*> Items, QualType Ty);
-
-  ArrayRef<Expr*> getItems() const { return getArguments(); }
-
-  SourceLocation getLocEnd() const;
-
-  static bool classof(const Expr *E) {
-    return E->getExprClass() == ArrayConstructorConstantExprClass;
-  }
-  static bool classof(const ArrayConstructorConstantExpr *) { return true; }
-};
-
 //===----------------------------------------------------------------------===//
 /// DesignatorExpr -
 class DesignatorExpr : public Expr {

@@ -4,7 +4,7 @@ PROGRAM datatest
   REAL X,Y,Z, A, ZZZ
   INTEGER I_ARR(10)
   INTEGER I_ARR2(2,2)
-  REAL R_ARR(10), R_ARR2(3)
+  REAL R_ARR(10), R_ARR2(3), R_MULTIARR(2,3,4)
   CHARACTER*(10) STR, STR_ARR(11)
 
   PARAMETER (PI = 3.14, INDEX = 1)
@@ -46,6 +46,8 @@ PROGRAM datatest
   DATA R_ARR2 / 1, .false., 2.0 / ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
 
   DATA R_ARR2 / 1.5, 2*-1.0 /
+
+  DATA R_MULTIARR / 24*88.0 /
 
   ! FIXME:
   ! DATA (I_ARR(I), I = 1,10) / 10*0 /

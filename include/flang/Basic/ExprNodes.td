@@ -17,7 +17,6 @@ def CharacterConstantExpr : DExpr<ConstantExpr>;
 def BOZConstantExpr : DExpr<ConstantExpr>;
 def LogicalConstantExpr : DExpr<ConstantExpr>;
 def RepeatedConstantExpr : Expr;
-def ArrayConstructorConstantExpr : DExpr<ConstantExpr>;
 
 def VarExpr : Expr;
 def UnresolvedIdentifierExpr : Expr;

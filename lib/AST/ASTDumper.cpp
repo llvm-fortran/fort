@@ -105,7 +105,6 @@ public:
   void VisitCallExpr(const CallExpr *E);
   void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
   void VisitImpliedDoExpr(const ImpliedDoExpr *E);
-  void VisitArrayConstructorConstantExpr(const ArrayConstructorConstantExpr *E);
   void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
 
   // array specification
@@ -595,12 +594,6 @@ void ASTDumper::VisitImpliedDoExpr(const ImpliedDoExpr *E) {
      dumpExpr(E->getIncrementationParameter());
   }
   OS << ')';
-}
-
-void ASTDumper::VisitArrayConstructorConstantExpr(const ArrayConstructorConstantExpr *E) {
-  OS << "(/";
-  dumpExprList(E->getItems());
-  OS << " /)";
 }
 
 void ASTDumper::VisitArrayConstructorExpr(const ArrayConstructorExpr *E) {

@@ -196,11 +196,7 @@ void CodeGenFunction::EmitArrayAssignment(const Expr *LHS, const Expr *RHS) {
     ArrayValueExprEmitter EV(*this);
     EV.EmitExpr(LHS);
     auto Ptr = EV.getResultPtr();
-    if(auto AC = dyn_cast<ArrayConstructorConstantExpr>(RHS)) {
-      EmitArrayConstructorToKnownSizeAssignment(LHSType, LHSSize,
-                                                Ptr, AC->getItems());
-    }
-    else if(auto AC = dyn_cast<ArrayConstructorExpr>(RHS)) {
+    if(auto AC = dyn_cast<ArrayConstructorExpr>(RHS)) {
       EmitArrayConstructorToKnownSizeAssignment(LHSType, LHSSize,
                                                 Ptr, AC->getItems());
     }

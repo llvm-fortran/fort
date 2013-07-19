@@ -83,7 +83,7 @@ void DataValueIterator::advance() {
 
 /// Iterates over the items in a DATA statent and emits corresponding
 /// assignment AST nodes.
-/// FIXME report source ranges for diagnostics
+/// FIXME report source ranges for diagnostics (ArrayElement and Substring)
 class DataValueAssigner : public ExprVisitor<DataValueAssigner> {
   DataValueIterator &Values;
   flang::Sema &Sema;
@@ -173,8 +173,8 @@ void DataValueAssigner::VisitVarExpr(VarExpr *E) {
         Items.push_back(Value);
     }
 
-    Value = ArrayConstructorConstantExpr::Create(C, SourceLocation(),
-                                                 Items, Type);
+    Value = ArrayConstructorExpr::Create(C, SourceLocation(),
+                                         Items, Type);
   } else {
     // single item
     if(!HasValues(E)) return;
@@ -212,9 +212,6 @@ void DataValueAssigner::VisitSubstringExpr(SubstringExpr *E) {
 }
 
 /// FIXME add checking for implied do
-/// FIXME LHS arrays
-/// FIXME LHS array elements, substrings
-/// FIXME
 StmtResult Sema::ActOnDATA(ASTContext &C, SourceLocation Loc,
                            ArrayRef<ExprResult> LHS,
                            ArrayRef<ExprResult> RHS,
