@@ -128,11 +128,17 @@ extern "C" void jit_write_character(void *,const char *Ptr, size_t Length) {
 }
 
 extern "C" void jit_write_integer(void *,const void *Ptr, int32_t Size) {
+  if(Size != 4) return;
   llvm::outs() << *reinterpret_cast<const int32_t*>(Ptr);
 }
 
 extern "C" void jit_write_end(void *) {
   llvm::outs() << "\n";
+}
+
+extern "C" void jit_assignment_char1(char *LHS, size_t LHSLength,
+                                     char *RHS, size_t RHSLength) {
+  memmove(LHS, RHS, std::min(LHSLength, RHSLength));
 }
 
 static int Execute(llvm::Module *Module, const char * const *envp) {
@@ -161,6 +167,9 @@ static int Execute(llvm::Module *Module, const char * const *envp) {
   }
   if(auto F = Module->getFunction("libflang_write_integer")) {
     EE->addGlobalMapping(F, (void*) &jit_write_integer);
+  }
+  if(auto F = Module->getFunction("libflang_assignment_char1")) {
+    EE->addGlobalMapping(F, (void*) &jit_assignment_char1);
   }
 
   std::vector<std::string> Args;

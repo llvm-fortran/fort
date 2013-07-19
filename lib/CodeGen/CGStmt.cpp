@@ -343,6 +343,8 @@ void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
   auto RHS = S->getRHS();
   auto RHSType = RHS->getType();
 
+  if(RHSType->isArrayType())
+    EmitArrayAssignment(S->getLHS(), S->getRHS());
   auto Destination = EmitLValue(S->getLHS());
 
   if(RHSType->isIntegerType() || RHSType->isRealType()) {
@@ -363,6 +365,9 @@ void CodeGenFunction::EmitAssignment(LValueTy LHS, RValueTy RHS) {
     Builder.CreateStore(RHS.asScalar(), LHS.getPointer());
   else if(RHS.isComplex())
     EmitComplexStore(RHS.asComplex(), LHS.getPointer());
+  else if(RHS.isCharacter())
+    EmitCharacterAssignment(GetCharacterValueFromPtr(LHS.getPointer(), LHS.getType()),
+                            RHS.asCharacter());
 }
 
 }

@@ -76,19 +76,20 @@ public:
 
 class LValueTy {
 public:
-  llvm::Value *Ptr, *Len;
+  llvm::Value *Ptr;
+  QualType Type;
 
   LValueTy() {}
   LValueTy(llvm::Value *Dest)
     : Ptr(Dest) {}
-  LValueTy(llvm::Value *Dest, llvm::Value *Length)
-    : Ptr(Dest), Len(Length) {}
+  LValueTy(llvm::Value *Dest, QualType Ty)
+    : Ptr(Dest), Type(Ty) {}
 
   llvm::Value *getPointer() const {
     return Ptr;
   }
-  llvm::Value *getLength() const {
-    return Len;
+  QualType getType() const {
+    return Type;
   }
 };
 

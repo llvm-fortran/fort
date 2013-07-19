@@ -161,17 +161,20 @@ CharacterValueTy CharacterExprEmitter::VisitArrayElementExpr(const ArrayElementE
 }
 
 void CodeGenFunction::EmitCharacterAssignment(const Expr *LHS, const Expr *RHS) {
-  auto CharType = getContext().CharacterTy;
   auto Dest = EmitCharacterExpr(LHS);
   CharacterExprEmitter EV(*this);
   EV.setDestination(Dest);
   auto Src = EV.EmitExpr(RHS);
 
-  if(EV.hasDestination()) {
-    auto Func = CGM.GetRuntimeFunction2(MANGLE_CHAR_FUNCTION("assignment", CharType),
-                                        CharType, CharType);
-    EmitCall2(Func, Dest, Src);
-  }
+  if(EV.hasDestination())
+    EmitCharacterAssignment(Dest, Src);
+}
+
+void CodeGenFunction::EmitCharacterAssignment(CharacterValueTy LHS, CharacterValueTy RHS) {
+  auto CharType = getContext().CharacterTy;
+  auto Func = CGM.GetRuntimeFunction2(MANGLE_CHAR_FUNCTION("assignment", CharType),
+                                      CharType, CharType);
+  EmitCall2(Func, LHS, RHS);
 }
 
 llvm::Value *CodeGenFunction::GetCharacterTypeLength(QualType T) {

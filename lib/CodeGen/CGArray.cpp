@@ -177,5 +177,36 @@ llvm::Value *CodeGenFunction::EmitArrayPtr(const Expr *E) {
   return EV.getResultPtr();
 }
 
+void CodeGenFunction::EmitArrayConstructorToKnownSizeAssignment(const ArrayType *LHSType,
+                                                                uint64_t LHSSize,
+                                                                llvm::Value *LHSPtr,
+                                                                ArrayRef<Expr*> RHS) {
+  assert(RHS.size() == LHSSize);
+  for(uint64_t I = 0; I < LHSSize; ++I) {
+    auto Dest = Builder.CreateConstInBoundsGEP1_64(LHSPtr, I);
+    EmitAssignment(LValueTy(Dest, LHSType->getElementType()),
+                   EmitRValue(RHS[I]));
+  }
+}
+
+void CodeGenFunction::EmitArrayAssignment(const Expr *LHS, const Expr *RHS) {
+  auto LHSType = cast<ArrayType>(LHS->getType().getTypePtr());
+  uint64_t LHSSize;
+  if(LHSType->EvaluateSize(LHSSize, getContext())) {
+    ArrayValueExprEmitter EV(*this);
+    EV.EmitExpr(LHS);
+    auto Ptr = EV.getResultPtr();
+    if(auto AC = dyn_cast<ArrayConstructorConstantExpr>(RHS)) {
+      EmitArrayConstructorToKnownSizeAssignment(LHSType, LHSSize,
+                                                Ptr, AC->getItems());
+    }
+    else if(auto AC = dyn_cast<ArrayConstructorExpr>(RHS)) {
+      EmitArrayConstructorToKnownSizeAssignment(LHSType, LHSSize,
+                                                Ptr, AC->getItems());
+    }
+  }
+  // FIXME the rest
+}
+
 }
 } // end namespace flang

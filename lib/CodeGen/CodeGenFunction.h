@@ -268,6 +268,7 @@ public:
   CharacterValueTy ExtractCharacterValue(llvm::Value *Agg);
   llvm::Value   *CreateCharacterAggregate(CharacterValueTy Value);
   void EmitCharacterAssignment(const Expr *LHS, const Expr *RHS);
+  void EmitCharacterAssignment(CharacterValueTy LHS, CharacterValueTy RHS);
   llvm::Value *GetCharacterTypeLength(QualType T);
   CharacterValueTy GetCharacterValueFromPtr(llvm::Value *Ptr,
                                                QualType StorageType);
@@ -361,6 +362,9 @@ public:
   void GetArrayDimensionsInfo(QualType T, SmallVectorImpl<ArrayDimensionValueTy> &Dims);
 
   llvm::Value *EmitArrayPtr(const Expr *E);
+  void EmitArrayAssignment(const Expr *LHS, const Expr *RHS);
+  void EmitArrayConstructorToKnownSizeAssignment(const ArrayType *LHSType, uint64_t LHSSize,
+                                                 llvm::Value *LHSPtr, ArrayRef<Expr *> RHS);
 };
 
 }  // end namespace CodeGen
