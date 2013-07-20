@@ -302,7 +302,7 @@ public:
   StmtResult ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
                            SourceRange IdRange,
                            FunctionDecl *Function,
-                           ArrayRef<ExprResult> Arguments, Expr *StmtLabel);
+                           ArrayRef<Expr*> Arguments, Expr *StmtLabel);
 
   StmtResult ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,
                             ArrayRef<ExprResult> OutputItemList,
@@ -338,19 +338,20 @@ public:
                              BinaryExpr::Operator Op,
                              ExprResult LHS,ExprResult RHS);
 
-  ExprResult ActOnSubstringExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
-                                ExprResult StartingPoint, ExprResult EndPoint);
+  ExprResult ActOnSubstringExpr(ASTContext &C, SourceLocation Loc,
+                                Expr *Target,
+                                Expr *StartingPoint, Expr *EndPoint);
 
-  ExprResult ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
-                                llvm::ArrayRef<ExprResult> Subscripts);
+  ExprResult ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
+                                Expr* Target, llvm::ArrayRef<Expr*> Subscripts);
 
   ExprResult ActOnCallExpr(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
                            SourceRange IdRange,
-                           FunctionDecl *Function, ArrayRef<ExprResult> Arguments);
+                           FunctionDecl *Function, ArrayRef<Expr*> Arguments);
 
   ExprResult ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
                                             const IntrinsicFunctionDecl *FunctionDecl,
-                                            ArrayRef<ExprResult> Arguments);
+                                            ArrayRef<Expr*> Arguments);
 
   // Format
   StmtResult ActOnFORMAT(ASTContext &C, SourceLocation Loc,
@@ -412,6 +413,9 @@ public:
 
   /// Returns true if an expression is constant(i.e. evaluatable)
   bool CheckConstantExpression(const Expr *E);
+
+  /// Returns true if an expression is an integer expression
+  bool CheckIntegerExpression(const Expr *E);
 
   /// Returns true if two types have the same type class
   /// and kind.
@@ -520,9 +524,9 @@ public:
 
   /// Returns true if the subscript expression has the
   /// right amount of dimensions.
-  bool CheckSubscriptExprDimensionCount(SourceLocation Loc,
-                                        ExprResult Target,
-                                        ArrayRef<ExprResult> Arguments);
+  bool CheckSubscriptExprDimensionCount(SourceLocation Loc, SourceLocation RParenLoc,
+                                        Expr *Target,
+                                        ArrayRef<Expr *> Arguments);
 
   /// Returns true if the items in the array constructor
   /// satisfy all the constraints.

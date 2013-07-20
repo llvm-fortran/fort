@@ -16,6 +16,10 @@ PROGRAM charsubstring
   C = C(:)
   C = (C(2:))
   C = C(1 8) ! expected-error {{expected ':'}}
+  C = C(:(5+2) ! expected-error {{expected ')'}}
+  C = C(: ::  ! expected-error {{expected an expression}}
+  continue      ! expected-error@-1 {{expected ')'}}
+  C = C( :: : ) ! expected-error {{expected an expression}}
 
   C_ARR(1) = C
   C_ARR(2) = C_ARR(1)(1:)

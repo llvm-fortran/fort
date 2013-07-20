@@ -236,12 +236,13 @@ private:
   ///
   SourceLocation ConsumeParen() {
     assert(isTokenParen() && "wrong consume method");
+    auto Loc = Tok.getLocation();
     if (Tok.getKind() == tok::l_paren)
       ++ParenCount;
     else if (ParenCount)
       --ParenCount;       // Don't let unbalanced )'s drive the count negative.
     Lex();
-    return PrevTokLocation;
+    return Loc;
   }
 
   /// ConsumeIfPresent - Consumes the token if it's present. Return 'true' if it was
@@ -331,7 +332,7 @@ private:
   ExprResult ParseComplexPartDesignator();
   ExprResult ParseStructureComponent();
   ExprResult ParseSubstring(ExprResult Target);
-  ExprResult ParseF77Subscript(ExprResult Target);
+  ExprResult ParseArraySubscript(ExprResult Target);
   ExprResult ParseDataReference();
   ExprResult ParsePartReference();
 
@@ -418,8 +419,14 @@ private:
   ExprResult ParseLevel1Expr();
   ExprResult ParsePrimaryExpr(bool IsLvalue = false);
   ExprResult ParseExpression();
-  ExprResult ParseFunctionCallArgumentList(SmallVectorImpl<ExprResult> &Args,
+  ExprResult ParseFunctionCallArgumentList(SmallVectorImpl<Expr*> &Args,
                                            SourceLocation &RParenLoc);
+  ExprResult ParseCallExpression(SourceRange IdRange, FunctionDecl *Function);
+
+  /// \brief Looks at the next token to see if it's an expression
+  /// and calls ParseExpression if it is, or reports an expected expression
+  /// error.
+  ExprResult ParseExpectedExpression();
 
   /// \brief Looks at the next token to see if it's an expression
   /// and calls ParseExpression if it is, or reports an expected expression

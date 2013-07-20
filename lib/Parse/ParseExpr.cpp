@@ -51,6 +51,14 @@ Parser::ExprResult Parser::ParseExpression() {
   return DefinedBinaryOperatorExpr::Create(Context, OpLoc, LHS.take(), RHS.take(), II);
 }
 
+ExprResult Parser::ParseExpectedExpression() {
+  if(Tok.isAtStartOfStatement()) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_expression);
+    return ExprError();
+  }
+  return ParseExpression();
+}
+
 /// \brief Looks at the next token to see if it's an expression
 /// and calls ParseExpression if it is, or reports an expected expression
 /// error.
@@ -94,7 +102,7 @@ ExprResult Parser::ParseExpectedFollowupExpression(const char *DiagAfter) {
 //      or .NEQV.
 Parser::ExprResult Parser::ParseAndOperand() {
   SourceLocation NotLoc = Tok.getLocation();
-  bool Negate = EatIfPresent(tok::kw_NOT);
+  bool Negate = ConsumeIfPresent(tok::kw_NOT);
 
   ExprResult E = ParseLevel4Expr();
   if (E.isInvalid()) return E;
@@ -407,10 +415,10 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
   // FIXME: Add rest of the primary expressions.
   switch (Tok.getKind()) {
   default:
-    if (isaKeyword(Tok.getIdentifierInfo()->getName()))
+    if (isTokenIdentifier())
       goto possible_keyword_as_ident;
-    Diag.ReportError(Loc, "unknown unary expression");
-    break;
+    Diag.Report(getExpectedLoc(), diag::err_expected_expression);
+    return ExprError();
   case tok::error:
     Lex();
     return ExprError();
@@ -419,7 +427,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     E = ParseExpression();
     // complex constant.
-    if(EatIfPresentInSameStmt(tok::comma)) {
+    if(ConsumeIfPresent(tok::comma)) {
       if(E.isInvalid()) return E;
       auto ImPart = ParseExpectedFollowupExpression(",");
       if(ImPart.isInvalid()) return ImPart;
@@ -428,7 +436,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
                                            E, ImPart);
     }
 
-    if (!EatIfPresentInSameStmt(tok::r_paren)) {
+    if (!ConsumeIfPresent(tok::r_paren)) {
       Diag.Report(getExpectedLoc(),diag::err_expected_rparen);
       return ExprError();
     }
@@ -628,30 +636,28 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
   if(!VD) {
     auto Loc = Tok.getLocation();
     auto Range = SourceRange(Loc, getMaxLocationOfCurrentToken());
-    Lex();
+    ConsumeToken();
+
     if(IntrinsicFunctionDecl *IFunc = dyn_cast<IntrinsicFunctionDecl>(Declaration)) {
-      SmallVector<ExprResult, 8> Arguments;
-      SourceLocation RParenLoc;
+      SmallVector<Expr*, 8> Arguments;
+      SourceLocation RParenLoc = Tok.getLocation();
       auto Result = ParseFunctionCallArgumentList(Arguments, RParenLoc);
       if(Result.isInvalid())
         return ExprError();
       return Actions.ActOnIntrinsicFunctionCallExpr(Context, Loc, IFunc, Arguments);
+    }
+    else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
+      // FIXME: allow subroutines, but errors in sema
+      if(!Func->isSubroutine()) {
+        return ParseCallExpression(Range, Func);
+      }
     }
     else if(isa<ReturnVarDecl>(Declaration)) {
       auto Func = Actions.CurrentContextAsFunction();
       if(Func->isNormalFunction())
         return ReturnedValueExpr::Create(Context, Loc, Func);
     }
-    else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
-      if(!Func->isSubroutine()) {
-        SmallVector<ExprResult, 8> Arguments;
-        SourceLocation RParenLoc;
-        auto Result = ParseFunctionCallArgumentList(Arguments, RParenLoc);
-        if(Result.isInvalid())
-          return ExprError();
-        return Actions.ActOnCallExpr(Context, Loc, RParenLoc, Range, Func, Arguments);
-      }
-    }
+
     Diag.Report(Loc, diag::err_expected_var);
     return ExprError();
   }
@@ -661,7 +667,7 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
 
   if(Tok.is(tok::l_paren)){
     if(VD->getType()->isArrayType()) {
-      E = ParseF77Subscript(E);
+      E = ParseArraySubscript(E);
       if(Tok.is(tok::l_paren)) {
         if(VD->getType()->isArrayOfCharacterType())
           return ParseSubstring(E);
@@ -682,26 +688,41 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
   return E;
 }
 
-ExprResult Parser::ParseFunctionCallArgumentList(SmallVectorImpl<ExprResult> &Args, SourceLocation &RParenLoc) {
-  RParenLoc = getExpectedLoc();
-  if(!EatIfPresentInSameStmt(tok::l_paren)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
-    return ExprError();
-  }
 
-  if(EatIfPresentInSameStmt(tok::r_paren)) return ExprResult();
+
+/// ParseCallExpression - Parse a call expression
+ExprResult Parser::ParseCallExpression(SourceRange IdRange, FunctionDecl *Function) {
+  SmallVector<Expr*, 8> Arguments;
+  auto Loc = Tok.getLocation();
+  SourceLocation RParenLoc = Loc;
+  auto Result = ParseFunctionCallArgumentList(Arguments, RParenLoc);
+  if(Result.isInvalid())
+    return ExprError();
+  return Actions.ActOnCallExpr(Context, Loc, RParenLoc, IdRange, Function, Arguments);
+}
+
+/// ParseFunctionCallArgumentList - Parses an argument list to a call expression.
+ExprResult Parser::ParseFunctionCallArgumentList(SmallVectorImpl<Expr*> &Args, SourceLocation &RParenLoc) {
+  if(!ExpectAndConsume(tok::l_paren))
+    return ExprError();
+
+  RParenLoc = getExpectedLoc();
+  if(ConsumeIfPresent(tok::r_paren))
+    return ExprResult();
+
+  auto PunctuationTok = "(";
   do {
-    auto E = ParseExpression();
+    if(Tok.isAtStartOfStatement())
+      break;
+    auto E = ParseExpectedFollowupExpression(PunctuationTok);
     if(E.isInvalid())
-      return ExprError();
-    Args.push_back(E);
-  } while (EatIfPresentInSameStmt(tok::comma));
+      SkipUntil(tok::comma, tok::r_paren, true, true);
+    else Args.push_back(E.get());
+    PunctuationTok = ",";
+  } while (ConsumeIfPresent(tok::comma));
 
   RParenLoc = getExpectedLoc();
-  if(!EatIfPresentInSameStmt(tok::r_paren)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_rparen);
-    return ExprError();
-  }
+  ExpectAndConsume(tok::r_paren, 0, "", tok::r_paren);
   return ExprResult();
 }
 
@@ -783,44 +804,53 @@ ExprResult Parser::ParseStructureComponent() {
 ///         [ scalar-int-expr ] : [ scalar-int-expr ]
 ExprResult Parser::ParseSubstring(ExprResult Target) {
   ExprResult StartingPoint, EndPoint;
-  Lex();
-  SourceLocation Loc = Tok.getLocation();
-  if(!EatIfPresentInSameStmt(tok::colon)) {
+  auto Loc = ConsumeParen();
+
+  if(!ConsumeIfPresent(tok::colon)) {
     StartingPoint = ParseExpectedFollowupExpression("(");
+    if(StartingPoint.isInvalid())
+      SkipUntil(tok::colon, true, true);
     Loc = Tok.getLocation();
-    if(!EatIfPresentInSameStmt(tok::colon)) {
-      Diag.Report(getExpectedLoc(),diag::err_expected_colon);
-      return ExprError();
-    }
+    if(!ExpectAndConsume(tok::colon, 0, "", tok::r_paren))
+      goto done;
   }
-  if(!EatIfPresentInSameStmt(tok::r_paren)) {
+
+  if(!ConsumeIfPresent(tok::r_paren)) {
     EndPoint = ParseExpectedFollowupExpression(":");
-    if(!EatIfPresentInSameStmt(tok::r_paren)) {
-      Diag.Report(getExpectedLoc(),diag::err_expected_rparen);
-      return ExprError();
-    }
+    if(EndPoint.isInvalid())
+      SkipUntil(tok::r_paren, true, true);
+    ExpectAndConsume(tok::r_paren, 0, "", tok::r_paren);
   }
-  return Actions.ActOnSubstringExpr(Context, Loc, Target, StartingPoint, EndPoint);
+
+done:
+  return Actions.ActOnSubstringExpr(Context, Loc, Target.get(),
+                                    StartingPoint.get(), EndPoint.get());
 }
 
-/// ParseF77Subscript - Parse a Fortran 77 Array Subscript Expression
-///
-ExprResult Parser::ParseF77Subscript(ExprResult Target) {
-  std::vector<ExprResult> Exprs;
-  SourceLocation Loc = Tok.getLocation();
-  Lex();
+/// ParseArrauSubscript - Parse an Array Subscript Expression
+/// FIXME: add Fortran 90+ ':' support
+ExprResult Parser::ParseArraySubscript(ExprResult Target) {
+  SmallVector<Expr*, 8> ExprList;
+  auto Loc = ConsumeParen();
 
+  bool IgnoreRParen = false;
+  auto PunctuationTok = "(";
   do {
-    ExprResult E = ParseExpression();
-    if(E.isInvalid()) return E;
-    Exprs.push_back(E);
-  } while(EatIfPresentInSameStmt(tok::comma));
+    if(Tok.isAtStartOfStatement())
+      IgnoreRParen = true;
+    ExprResult E = ParseExpectedFollowupExpression(PunctuationTok);
+    if(E.isInvalid())
+      SkipUntil(tok::comma, tok::r_paren, true, true);
+    ExprList.push_back(E.get());
+    PunctuationTok = ",";
+  } while(ConsumeIfPresent(tok::comma));
 
-  if(!EatIfPresentInSameStmt(tok::r_paren)) {
-    Diag.Report(getExpectedLoc(),diag::err_expected_rparen);
-    return ExprError();
-  }
-  return Actions.ActOnSubscriptExpr(Context, Loc, Target, Exprs);
+  auto RParenLoc = getExpectedLoc();
+  if(!IgnoreRParen)
+    ExpectAndConsume(tok::r_paren, 0, "", tok::r_paren);
+
+  return Actions.ActOnSubscriptExpr(Context, Loc, RParenLoc, Target.get(),
+                                    ExprList);
 }
 
 /// ParseDataReference - Parse a data reference.
@@ -835,7 +865,7 @@ ExprResult Parser::ParseDataReference() {
     ExprResult E = ParsePartReference();
     if (E.isInvalid()) return E;
     Exprs.push_back(E);
-  } while (EatIfPresent(tok::percent));
+  } while (ConsumeIfPresent(tok::percent));
 
   return Actions.ActOnDataReference(Exprs);
 }

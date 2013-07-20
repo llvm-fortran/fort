@@ -397,36 +397,26 @@ Parser::StmtResult Parser::ParseReturnStmt() {
 Parser::StmtResult Parser::ParseCallStmt() {
   auto Loc = Tok.getLocation();
   Lex();
+  SourceLocation RParenLoc = getExpectedLoc();
 
-  if(Tok.isAtStartOfStatement() ||
-     !(Tok.is(tok::identifier) ||
-     (Tok.getIdentifierInfo() &&
-     isaKeyword(Tok.getIdentifierInfo()->getName())))) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_ident);
-    return StmtError();
-  }
+  auto ID = Tok.getIdentifierInfo();
   auto FuncIdRange = SourceRange(Tok.getLocation(),
                                  getMaxLocationOfCurrentToken());
+  if(!ExpectAndConsume(tok::identifier))
+    return StmtError();
 
-  auto Decl = Actions.ResolveIdentifier(Tok.getIdentifierInfo());
+  auto Decl = Actions.ResolveIdentifier(ID);
   auto FD = dyn_cast_or_null<FunctionDecl>(Decl);
   if(!FD) {
     Diag.Report(getExpectedLoc(), diag::err_expected_func_after)
       << "CALL";
     return StmtError();
   }
-  Lex();
 
-  SmallVector<ExprResult, 8> Arguments;
-  SourceLocation RParenLoc = Loc;
+  SmallVector<Expr*, 8> Arguments;
   if(!Tok.isAtStartOfStatement()) {
-    if(Tok.is(tok::l_paren)) {
-      if(ParseFunctionCallArgumentList(Arguments, RParenLoc).isInvalid())
-        LexToEndOfStatement();
-    } else {
-      Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
-      LexToEndOfStatement();
-    }
+    if(ParseFunctionCallArgumentList(Arguments, RParenLoc).isInvalid())
+      SkipUntilNextStatement();
   }
 
   return Actions.ActOnCallStmt(Context, Loc, RParenLoc, FuncIdRange, FD, Arguments, StmtLabel);

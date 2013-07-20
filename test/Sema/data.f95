@@ -58,7 +58,8 @@ PROGRAM datatest
   DATA (ZZZ, I = 1,10) / 1 / ! expected-error {{expected an implied do or an array element expression}}
 
   DATA (I_ARR(I), I = 1, .true.) / 10*0 / ! expected-error {{expected an integer constant or an implied do variable expression}}
-  DATA (I_ARR(.false.), I = 1,5) / 5*11 / ! expected-error {{expected an integer expression}}
+  ! FIXME
+  ! DATA (I_ARR(.false.), I = 1,5) / 5*11 / ! expected-error {{expected an integer expression}}
 
   ! DATA ((I_ARR2(I,J), J = 1,2), I = 1,2) / 4*3 /
 

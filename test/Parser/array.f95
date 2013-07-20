@@ -13,7 +13,10 @@ PROGRAM arrtest
   I_ARR(2) = I_ARR(1)
   I_ARR(3) = 4
   I_ARR(4) = I_ARR(3 ! expected-error {{expected ')'}}
-  I_ARR2(1,1,1,1) = 3
+  I_ARR(4) = I_ARR(  ! expected-error {{expected an expression after '('}}
+  I_ARR(4) = I_ARR(1, ! expected-error {{expected an expression after ','}}
+  I_ARR2(1,1,1,1) = 3 ! expected-error@-1 {{array subscript must have 1 subscript expression}}
+  I_ARR(4) = I_ARR( / ) ! expected-error {{expected an expression}}
   I_ARR2(1,1,1,2) = I_ARR2(1,1,1,1)
 
   I_SCAL = I_SCAL(3) ! expected-error {{unexpected '('}}

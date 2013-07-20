@@ -778,7 +778,7 @@ ExprResult Sema::ActOnDATAOuterImpliedDoExpr(ASTContext &C,
       return E;
     }
 
-    Expr *visitLeaf(Expr *E,int depth = 0) {
+    Expr *visitLeaf(Expr *E, int depth = 0) {
       if(auto Unresolved = dyn_cast<UnresolvedIdentifierExpr>(E)) {
         auto IDInfo = Unresolved->getIdentifier();
         if(auto Declaration = CurScope->Resolve(IDInfo)) {
@@ -1363,14 +1363,10 @@ StmtResult Sema::ActOnReturnStmt(ASTContext &C, SourceLocation Loc, ExprResult E
 StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
                                SourceRange IdRange,
                                FunctionDecl *Function,
-                               ArrayRef<ExprResult> Arguments, Expr *StmtLabel) {
-  SmallVector<Expr*, 8> Args(Arguments.size());
-  for(size_t I = 0; I < Arguments.size(); ++I)
-    Args[I] = Arguments[I].take();
+                               ArrayRef<Expr*> Arguments, Expr *StmtLabel) {
+  CheckCallArgumentCount(Function, Arguments, RParenLoc, IdRange);
 
-  CheckCallArgumentCount(Function, Args, RParenLoc, IdRange);
-
-  auto Result = CallStmt::Create(C, Loc, Function, Args, StmtLabel);
+  auto Result = CallStmt::Create(C, Loc, Function, Arguments, StmtLabel);
   getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;

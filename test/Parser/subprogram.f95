@@ -15,6 +15,7 @@ END
 
 FUNCTION F2(X,Y)
   REAL X,Y
+  X = FF( ! expected-error {{expected ')'}}
 END FUNCTION
 
 SUBROUTINE SUB( ! expected-error {{expected ')'}}

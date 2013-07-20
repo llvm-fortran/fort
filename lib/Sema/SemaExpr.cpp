@@ -468,66 +468,51 @@ static bool IsIntegerExpression(ExprResult E) {
   return E.get()->getType()->isIntegerType();
 }
 
-ExprResult Sema::ActOnSubstringExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
-                                    ExprResult StartingPoint, ExprResult EndPoint) {
-  bool HasErrors = false;
-  if(StartingPoint.get() && !IsIntegerExpression(StartingPoint.get())) {
-    Diags.Report(StartingPoint.get()->getLocation(),
-                 diag::err_expected_integer_expr)
-      << StartingPoint.get()->getSourceRange();
-    HasErrors = true;
-  }
-  if(EndPoint.get() && !IsIntegerExpression(EndPoint.get())) {
-    Diags.Report(EndPoint.get()->getLocation(),
-                 diag::err_expected_integer_expr)
-      << EndPoint.get()->getSourceRange();
-    HasErrors = true;
-  }
-  if(HasErrors) return ExprError();
+ExprResult Sema::ActOnSubstringExpr(ASTContext &C, SourceLocation Loc,
+                                    Expr *Target,
+                                    Expr *StartingPoint, Expr *EndPoint) {
+  // FIXME: other substring constraints?
+  if(StartingPoint && !CheckIntegerExpression(StartingPoint))
+    StartingPoint = nullptr;
+  if(EndPoint && !CheckIntegerExpression(EndPoint))
+    EndPoint = nullptr;
 
-  return SubstringExpr::Create(C, Loc, Target.take(),
-                               StartingPoint.take(), EndPoint.take());
+  return SubstringExpr::Create(C, Loc, Target,
+                               StartingPoint, EndPoint);
 }
 
 bool Sema::CheckSubscriptExprDimensionCount(SourceLocation Loc,
-                                            ExprResult Target,
-                                            ArrayRef<ExprResult> Arguments) {
-  auto AT = Target.get()->getType().getTypePtr()->asArrayType();
+                                            SourceLocation RParenLoc,
+                                            Expr* Target,
+                                            ArrayRef<Expr*> Arguments) {
+  auto AT = Target->getType()->asArrayType();
   assert(AT);
   if(AT->getDimensionCount() != Arguments.size()) {
     Diags.Report(Loc,
                  diag::err_array_subscript_dimension_count_mismatch)
       << int(AT->getDimensionCount())
-      << SourceRange(Loc, Arguments.back().get()->getLocEnd());
+      << SourceRange(Loc, RParenLoc);
     return false;
   }
   return true;
 }
 
-ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, ExprResult Target,
-                                    llvm::ArrayRef<ExprResult> Subscripts) {
+ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
+                                    Expr *Target, llvm::ArrayRef<Expr*> Subscripts) {
   assert(Subscripts.size());
-  if(!CheckSubscriptExprDimensionCount(Loc, Target, Subscripts))
-    return ExprError();
+  CheckSubscriptExprDimensionCount(Loc, RParenLoc, Target, Subscripts);
 
-  llvm::SmallVector<Expr*, 8> Subs(Subscripts.size());
   //FIXME constraint
   //A subscript expression may contain array element references and function references.
-
-  bool HasErrors = false;
-  for(size_t I = 0; I < Subscripts.size(); ++I) {
-    if(IsIntegerExpression(Subscripts[I]))
-      Subs[I] = Subscripts[I].take();
-    else {
-      Diags.Report(Subscripts[I].get()->getLocation(),
-                   diag::err_expected_integer_expr)
-        << Subscripts[I].get()->getSourceRange();
-      HasErrors = true;
-    }
+  //NB: typecheck only for the valid expressions
+  size_t ValidCount = std::min(Target->getType()->asArrayType()->getDimensionCount(),
+                               Subscripts.size());
+  for(size_t I = 0; I < ValidCount; ++I) {
+    if(Subscripts[I])
+      CheckIntegerExpression(Subscripts[I]);
   }
-  if(HasErrors) return ExprError();
 
-  return ArrayElementExpr::Create(C, Loc, Target.take(), Subs);
+  return ArrayElementExpr::Create(C, Loc, Target, Subscripts);
 }
 
 bool Sema::CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Arguments, SourceLocation Loc,
@@ -540,7 +525,8 @@ bool Sema::CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Argume
       for(size_t I = 0; I < Arguments.size(); ++I) {
         auto Arg = VarDecl::CreateArgument(Context, Function,
                                            Function->getLocation(), Function->getIdentifier());
-        Arg->setType(Arguments[I]->getType());
+        Arg->setType(Arguments[I]? Arguments[I]->getType() :
+                                   Context.RealTy);
         Args[I] = Arg;
       }
       Function->setArguments(Context, Args);
@@ -560,8 +546,10 @@ bool Sema::CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Argume
           << unsigned(Arguments.size())
           << FuncNameRange;
     } else {
-      auto LocStart = Arguments[FunctionArgs.size()]->getLocStart();
-      auto LocEnd   = Arguments.back()->getLocEnd();
+      auto LocStart = Arguments[FunctionArgs.size()]?
+                        Arguments[FunctionArgs.size()]->getLocStart() : Loc;
+      auto LocEnd   = Arguments.back()?
+                        Arguments.back()->getLocEnd() : Loc;
       Diags.Report(LocStart, diag::err_typecheck_call_too_many_args)
           << FuncType << unsigned(FunctionArgs.size())
           << unsigned(Arguments.size())
@@ -575,54 +563,45 @@ bool Sema::CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Argume
 
 ExprResult Sema::ActOnCallExpr(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
                                SourceRange IdRange,
-                               FunctionDecl *Function, ArrayRef<ExprResult> Arguments) {
+                               FunctionDecl *Function, ArrayRef<Expr*> Arguments) {
   assert(!Function->isSubroutine());
 
-  SmallVector<Expr*, 8> Args(Arguments.size());
-  for(size_t I = 0; I < Arguments.size(); ++I)
-    Args[I] = Arguments[I].take();
-
-  CheckCallArgumentCount(Function, Args, RParenLoc, IdRange);
-
-  return CallExpr::Create(C, Loc, Function, Args);
+  CheckCallArgumentCount(Function, Arguments, RParenLoc, IdRange);
+  return CallExpr::Create(C, Loc, Function, Arguments);
 }
 
 ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
                                                 const IntrinsicFunctionDecl *FunctionDecl,
-                                                ArrayRef<ExprResult> Arguments) {
+                                                ArrayRef<Expr*> Arguments) {
   using namespace intrinsic;
-
-  SmallVector<Expr*, 8> Args(Arguments.size());
-  for(size_t I = 0; I < Arguments.size(); ++I)
-    Args[I] = Arguments[I].take();
 
   auto Function = FunctionDecl->getFunction();
 
   // Check argument count
-  if(CheckIntrinsicCallArgumentCount(Function, Args, Loc))
+  if(CheckIntrinsicCallArgumentCount(Function, Arguments, Loc))
     return ExprError();
 
   // Per function type checks.
   QualType ReturnType;
   switch(getFunctionGroup(Function)) {
   case GROUP_CONVERSION:
-    CheckIntrinsicConversionFunc(Function, Args, ReturnType);
+    CheckIntrinsicConversionFunc(Function, Arguments, ReturnType);
     break;
 
   case GROUP_TRUNCATION:
-    CheckIntrinsicTruncationFunc(Function, Args, ReturnType);
+    CheckIntrinsicTruncationFunc(Function, Arguments, ReturnType);
     break;
 
   case GROUP_COMPLEX:
-    CheckIntrinsicComplexFunc(Function, Args, ReturnType);
+    CheckIntrinsicComplexFunc(Function, Arguments, ReturnType);
     break;
 
   case GROUP_MATHS:
-    CheckIntrinsicMathsFunc(Function, Args, ReturnType);
+    CheckIntrinsicMathsFunc(Function, Arguments, ReturnType);
     break;
 
   case GROUP_CHARACTER:
-    CheckIntrinsicCharacterFunc(Function, Args, ReturnType);
+    CheckIntrinsicCharacterFunc(Function, Arguments, ReturnType);
     break;
 
   default:
@@ -633,7 +612,7 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
     ReturnType = C.RealTy; //An error occurred.
 
   return IntrinsicCallExpr::Create(C, Loc, Function,
-                                   Args, ReturnType);
+                                   Arguments, ReturnType);
 }
 
 } // namespace flang

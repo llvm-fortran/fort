@@ -95,6 +95,15 @@ bool Sema::CheckConstantExpression(const Expr *E) {
   return true;
 }
 
+bool Sema::CheckIntegerExpression(const Expr *E) {
+  if(E->getType()->isIntegerType())
+    return true;
+  Diags.Report(E->getLocation(),
+               diag::err_expected_integer_expr)
+    << E->getSourceRange();
+  return false;
+}
+
 bool Sema::CheckTypesSameKind(QualType A, QualType B) const {
   if(auto ABTy = dyn_cast<BuiltinType>(A.getTypePtr())) {
     auto BBTy = dyn_cast<BuiltinType>(B.getTypePtr());
