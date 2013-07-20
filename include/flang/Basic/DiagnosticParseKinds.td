@@ -41,6 +41,10 @@ def err_expected_lparen : Error<"expected '('">;
 def err_expected_lparen_after : Error<"expected '(' after '%0'">;
 def err_expected_lparen_or_lbrace : Error<"expected '('or '{'">;
 def err_expected_rparen : Error<"expected ')'">;
+def err_expected_single_rparen_stmt_end : Error<
+  "expected ')' before the end of the statement">;
+def err_expected_rparen_stmt_end : Error<
+  "expected %0 ')'s before the end of the statement">;
 def err_expected_lsquare : Error<"expected '['">;
 def err_expected_rsquare : Error<"expected ']'">;
 def err_expected_rbrace : Error<"expected '}'">;
@@ -60,6 +64,9 @@ def ext_expected_semi_decl_list : ExtWarn<
   "expected ';' at end of declaration list">;
 def err_expected_member_name_or_semi : Error<
   "expected member name or ';' after declaration specifiers">;
+
+def err_expected_end_statement_at_end_of_stmt : Error<
+  "expected line break or ';' at end of statement">;
 
 def err_expected_letter : Error<
   "expected a letter">;

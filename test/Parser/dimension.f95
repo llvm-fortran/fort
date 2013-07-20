@@ -9,4 +9,8 @@ PROGRAM dimtest
 
   DIMENSION W(20 ! expected-error {{expected ')'}}
 
+  REAL A, B, C
+
+  DIMENSION A(1,2) B(3,4) ! expected-error {{expected ','}}
+
 ENDPROGRAM

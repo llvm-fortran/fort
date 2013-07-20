@@ -14,7 +14,7 @@
 #ifndef FLANG_PARSER_PARSER_H__
 #define FLANG_PARSER_PARSER_H__
 
-#include "flang/AST/ASTContext.h" // FIXME: Move to AST construction.
+#include "flang/AST/ASTContext.h"
 #include "flang/Basic/Diagnostic.h"
 #include "flang/Basic/IdentifierTable.h"
 #include "flang/Basic/LangOptions.h"
@@ -65,11 +65,15 @@ public:
     Error                   //< There was an error parsing
   };
 private:
+
+
   Lexer TheLexer;
   LangOptions Features;
   PrettyStackTraceParserEntry CrashInfo;
   llvm::SourceMgr &SrcMgr;
-  /// This is a stack of lexing contexts for files lower in the include stack
+
+  /// LexerBufferContext - This is a stack of lexing contexts
+  /// for files lower in the include stack
   std::vector<const char*> LexerBufferContext;
 
   /// This is the current buffer index we're lexing from as managed by the
@@ -84,11 +88,6 @@ private:
   /// Actions - These are the callbacks we invoke as we parse various constructs
   /// in the file. 
   Sema &Actions;
-#if 0
-  /// Actions - These are the callbacks we invoke as we parse various constructs
-  /// in the file.
-  Action &Actions;
-#endif
 
   /// Tok - The current token we are parsing. All parsing methods assume that
   /// this is valid.
@@ -99,6 +98,8 @@ private:
 
   /// StmtLabel - If set, this is the statement label for the statement.
   Expr *StmtLabel;
+
+  unsigned short ParenCount, BracketCount, BraceCount;
 
   // PrevTokLocation - The location of the token we previously consumed. This
   // token is used for diagnostics where we expected to see a token following
@@ -135,18 +136,10 @@ private:
     return &Identifiers.get(Name);
   }
 
-  /// ConsumeToken - Consume the current 'peek token' and lex the next one. This
-  /// returns the location of the consumed token.
-  SourceLocation ConsumeToken() {
-    PrevTokLocation = Tok.getLocation();
-    TheLexer.Lex(Tok);
-    return PrevTokLocation;
-  }
-
   /// Returns the maximum location of the current token
   SourceLocation getMaxLocationOfCurrentToken() {
     return SourceLocation::getFromPointer(Tok.getLocation().getPointer() +
-                                       Tok.getLength());
+                                          Tok.getLength());
   }
 
   /// CleanLiteral - Cleans up a literal if it needs cleaning. It removes the
@@ -192,15 +185,117 @@ public:
 
 private:
 
-  /// If an error occured because an expected token
-  /// isn't there, this returns the location of where
-  /// the expected token should be.
+  /// getExpectedLoc - returns the location
+  /// for the expected token.
   SourceLocation getExpectedLoc() const;
 
-  ///
+  /// getExpectedLocForFixIt - returns the location
+  /// in which the expected token should be inserted in.
   inline SourceLocation getExpectedLocForFixIt() const {
     return PrevTokLocEnd;
   }
+
+  //===--------------------------------------------------------------------===//
+  // Low-Level token peeking and consumption methods.
+  //
+
+  /// isTokenParen - Return true if the cur token is '(' or ')'.
+  bool isTokenParen() const {
+    return Tok.getKind() == tok::l_paren || Tok.getKind() == tok::r_paren;
+  }
+
+  /// isTokenIdentifier - Return true if the cur token is a usable
+  /// identifier (this can also be a keyword).
+  bool isTokenIdentifier() const {
+    if (Tok.is(tok::identifier) ||
+        (Tok.getIdentifierInfo() &&
+          isaKeyword(Tok.getIdentifierInfo()->getName()))
+        )
+      return true;
+    return false;
+  }
+
+  /// ConsumeToken - Consume the current token and lex the next one. This
+  /// returns the location of the consumed token.
+  SourceLocation ConsumeToken() {
+    auto Loc = Tok.getLocation();
+    Lex();
+    return Loc;
+  }
+
+  /// ConsumeAnyToken - Dispatch to the right Consume* method based on the
+  /// current token type.  This should only be used in cases where the type of
+  /// the token really isn't known, e.g. in error recovery.
+  SourceLocation ConsumeAnyToken(bool ConsumeCodeCompletionTok = false) {
+    if (isTokenParen())
+      return ConsumeParen();
+    else return ConsumeToken();
+  }
+
+  /// ConsumeParen - This consume method keeps the paren count up-to-date.
+  ///
+  SourceLocation ConsumeParen() {
+    assert(isTokenParen() && "wrong consume method");
+    if (Tok.getKind() == tok::l_paren)
+      ++ParenCount;
+    else if (ParenCount)
+      --ParenCount;       // Don't let unbalanced )'s drive the count negative.
+    Lex();
+    return PrevTokLocation;
+  }
+
+  /// ConsumeIfPresent - Consumes the token if it's present. Return 'true' if it was
+  /// delicious.
+  bool ConsumeIfPresent(tok::TokenKind OptionalTok, bool InSameStatement = true);
+
+  /// ExpectAndConsume - The parser expects that 'ExpectedTok' is next in the
+  /// input.  If so, it is consumed and true is returned.
+  ///
+  /// If the input is malformed, this emits the specified diagnostic.  Next, if
+  /// SkipToTok is specified, it calls SkipUntil(SkipToTok).  Finally, false is
+  /// returned.
+  ///
+  /// If the diagnostic isn't specified, the appropriate diagnostic for
+  /// the given token type is emitted.
+  bool ExpectAndConsume(tok::TokenKind ExpectedTok, unsigned Diag = 0,
+                        const char *DiagMsg = "",
+                        tok::TokenKind SkipToTok = tok::unknown,
+                        bool InSameStatement = true);
+
+  /// ExpectStatementEnd - The parser expects that the next token is in the
+  /// next statement.
+  bool ExpectStatementEnd();
+
+  /// SkipUntil - Read tokens until we get to the specified token, then consume
+  /// it.  Because we cannot guarantee that the
+  /// token will ever occur, this skips to the next token, or to some likely
+  /// good stopping point.  If StopAtNextStatement is true,
+  /// skipping will stop when the next statement is reached.
+  ///
+  /// If SkipUntil finds the specified token, it returns true, otherwise it
+  /// returns false.
+  bool SkipUntil(tok::TokenKind T, bool StopAtNextStatement = true,
+                 bool DontConsume = false) {
+    return SkipUntil(llvm::makeArrayRef(T), StopAtNextStatement,
+                     DontConsume);
+  }
+  bool SkipUntil(tok::TokenKind T1, tok::TokenKind T2, bool StopAtNextStatement = true,
+                 bool DontConsume = false) {
+    tok::TokenKind TokArray[] = {T1, T2};
+    return SkipUntil(TokArray, StopAtNextStatement, DontConsume);
+  }
+  bool SkipUntil(tok::TokenKind T1, tok::TokenKind T2, tok::TokenKind T3,
+                 bool StopAtNextStatement = true, bool DontConsume = false) {
+    tok::TokenKind TokArray[] = {T1, T2, T3};
+    return SkipUntil(TokArray, StopAtNextStatement, DontConsume);
+  }
+  bool SkipUntil(ArrayRef<tok::TokenKind> Toks, bool StopAtNextStatement = true,
+                 bool DontConsume = false);
+
+  /// SkipUntilNextStatement - Consume tokens until the next statement is reached.
+  /// Returns true.
+  bool SkipUntilNextStatement();
+
 
   // High-level parsing methods.
   bool ParseInclude();
@@ -361,6 +456,7 @@ private:
   // Declaration Helper functions
   bool ParseOptionalMatchingIdentifier(const IdentifierInfo*);
 
+  /// Deprecated, do not use
   void LexToEndOfStatement();
   bool EatIfPresent(tok::TokenKind);
   bool EatIfPresentInSameStmt(tok::TokenKind);

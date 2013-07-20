@@ -66,6 +66,8 @@ Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  
   getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBuffer));
   Tok.startToken();
   NextTok.startToken();
+
+  ParenCount = BraceCount = BracketCount = 0;
 }
 
 bool Parser::EnterIncludeFile(const std::string &Filename) {
@@ -100,6 +102,24 @@ SourceLocation Parser::getExpectedLoc() const {
 
 /// Lex - Get the next token.
 void Parser::Lex() {
+  /// Reset paren count
+  if(Tok.isAtStartOfStatement()) {
+    /* FIXME: - expression and exec
+     *if(ParenCount == 1) {
+      Diag.Report(getExpectedLoc(), diag::err_expected_single_rparen_stmt_end)
+        << FixItHint(getExpectedLocForFixIt(), ")");
+    } else if(ParenCount) {
+      llvm::SmallString<8> FixItInsertion;
+      for(unsigned I = 0; I < ParenCount; ++I)
+        FixItInsertion += ")";
+      Diag.Report(getExpectedLoc(), diag::err_expected_rparen_stmt_end)
+        << ParenCount
+        << FixItHint(getExpectedLocForFixIt(), FixItInsertion.str());
+    }*/
+    ParenCount = 0;
+  }
+
+  PrevTokLocation = Tok.getLocation();
   PrevTokLocEnd = getMaxLocationOfCurrentToken();
   if(LexFORMATTokens) {
     if (NextTok.isNot(tok::unknown))
@@ -264,6 +284,143 @@ void Parser::CleanLiteral(Token T, std::string &NameStr) {
   NameStr = T.CleanLiteral(Spelling);
   if(T.is(tok::char_literal_constant))
     NameStr = std::string(NameStr,1,NameStr.length()-2);
+}
+
+/// \brief Returns true if the check flag is set,
+/// and tok is at start of a new statement
+static inline bool CheckIsAtStartOfStatement(const Token &Tok, bool DoCheck) {
+  if(DoCheck)
+    return Tok.isAtStartOfStatement();
+  return false;
+}
+
+bool Parser::ConsumeIfPresent(tok::TokenKind OptionalTok, bool InSameStatement) {
+  if(!CheckIsAtStartOfStatement(Tok, InSameStatement) &&
+     OptionalTok == tok::identifier? isTokenIdentifier() : Tok.is(OptionalTok)) {
+    ConsumeAnyToken();
+    return true;
+  }
+  return false;
+}
+
+bool Parser::ExpectAndConsume(tok::TokenKind ExpectedTok, unsigned Diag,
+                              const char *DiagMsg,
+                              tok::TokenKind SkipToTok,
+                              bool InSameStatement) {
+  if(ConsumeIfPresent(ExpectedTok, InSameStatement))
+    return true;
+
+  if(Diag == 0) {
+    switch(ExpectedTok) {
+    case tok::l_paren:
+      Diag = diag::err_expected_lparen;
+      break;
+    case tok::r_paren:
+      Diag = diag::err_expected_rparen;
+      break;
+    case tok::equal:
+      Diag = diag::err_expected_equal;
+      break;
+    case tok::comma:
+      Diag = diag::err_expected_comma;
+      break;
+    case tok::colon:
+      Diag = diag::err_expected_colon;
+      break;
+    case tok::slash:
+      Diag = diag::err_expected_slash;
+      break;
+    case tok::identifier:
+      Diag = diag::err_expected_ident;
+    default:
+      assert(false && "Couldn't select a default "
+             "diagnostic for the given token type.");
+    }
+  }
+
+  if(auto Spelling = tok::getTokenSimpleSpelling(ExpectedTok)) {
+    // Show what code to insert to fix this problem.
+    this->Diag.Report(getExpectedLoc(), Diag)
+      << DiagMsg
+      << FixItHint(getExpectedLocForFixIt(), Spelling);
+  } else {
+    this->Diag.Report(getExpectedLoc(), Diag)
+      << DiagMsg;
+  }
+
+  if(SkipToTok != tok::unknown)
+    SkipUntil(SkipToTok);
+  return false;
+}
+
+bool Parser::SkipUntil(ArrayRef<tok::TokenKind> Toks, bool StopAtNextStatement,
+                       bool DontConsume) {
+  // We always want this function to skip at least one token if the first token
+  // isn't T and if not at EOF.
+  bool isFirstTokenSkipped = true;
+  while(true) {
+    if(CheckIsAtStartOfStatement(Tok, StopAtNextStatement))
+      return false;
+
+    // If we found one of the tokens, stop and return true.
+    for (unsigned i = 0, NumToks = Toks.size(); i != NumToks; ++i) {
+      if (Toks[i] == tok::identifier? isTokenIdentifier() :
+                                      Tok.is(Toks[i])) {
+        if (DontConsume) {
+          // Noop, don't consume the token.
+        } else {
+          ConsumeAnyToken();
+        }
+        return true;
+      }
+    }
+
+    switch(Tok.getKind()) {
+    case tok::eof:
+      // Ran out of tokens.
+      return false;
+
+    case tok::l_paren:
+       // Recursively skip properly-nested parens.
+      ConsumeParen();
+      SkipUntil(tok::r_paren, StopAtNextStatement, false);
+      break;
+
+    // Okay, we found a ']' or '}' or ')', which we think should be balanced.
+    // Since the user wasn't looking for this token (if they were, it would
+    // already be handled), this isn't balanced.  If there is a LHS token at a
+    // higher level, we will assume that this matches the unbalanced token
+    // and return it.  Otherwise, this is a spurious RHS token, which we skip.
+    case tok::r_paren:
+      if (ParenCount && !isFirstTokenSkipped)
+        return false;  // Matches something.
+      ConsumeParen();
+      break;
+    default:
+      ConsumeToken();
+      break;
+    }
+    isFirstTokenSkipped = false;
+  }
+}
+
+bool Parser::ExpectStatementEnd() {
+  if(!Tok.isAtStartOfStatement()) {
+    auto Loc = getExpectedLoc();
+    auto Start = Tok.getLocation();
+    SkipUntilNextStatement();
+    auto End = getExpectedLoc();
+    Diag.Report(Loc, diag::err_expected_end_statement_at_end_of_stmt)
+      << SourceRange(Start, End);
+    return false;
+  }
+  return true;
+}
+
+bool Parser::SkipUntilNextStatement() {
+  while(!Tok.isAtStartOfStatement())
+    ConsumeAnyToken();
+  return true;
 }
 
 /// EatIfPresent - Eat the token if it's present. Return 'true' if it was
@@ -1074,139 +1231,6 @@ Parser::StmtResult Parser::ParseIMPORTStmt() {
   return Actions.ActOnIMPORT(Context, Loc, ImportNameList, StmtLabel);
 }
 
-/// ParseIMPLICITStmt - Parse the IMPLICIT statement.
-///
-///   [R560]:
-///     implicit-stmt :=
-///         IMPLICIT implicit-spec-list
-///      or IMPLICIT NONE
-Parser::StmtResult Parser::ParseIMPLICITStmt() {
-  // Check if this is an assignment.
-  if (PeekAhead().is(tok::equal))
-    return StmtResult();
-
-  SourceLocation Loc = Tok.getLocation();
-  Lex();
-
-  if (EatIfPresentInSameStmt(tok::kw_NONE))
-    return Actions.ActOnIMPLICIT(Context, Loc, StmtLabel);
-
-  SmallVector<Stmt*, 8> StmtList;
-
-  do {
-    DeclSpec DS;
-    if (ParseDeclarationTypeSpec(DS))
-      return StmtError();
-
-    if (!EatIfPresentInSameStmt(tok::l_paren)) {
-      Diag.Report(getExpectedLoc(),diag::err_expected_lparen);
-      return StmtError();
-    }
-
-    do {
-      const IdentifierInfo *First = Tok.getIdentifierInfo();
-      if (Tok.isAtStartOfStatement() ||
-          Tok.isNot(tok::identifier) ||
-          First->getName().size() > 1) {
-        Diag.Report(getExpectedLoc(),diag::err_expected_letter);
-        return StmtError();
-      }
-
-      Lex();
-
-      const IdentifierInfo *Second = nullptr;
-      if (EatIfPresentInSameStmt(tok::minus)) {
-        Second = Tok.getIdentifierInfo();
-        if (Tok.isAtStartOfStatement() ||
-            Tok.isNot(tok::identifier) ||
-            Second->getName().size() > 1) {
-          Diag.Report(getExpectedLoc(),diag::err_expected_letter);
-          return StmtError();
-        }
-
-        Lex();
-      }
-
-      auto Stmt = Actions.ActOnIMPLICIT(Context, Loc, DS,
-                                        std::make_pair(First, Second), nullptr);
-      if(Stmt.isUsable())
-        StmtList.push_back(Stmt.take());
-    } while (EatIfPresentInSameStmt(tok::comma));
-
-    if (!EatIfPresentInSameStmt(tok::r_paren)) {
-      Diag.Report(getExpectedLoc(),diag::err_expected_rparen);
-      return StmtError();
-    }
-
-  } while(EatIfPresentInSameStmt(tok::comma));
-
-  return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
-}
-
-/// ParsePARAMETERStmt - Parse the PARAMETER statement.
-///
-///   [R548]:
-///     parameter-stmt :=
-///         PARAMETER ( named-constant-def-list )
-Parser::StmtResult Parser::ParsePARAMETERStmt() {
-  // Check if this is an assignment.
-  if (PeekAhead().is(tok::equal))
-    return StmtResult();
-
-  SourceLocation Loc = Tok.getLocation();
-  Lex();
-
-  SmallVector<Stmt*, 8> StmtList;
-
-  if (!EatIfPresentInSameStmt(tok::l_paren)) {
-    Diag.Report(getExpectedLoc(),diag::err_expected_lparen);
-    return StmtError();
-  }
-
-  do {
-    if (Tok.isAtStartOfStatement() ||
-        Tok.isNot(tok::identifier)) {
-      Diag.Report(getExpectedLoc(),
-                  diag::err_expected_ident);
-      return StmtError();
-    }
-
-    SourceLocation IDLoc = Tok.getLocation();
-    const IdentifierInfo *II = Tok.getIdentifierInfo();
-    Lex();
-
-    auto EqualLoc = Tok.getLocation();
-    if (!EatIfPresentInSameStmt(tok::equal)) {
-      Diag.Report(getExpectedLoc(),diag::err_expected_equal);
-      return StmtError();
-    }
-
-    ExprResult ConstExpr = ParseExpression();
-    if (ConstExpr.isInvalid())
-      return StmtError();
-
-    auto Stmt = Actions.ActOnPARAMETER(Context, Loc, EqualLoc,
-                                       IDLoc, II,
-                                       ConstExpr, nullptr);
-    if(Stmt.isUsable())
-      StmtList.push_back(Stmt.take());
-  } while(EatIfPresentInSameStmt(tok::comma));
-
-
-  if (!EatIfPresentInSameStmt(tok::r_paren)) {
-    if (Tok.isAtStartOfStatement())
-      Diag.Report(getExpectedLoc(),diag::err_expected_rparen)
-        << FixItHint(getExpectedLocForFixIt(),")");
-    else {
-      Diag.Report(getExpectedLoc(),diag::err_expected_comma)
-        << FixItHint(getExpectedLocForFixIt(),",");
-      return StmtError();
-    }
-  }
-
-  return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
-}
-
 /// ParseENTRYStmt - Parse the ENTRY statement.
 ///
 ///   [R1240]:
@@ -1576,68 +1600,6 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
                                         DList, E1, E2, E3);
 }
 
-/// ParseDIMENSIONStmt - Parse the DIMENSION statement.
-///
-///   [R535]:
-///     dimension-stmt :=
-///         DIMENSION [::] array-name ( array-spec ) #
-///         # [ , array-name ( array-spec ) ] ...
-Parser::StmtResult Parser::ParseDIMENSIONStmt() {
-  SourceLocation Loc = Tok.getLocation();
-  Lex();
-
-  EatIfPresent(tok::coloncolon);
-
-  SmallVector<Stmt*,8> StmtList;
-  SmallVector<ArraySpec*, 4> Dimensions;
-  while (true) {
-    if (!(Tok.is(tok::identifier) ||
-         (Tok.getIdentifierInfo() &&
-          isaKeyword(Tok.getIdentifierInfo()->getName()))
-        )) {
-      Diag.Report(getExpectedLoc(), diag::err_expected_ident);
-      return StmtError();
-    }
-
-    auto IDLoc = Tok.getLocation();
-    auto ID = Tok.getIdentifierInfo();
-    Lex();
-    if(ParseArraySpec(Dimensions)) return StmtError();
-
-    auto Stmt = Actions.ActOnDIMENSION(Context, Loc, IDLoc, ID,
-                                       Dimensions, nullptr);
-    if(Stmt.isUsable()) StmtList.push_back(Stmt.take());
-    Dimensions.clear();
-
-    if (!EatIfPresentInSameStmt(tok::comma)) {
-      if (!Tok.isAtStartOfStatement()) {
-        Diag.Report(getExpectedLoc(), diag::err_expected_comma);
-        return StmtError();
-      }
-      break;
-    }
-  }
-  return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
-}
-
-/// ParseEQUIVALENCEStmt - Parse the EQUIVALENCE statement.
-///
-///   [R554]:
-///     equivalence-stmt :=
-///         EQUIVALENCE equivalence-set-list
-Parser::StmtResult Parser::ParseEQUIVALENCEStmt() {
-  return StmtResult();
-}
-
-/// ParseEXTERNALStmt - Parse the EXTERNAL statement.
-///
-///   [R1210]:
-///     external-stmt :=
-///         EXTERNAL [::] external-name-list
-Parser::StmtResult Parser::ParseEXTERNALStmt() {
-  return ParseINTRINSICStmt(/*IsActuallyExternal=*/ true);
-}
-
 /// ParseINTENTStmt - Parse the INTENT statement.
 ///
 ///   [R536]:
@@ -1645,49 +1607,6 @@ Parser::StmtResult Parser::ParseEXTERNALStmt() {
 ///         INTENT ( intent-spec ) [::] dummy-arg-name-list
 Parser::StmtResult Parser::ParseINTENTStmt() {
   return StmtResult();
-}
-
-/// ParseINTRINSICStmt - Parse the INTRINSIC statement.
-///
-///   [R1216]:
-///     intrinsic-stmt :=
-///         INTRINSIC [::] intrinsic-procedure-name-list
-Parser::StmtResult Parser::ParseINTRINSICStmt(bool IsActuallyExternal) {
-  SourceLocation Loc = Tok.getLocation();
-  Lex();
-
-  EatIfPresentInSameStmt(tok::coloncolon);
-
-  SmallVector<Stmt *,8> StmtList;
-
-  while (!Tok.isAtStartOfStatement()) {
-    if (!(Tok.is(tok::identifier) ||
-         (Tok.getIdentifierInfo() &&
-          isaKeyword(Tok.getIdentifierInfo()->getName()))
-        )) {
-      Diag.Report(getExpectedLoc(), diag::err_expected_ident);
-      return StmtError();
-    }
-
-    auto Stmt = IsActuallyExternal?
-                  Actions.ActOnEXTERNAL(Context, Loc, Tok.getLocation(),
-                                         Tok.getIdentifierInfo(), nullptr):
-                  Actions.ActOnINTRINSIC(Context, Loc, Tok.getLocation(),
-                                         Tok.getIdentifierInfo(), nullptr);
-    if(Stmt.isUsable())
-      StmtList.push_back(Stmt.take());
-
-    Lex();
-    if (!EatIfPresentInSameStmt(tok::comma)) {
-      if (!Tok.isAtStartOfStatement()) {
-        Diag.Report(getExpectedLoc(), diag::err_expected_comma);
-        return StmtError();
-      }
-      break;
-    }
-  }
-
-  return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
 /// ParseNAMELISTStmt - Parse the NAMELIST statement.

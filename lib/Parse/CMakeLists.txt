@@ -1,6 +1,7 @@
 add_flang_library(flangParse
   Lexer.cpp
   ParseDecl.cpp
+  ParseSpecStmt.cpp
   ParseExec.cpp
   ParseExpr.cpp
   ParseFormat.cpp

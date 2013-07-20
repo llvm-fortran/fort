@@ -10,6 +10,8 @@ PROGRAM imptest
   IMPLICIT REAL X ! expected-error {{expected '('}}
   IMPLICIT REAL (X ! expected-error {{expected ')'}}
 
+  IMPLICIT REAL(Z) INTEGER(V) ! expected-error {{expected ','}}
+
   A = 33
   B = 44.9
   C = A

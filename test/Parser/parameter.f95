@@ -10,5 +10,6 @@ PROGRAM paramtest
   PARAMETER ! expected-error {{expected '('}}
   PARAMETER (A = 1 B = 2) ! expected-error {{expected ','}}
   PARAMETER (d = 33 ! expected-error {{expected ')'}}
+  PARAMETER (chuff = 1)
 
 END PROGRAM paramtest
