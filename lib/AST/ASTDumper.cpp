@@ -17,6 +17,7 @@
 #include "flang/AST/StmtVisitor.h"
 #include "flang/AST/DeclVisitor.h"
 #include "flang/AST/Type.h"
+#include "flang/AST/TypeVisitor.h"
 #include "flang/AST/FormatItem.h"
 #include "flang/Basic/LLVM.h"
 #include "llvm/Support/raw_ostream.h"
@@ -26,7 +27,8 @@ namespace {
 
 class ASTDumper : public ConstStmtVisitor<ASTDumper>,
   public ConstExprVisitor<ASTDumper>,
-  public ConstDeclVisitor<ASTDumper> {
+  public ConstDeclVisitor<ASTDumper>,
+  public TypeVisitor<ASTDumper> {
   raw_ostream &OS;
 
   int indent;
@@ -46,6 +48,11 @@ public:
   void VisitFunctionDecl(const FunctionDecl *D);
   void VisitVarDecl(const VarDecl *D);
   void VisitReturnVarDecl(const ReturnVarDecl *D);
+
+  // types
+  void dumpType(QualType T);
+  void VisitBuiltinType(const BuiltinType *T, const ExtQuals *E);
+  void VisitArrayType(const ArrayType *T, const ExtQuals *E);
 
   // statements
   void dumpStmt(const Stmt *S);
@@ -188,6 +195,117 @@ void ASTDumper::VisitVarDecl(const VarDecl *D) {
 
 void ASTDumper::VisitReturnVarDecl(const ReturnVarDecl *D) {
   OS << "return var\n";
+}
+
+// types
+
+void ASTDumper::dumpType(QualType T) {
+  TypeVisitor::Visit(T);
+
+  /*
+   * FIXME: Print out declarations.
+#define PRINT_QUAL(Q, QNAME) \
+  do {                                                      \
+    if (Quals.hasAttributeSpec(Qualifiers::Q)) {            \
+      if (Comma) OS << ", "; Comma = true;                  \
+      OS << QNAME;                                          \
+    }                                                       \
+  } while (0)
+
+  Qualifiers Quals = EQ->getQualifiers();
+  PRINT_QUAL(AS_allocatable,  "ALLOCATABLE");
+  PRINT_QUAL(AS_asynchronous, "ASYNCHRONOUS");
+  PRINT_QUAL(AS_codimension,  "CODIMENSION");
+  PRINT_QUAL(AS_contiguous,   "CONTIGUOUS");
+  PRINT_QUAL(AS_external,     "EXTERNAL");
+  PRINT_QUAL(AS_intrinsic,    "INTRINSIC");
+  PRINT_QUAL(AS_optional,     "OPTIONAL");
+  PRINT_QUAL(AS_parameter,    "PARAMETER");
+  PRINT_QUAL(AS_pointer,      "POINTER");
+  PRINT_QUAL(AS_protected,    "PROTECTED");
+  PRINT_QUAL(AS_save,         "SAVE");
+  PRINT_QUAL(AS_target,       "TARGET");
+  PRINT_QUAL(AS_value,        "VALUE");
+  PRINT_QUAL(AS_volatile,     "VOLATILE");
+
+  if (Quals.hasIntentAttr()) {
+    if (Comma) OS << ", "; Comma = true;
+    OS << "INTENT(";
+    switch (Quals.getIntentAttr()) {
+    default: assert(false && "Invalid intent attribute"); break;
+    case Qualifiers::IS_in:    OS << "IN"; break;
+    case Qualifiers::IS_out:   OS << "OUT"; break;
+    case Qualifiers::IS_inout: OS << "INOUT"; break;
+    }
+    OS << ")";
+  }
+
+  if (Quals.hasAccessAttr()) {
+    if (Comma) OS << ", "; Comma = true;
+    switch (Quals.getAccessAttr()) {
+    default: assert(false && "Invalid access attribute"); break;
+    case Qualifiers::AC_public:  OS << "PUBLIC";  break;
+    case Qualifiers::AC_private: OS << "PRIVATE"; break;
+    }
+    OS << ")";
+  } */
+}
+
+void ASTDumper::VisitBuiltinType(const BuiltinType *T, const ExtQuals *E) {
+  if(E && E->isDoublePrecisionKind()) {
+    if(T->isRealType())
+      OS << "DOUBLE PRECISION";
+    else OS << "DOUBLE COMPLEX";
+  } else {
+    switch (T->getTypeSpec()) {
+    default: assert(false && "Invalid built-in type!");
+    case BuiltinType::Integer:
+      OS << "INTEGER";
+      break;
+    case BuiltinType::Real:
+      OS << "REAL";
+      break;
+    case BuiltinType::Character:
+      OS << "CHARACTER";
+      break;
+    case BuiltinType::Complex:
+      OS << "COMPLEX";
+      break;
+    case BuiltinType::Logical:
+      OS << "LOGICAL";
+      break;
+    }
+  }
+
+  if (!E) return;
+  if (!E->isDoublePrecisionKind() && E->hasKindSelector()) {
+    OS << " (KIND=" << BuiltinType::getTypeKindString(E->getKindSelector());
+    if (E->hasLengthSelector()) {
+      if(E->isStarLengthSelector()) OS << ", LEN=*";
+      else {
+        OS << ", LEN=" << E->getLengthSelector();
+      }
+    }
+    OS << ")";
+  } else if (E->hasLengthSelector()) {
+    if(E->isStarLengthSelector()) OS << "(LEN=*)";
+    else {
+      OS << " (LEN=" << E->getLengthSelector() << ")";
+    }
+  }
+}
+
+void ASTDumper::VisitArrayType(const ArrayType *T, const ExtQuals *E) {
+  dumpType(T->getElementType());
+  OS << ", DIMENSION(";
+
+  auto Dims = T->getDimensions();
+  for (size_t I = 0; I < Dims.size(); ++I) {
+    if (I) OS << ", ";
+    Dims[I]->dump(OS);
+  }
+
+  OS << ")";
 }
 
 // statements
@@ -627,6 +745,15 @@ void Decl::dump() const {
 void Decl::dump(llvm::raw_ostream &OS) const {
   ASTDumper SV(OS);
   SV.dumpDecl(this);
+}
+
+void QualType::dump() const {
+  print(llvm::errs());
+}
+
+void QualType::print(raw_ostream &OS) const {
+  ASTDumper SV(OS);
+  SV.dumpType(*this);
 }
 
 void Stmt::dump() const {

@@ -469,12 +469,9 @@ protected:
   /// TypeClass - The intrinsic Fortran type specifications. REAL is the default
   /// if "IMPLICIT NONE" isn't specified.
   enum TypeClass {
-    None    = 0,
-    Builtin = 1,
-    Record  = 2,
-    Pointer = 3,
-    Array   = 4,
-    ConstantArray = 5
+#define TYPE(Name, Parent) Name,
+#include "flang/AST/TypeNodes.def"
+    None
   };
 
 private:
@@ -522,7 +519,6 @@ public:
   bool isArrayOfCharacterType() const;
   bool isArrayType() const;
   const ArrayType *asArrayType() const;
-  bool isConstantArrayType() const;
 
   static bool classof(const Type *) { return true; }
 };
@@ -533,12 +529,9 @@ public:
   /// TypeSpec - The intrinsic Fortran type specifications. REAL is the default
   /// if "IMPLICIT NONE" isn't specified.
   enum TypeSpec {
-    Invalid         = -1,
-    Integer         = 0,
-    Real            = 1,
-    Complex         = 3,
-    Character       = 4,
-    Logical         = 5
+#define BUILTIN_TYPE(Name) Name,
+#include "flang/AST/TypeNodes.def"
+    Invalid
   };
 
   enum TypeKind {
@@ -582,8 +575,6 @@ public:
     auto Spec = getTypeSpec();
     return Spec == Real || Spec == Complex;
   }
-
-  void print(raw_ostream &OS) const;
 
   static const char *getTypeKindString(TypeKind Kind);
 
@@ -652,8 +643,6 @@ public:
 
   /// EvaluateSize - Return true if the size of this array is a constant.
   bool EvaluateSize(uint64_t &Result, const ASTContext &Ctx) const;
-
-  void print(llvm::raw_ostream &OS) const;
 
   void Profile(llvm::FoldingSetNodeID &ID) const {
   }

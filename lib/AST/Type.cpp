@@ -63,27 +63,6 @@ bool ArrayType::EvaluateSize(uint64_t &Result, const ASTContext &Ctx) const {
   return true;
 }
 
-void BuiltinType::print(llvm::raw_ostream &O) const {
-  switch (getTypeSpec()) {
-  default: assert(false && "Invalid built-in type!");
-  case BuiltinType::Integer:
-    O << "INTEGER";
-    break;
-  case BuiltinType::Real:
-    O << "REAL";
-    break;
-  case BuiltinType::Character:
-    O << "CHARACTER";
-    break;
-  case BuiltinType::Complex:
-    O << "COMPLEX";
-    break;
-  case BuiltinType::Logical:
-    O << "LOGICAL";
-    break;
-  }
-}
-
 static const char * TypeKindStrings[] = {
   #define INTEGER_KIND(NAME, VALUE) #VALUE ,
   #define FLOATING_POINT_KIND(NAME, VALUE) #VALUE ,
@@ -93,108 +72,6 @@ static const char * TypeKindStrings[] = {
 
 const char *BuiltinType::getTypeKindString(TypeKind Kind) {
   return TypeKindStrings[Kind];
-}
-
-void QualType::dump() const {
-  print(llvm::errs());
-}
-
-void QualType::print(raw_ostream &OS) const {
-  if (const Type *Ty = Value.getPointer().dyn_cast<const Type*>()) {
-    if (const BuiltinType *BTy = dyn_cast<BuiltinType>(Ty))
-      BTy->print(OS);
-    else if (const ArrayType *ATy = dyn_cast<ArrayType>(Ty))
-      ATy->print(OS);
-    return;
-  }
-
-  const ExtQuals *EQ = Value.getPointer().get<const ExtQuals*>();
-
-  if (const BuiltinType *BTy = dyn_cast<BuiltinType>(EQ->BaseType)) {
-    if(EQ->isDoublePrecisionKind()) {
-      if(BTy->isRealType())
-        OS << "DOUBLE PRECISION";
-      else OS << "DOUBLE COMPLEX";
-    }
-    else BTy->print(OS);
-  }
-  bool Comma = false;
-  if (!EQ->isDoublePrecisionKind() && EQ->hasKindSelector()) {
-    OS << " (KIND=" << BuiltinType::getTypeKindString(EQ->getKindSelector());
-    if (EQ->hasLengthSelector()) {
-      if(EQ->isStarLengthSelector()) OS << ", LEN=*";
-      else {
-        OS << ", LEN=" << EQ->getLengthSelector();
-      }
-    }
-    OS << ")";
-    Comma = true;
-  } else if (EQ->hasLengthSelector()) {
-    if(EQ->isStarLengthSelector()) OS << "(LEN=*)";
-    else {
-      OS << " (LEN=" << EQ->getLengthSelector() << ")";
-      Comma = true;
-    }
-  }
-
-#define PRINT_QUAL(Q, QNAME) \
-  do {                                                      \
-    if (Quals.hasAttributeSpec(Qualifiers::Q)) {            \
-      if (Comma) OS << ", "; Comma = true;                  \
-      OS << QNAME;                                          \
-    }                                                       \
-  } while (0)
-
-  Qualifiers Quals = EQ->getQualifiers();
-  PRINT_QUAL(AS_allocatable,  "ALLOCATABLE");
-  PRINT_QUAL(AS_asynchronous, "ASYNCHRONOUS");
-  PRINT_QUAL(AS_codimension,  "CODIMENSION");
-  PRINT_QUAL(AS_contiguous,   "CONTIGUOUS");
-  PRINT_QUAL(AS_external,     "EXTERNAL");
-  PRINT_QUAL(AS_intrinsic,    "INTRINSIC");
-  PRINT_QUAL(AS_optional,     "OPTIONAL");
-  PRINT_QUAL(AS_parameter,    "PARAMETER");
-  PRINT_QUAL(AS_pointer,      "POINTER");
-  PRINT_QUAL(AS_protected,    "PROTECTED");
-  PRINT_QUAL(AS_save,         "SAVE");
-  PRINT_QUAL(AS_target,       "TARGET");
-  PRINT_QUAL(AS_value,        "VALUE");
-  PRINT_QUAL(AS_volatile,     "VOLATILE");
-
-  if (Quals.hasIntentAttr()) {
-    if (Comma) OS << ", "; Comma = true;
-    OS << "INTENT(";
-    switch (Quals.getIntentAttr()) {
-    default: assert(false && "Invalid intent attribute"); break;
-    case Qualifiers::IS_in:    OS << "IN"; break;
-    case Qualifiers::IS_out:   OS << "OUT"; break;
-    case Qualifiers::IS_inout: OS << "INOUT"; break;
-    }
-    OS << ")";
-  }
-
-  if (Quals.hasAccessAttr()) {
-    if (Comma) OS << ", "; Comma = true;
-    switch (Quals.getAccessAttr()) {
-    default: assert(false && "Invalid access attribute"); break;
-    case Qualifiers::AC_public:  OS << "PUBLIC";  break;
-    case Qualifiers::AC_private: OS << "PRIVATE"; break;
-    }
-    OS << ")";
-  }
-}
-
-void ArrayType::print(raw_ostream &OS) const {
-  ElementType.print(OS);
-  OS << ", DIMENSION(";
-
-  auto Dims = getDimensions();
-  for (size_t I = 0; I < Dims.size(); ++I) {
-    if (I) OS << ", ";
-    Dims[I]->dump(OS);
-  }
-
-  OS << ")";
 }
 
 } //namespace flang
