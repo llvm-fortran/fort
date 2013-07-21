@@ -33,6 +33,16 @@ namespace flang {
 
 class DiagnosticsEngine;
 class CommentHandler;
+class Parser;
+
+/// IdentifierLexingContext - This represents
+/// the context in which identifiers are lexed.
+/// This is needed for fixed form lexing, to
+/// separate squashed identifiers from each other.
+enum IdentifierLexingContext {
+  IdentifierLexingStatement,
+  IdentifierLexingDefault
+};
 
 class Lexer {
   /// LineOfText - This represents a line of text in the program where
@@ -98,6 +108,19 @@ class Lexer {
       return Ptr >= Data && Ptr < &Data[CurPtr];
     }
 
+    /// State - The Lexing state of the current line
+    struct State {
+      const char *BufPtr;
+      unsigned CurAtom;
+      uint64_t CurPtr;
+    };
+
+    /// GetState - Returns the lexing state of this line
+    State GetState();
+
+    /// SetState - Sets the lexing state of this line
+    void SetState(const State &S);
+
     /// GetNextLine - Get the next line of the program to lex.
     void GetNextLine();
 
@@ -136,6 +159,9 @@ class Lexer {
 
   /// Text - The text of the program.
   LineOfText Text;
+
+  /// TheParser - The parser is required to lex identifiers in fixed form sources.
+  Parser &TheParser;
 
   /// getNextChar - Get the next character from the buffer.
   char getNextChar() { return Text.GetNextChar(); }
@@ -176,6 +202,13 @@ class Lexer {
   /// semicolon.
   bool LastTokenWasSemicolon;
 
+  /// LastTokenWasStatementLabel - True if the last token we returned was
+  /// a statement label.
+  bool LastTokenWasStatementLabel;
+
+  /// CurIdContext - the current context for lexing of identifiers.
+  IdentifierLexingContext CurIdContext;
+
   /// \brief Tracks all of the comment handlers that the client registered
   /// with this preprocessor.
   std::vector<CommentHandler *> CommentHandlers;
@@ -193,6 +226,9 @@ class Lexer {
 
   /// LexIdentifier - Lex an identifier token.
   void LexIdentifier(Token &Result);
+
+  /// LexFixedFormIdentifier - Lex a fixed form identifier token.
+  void LexFixedFormIdentifier(Token &Result);
 
   /// LexFORMATDescriptor - Lex a format desriptor.
   void LexFORMATDescriptor(Token &Result);
@@ -248,7 +284,8 @@ public:
 
   /// Lexer constructor - Create a new lexer object. This lexer assumes that the
   /// text range will outlive it, so it doesn't take ownership of it.
-  Lexer(llvm::SourceMgr &SM, const LangOptions &Features, DiagnosticsEngine &D);
+  Lexer(llvm::SourceMgr &SM, const LangOptions &Features, DiagnosticsEngine &D,
+        Parser &P);
 
   DiagnosticsEngine &getDiagnostics() const { return Diags; }
 

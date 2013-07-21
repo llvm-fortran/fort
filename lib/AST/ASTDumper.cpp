@@ -464,9 +464,10 @@ void ASTDumper::VisitIfStmt(const IfStmt* S) {
 
 void ASTDumper::VisitDoStmt(const DoStmt *S) {
   OS<<"do ";
-  if(S->getTerminatingStmt().Statement)
+  if(S->getTerminatingStmt().Statement) {
     dumpExpr(S->getTerminatingStmt().Statement->getStmtLabel());
-  OS << " ";
+    OS << " ";
+  }
   dumpExpr(S->getDoVar());
   OS << " = ";
   dumpExpr(S->getInitialParameter());

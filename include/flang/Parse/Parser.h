@@ -156,6 +156,12 @@ private:
   void Lex();
   void ClassifyToken(Token &T);
 public:
+
+  /// MatchFixedFormIdentifier - Returns true if the identifier token
+  /// T matches an appropriate identifier given the current context.
+  bool MatchFixedFormIdentifier(Token &T,
+                                IdentifierLexingContext Context);
+
   typedef OpaquePtr<DeclGroupRef> DeclGroupPtrTy;
 
   typedef flang::ExprResult ExprResult;
@@ -244,6 +250,9 @@ private:
     Lex();
     return Loc;
   }
+
+  /// IsPresent - Returns true if the next token is Tok.
+  bool IsPresent(tok::TokenKind TokKind, bool InSameStatement = true);
 
   /// ConsumeIfPresent - Consumes the token if it's present. Return 'true' if it was
   /// delicious.

@@ -38,7 +38,7 @@ Parser::ExprResult Parser::ParseExpression() {
   ExprResult LHS = ParseLevel5Expr();
   if (LHS.isInvalid()) return LHS;
 
-  if (Tok.isNot(tok::defined_operator))
+  if (!IsPresent(tok::defined_operator))
     return LHS;
 
   SourceLocation OpLoc = Tok.getLocation();
@@ -361,7 +361,7 @@ Parser::ExprResult Parser::ParseLevel2Expr() {
 Parser::ExprResult Parser::ParseLevel1Expr() {
   SourceLocation OpLoc = Tok.getLocation();
   IdentifierInfo *II = 0;
-  if (Tok.is(tok::defined_operator)) {
+  if (IsPresent(tok::defined_operator)) {
     II = Tok.getIdentifierInfo();
     Lex();
   }
@@ -423,7 +423,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
     Lex();
     return ExprError();
   case tok::l_paren: {
-    Lex();
+    ConsumeParen();
 
     E = ParseExpression();
     // complex constant.
@@ -436,10 +436,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
                                            E, ImPart);
     }
 
-    if (!ConsumeIfPresent(tok::r_paren)) {
-      Diag.Report(getExpectedLoc(),diag::err_expected_rparen);
-      return ExprError();
-    }
+    ExpectAndConsume(tok::r_paren, 0, "", tok::r_paren);
     break;
   }
   case tok::logical_literal_constant: {

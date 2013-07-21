@@ -13,6 +13,7 @@
 
 #include "flang/Parse/Lexer.h"
 #include "flang/Parse/LexDiagnostic.h"
+#include "flang/Parse/Parser.h"
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
@@ -28,9 +29,11 @@ static bool isWhitespace(unsigned char c);
 static bool isHorizontalWhitespace(unsigned char c);
 static bool isVerticalWhitespace(unsigned char c);
 
-Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine &D)
+Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine &D,
+             Parser &P)
   : Text(D, features), Diags(D), SrcMgr(SM), Features(features), TokStart(0),
-    LastTokenWasSemicolon(false) {
+    LastTokenWasSemicolon(false), LastTokenWasStatementLabel(false), TheParser(P),
+    CurIdContext(IdentifierLexingDefault) {
   InitCharacterInfo();
 }
 
@@ -64,6 +67,20 @@ SetBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr) {
   CurAtom = CurPtr = 0;
   Atoms.clear();
   GetNextLine();
+}
+
+Lexer::LineOfText::State Lexer::LineOfText::GetState() {
+  State Result;
+  Result.BufPtr = BufPtr;
+  Result.CurAtom = CurAtom;
+  Result.CurPtr = CurPtr;
+  return Result;
+}
+
+void Lexer::LineOfText::SetState(const State &S) {
+  BufPtr = S.BufPtr;
+  CurAtom = S.CurAtom;
+  CurPtr = S.CurPtr;
 }
 
 /// SkipBlankLinesAndComments - Helper function that skips blank lines and lines
@@ -112,7 +129,7 @@ SkipFixedFormBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
   while (isVerticalWhitespace(*BufPtr) && *BufPtr != '\0')
     ++BufPtr;
 
-  while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
+  while (I != 72 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
     ++I, ++BufPtr;
 
   if(I == 0 && (*BufPtr == 'C' || *BufPtr == 'c' || *BufPtr == '*')) {
@@ -144,7 +161,7 @@ GetCharacterLiteral(unsigned &I, const char *&LineBegin) {
   // 'String'&\n&'' <-- the first ' on the second line needs this flag
   bool skipNextQuoteChar = false;
   ++I, ++BufPtr;
-  while(true){
+  while(true) {
     while (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
       if (*BufPtr == '"' || *BufPtr == '\'') {
         if(!skipNextQuoteChar){
@@ -256,11 +273,11 @@ void Lexer::LineOfText::GetNextLine() {
     SkipFixedFormBlankLinesAndComments(I, LineBegin);
 
     // Fixed form
-    while (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
+    while (I != 72 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
       if (*BufPtr == '\'' || *BufPtr == '"') {
         // TODO: A BOZ constant doesn't get parsed like a character literal.
         GetCharacterLiteral(I, LineBegin);
-        if (I == 132 || isVerticalWhitespace(*BufPtr))
+        if (I == 72 || isVerticalWhitespace(*BufPtr))
           break;
       }
       ++I, ++BufPtr;
@@ -813,11 +830,41 @@ void Lexer::FormDefinedOperatorTokenWithChars(Token &Result) {
 
 /// LexIdentifier - Lex the remainder of an identifier.
 void Lexer::LexIdentifier(Token &Result) {
+  if(Features.FixedForm)
+    return LexFixedFormIdentifier(Result);
+
   // Match [_A-Za-z0-9]*, we have already matched [A-Za-z$]
   unsigned char C = getCurrentChar();
 
   while (isIdentifierBody(C))
     C = getNextChar();
+
+  // We let the parser determine what type of identifier this is: identifier,
+  // keyword, or built-in function.
+  FormTokenWithChars(Result, tok::identifier);
+}
+
+/// LexFixedFormIdentifier - Lex a fixed form identifier token.
+/// Pick the longest match out of all possible matches
+void Lexer::LexFixedFormIdentifier(Token &Result) {
+  // Match [_A-Za-z0-9]*, we have already matched [A-Za-z$]
+  unsigned char C = getCurrentChar();
+
+  LineOfText::State LastMatchedIdState;
+  bool MatchedId = false;
+
+  C = getNextChar();
+  for (int Len = 1; isIdentifierBody(C); ++Len) {
+    FormTokenWithChars(Result, tok::identifier);
+    if(TheParser.MatchFixedFormIdentifier(Result, CurIdContext)) {
+      LastMatchedIdState = Text.GetState();
+      MatchedId = true;
+    }
+    C = getNextChar();
+  }
+
+  if(MatchedId)
+    Text.SetState(LastMatchedIdState);
 
   // We let the parser determine what type of identifier this is: identifier,
   // keyword, or built-in function.
@@ -1009,6 +1056,13 @@ void Lexer::LexTokenInternal(Token &Result) {
     Result.setFlag(Token::StartOfStatement);
   }
 
+  // Set the identifier lexing context
+  if(Result.isAtStartOfStatement() || LastTokenWasStatementLabel)
+    CurIdContext = IdentifierLexingStatement;
+  else
+    CurIdContext = IdentifierLexingDefault;
+  LastTokenWasStatementLabel = false;
+
   // Small amounts of horizontal whitespace is very common between tokens.
   char Char = getCurrentChar();
   while (isHorizontalWhitespace(Char))
@@ -1065,8 +1119,10 @@ void Lexer::LexTokenInternal(Token &Result) {
   case '0': case '1': case '2': case '3': case '4':
   case '5': case '6': case '7': case '8': case '9':
     // [TODO]: Kinds on literals.
-    if (Result.isAtStartOfStatement())
+    if (Result.isAtStartOfStatement()) {
+      LastTokenWasStatementLabel = true;
       return LexStatementLabel(Result);
+    }
     return LexNumericConstant(Result);
 
   case '"':

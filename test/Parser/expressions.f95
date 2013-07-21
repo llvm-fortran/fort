@@ -26,7 +26,11 @@ PROGRAM expressions
 
   x = x
   x = (x)
+  x = ( 2 () 3 ! expected-error {{expected ')'}}
+  x = (1, ) ! expected-error {{expected an expression}}
   x = (3 ! expected-error {{expected ')'}}
+
   x = ! expected-error {{expected an expression after '='}}
+
   x = A ! expected-error {{use of undeclared identifier 'a'}}
 ENDPROGRAM expressions

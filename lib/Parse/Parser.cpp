@@ -58,7 +58,7 @@ void PrettyStackTraceParserEntry::print(llvm::raw_ostream &OS) const {
 
 Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  &D,
                Sema &actions)
-  : TheLexer(SM, Opts, D), Features(Opts), CrashInfo(*this), SrcMgr(SM),
+  : TheLexer(SM, Opts, D, *this), Features(Opts), CrashInfo(*this), SrcMgr(SM),
     CurBuffer(0), Context(actions.Context), Diag(D), Actions(actions),
     Identifiers(Opts), DontResolveIdentifiers(false),
     DontResolveIdentifiersInSubExpressions(false),
@@ -286,11 +286,34 @@ void Parser::CleanLiteral(Token T, std::string &NameStr) {
     NameStr = std::string(NameStr,1,NameStr.length()-2);
 }
 
+bool Parser::MatchFixedFormIdentifier(Token &T,
+                                      IdentifierLexingContext Context) {
+  // Set the identifier info for this token.
+  llvm::SmallVector<llvm::StringRef, 2> Spelling;
+  TheLexer.getSpelling(T, Spelling);
+  std::string NameStr = T.CleanLiteral(Spelling);
+
+  if(Context == IdentifierLexingStatement) {
+    auto KW = Identifiers.lookupKeyword(NameStr);
+    if(KW)
+      return true;
+  }
+
+  return false;
+}
+
 /// \brief Returns true if the check flag is set,
 /// and tok is at start of a new statement
 static inline bool CheckIsAtStartOfStatement(const Token &Tok, bool DoCheck) {
   if(DoCheck)
     return Tok.isAtStartOfStatement();
+  return false;
+}
+
+bool Parser::IsPresent(tok::TokenKind TokKind, bool InSameStatement) {
+  if(!CheckIsAtStartOfStatement(Tok, InSameStatement) &&
+     TokKind == tok::identifier? isTokenIdentifier() : Tok.is(TokKind))
+    return true;
   return false;
 }
 
