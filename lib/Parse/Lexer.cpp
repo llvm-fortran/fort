@@ -32,8 +32,7 @@ static bool isVerticalWhitespace(unsigned char c);
 Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine &D,
              Parser &P)
   : Text(D, features), Diags(D), SrcMgr(SM), Features(features), TokStart(0),
-    LastTokenWasSemicolon(false), LastTokenWasStatementLabel(false), TheParser(P),
-    CurIdContext(IdentifierLexingDefault) {
+    LastTokenWasSemicolon(false), LastTokenWasStatementLabel(false), TheParser(P) {
   InitCharacterInfo();
 }
 
@@ -661,7 +660,8 @@ void Lexer::getSpelling(const Token &Tok,
   if(Text.LanguageOptions.FixedForm) {
     while (true) {
       while (Len != TokLen) {
-        if(!isVerticalWhitespace(*CurPtr)) {
+        if(!isHorizontalWhitespace(*CurPtr) &&
+           !isVerticalWhitespace(*CurPtr)) {
           ++CurPtr, ++Len;
           continue;
         }
@@ -669,6 +669,16 @@ void Lexer::getSpelling(const Token &Tok,
       }
 
       Spelling.push_back(llvm::StringRef(Start, CurPtr - Start));
+
+      if(!isVerticalWhitespace(*CurPtr)) {
+        // Skip spaces
+        while (Len != TokLen && isHorizontalWhitespace(*CurPtr))
+          ++CurPtr, ++Len;
+        if(Len >= TokLen)
+          break;
+        Start = CurPtr;
+        continue;
+      }
 
       if (Len >= TokLen)
         break;
@@ -853,14 +863,23 @@ void Lexer::LexFixedFormIdentifier(Token &Result) {
   LineOfText::State LastMatchedIdState;
   bool MatchedId = false;
 
-  C = getNextChar();
-  for (int Len = 1; isIdentifierBody(C); ++Len) {
+  bool NeedsCleaning = false;
+  while(!Text.empty() && !Text.AtEndOfLine()) {
+    C = getNextChar();
     FormTokenWithChars(Result, tok::identifier);
+    if(NeedsCleaning)
+      Result.setFlag(Token::NeedsCleaning);
     if(TheParser.MatchFixedFormIdentifier(Result, CurIdContext)) {
       LastMatchedIdState = Text.GetState();
       MatchedId = true;
     }
-    C = getNextChar();
+    if(!isIdentifierBody(C)) {
+      if(isHorizontalWhitespace(C)) {
+        NeedsCleaning = true;
+        continue;
+      }
+      break;
+    }
   }
 
   if(MatchedId)
@@ -869,6 +888,8 @@ void Lexer::LexFixedFormIdentifier(Token &Result) {
   // We let the parser determine what type of identifier this is: identifier,
   // keyword, or built-in function.
   FormTokenWithChars(Result, tok::identifier);
+  if(NeedsCleaning)
+    Result.setFlag(Token::NeedsCleaning);
 }
 
 /// LexFormatDescriptor - Lex the remainder of a format descriptor.
@@ -1058,9 +1079,9 @@ void Lexer::LexTokenInternal(Token &Result) {
 
   // Set the identifier lexing context
   if(Result.isAtStartOfStatement() || LastTokenWasStatementLabel)
-    CurIdContext = IdentifierLexingStatement;
+    CurIdContext.Kind = IdentifierLexingContext::StatementStart;
   else
-    CurIdContext = IdentifierLexingDefault;
+    CurIdContext.Kind = IdentifierLexingContext::Default;
   LastTokenWasStatementLabel = false;
 
   // Small amounts of horizontal whitespace is very common between tokens.

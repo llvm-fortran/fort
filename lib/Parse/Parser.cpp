@@ -152,6 +152,11 @@ void Parser::Lex() {
   TheLexer.Lex(NextTok);
   ClassifyToken(NextTok);
 
+  // No need to merge when identifiers can already have
+  // spaces in between
+  if(Features.FixedForm)
+    return;
+
 #define MERGE_TOKENS(A, B)                      \
   if (!NextTok.isAtStartOfStatement() && NextTok.is(tok::kw_ ## B)) {              \
     Tok.setKind(tok::kw_ ## A ## B);            \
@@ -293,7 +298,7 @@ bool Parser::MatchFixedFormIdentifier(Token &T,
   TheLexer.getSpelling(T, Spelling);
   std::string NameStr = T.CleanLiteral(Spelling);
 
-  if(Context == IdentifierLexingStatement) {
+  if(Context.Kind == IdentifierLexingContext::StatementStart) {
     auto KW = Identifiers.lookupKeyword(NameStr);
     if(KW)
       return true;

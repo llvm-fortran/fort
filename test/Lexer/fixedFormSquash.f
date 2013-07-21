@@ -9,6 +9,10 @@ C CHECK: do i = 1, 10
        IDO=I
 C CHECK: do doi = 1, 10
        DODOI=1,10
-        I=IDO
+C CHECK: i = ido
+        I=I D   O
        ENDDO
-       END
+C FIXME:
+C      ASSIGN100TOJ
+C      IF(I==0)GOTOI
+       E ND PRO GRAMfoo

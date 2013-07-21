@@ -39,9 +39,27 @@ class Parser;
 /// the context in which identifiers are lexed.
 /// This is needed for fixed form lexing, to
 /// separate squashed identifiers from each other.
-enum IdentifierLexingContext {
-  IdentifierLexingStatement,
-  IdentifierLexingDefault
+class IdentifierLexingContext {
+public:
+  enum ContextKind {
+    /// Default - the default kind in which
+    /// identifiers are lexed until the next
+    /// non identifier character.
+    Default,
+
+    /// StatementStart - The identifier is lexed
+    /// until the longest keyword can be matched
+    StatementStart,
+
+    /// MergedKeyword - The identifier is lexed
+    /// with the respect to the keyword
+    /// merge rules.
+    MergedKeyword
+  };
+  ContextKind Kind;
+
+  IdentifierLexingContext()
+    : Kind(Default) {}
 };
 
 class Lexer {
