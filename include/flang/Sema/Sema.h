@@ -74,6 +74,10 @@ public:
 
   ASTContext &getContext() { return Context; }
 
+  LangOptions getLangOpts() const {
+    return Context.getLangOpts();
+  }
+
   DeclContext *getContainingDC(DeclContext *DC);
 
   inline StmtLabelScope *getCurrentStmtLabelScope() const {

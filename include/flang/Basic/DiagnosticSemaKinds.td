@@ -38,10 +38,14 @@ def err_typecheck_passing_incompatible : Error<
 
 def err_typecheck_arith_invalid_operands : Error<
   "invalid operands to an arithmetic binary expression (%0 and %1)">;
+def warn_f77_typecheck_arith_invalid_operands : Warning<
+  "invalid operands to an arithmetic binary expression according to the Fortran 77 standard (%0 and %1)">;
 def err_typecheck_char_invalid_operands : Error<
   "invalid operands to a character binary expression (%0 and %1)">;
 def err_typecheck_relational_invalid_operands : Error<
   "invalid operands to a relational binary expression (%0 and %1)">;
+def warn_f77_typecheck_relational_invalid_operands : Warning<
+  "invalid operands to a relational binary expression according to the Fortran 77 standard (%0 and %1)">;
 def err_typecheck_logical_invalid_operands : Error<
   "invalid operands to a logical binary expression (%0 and %1)">;
 

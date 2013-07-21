@@ -365,12 +365,20 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
     if(LHSTypeSpec == TST_unspecified || RHSTypeSpec == TST_unspecified)
       goto typecheckInvalidOperands;
 
-    // Fortran 77: Disallow operations between double precision and complex
-    if((LHSTypeSpec == TST_complex ||
-        RHSTypeSpec == TST_complex)) {
-      if((IsTypeDoublePrecisionReal(LHSType) && !IsTypeDoublePrecisionComplex(RHSType)) ||
-         (IsTypeDoublePrecisionReal(RHSType) && !IsTypeDoublePrecisionComplex(LHSType)))
-        goto typecheckInvalidOperands;
+    if (getLangOpts().Fortran77) {
+      // Fortran 77: Disallow operations between double precision and complex
+      // NB: Produce warning
+      if((LHSTypeSpec == TST_complex ||
+          RHSTypeSpec == TST_complex)) {
+        if((IsTypeDoublePrecisionReal(LHSType) && !IsTypeDoublePrecisionComplex(RHSType)) ||
+           (IsTypeDoublePrecisionReal(RHSType) && !IsTypeDoublePrecisionComplex(LHSType))) {
+          Diags.Report(Loc, diag::warn_f77_typecheck_arith_invalid_operands)
+              << LHSType << RHSType
+              << SourceRange(LHS.get()->getLocStart(),
+                             RHS.get()->getLocEnd());
+
+        }
+      }
     }
 
     Fortran90ArithmeticBinaryTypingRules(C, Op, ReturnType, LHS, RHS,
@@ -423,10 +431,16 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
       if(Op != BinaryExpr::Equal && Op != BinaryExpr::NotEqual)
         goto typecheckInvalidOperands;
 
-      // Fortran 77: The comparison of a double precision value and a complex value is not permitted.
-      if(IsTypeDoublePrecisionReal(LHSType) ||
-         IsTypeDoublePrecisionReal(RHSType))
-        goto typecheckInvalidOperands;
+      if(getLangOpts().Fortran77) {
+        // Fortran 77: The comparison of a double precision value and a complex value is not permitted.
+        if(IsTypeDoublePrecisionReal(LHSType) ||
+           IsTypeDoublePrecisionReal(RHSType)) {
+          Diags.Report(Loc, diag::warn_f77_typecheck_relational_invalid_operands)
+              << LHSType << RHSType
+              << SourceRange(LHS.get()->getLocStart(),
+                             RHS.get()->getLocEnd());
+        }
+      }
     }
 
     if(LHSTypeSpec == RHSTypeSpec) {
