@@ -100,6 +100,12 @@ SourceLocation Parser::getExpectedLoc() const {
   return Tok.getLocation();
 }
 
+bool Parser::PeekAhead(tok::TokenKind TokKind) {
+  if (NextTok.is(tok::unknown))
+    TheLexer.Lex(NextTok, true);
+  return NextTok.is(TokKind);
+}
+
 /// Lex - Get the next token.
 void Parser::Lex() {
   /// Reset paren count
@@ -136,6 +142,7 @@ void Parser::Lex() {
 
   if (NextTok.isNot(tok::unknown)) {
     Tok = NextTok;
+    NextTok.setKind(tok::unknown);
   } else {
     TheLexer.Lex(Tok);
     ClassifyToken(Tok);
@@ -149,13 +156,13 @@ void Parser::Lex() {
     return;
   }
 
-  TheLexer.Lex(NextTok);
-  ClassifyToken(NextTok);
-
   // No need to merge when identifiers can already have
   // spaces in between
   if(Features.FixedForm)
     return;
+
+  TheLexer.Lex(NextTok);
+  ClassifyToken(NextTok);
 
 #define MERGE_TOKENS(A, B)                      \
   if (!NextTok.isAtStartOfStatement() && NextTok.is(tok::kw_ ## B)) {              \
@@ -493,19 +500,19 @@ void Parser::LexToEndOfStatement() {
 
 /// ParseInclude - parses the include statement and loads the included file.
 bool Parser::ParseInclude() {
-  const Token &NextTok = PeekAhead();
-  if(!NextTok.is(tok::char_literal_constant)){
-    Diag.Report(NextTok.getLocation(),diag::err_pp_expects_filename);
+  if(NextTok.isAtStartOfStatement() ||
+     NextTok.isNot(tok::char_literal_constant)){
+    Diag.Report(NextTok.getLocation(), diag::err_pp_expects_filename);
     return true;
   }
   std::string LiteralString;
   CleanLiteral(NextTok,LiteralString);
   if(!LiteralString.length()) {
-    Diag.Report(NextTok.getLocation(),diag::err_pp_empty_filename);
+    Diag.Report(NextTok.getLocation(), diag::err_pp_empty_filename);
     return true;
   }
   if(EnterIncludeFile(LiteralString) == true){
-    Diag.Report(NextTok.getLocation(),diag::err_pp_file_not_found) <<
+    Diag.Report(NextTok.getLocation(), diag::err_pp_file_not_found) <<
                 LiteralString;
     return true;
   }
@@ -530,7 +537,7 @@ void Parser::ParseStatementLabel() {
 }
 
 /// ParseStatementLabelReference - Parses a statement label reference token.
-ExprResult Parser::ParseStatementLabelReference() {
+ExprResult Parser::ParseStatementLabelReference(bool ConsumeToken) {
   if(Tok.isNot(tok::int_literal_constant)) {
     return ExprError();
   }
@@ -540,7 +547,7 @@ ExprResult Parser::ParseStatementLabelReference() {
   auto Result = IntegerConstantExpr::Create(Context, Tok.getLocation(),
                                             getMaxLocationOfCurrentToken(),
                                             NumStr);
-  Lex();
+  if(ConsumeToken) Lex();
   return Result;
 }
 
@@ -582,7 +589,7 @@ bool Parser::ParseProgramUnit() {
     return true;
 
   ParseStatementLabel();
-  if (PeekAhead().is(tok::equal))
+  if (PeekAhead(tok::equal))
     return ParseMainProgram();
 
   // FIXME: These calls should return something proper.
@@ -981,7 +988,7 @@ bool Parser::ParseDeclarationConstruct() {
     break;
   case tok::kw_TYPE:
   case tok::kw_CLASS: {
-    if(!PeekAhead().is(tok::l_paren)){
+    if(!PeekAhead(tok::l_paren)){
       //FIXME: error handling?
       ParseDerivedTypeDefinitionStmt();
       break;
@@ -1118,7 +1125,7 @@ Parser::StmtResult Parser::ParsePROGRAMStmt() {
 ///      or USE [ [ , module-nature ] :: ] module-name , ONLY : [ only-list ]
 Parser::StmtResult Parser::ParseUSEStmt() {
   // Check if this is an assignment.
-  if (PeekAhead().is(tok::equal))
+  if (PeekAhead(tok::equal))
     return StmtResult();
 
   Lex();
@@ -1229,7 +1236,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
 ///         IMPORT [ [ :: ] import-name-list ]
 Parser::StmtResult Parser::ParseIMPORTStmt() {
   // Check if this is an assignment.
-  if (PeekAhead().is(tok::equal))
+  if (PeekAhead(tok::equal))
     return StmtResult();
 
   SourceLocation Loc = Tok.getLocation();
@@ -1519,7 +1526,7 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
     ExprResult Repeat;
     SourceLocation RepeatLoc;
     if(Tok.is(tok::int_literal_constant)
-       && PeekAhead().is(tok::star)) {
+       && PeekAhead(tok::star)) {
       Repeat = ParsePrimaryExpr();
       RepeatLoc = Tok.getLocation();
       EatIfPresentInSameStmt(tok::star);
@@ -1580,7 +1587,7 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
         Diag.Report(getExpectedLoc(), diag::err_expected_expression);
         return ExprError();
       }
-      if(PeekAhead().is(tok::equal)) break;
+      if(PeekAhead(tok::equal)) break;
     } else {
       Diag.Report(getExpectedLoc(), diag::err_expected_comma);
       return ExprError();

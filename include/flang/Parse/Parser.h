@@ -149,9 +149,8 @@ private:
   bool EnterIncludeFile(const std::string &Filename);
   bool LeaveIncludeFile();
 
-  const Token &PeekAhead() const {
-    return NextTok;
-  }
+  /// - Returns true if the next token is a token kind
+  bool PeekAhead(tok::TokenKind TokKind);
 
   void Lex();
   void ClassifyToken(Token &T);
@@ -219,6 +218,16 @@ private:
         )
       return true;
     return false;
+  }
+
+  /// SetNextTokenShouldBeKeyword - notifies the lexer that the next token
+  /// should be a keyword. This is required for fixed-form lexing.
+  ///
+  /// kw is an optional hint (Not used ATM).
+  void SetNextTokenShouldBeKeyword(tok::TokenKind kw = tok::unknown) {
+    IdentifierLexingContext C;
+    C.Kind = IdentifierLexingContext::StatementStart;
+    TheLexer.SetIdContext(C);
   }
 
   /// ConsumeToken - Consume the current token and lex the next one. This
@@ -443,7 +452,7 @@ private:
   ExprResult ParseExpectedFollowupExpression(const char *DiagAfter = "");
 
   void ParseStatementLabel();
-  ExprResult ParseStatementLabelReference();
+  ExprResult ParseStatementLabelReference(bool ConsumeToken = true);
 
   VarExpr *ParseVariableReference();
   VarExpr *ParseIntegerVariableReference();
@@ -454,7 +463,7 @@ private:
   bool ParseDerivedTypeComponentDeclarationList(DeclSpec &DS,
                                 SmallVectorImpl<DeclResult> &Decls);
 
-  bool ParseDeclarationTypeSpec(DeclSpec &DS);
+  bool ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors = true);
   bool ParseTypeOrClassDeclTypeSpec(DeclSpec &DS);
   ExprResult ParseSelector(bool IsKindSel);
   bool ParseDerivedTypeSpec(DeclSpec &DS);

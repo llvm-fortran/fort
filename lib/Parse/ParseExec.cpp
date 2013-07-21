@@ -90,12 +90,6 @@ StmtResult Parser::ParseExecutableConstruct() {
 ///[obs] or computed-goto-stmt
 Parser::StmtResult Parser::ParseActionStmt() {
   ParseStatementLabel();
-
-  // This is an assignment.
-  const Token &NextTok = PeekAhead();
-  if (Tok.getIdentifierInfo() && !NextTok.isAtStartOfStatement() &&
-      NextTok.is(tok::equal))
-    return ParseAssignmentStmt();
       
   StmtResult SR;
   switch (Tok.getKind()) {
@@ -152,17 +146,16 @@ Parser::StmtResult Parser::ParseAssignStmt() {
   SourceLocation Loc = Tok.getLocation();
   Lex();
 
-  auto Value = ParseStatementLabelReference();
+  auto Value = ParseStatementLabelReference(false);
   if(Value.isInvalid()) {
     Diag.Report(getExpectedLoc(), diag::err_expected_stmt_label_after)
         << "ASSIGN";
     return StmtError();
   }
-  if(!EatIfPresentInSameStmt(tok::kw_TO)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_kw)
-        << "TO";
+  SetNextTokenShouldBeKeyword();
+  ConsumeToken();
+  if(!ExpectAndConsume(tok::kw_TO, diag::err_expected_kw, "TO"))
     return StmtError();
-  }
   auto VarLoc = Tok.getLocation();
   auto Var = ParseIntegerVariableReference();
   if(!Var) {
@@ -257,12 +250,20 @@ ExprResult Parser::ParseExpectedConditionExpression(const char *DiagAfter) {
 }
 
 Parser::StmtResult Parser::ParseIfStmt() {
-  auto Loc = Tok.getLocation();
-  Lex();
+  auto Loc = ConsumeToken();
 
-  ExprResult Condition = ParseExpectedConditionExpression("IF");
+  if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after, "IF")) {
+    SkipUntilNextStatement();
+    return StmtError();
+  }
+  ExprResult Condition = ParseExpectedFollowupExpression("(");
   if(Condition.isInvalid()) return StmtError();
-  if (!EatIfPresentInSameStmt(tok::kw_THEN)){
+  SetNextTokenShouldBeKeyword();
+  if (!ExpectAndConsume(tok::r_paren)) {
+    SkipUntilNextStatement();
+    return StmtError();
+  }
+  if (!ConsumeIfPresent(tok::kw_THEN)){
     // if-stmt
     if(Tok.isAtStartOfStatement()) {
       Diag.Report(getExpectedLoc(), diag::err_expected_executable_stmt);

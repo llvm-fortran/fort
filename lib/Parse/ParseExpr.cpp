@@ -470,16 +470,15 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
     break;
   }
   case tok::char_literal_constant: {
-    const Token &NextTok = PeekAhead();
-    if (NextTok.is(tok::l_paren))
-      // Possible substring.
-      goto parse_designator;
     std::string NumStr;
     CleanLiteral(Tok, NumStr);
     E = CharacterConstantExpr::Create(Context, Loc,
                                       getMaxLocationOfCurrentToken(),
                                       StringRef(NumStr));
     Lex();
+    // Possible substring
+    if(IsPresent(tok::l_paren))
+      return ParseSubstring(E);
     break;
   }
   case tok::int_literal_constant: {
@@ -567,18 +566,6 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 ///      or structure-component
 ///      or substring
 ExprResult Parser::ParseDesignator(bool IsLvalue) {
-  if (Tok.is(tok::char_literal_constant)) {
-    std::string NumStr;
-    CleanLiteral(Tok, NumStr);
-    ExprResult E = CharacterConstantExpr::Create(Context,
-                                                 Tok.getLocation(),
-                                                 getMaxLocationOfCurrentToken(),
-                                                 StringRef(NumStr));
-    Lex();
-    // Possibly something like: '0123456789'(N:N)
-    return ParseSubstring(E);
-  }
-
   if(DontResolveIdentifiers) {
     auto E = UnresolvedIdentifierExpr::Create(Context,
                                               Tok.getLocation(),

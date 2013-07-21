@@ -404,7 +404,7 @@ bool Parser::ParseTypeOrClassDeclTypeSpec(DeclSpec &DS) {
 ///      or TYPE ( derived-type-spec )
 ///      or CLASS ( derived-type-spec )
 ///      or CLASS ( * )
-bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
+bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors) {
   // [R403]:
   //   intrinsic-type-spec :=
   //       INTEGER [ kind-selector ]
@@ -454,29 +454,21 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
   switch (DS.getTypeSpecType()) {
   default:
     Lex();
-    if (EatIfPresentInSameStmt(tok::star)) {
+    if (ConsumeIfPresent(tok::star)) {
       // FIXME: proper obsolete COMPLEX*16 support
       Lex();
       DS.setDoublePrecision();
     }
 
-    if (Tok.is(tok::l_paren)) {
-      if(Tok.isAtStartOfStatement()) return false;
-      const Token &NextTok = PeekAhead();
-      if (NextTok.isNot(tok::kw_KIND) &&
-          NextTok.isNot(tok::kw_LEN))
-        return false;
-    }
-
-    if (EatIfPresent(tok::l_paren)) {
+    if (!AllowSelectors)
+      break;
+    if (ConsumeIfPresent(tok::l_paren)) {
       Kind = ParseSelector(true);
       if (Kind.isInvalid())
         return true;
 
-      if (Tok.isAtStartOfStatement() || !EatIfPresent(tok::r_paren)) {
-        Diag.Report(Tok.getLocation(),diag::err_expected_rparen);
+      if(!ExpectAndConsume(tok::r_paren, 0, "", tok::r_paren))
         return true;
-      }
     }
 
     break;
@@ -510,6 +502,9 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS) {
       ParseCharacterStarLengthSpec(DS);
       EatIfPresentInSameStmt(tok::comma);
     } else {
+      if (!AllowSelectors)
+        break;
+
       if (Tok.is(tok::l_paren)) {
         Lex(); // Eat '('.
 

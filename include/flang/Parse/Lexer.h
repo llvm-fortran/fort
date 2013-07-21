@@ -224,6 +224,10 @@ class Lexer {
   /// a statement label.
   bool LastTokenWasStatementLabel;
 
+  /// UseSpecificIdContext - when lexing the next token, use the CurIdContext
+  /// as it was set by the parser.
+  bool UseSpecificIdContext;
+
   /// CurIdContext - the current context for lexing of identifiers.
   IdentifierLexingContext CurIdContext;
 
@@ -278,7 +282,7 @@ class Lexer {
   /// extremely performance critical piece of code. This assumes that the buffer
   /// has a null character at the end of the file. It assumes that the Flags of
   /// result have been cleared before calling this.
-  void LexTokenInternal(Token &Result);
+  void LexTokenInternal(Token &Result, bool IsPeekAhead);
 
   /// FormTokenWithChars - When we lex a token, we have identified a span
   /// starting at CurPtr, going to TokEnd that forms the token. This method
@@ -327,16 +331,20 @@ public:
   // FIXME: CurKind isn't set.
   bool isa(tok::TokenKind Kind) const { return CurKind == Kind; }
 
+  /// SetIdContext - the next token will be lexed with the specified
+  /// id context.
+  void SetIdContext(IdentifierLexingContext C);
+
   /// Lex - Return the next token in the file. If this is the end of file, it
   /// return the tok::eof token. Return true if an error occurred and
   /// compilation should terminate, false if normal.
-  void Lex(Token &Result) {
+  void Lex(Token &Result, bool IsPeekAhead = false) {
     // Start a new token.
     Result.startToken();
 
     // Get a token. Note that this may delete the current lexer if the end of
     // file is reached.
-    LexTokenInternal(Result);
+    LexTokenInternal(Result, IsPeekAhead);
   }
 
   /// LexFORMATToken - Return the next token in the file, with respect to the

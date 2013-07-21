@@ -12,7 +12,7 @@ C CHECK: do doi = 1, 10
 C CHECK: i = ido
         I=I D   O
        ENDDO
-C FIXME:
-C      ASSIGN100TOJ
-C      IF(I==0)GOTOI
+C CHECK: assign 100 to i
+       ASSIGN100T OI
+       IF(I==0)GOTOI
        E ND PRO GRAMfoo

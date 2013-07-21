@@ -32,7 +32,8 @@ static bool isVerticalWhitespace(unsigned char c);
 Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine &D,
              Parser &P)
   : Text(D, features), Diags(D), SrcMgr(SM), Features(features), TokStart(0),
-    LastTokenWasSemicolon(false), LastTokenWasStatementLabel(false), TheParser(P) {
+    LastTokenWasSemicolon(false), LastTokenWasStatementLabel(false),
+    UseSpecificIdContext(false), TheParser(P) {
   InitCharacterInfo();
 }
 
@@ -1055,11 +1056,18 @@ void Lexer::LexComment(Token &Result) {
   }
 }
 
+/// SetIdContext - the next token will be lexed with the specified
+/// id context.
+void Lexer::SetIdContext(IdentifierLexingContext C) {
+  UseSpecificIdContext = true;
+  CurIdContext = C;
+}
+
 /// LexTokenInternal - This implements a simple Fortran family lexer. It is an
 /// extremely performance critical piece of code. This assumes that the buffer
 /// has a null character at the end of the file. It assumes that the Flags of
 /// Result have been cleared before calling this.
-void Lexer::LexTokenInternal(Token &Result) {
+void Lexer::LexTokenInternal(Token &Result, bool IsPeekAhead) {
   // Check to see if there is still more of the line to lex.
   if (Text.empty() || Text.AtEndOfLine()) {
     Text.Reset();
@@ -1078,10 +1086,12 @@ void Lexer::LexTokenInternal(Token &Result) {
   }
 
   // Set the identifier lexing context
-  if(Result.isAtStartOfStatement() || LastTokenWasStatementLabel)
-    CurIdContext.Kind = IdentifierLexingContext::StatementStart;
-  else
-    CurIdContext.Kind = IdentifierLexingContext::Default;
+  if(!UseSpecificIdContext) {
+    if(Result.isAtStartOfStatement() || LastTokenWasStatementLabel)
+      CurIdContext.Kind = IdentifierLexingContext::StatementStart;
+    else
+      CurIdContext.Kind = IdentifierLexingContext::Default;
+  } else UseSpecificIdContext = false;
   LastTokenWasStatementLabel = false;
 
   // Small amounts of horizontal whitespace is very common between tokens.
@@ -1101,7 +1111,7 @@ void Lexer::LexTokenInternal(Token &Result) {
     }
 
     getNextChar();
-    return LexTokenInternal(Result);
+    return LexTokenInternal(Result, IsPeekAhead);
   case '\n':
   case '\r':
   case ' ':
@@ -1111,7 +1121,7 @@ void Lexer::LexTokenInternal(Token &Result) {
     do {
       Char = getNextChar();
     } while (isHorizontalWhitespace(Char));
-    return LexTokenInternal(Result);
+    return LexTokenInternal(Result, IsPeekAhead);
 
   case '.':
     Char = getNextChar();
@@ -1255,13 +1265,17 @@ void Lexer::LexTokenInternal(Token &Result) {
   /* 'o' */ case 'p': case 'q': case 'r': case 's': case 't': case 'u':
   case 'v': case 'w': /* 'x' */ case 'y': /* 'z' */
 LexIdentifier:
+    if(IsPeekAhead) {
+      Result.setKind(tok::unknown);
+      return;
+    }
     return LexIdentifier(Result);
 
   case '!':
     LexComment(Result);
     if (Features.ReturnComments)
       return;
-    return LexTokenInternal(Result);
+    return LexTokenInternal(Result, IsPeekAhead);
 
   // [TODO]: Special Characters.
   case '[':
@@ -1303,7 +1317,7 @@ LexIdentifier:
     break;
   case ';':
     LastTokenWasSemicolon = true;
-    return LexTokenInternal(Result);
+    return LexTokenInternal(Result, IsPeekAhead);
   case '%':
     Kind = tok::percent;
     break;

@@ -26,7 +26,7 @@ namespace flang {
 ///         # [ , array-name ( array-spec ) ] ...
 Parser::StmtResult Parser::ParseDIMENSIONStmt() {
   // Check if this is an assignment.
-  if (PeekAhead().is(tok::equal))
+  if (PeekAhead(tok::equal))
     return StmtResult();
 
   auto Loc = ConsumeToken();
@@ -80,7 +80,7 @@ Parser::StmtResult Parser::ParseEQUIVALENCEStmt() {
 ///         PARAMETER ( named-constant-def-list )
 Parser::StmtResult Parser::ParsePARAMETERStmt() {
   // Check if this is an assignment.
-  if (PeekAhead().is(tok::equal))
+  if (PeekAhead(tok::equal))
     return StmtResult();
 
   auto Loc = ConsumeToken();
@@ -138,7 +138,7 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
 ///      or IMPLICIT NONE
 Parser::StmtResult Parser::ParseIMPLICITStmt() {
   // Check if this is an assignment.
-  if (PeekAhead().is(tok::equal))
+  if (PeekAhead(tok::equal))
     return StmtResult();
 
   auto Loc = ConsumeToken();
@@ -152,10 +152,9 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
   SmallVector<Stmt*, 8> StmtList;
 
   while(true) {
-    // FIXME: REAL(A) (A)
     // FIXME: improved error recovery
     DeclSpec DS;
-    if (ParseDeclarationTypeSpec(DS))
+    if (ParseDeclarationTypeSpec(DS, false))
       return StmtError();
 
     if(!ExpectAndConsume(tok::l_paren)) {
@@ -238,7 +237,7 @@ Parser::StmtResult Parser::ParseEXTERNALStmt() {
 ///         INTRINSIC [::] intrinsic-procedure-name-list
 Parser::StmtResult Parser::ParseINTRINSICStmt(bool IsActuallyExternal) {
   // Check if this is an assignment.
-  if (PeekAhead().is(tok::equal))
+  if (PeekAhead(tok::equal))
     return StmtResult();
 
   auto Loc = ConsumeToken();
