@@ -255,7 +255,7 @@ bool Sema::CheckIntegerOrRealArgument(const Expr *E) {
   auto Type = getBuiltinType(E);
   if(!Type || !Type->isIntegerOrRealType()) {
     Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << "'INTEGER' or 'REAL'"
+      << E->getType() << "'integer' or 'real'"
       << E->getSourceRange();
     return true;
   }
@@ -266,7 +266,7 @@ bool Sema::CheckIntegerOrRealOrComplexArgument(const Expr *E) {
   auto Type = getBuiltinType(E);
   if(!Type || !Type->isIntegerOrRealOrComplexType()) {
     Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << "'INTEGER' or 'REAL' or 'COMPLEX'"
+      << E->getType() << "'integer' or 'real' or 'complex'"
       << E->getSourceRange();
     return true;
   }
@@ -277,7 +277,7 @@ bool Sema::CheckRealOrComplexArgument(const Expr *E) {
   auto Type = getBuiltinType(E);
   if(!Type || !Type->isRealOrComplexType()) {
     Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << "'REAL' or 'COMPLEX'"
+      << E->getType() << "'real' or 'complex'"
       << E->getSourceRange();
     return true;
   }

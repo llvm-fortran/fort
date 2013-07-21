@@ -14,12 +14,12 @@ PROGRAM logicalexpressions
 
   L = .FALSE. .OR. (.TRUE. .AND. .FALSE.)
 
-  L = L .AND. 2 ! expected-error {{invalid operands to a logical binary expression ('LOGICAL' and 'INTEGER')}}
-  L = L .OR. 'HELLO' ! expected-error {{invalid operands to a logical binary expression ('LOGICAL' and 'CHARACTER')}}
-  L = 3.0 .EQV. 2.0d0 ! expected-error {{invalid operands to a logical binary expression ('REAL' and 'DOUBLE PRECISION')}}
-  L = L .NEQV. (1.0,2.0) ! expected-error {{invalid operands to a logical binary expression ('LOGICAL' and 'COMPLEX')}}
+  L = L .AND. 2 ! expected-error {{invalid operands to a logical binary expression ('logical' and 'integer')}}
+  L = L .OR. 'HELLO' ! expected-error {{invalid operands to a logical binary expression ('logical' and 'character')}}
+  L = 3.0 .EQV. 2.0d0 ! expected-error {{invalid operands to a logical binary expression ('real' and 'double precision')}}
+  L = L .NEQV. (1.0,2.0) ! expected-error {{invalid operands to a logical binary expression ('logical' and 'complex')}}
 
-  L = .NOT. 2 ! expected-error {{invalid argument type 'INTEGER' to a logical unary expression}}
-  L = .NOT. (0,0) ! expected-error {{invalid argument type 'COMPLEX' to a logical unary expression}}
+  L = .NOT. 2 ! expected-error {{invalid argument type 'integer' to a logical unary expression}}
+  L = .NOT. (0,0) ! expected-error {{invalid argument type 'complex' to a logical unary expression}}
 
 END PROGRAM

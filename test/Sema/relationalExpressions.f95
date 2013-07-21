@@ -24,19 +24,19 @@ PROGRAM relexpressions
   l = c .EQ. c ! CHECK: (c==c)
   l = c .NE. c ! CHECK: (c/=c)
   l = c .NE. r ! CHECK: (c/=CMPLX(r))
-  l = c .LE. c ! expected-error {{invalid operands to a relational binary expression ('COMPLEX' and 'COMPLEX')}}
+  l = c .LE. c ! expected-error {{invalid operands to a relational binary expression ('complex' and 'complex')}}
   l = c .EQ. 2.0 ! CHECK: (c==CMPLX(2))
   ! FIXME: make F77 only
-  l = c .EQ. 2.0d-1 ! expected-error {{invalid operands to a relational binary expression ('COMPLEX' and 'DOUBLE PRECISION')}}
+  l = c .EQ. 2.0d-1 ! expected-error {{invalid operands to a relational binary expression ('complex' and 'double precision')}}
 
   l = 'HELLO' .EQ. 'WORLD'
   l = 'HELLO' .NE. 'WORLD'
 
-  i = 1 .NE. 2 ! expected-error {{assigning to 'INTEGER' from incompatible type 'LOGICAL'}}
-  r = 2.0 .LT. 1 ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
+  i = 1 .NE. 2 ! expected-error {{assigning to 'integer' from incompatible type 'logical'}}
+  r = 2.0 .LT. 1 ! expected-error {{assigning to 'real' from incompatible type 'logical'}}
 
-  l = l .EQ. l ! expected-error {{invalid operands to a relational binary expression ('LOGICAL' and 'LOGICAL')}}
-  l = .TRUE. .NE. l ! expected-error {{invalid operands to a relational binary expression ('LOGICAL' and 'LOGICAL')}}
-  l = l .LT. .FALSE. ! expected-error {{invalid operands to a relational binary expression ('LOGICAL' and 'LOGICAL')}}
+  l = l .EQ. l ! expected-error {{invalid operands to a relational binary expression ('logical' and 'logical')}}
+  l = .TRUE. .NE. l ! expected-error {{invalid operands to a relational binary expression ('logical' and 'logical')}}
+  l = l .LT. .FALSE. ! expected-error {{invalid operands to a relational binary expression ('logical' and 'logical')}}
 
 END PROGRAM

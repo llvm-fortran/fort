@@ -31,7 +31,7 @@ PROGRAM doubletest
   dc = DCMPLX(r) ! CHECK: dc = dcmplx(r)
   r = CDABS(dc) ! CHECK: r = REAL(cdabs(dc))
   dc = DCONJG(dc) ! CHECK: dc = dconjg(dc)
-  dc = DCONJG(c) ! expected-error{{passing 'COMPLEX' to parameter of incompatible type 'DOUBLE COMPLEX'}}
+  dc = DCONJG(c) ! expected-error{{passing 'complex' to parameter of incompatible type 'double complex'}}
 
   dbl = DIMAG(dc) ! CHECK: dbl = dimag(dc)
 

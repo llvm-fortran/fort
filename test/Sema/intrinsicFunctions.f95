@@ -39,17 +39,17 @@ PROGRAM intrinfuntest
   i = INT() ! expected-error {{too few arguments to intrinsic function call, expected 1, have 0}}
   i = INT(1,2) ! expected-error {{too many arguments to intrinsic function call, expected 1, have 2}}
 
-  i = IFIX(22) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'REAL'}}
-  i = idint(22) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'DOUBLE PRECISION'}}
-  i = int(.true.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'INTEGER' or 'REAL' or 'COMPLEX'}}
+  i = IFIX(22) ! expected-error {{passing 'integer' to parameter of incompatible type 'real'}}
+  i = idint(22) ! expected-error {{passing 'integer' to parameter of incompatible type 'double precision'}}
+  i = int(.true.) ! expected-error {{passing 'logical' to parameter of incompatible type 'integer' or 'real' or 'complex'}}
 
   r = REAL(42) ! CHECK: r = real(42)
   r = real(1D1) ! CHECK: r = real(10)
   r = float(13) ! CHECK: r = float(13)
   r = SNGL(0d0) ! CHECK: r = sngl(0)
 
-  r = FLOAT(12.1) ! expected-error {{passing 'REAL' to parameter of incompatible type 'INTEGER'}}
-  r = sngl(12) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'DOUBLE PRECISION'}}
+  r = FLOAT(12.1) ! expected-error {{passing 'real' to parameter of incompatible type 'integer'}}
+  r = sngl(12) ! expected-error {{passing 'integer' to parameter of incompatible type 'double precision'}}
 
   d = DBLE(i) ! CHECK: d = dble(i)
   d = DBLE(r) ! CHECK: d = dble(r)
@@ -60,30 +60,30 @@ PROGRAM intrinfuntest
   c = CMPLX(1,2)
   c = CMPLX() ! expected-error {{too few arguments to intrinsic function call, expected 1 or 2, have 0}}
   c = CMPLX(1,2,3,4) ! expected-error {{too many arguments to intrinsic function call, expected 1 or 2, have 4}}
-  c = CMPLX(1.0, .false.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'INTEGER' or 'REAL' or 'COMPLEX'}}
+  c = CMPLX(1.0, .false.) ! expected-error {{passing 'logical' to parameter of incompatible type 'integer' or 'real' or 'complex'}}
 
   i = ICHAR('HELLO')
-  i = ichar(.false.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'CHARACTER'}}
+  i = ichar(.false.) ! expected-error {{passing 'logical' to parameter of incompatible type 'character'}}
 
   string = CHAR(65)
-  string = char('TRUTH') ! expected-error {{passing 'CHARACTER' to parameter of incompatible type 'INTEGER'}}
+  string = char('TRUTH') ! expected-error {{passing 'character' to parameter of incompatible type 'integer'}}
 
 !! misc and maths functions
 
   r = AINT(r) ! CHECK: r = aint(r)
   d = AINT(d) ! CHECK: d = aint(d)
   d = DINT(d) ! CHECK: d = dint(d)
-  d = DINT(r) ! expected-error {{passing 'REAL' to parameter of incompatible type 'DOUBLE PRECISION'}}
+  d = DINT(r) ! expected-error {{passing 'real' to parameter of incompatible type 'double precision'}}
 
   r = ANINT(r) ! CHECK: r = anint(r)
   d = ANINT(d) ! CHECK: d = anint(d)
   d = DNINT(d) ! CHECK: d = dnint(d)
-  d = DNINT(r) ! expected-error {{passing 'REAL' to parameter of incompatible type 'DOUBLE PRECISION'}}
+  d = DNINT(r) ! expected-error {{passing 'real' to parameter of incompatible type 'double precision'}}
 
   i = NINT(r) ! CHECK: i = nint(r)
   i = NINT(d) ! CHECK: i = nint(d)
   i = IDNINT(d) ! CHECK: i = idnint(d)
-  i = IDNINT(r) ! expected-error {{passing 'REAL' to parameter of incompatible type 'DOUBLE PRECISION'}}
+  i = IDNINT(r) ! expected-error {{passing 'real' to parameter of incompatible type 'double precision'}}
 
   i = ABS(i) ! CHECK: i = abs(i)
   r = ABS(r) ! CHECK: r = abs(r)
@@ -102,12 +102,12 @@ PROGRAM intrinfuntest
 
   i = LEN(string) ! CHECK: i = len(string)
   i = len_trim(string) ! CHECK: i = len_trim(string)
-  i = LEN(22) ! expected-error {{passing 'INTEGER' to parameter of incompatible type 'CHARACTER'}}
+  i = LEN(22) ! expected-error {{passing 'integer' to parameter of incompatible type 'character'}}
   i = INDEX(string, string) ! CHECK: i = index(string, string)
 
   r = aimag(c) ! CHECK: r = aimag(c)
   c = CONJG(c) ! CHECK: c = conjg(c)
-  c = CONJG(r) ! expected-error {{passing 'REAL' to parameter of incompatible type 'COMPLEX'}}
+  c = CONJG(r) ! expected-error {{passing 'real' to parameter of incompatible type 'complex'}}
 
   r = SQRT(r) ! CHECK: r = sqrt(r)
   d = SQRT(d) ! CHECK: d = sqrt(d)
@@ -117,7 +117,7 @@ PROGRAM intrinfuntest
   d = EXP(d) ! CHECK: d = exp(d)
   c = EXP(c) ! CHECK: c = exp(c)
 
-  r = SQRT(.false.) ! expected-error {{passing 'LOGICAL' to parameter of incompatible type 'REAL' or 'COMPLEX'}}
+  r = SQRT(.false.) ! expected-error {{passing 'logical' to parameter of incompatible type 'real' or 'complex'}}
 
   r = LOG(r) ! CHECK: r = log(r)
   d = LOG(d) ! CHECK: d = log(d)
@@ -125,7 +125,7 @@ PROGRAM intrinfuntest
 
   r = Log10(r) ! CHECK: r = log10(r)
   d = Log10(d) ! CHECK: d = log10(d)
-  c = Log10(c) ! expected-error {{passing 'COMPLEX' to parameter of incompatible type 'REAL'}}
+  c = Log10(c) ! expected-error {{passing 'complex' to parameter of incompatible type 'real'}}
 
   r = SIN(r) ! CHECK: r = sin(r)
   d = SIN(d) ! CHECK: d = sin(d)

@@ -254,43 +254,43 @@ void ASTDumper::dumpType(QualType T) {
 void ASTDumper::VisitBuiltinType(const BuiltinType *T, const ExtQuals *E) {
   if(E && E->isDoublePrecisionKind()) {
     if(T->isRealType())
-      OS << "DOUBLE PRECISION";
-    else OS << "DOUBLE COMPLEX";
+      OS << "double precision";
+    else OS << "double complex";
   } else {
     switch (T->getTypeSpec()) {
     default: assert(false && "Invalid built-in type!");
     case BuiltinType::Integer:
-      OS << "INTEGER";
+      OS << "integer";
       break;
     case BuiltinType::Real:
-      OS << "REAL";
+      OS << "real";
       break;
     case BuiltinType::Character:
-      OS << "CHARACTER";
+      OS << "character";
       break;
     case BuiltinType::Complex:
-      OS << "COMPLEX";
+      OS << "complex";
       break;
     case BuiltinType::Logical:
-      OS << "LOGICAL";
+      OS << "logical";
       break;
     }
   }
 
   if (!E) return;
   if (!E->isDoublePrecisionKind() && E->hasKindSelector()) {
-    OS << " (KIND=" << BuiltinType::getTypeKindString(E->getKindSelector());
+    OS << " (Kind=" << BuiltinType::getTypeKindString(E->getKindSelector());
     if (E->hasLengthSelector()) {
-      if(E->isStarLengthSelector()) OS << ", LEN=*";
+      if(E->isStarLengthSelector()) OS << ", Len=*";
       else {
-        OS << ", LEN=" << E->getLengthSelector();
+        OS << ", Len=" << E->getLengthSelector();
       }
     }
     OS << ")";
   } else if (E->hasLengthSelector()) {
-    if(E->isStarLengthSelector()) OS << "(LEN=*)";
+    if(E->isStarLengthSelector()) OS << "(Len=*)";
     else {
-      OS << " (LEN=" << E->getLengthSelector() << ")";
+      OS << " (Len=" << E->getLengthSelector() << ")";
     }
   }
 }

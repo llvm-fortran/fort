@@ -6,7 +6,7 @@ PROGRAM charexpressions
   C = 'HELLO' // 'WORLD'
   C = C // '!'
 
-  C = C // 1 ! expected-error {{invalid operands to a character binary expression ('CHARACTER (LEN=16)' and 'INTEGER')}}
-  C = .false. // 'TRUE' ! expected-error {{invalid operands to a character binary expression ('LOGICAL' and 'CHARACTER')}}
+  C = C // 1 ! expected-error {{invalid operands to a character binary expression ('character (Len=16)' and 'integer')}}
+  C = .false. // 'TRUE' ! expected-error {{invalid operands to a character binary expression ('logical' and 'character')}}
 
 ENDPROGRAM charexpressions

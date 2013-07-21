@@ -7,7 +7,7 @@ PROGRAM paramtest
   PARAMETER (comp = 0)
 
   INTEGER NUMBER
-  PARAMETER (NUMBER = .false.) ! expected-error {{assigning to 'INTEGER' from incompatible type 'LOGICAL'}}
+  PARAMETER (NUMBER = .false.) ! expected-error {{assigning to 'integer' from incompatible type 'logical'}}
 
   REAL w ! expected-error {{redefinition of 'w'}}
 

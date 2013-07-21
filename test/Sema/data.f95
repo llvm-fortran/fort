@@ -25,17 +25,17 @@ PROGRAM datatest
 
   DATA O, P / 0 / ! expected-error {{not enough values in a 'DATA' statement}}
 
-  DATA A / .false. / ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
-  DATA NNN / 'STR' /   ! expected-error {{assigning to 'INTEGER' from incompatible type 'CHARACTER'}}
+  DATA A / .false. / ! expected-error {{assigning to 'real' from incompatible type 'logical'}}
+  DATA NNN / 'STR' /   ! expected-error {{assigning to 'integer' from incompatible type 'character'}}
 
   DATA R_ARR(1) / 1.0 / R_ARR(2), R_ARR(3) / 2*0.0 /
 
-  DATA R_ARR(4) / .false. / ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
+  DATA R_ARR(4) / .false. / ! expected-error {{assigning to 'real' from incompatible type 'logical'}}
 
   DATA STR / 'Hello' / STR_ARR(1)(:), STR_ARR(2) / 2*'World' /
   DATA STR_ARR(3)(2:4) / 'STR' /
 
-  DATA STR_ARR(4)(:4) / 1 / ! expected-error {{assigning to 'CHARACTER' from incompatible type 'INTEGER'}}
+  DATA STR_ARR(4)(:4) / 1 / ! expected-error {{assigning to 'character' from incompatible type 'integer'}}
 
   DATA R_ARR / 10*1.0 /
 
@@ -43,7 +43,7 @@ PROGRAM datatest
 
   DATA R_ARR / 11*1.0 / ! expected-error {{excess values in a 'DATA' statement}}
 
-  DATA R_ARR2 / 1, .false., 2.0 / ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
+  DATA R_ARR2 / 1, .false., 2.0 / ! expected-error {{assigning to 'real' from incompatible type 'logical'}}
 
   DATA R_ARR2 / 1.5, 2*-1.0 /
 

@@ -34,7 +34,7 @@ END
 REAL FUNCTION FUNC4()
   INTEGER FUNC4 ! expected-error {{the return type for a function 'func4' was already specified}}
   FUNC4 = 22 ! CHECK: func4 = REAL(22)
-  FUNC4 = .false. ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
+  FUNC4 = .false. ! expected-error {{assigning to 'real' from incompatible type 'logical'}}
 END
 
 FUNCTION FUNC5(ARG, IARG)
@@ -57,7 +57,7 @@ FUNCTION OFUNC(ZZ) ! expected-error {{the function 'ofunc' requires a type speci
 END
 
 FUNCTION FUNC6()
-  FUNC6 = .true. ! expected-error {{assigning to 'REAL' from incompatible type 'LOGICAL'}}
+  FUNC6 = .true. ! expected-error {{assigning to 'real' from incompatible type 'logical'}}
 END
 
 FUNCTION FUNC7()
