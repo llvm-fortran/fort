@@ -335,4 +335,17 @@ bool Sema::CheckArrayConstructorItems(ArrayRef<Expr*> Items,
   return Result;
 }
 
+bool Sema::CheckVarIsAssignable(const VarExpr *E) {
+  for(auto I : CurLoopVars) {
+    if(I->getVarDecl() == E->getVarDecl()) {
+      Diags.Report(E->getLocation(), diag::err_var_not_assignable)
+        << E->getVarDecl()->getIdentifier() << E->getSourceRange();
+      Diags.Report(I->getLocation(), diag::note_var_prev_do_use)
+        << I->getSourceRange();
+      return false;
+    }
+  }
+  return true;
+}
+
 } // end namespace flang

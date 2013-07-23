@@ -925,6 +925,8 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
     Diags.Report(Loc,diag::err_expr_not_assignable) << LHS.get()->getSourceRange();
     return StmtError();
   }
+  if(auto Var = dyn_cast<VarExpr>(LHS.get()))
+    CheckVarIsAssignable(Var);
   if(LHS.get()->getType().isNull() ||
      RHS.get()->getType().isNull())
     return StmtError();
@@ -1036,6 +1038,7 @@ StmtResult Sema::ActOnAssignStmt(ASTContext &C, SourceLocation Loc,
                                  ExprResult Value, VarExpr* VarRef,
                                  Expr *StmtLabel) {
   CheckIntegerVar(VarRef);
+  CheckVarIsAssignable(VarRef);
   Stmt *Result;
   auto Decl = getCurrentStmtLabelScope()->Resolve(Value.get());
   if(!Decl) {
@@ -1241,6 +1244,7 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult Termi
   // typecheck
   auto HasErrors = 0;
   HasErrors |= ExpectRealOrIntegerOrDoublePrec(Diags, DoVar, diag::err_typecheck_expected_do_var);
+  CheckVarIsAssignable(DoVar);
   HasErrors |= ExpectRealOrIntegerOrDoublePrec(Diags, E1.get());
   HasErrors |= ExpectRealOrIntegerOrDoublePrec(Diags, E2.get());
   if(E3.isUsable())
@@ -1271,6 +1275,7 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult Termi
   auto Result = DoStmt::Create(C, Loc, StmtLabelReference(),
                                DoVar, E1.take(), E2.take(),
                                E3.take(), StmtLabel);
+  AddLoopVar(DoVar);
   getCurrentBody()->Append(Result);
   if(TerminatingStmt.get())
     getCurrentStmtLabelScope()->DeclareForwardReference(
@@ -1308,8 +1313,10 @@ void Sema::CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S) {
                          diag::err_invalid_do_terminating_stmt);
           }
           ParentDo->setTerminatingStmt(StmtLabelReference(S));
-          if(!LastUnterminated)
+          if(!LastUnterminated) {
+            RemoveLoopVar(ParentDo->getDoVar());
             getCurrentBody()->Leave(Context);
+          }
           else
             ReportUnterminatedStmt(Diags,
                                    getCurrentBody()->ControlFlowStack[LastUnterminated],
@@ -1354,12 +1361,13 @@ StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLab
 
   auto Last = getCurrentBody()->LastEntered();
 
-  if(isa<DoStmt>(Last.Statement)) {
+  if(auto Do = dyn_cast<DoStmt>(Last.Statement)) {
     // If last loop was a DO with terminating label, we expect it to finish before this loop
     if(getCurrentBody()->LastEntered().ExpectedEndDoLabel) {
       ReportUnterminatedLabeledDoStmt(Diags, getCurrentBody()->LastEntered(), Loc);
       return StmtError();
     }
+    RemoveLoopVar(Do->getDoVar());
   }
 
   auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndDoStmtClass, Loc, nullptr, StmtLabel);

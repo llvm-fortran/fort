@@ -1,7 +1,7 @@
 ! RUN: %flang -fsyntax-only -verify < %s
 ! RUN: %flang -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
 PROGRAM dotest
-    INTEGER I, K
+    INTEGER I, II, K
     REAL R
     COMPLEX C
     INTEGER ADDR
@@ -17,7 +17,7 @@ PROGRAM dotest
     DO 10 I = 1, 5 ! expected-error {{the statement label '10' must be declared after the 'DO' statement}}
 20    R = R * R
 
-    DO 25 I = 1, 10
+    DO 25 II = 1, 10
       IF(.true.) THEN
 25      CONTINUE ! expected-error {{expected 'END IF'}}
       END IF

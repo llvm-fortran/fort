@@ -57,8 +57,28 @@ class Sema {
   /// \brief The implicit scope for the current program unit.
   ImplicitTypingScope *CurImplicitTypingScope;
 
+  /// \brief Represents the do loop variable currently being used.
+  SmallVector<const VarExpr*, 8> CurLoopVars;
+
+  /// \brief Marks the variable as used by a loop.
+  void AddLoopVar(const VarExpr *Var) {
+    CurLoopVars.push_back(Var);
+  }
+
+  /// \brief Clears the variable of a used by a loop mark.
+  void RemoveLoopVar(const VarExpr *Var) {
+    for(auto I = CurLoopVars.begin();I!=CurLoopVars.end();++I) {
+      if(*I == Var) {
+        CurLoopVars.erase(I);
+        return;
+      }
+    }
+  }
+
   /// \brief The mapping
   intrinsic::FunctionMapping IntrinsicFunctionMapping;
+
+
 
 public:
   typedef Expr ExprTy;
@@ -554,6 +574,9 @@ public:
   /// As a bonus it also returns the Element type in ObtainedElementType.
   bool CheckArrayConstructorItems(ArrayRef<Expr*> Items,
                                   QualType &ObtainedElementType);
+
+  /// Returns true if the variable can be assigned to (mutated)
+  bool CheckVarIsAssignable(const VarExpr *E);
 
 };
 

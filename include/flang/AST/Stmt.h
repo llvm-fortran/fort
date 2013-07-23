@@ -751,21 +751,21 @@ public:
 /// DoStmt
 class DoStmt : public CFBlockStmt {
   StmtLabelReference TerminatingStmt;
-  Expr *DoVar;
+  VarExpr *DoVar;
   Expr *Init, *Terminate, *Increment;
 
-  DoStmt(SourceLocation Loc, StmtLabelReference TermStmt, Expr *DoVariable,
+  DoStmt(SourceLocation Loc, StmtLabelReference TermStmt, VarExpr *DoVariable,
          Expr *InitialParam, Expr *TerminalParam,
          Expr *IncrementationParam,Expr *StmtLabel);
 public:
   static DoStmt *Create(ASTContext &C,SourceLocation Loc, StmtLabelReference TermStmt,
-                        Expr *DoVariable, Expr *InitialParam,
+                        VarExpr *DoVariable, Expr *InitialParam,
                         Expr *TerminalParam,Expr *IncrementationParam,
                         Expr *StmtLabel);
 
   StmtLabelReference getTerminatingStmt() const { return TerminatingStmt; }
   void setTerminatingStmt(StmtLabelReference Stmt);
-  Expr *getDoVar() const { return DoVar; }
+  VarExpr *getDoVar() const { return DoVar; }
   Expr *getInitialParameter() const { return Init; }
   Expr *getTerminalParameter() const { return Terminate; }
   Expr *getIncrementationParameter() const { return Increment; }

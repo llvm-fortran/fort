@@ -419,7 +419,7 @@ void CFBlockStmt::setBody(Stmt *Body) {
 //===----------------------------------------------------------------------===//
 
 DoStmt::DoStmt(SourceLocation Loc, StmtLabelReference TermStmt,
-               Expr *DoVariable, Expr *InitialParam,
+               VarExpr *DoVariable, Expr *InitialParam,
                Expr *TerminalParam, Expr *IncrementationParam,
                Expr *StmtLabel)
   : CFBlockStmt(DoStmtClass, Loc, StmtLabel), TerminatingStmt(TermStmt), DoVar(DoVariable),
@@ -427,7 +427,7 @@ DoStmt::DoStmt(SourceLocation Loc, StmtLabelReference TermStmt,
 }
 
 DoStmt *DoStmt::Create(ASTContext &C, SourceLocation Loc, StmtLabelReference TermStmt,
-                       Expr *DoVariable, Expr *InitialParam,
+                       VarExpr *DoVariable, Expr *InitialParam,
                        Expr *TerminalParam, Expr *IncrementationParam,
                        Expr *StmtLabel) {
   return new(C) DoStmt(Loc, TermStmt, DoVariable, InitialParam,TerminalParam,

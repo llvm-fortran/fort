@@ -72,6 +72,11 @@ def err_typecheck_expected_format_spec : Error<
 def err_typecheck_array_constructor_invalid_item : Error<
   "invalid item in an array constructor with element type %0">;
 
+def err_var_not_assignable : Error<
+  "assignment to a do variable %0">;
+def note_var_prev_do_use : Note<
+  "which is used in a do statement here">;
+
 def err_char_star_length_incompatible : Error<
   "use of character length declarator '*' for a "
   "%select{local variable|parameter}0 %1">;
