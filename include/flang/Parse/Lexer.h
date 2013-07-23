@@ -93,13 +93,14 @@ class Lexer {
 
     /// SkipBlankLinesAndComments - Helper function that skips blank lines and
     /// lines with only comments.
-    bool SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin);
+    bool SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin,
+                                   bool IgnoreContinuationChar = false);
 
     void SkipFixedFormBlankLinesAndComments(unsigned &I, const char *&LineBegin);
 
     /// GetCharacterLiteral - A character literal has to be treated specially
     /// because an ampersand may exist within it.
-    void GetCharacterLiteral(unsigned &I, const char *&LineBegin);
+    void GetCharacterLiteral(unsigned &I, const char *&LineBegin, bool &PadAtoms);
 
     /// Padding - This is an extra space that we insert between two
     /// continuations which were merged. E.g.:

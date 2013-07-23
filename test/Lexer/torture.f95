@@ -8,7 +8,7 @@ P&
 &M&
 & TORTURE
   ! Torture the lexer and parser.
-  CHARACTER (LEN=256) :: A, B, C, D, E, F
+  CHARACTER (LEN=256) :: A, B, C, D, E, F, G
 
   A = '&
 &'
@@ -25,4 +25,6 @@ P&
 &"'
   E = ''''
   F = """"
+  G = ''&
+&''
 END PROGRAM TORTURE

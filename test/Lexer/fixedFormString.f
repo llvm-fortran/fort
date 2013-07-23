@@ -14,4 +14,7 @@ C CHECK: ' He lloWo  - rld'
      .' Blah blah blah
      .Blah blah blah
      .Blah blah blah.'/
+      DATA MESS(08)/
+     .' ''UNKOWN'
+     .' STATUS.'/
       END

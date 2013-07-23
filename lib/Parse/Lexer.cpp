@@ -86,7 +86,7 @@ void Lexer::LineOfText::SetState(const State &S) {
 /// SkipBlankLinesAndComments - Helper function that skips blank lines and lines
 /// with only comments.
 bool Lexer::LineOfText::
-SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
+SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin, bool IgnoreContinuationChar) {
   // Skip blank lines and lines with only comments.
   while (isVerticalWhitespace(*BufPtr) && *BufPtr != '\0')
     ++BufPtr;
@@ -112,7 +112,7 @@ SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
   // had a previous continuation character at the end of the line, then readjust
   // the LineBegin.
   if (I != 132 && *BufPtr == '&') {
-    if (Atoms.empty()) // FIXME: This isn't sufficient.
+    if (Atoms.empty() && !IgnoreContinuationChar)
       Diags.Report(SourceLocation::getFromPointer(BufPtr),
                    diag::err_continuation_out_of_context);
     ++I, ++BufPtr;
@@ -150,7 +150,7 @@ SkipFixedFormBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
 /// GetCharacterLiteral - A character literal has to be treated specially
 /// because an ampersand may exist within it.
 void Lexer::LineOfText::
-GetCharacterLiteral(unsigned &I, const char *&LineBegin) {
+GetCharacterLiteral(unsigned &I, const char *&LineBegin, bool &PadAtoms) {
   // Skip blank lines and lines with only comments.
   SkipBlankLinesAndComments(I, LineBegin);
 
@@ -195,7 +195,7 @@ GetCharacterLiteral(unsigned &I, const char *&LineBegin) {
             I++, ++BufPtr;
             LineBegin = BufPtr;
             I = 0;
-            SkipBlankLinesAndComments(I, LineBegin);
+            SkipBlankLinesAndComments(I, LineBegin, true);
             char next = *BufPtr;
             bool endQuote = true;
             if(DoubleQuotes){
@@ -211,6 +211,7 @@ GetCharacterLiteral(unsigned &I, const char *&LineBegin) {
             }
             I = currentI;BufPtr = CurrentBufPtr; LineBegin = CurrentLineBegin;
             if(!endQuote){
+              PadAtoms = false;
               skipNextQuoteChar = true;
               continue;
             }
@@ -267,6 +268,7 @@ void Lexer::LineOfText::GetNextLine() {
   unsigned I = 0;
 
   bool BeginsWithAmp = true;
+  bool PadAtoms = true;
 
   const char *AmpersandPos = 0;
   if(LanguageOptions.FixedForm) {
@@ -276,8 +278,8 @@ void Lexer::LineOfText::GetNextLine() {
     while (I != 72 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
       ++I, ++BufPtr;
     }
-    if(!Atoms.empty())
-      Atoms.push_back(StringRef(Padding));
+    //if(!Atoms.empty())
+    // Atoms.push_back(StringRef(Padding));
     Atoms.push_back(StringRef(LineBegin, BufPtr - LineBegin));
 
     // Increment the buffer pointer to the start of the next line.
@@ -309,7 +311,7 @@ void Lexer::LineOfText::GetNextLine() {
     while (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
       if (*BufPtr == '\'' || *BufPtr == '"') {
         // TODO: A BOZ constant doesn't get parsed like a character literal.
-        GetCharacterLiteral(I, LineBegin);
+        GetCharacterLiteral(I, LineBegin, PadAtoms);
         if (I == 132 || isVerticalWhitespace(*BufPtr))
           break;
       } else if (*BufPtr == '&') {
@@ -350,7 +352,7 @@ void Lexer::LineOfText::GetNextLine() {
   if (AmpersandPos) {
     Atoms.push_back(StringRef(LineBegin, AmpersandPos - LineBegin));
   } else {
-    if (!BeginsWithAmp && !Atoms.empty())
+    if (!BeginsWithAmp && !Atoms.empty() && PadAtoms)
       // This is a line that doesn't start with an '&'. The tokens are not
       // contiguous. Insert a space to indicate this.
       Atoms.push_back(StringRef(Padding));
@@ -1078,6 +1080,8 @@ void Lexer::LexCharacterLiteralConstant(Token &Result,
       }
     } else {
       if (C == '\'') {
+        auto Next = peekNextChar();
+          llvm::outs() <<"Next:" << int(Next) << "," << Next<<"\n";
         if (peekNextChar() != '\'') {
           getNextChar();
           break;
