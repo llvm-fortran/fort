@@ -24,9 +24,21 @@ static char const * const TokNames[] = {
   0
 };
 
+static const bool TokDelimiters[] = {
+  #define TOK(X)       false,
+  #define DELIMITER_KEYWORD(X,Y) true,
+  #include "flang/Basic/TokenKinds.def"
+    false
+};
+
 const char *tok::getTokenName(enum TokenKind Kind) {
   assert(Kind < tok::NUM_TOKENS && "Invalid token kind!");
   return TokNames[Kind];
+}
+
+bool tok::isDelimiterKeyword(enum TokenKind Kind) {
+  assert(Kind < tok::NUM_TOKENS && "Invalid token kind!");
+  return TokDelimiters[Kind];
 }
 
 const char *tok::getTokenSimpleSpelling(enum TokenKind Kind) {

@@ -278,8 +278,6 @@ void Lexer::LineOfText::GetNextLine() {
     while (I != 72 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
       ++I, ++BufPtr;
     }
-    //if(!Atoms.empty())
-    // Atoms.push_back(StringRef(Padding));
     Atoms.push_back(StringRef(LineBegin, BufPtr - LineBegin));
 
     // Increment the buffer pointer to the start of the next line.
@@ -924,10 +922,12 @@ void Lexer::LexFixedFormIdentifier(Token &Result) {
     FormTokenWithChars(Result, tok::identifier);
     if(NeedsCleaning)
       Result.setFlag(Token::NeedsCleaning);
-    if(TheParser.MatchFixedFormIdentifier(Result, CurIdContext)) {
+    auto Action = TheParser.MatchFixedFormIdentifier(Result, CurIdContext);
+    if(Action == Parser::RememberIdentAction) {
       LastMatchedIdState = Text.GetState();
       MatchedId = true;
-    }
+    } else if(Action == Parser::ResetIdentAction)
+      MatchedId = false;
     if(!isIdentifierBody(C)) {
       if(isHorizontalWhitespace(C)) {
         NeedsCleaning = true;
@@ -1080,8 +1080,6 @@ void Lexer::LexCharacterLiteralConstant(Token &Result,
       }
     } else {
       if (C == '\'') {
-        auto Next = peekNextChar();
-          llvm::outs() <<"Next:" << int(Next) << "," << Next<<"\n";
         if (peekNextChar() != '\'') {
           getNextChar();
           break;

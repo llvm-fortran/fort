@@ -31,6 +31,9 @@ enum TokenKind {
 /// not be used as part of diagnostic messages.
 const char *getTokenName(enum TokenKind Kind);
 
+/// \brief Returns true if the given token is a delimiter keyword token.
+bool isDelimiterKeyword(enum TokenKind Kind);
+
 /// \brief Determines the spelling of simple punctuation tokens like '**' or
 /// '(', and returns NULL for literal and annotation tokens.
 ///

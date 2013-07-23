@@ -156,10 +156,16 @@ private:
   void ClassifyToken(Token &T);
 public:
 
+  enum MatchFixedFormIdentAction {
+    NoIdentAction,
+    RememberIdentAction,
+    ResetIdentAction
+  };
+
   /// MatchFixedFormIdentifier - Returns true if the identifier token
   /// T matches an appropriate identifier given the current context.
-  bool MatchFixedFormIdentifier(Token &T,
-                                IdentifierLexingContext Context);
+  MatchFixedFormIdentAction MatchFixedFormIdentifier(Token &T,
+                                                     IdentifierLexingContext Context);
 
   typedef OpaquePtr<DeclGroupRef> DeclGroupPtrTy;
 

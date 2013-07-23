@@ -20,6 +20,13 @@
 #ifndef KEYWORD
 #define KEYWORD(X,Y) TOK(kw_ ## X)
 #endif
+
+/// The delimited keyword is a keyword, after which there is always a non-identifier token.
+/// This is required to lex and parse fixed-form sources correctly.
+#ifndef DELIMITER_KEYWORD
+#define DELIMITER_KEYWORD(X, Y) KEYWORD(X, Y)
+#endif
+
 #ifndef FORMAT_SPEC(X, Y)
 #define FORMAT_SPEC(X, Y) TOK(fs_ ## X)
 #endif
@@ -126,11 +133,11 @@ TOK(at)                  // @
 KEYWORD(INCLUDE                , KEYALL)
 KEYWORD(PROGRAM                , KEYALL)
 KEYWORD(END                    , KEYALL)
-KEYWORD(IF                     , KEYALL)
+DELIMITER_KEYWORD(IF           , KEYALL)
 KEYWORD(THEN                   , KEYALL)
 KEYWORD(ELSE                   , KEYALL)
 KEYWORD(DO                     , KEYALL)
-KEYWORD(WHILE                  , KEYALL)
+DELIMITER_KEYWORD(WHILE        , KEYALL)
 KEYWORD(INTEGER                , KEYALL)
 KEYWORD(CHARACTER              , KEYALL)
 KEYWORD(REAL                   , KEYALL) // A function based on context.
@@ -225,7 +232,7 @@ KEYWORD(PRINT                  , KEYF90)    // R912: print-stmt
 // BLOCK DATA:
 KEYWORD(BLOCKDATA              , KEYALL)
 // ELSE IF: 
-KEYWORD(ELSEIF                 , KEYALL)
+DELIMITER_KEYWORD(ELSEIF       , KEYALL)
 // DO WHILE
 KEYWORD(DOWHILE                , KEYALL)
 // END ASSOCIATE:
@@ -352,5 +359,6 @@ FORMAT_SPEC(DC                 , KEYALL)
 FORMAT_SPEC(DP                 , KEYALL)
 
 #undef FORMAT_SPEC
+#undef DELIMITER_KEYWORD
 #undef KEYWORD
 #undef TOK

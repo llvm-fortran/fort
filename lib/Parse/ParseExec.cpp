@@ -143,8 +143,7 @@ Parser::StmtResult Parser::ParseActionStmt() {
 }
 
 Parser::StmtResult Parser::ParseAssignStmt() {
-  SourceLocation Loc = Tok.getLocation();
-  Lex();
+  SourceLocation Loc = ConsumeToken();
 
   auto Value = ParseStatementLabelReference(false);
   if(Value.isInvalid()) {
@@ -167,8 +166,7 @@ Parser::StmtResult Parser::ParseAssignStmt() {
 }
 
 Parser::StmtResult Parser::ParseGotoStmt() {
-  SourceLocation Loc = Tok.getLocation();
-  Lex();
+  SourceLocation Loc = ConsumeToken();
 
   auto Destination = ParseStatementLabelReference();
   if(Destination.isInvalid()) {
@@ -283,8 +281,7 @@ Parser::StmtResult Parser::ParseIfStmt() {
 }
 
 Parser::StmtResult Parser::ParseElseIfStmt() {
-  auto Loc = Tok.getLocation();
-  Lex();
+  auto Loc = ConsumeToken();
 
   ExprResult Condition = ParseExpectedConditionExpression("ELSE IF");
   if(Condition.isInvalid()) return StmtError();
@@ -297,20 +294,17 @@ Parser::StmtResult Parser::ParseElseIfStmt() {
 }
 
 Parser::StmtResult Parser::ParseElseStmt() {
-  auto Loc = Tok.getLocation();
-  Lex();
+  auto Loc = ConsumeToken();
   return Actions.ActOnElseStmt(Context, Loc, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseEndIfStmt() {
-  auto Loc = Tok.getLocation();
-  Lex();
+  auto Loc = ConsumeToken();
   return Actions.ActOnEndIfStmt(Context, Loc, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseDoStmt() {
-  auto Loc = Tok.getLocation();
-  Lex();
+  auto Loc = ConsumeToken();
 
   ExprResult TerminalStmt;
   if(Tok.is(tok::int_literal_constant)) {
@@ -345,16 +339,14 @@ Parser::StmtResult Parser::ParseDoStmt() {
 }
 
 Parser::StmtResult Parser::ParseDoWhileStmt() {
-  auto Loc = Tok.getLocation();
-  Lex();
+  auto Loc = ConsumeToken();
   auto Condition = ParseExpectedConditionExpression("WHILE");
   if(Condition.isInvalid()) return StmtError();
   return Actions.ActOnDoWhileStmt(Context, Loc, Condition, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseEndDoStmt() {
-  auto Loc = Tok.getLocation();
-  Lex();
+  auto Loc = ConsumeToken();
   return Actions.ActOnEndDoStmt(Context, Loc, StmtLabel);
 }
 
@@ -363,8 +355,7 @@ Parser::StmtResult Parser::ParseEndDoStmt() {
 ///     continue-stmt :=
 ///       CONTINUE
 Parser::StmtResult Parser::ParseContinueStmt() {
-  auto Loc = Tok.getLocation();
-  Lex();
+  auto Loc = ConsumeToken();
 
   return Actions.ActOnContinueStmt(Context, Loc, StmtLabel);
 }
@@ -378,16 +369,14 @@ Parser::StmtResult Parser::ParseContinueStmt() {
 ///       scalar-char-constant or
 ///       digit [ digit [ digit [ digit [ digit ] ] ] ]
 Parser::StmtResult Parser::ParseStopStmt() {
-  auto Loc = Tok.getLocation();
-  Lex();
+  auto Loc = ConsumeToken();
 
   //FIXME: parse optional stop-code.
   return Actions.ActOnStopStmt(Context, Loc, ExprResult(), StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseReturnStmt() {
-  auto Loc = Tok.getLocation();
-  Lex();
+  auto Loc = ConsumeToken();
   ExprResult E;
   if(!Tok.isAtStartOfStatement())
     E = ParseExpression();
@@ -396,8 +385,7 @@ Parser::StmtResult Parser::ParseReturnStmt() {
 }
 
 Parser::StmtResult Parser::ParseCallStmt() {
-  auto Loc = Tok.getLocation();
-  Lex();
+  auto Loc = ConsumeToken();
   SourceLocation RParenLoc = getExpectedLoc();
 
   auto ID = Tok.getIdentifierInfo();
@@ -453,8 +441,7 @@ Parser::StmtResult Parser::ParseAssignmentStmt() {
 ///      or *
 
 Parser::StmtResult Parser::ParsePrintStmt() {
-  SourceLocation Loc = Tok.getLocation();
-  Lex();
+  SourceLocation Loc = ConsumeToken();
 
   FormatSpec *FS = ParseFMTSpec(false);
 
@@ -471,8 +458,7 @@ Parser::StmtResult Parser::ParsePrintStmt() {
 }
 
 Parser::StmtResult Parser::ParseWriteStmt() {
-  SourceLocation Loc = Tok.getLocation();
-  Lex();
+  SourceLocation Loc = ConsumeToken();
 
   // clist
   if(!EatIfPresentInSameStmt(tok::l_paren)) {

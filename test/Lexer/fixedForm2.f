@@ -1,4 +1,5 @@
 * RUN: %flang -fsyntax-only %s
+* RUN: %flang -fsyntax-only -ast-print %s 2>&1 | %file_check %s
 * an extract from chemm.f
       SUBROUTINE FOO(M, N, ALPHA, BETA)
       REAL M, N, ALPHA, BETA
@@ -12,5 +13,8 @@
 *
 *     And when  alpha.eq.zero.
 *
+      M = N
+     ++1.0
+* CHECK: m = (n+1)
       RETURN
       END

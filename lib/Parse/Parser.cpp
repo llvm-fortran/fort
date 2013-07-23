@@ -299,8 +299,8 @@ void Parser::CleanLiteral(Token T, std::string &NameStr) {
     NameStr = std::string(NameStr,1,NameStr.length()-2);
 }
 
-bool Parser::MatchFixedFormIdentifier(Token &T,
-                                      IdentifierLexingContext Context) {
+Parser::MatchFixedFormIdentAction
+Parser::MatchFixedFormIdentifier(Token &T, IdentifierLexingContext Context) {
   // Set the identifier info for this token.
   llvm::SmallVector<llvm::StringRef, 2> Spelling;
   TheLexer.getSpelling(T, Spelling);
@@ -308,11 +308,14 @@ bool Parser::MatchFixedFormIdentifier(Token &T,
 
   if(Context.Kind == IdentifierLexingContext::StatementStart) {
     auto KW = Identifiers.lookupKeyword(NameStr);
-    if(KW)
-      return true;
+    if(KW) {
+      if(tok::isDelimiterKeyword(KW->getTokenID()))
+        return ResetIdentAction;
+      return RememberIdentAction;
+    }
   }
 
-  return false;
+  return NoIdentAction;
 }
 
 /// \brief Returns true if the check flag is set,
