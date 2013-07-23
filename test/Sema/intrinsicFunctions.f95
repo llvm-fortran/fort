@@ -34,7 +34,7 @@ PROGRAM intrinfuntest
   i = INT((1,2)) ! CHECK: i = int((1,2))
   i = ifix(1.0) ! CHECK: i = ifix(1)
   i = IDINT(4.25D1) ! CHECK: i = idint(42.5)
-  r = INT(22) ! CHECK: r = REAL(int(22))
+  r = INT(22) ! CHECK: r = real(int(22))
 
   i = INT() ! expected-error {{too few arguments to intrinsic function call, expected 1, have 0}}
   i = INT(1,2) ! expected-error {{too many arguments to intrinsic function call, expected 1, have 2}}
@@ -53,7 +53,7 @@ PROGRAM intrinfuntest
 
   d = DBLE(i) ! CHECK: d = dble(i)
   d = DBLE(r) ! CHECK: d = dble(r)
-  r = DBLE(i) ! CHECK: r = REAL(dble(i))
+  r = DBLE(i) ! CHECK: r = real(dble(i))
 
   c = cmplx(2.0)
   c = CMPLX(33)

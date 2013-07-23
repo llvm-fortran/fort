@@ -2,12 +2,12 @@
 ! RUN: %flang -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
 
 REAL(Kind=8) FUNCTION A()
-  A = 1.0 ! CHECK: a = REAL(1,Kind=8)
+  A = 1.0 ! CHECK: a = real(1,Kind=8)
 END
 
 INTEGER(8) FUNCTION FF(I)
   INTEGER I
-  FF = I ! CHECK: ff = INT(i,Kind=8)
+  FF = I ! CHECK: ff = int(i,Kind=8)
 END
 
 PROGRAM vartest
@@ -31,8 +31,8 @@ PROGRAM vartest
   J = 1
   L2 = .false.
 
-  D = R ! CHECK: d = REAL(r,Kind=8)
-  I = J  ! CHECK: i = INT(j,Kind=4)
-  L1 = L2 ! CHECK: l1 = LOGICAL(l2,Kind=1)
+  D = R ! CHECK: d = real(r,Kind=8)
+  I = J  ! CHECK: i = int(j,Kind=4)
+  L1 = L2 ! CHECK: l1 = logical(l2,Kind=1)
 
 END PROGRAM

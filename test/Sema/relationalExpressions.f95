@@ -14,8 +14,8 @@ PROGRAM relexpressions
   l = i .LT. i ! CHECK: (i<i)
   l = i .EQ. 2 ! CHECK: (i==2)
   l = 3 .NE. i ! CHECK: (3/=i)
-  l = i .GT. r ! CHECK: (REAL(i)>r)
-  l = i .LE. r ! CHECK: (REAL(i)<=r)
+  l = i .GT. r ! CHECK: (real(i)>r)
+  l = i .LE. r ! CHECK: (real(i)<=r)
   l = i .GE. i ! CHECK: (i>=i)
 
   l = r .LT. r ! CHECK: (r<r)
@@ -23,9 +23,9 @@ PROGRAM relexpressions
 
   l = c .EQ. c ! CHECK: (c==c)
   l = c .NE. c ! CHECK: (c/=c)
-  l = c .NE. r ! CHECK: (c/=CMPLX(r))
+  l = c .NE. r ! CHECK: (c/=cmplx(r))
   l = c .LE. c ! expected-error {{invalid operands to a relational binary expression ('complex' and 'complex')}}
-  l = c .EQ. 2.0 ! CHECK: (c==CMPLX(2))
+  l = c .EQ. 2.0 ! CHECK: (c==cmplx(2))
   l = c .EQ. 2.0d-1
 
   l = 'HELLO' .EQ. 'WORLD'

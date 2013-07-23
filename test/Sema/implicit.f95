@@ -9,9 +9,9 @@ PROGRAM imptest
   IMPLICIT INTEGER (Z-X) ! expected-error {{the range 'z' - 'x' isn't alphabetically ordered}}
 
   A = 1 ! CHECK: a = 1
-  B = 2.0 ! CHECK: b = INT(2)
+  B = 2.0 ! CHECK: b = int(2)
 
-  C = A ! CHECK: c = REAL(a)
+  C = A ! CHECK: c = real(a)
   D = C ! CHECK: d = c
   E = -1.0 ! CHECK: e = (-1)
   F = C ! CHECK: f = c

@@ -14,28 +14,28 @@ PROGRAM doubletest
 
   INTRINSIC DCMPLX, CDABS, DCONJG, DIMAG
 
-  r = dbl ! CHECK: r = REAL(dbl)
-  c = dc  ! CHECK: c = CMPLX(dc)
-  dbl = r ! CHECK: dbl = REAL(r,Kind=8)
-  dc = c  ! CHECK: dc = CMPLX(c,Kind=8)
+  r = dbl ! CHECK: r = real(dbl)
+  c = dc  ! CHECK: c = cmplx(dc)
+  dbl = r ! CHECK: dbl = real(r,Kind=8)
+  dc = c  ! CHECK: dc = cmplx(c,Kind=8)
 
-  dc = (1,2) ! CHECK: dc = CMPLX((1,2),Kind=8)
+  dc = (1,2) ! CHECK: dc = cmplx((1,2),Kind=8)
   ! create a double precision complex when a part has double precision
   dc = (1D1,2) ! CHECK: dc = (10,2)
   dc = (0,20D-1) ! CHECK: dc = (0,2)
   dc = (1d1, 25d-1) ! CHECK: dc = (10,2.5)
 
-  dc = c + dc + r ! CHECK: dc = ((CMPLX(c,Kind=8)+dc)+CMPLX(r,Kind=8))
-  dbl = r + dbl ! CHECK: dbl = (REAL(r,Kind=8)+dbl)
+  dc = c + dc + r ! CHECK: dc = ((cmplx(c,Kind=8)+dc)+cmplx(r,Kind=8))
+  dbl = r + dbl ! CHECK: dbl = (real(r,Kind=8)+dbl)
 
   dc = DCMPLX(r) ! CHECK: dc = dcmplx(r)
-  r = CDABS(dc) ! CHECK: r = REAL(cdabs(dc))
+  r = CDABS(dc) ! CHECK: r = real(cdabs(dc))
   dc = DCONJG(dc) ! CHECK: dc = dconjg(dc)
   dc = DCONJG(c) ! expected-error{{passing 'complex' to parameter of incompatible type 'double complex'}}
 
   dbl = DIMAG(dc) ! CHECK: dbl = dimag(dc)
 
-  dc = dc/dbl ! CHECK: dc = (dc/CMPLX(dbl,Kind=8))
+  dc = dc/dbl ! CHECK: dc = (dc/cmplx(dbl,Kind=8))
 
   dc = dcc ! CHECK: dc = dcc
 

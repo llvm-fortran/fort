@@ -33,7 +33,7 @@ END
 
 REAL FUNCTION FUNC4()
   INTEGER FUNC4 ! expected-error {{the return type for a function 'func4' was already specified}}
-  FUNC4 = 22 ! CHECK: func4 = REAL(22)
+  FUNC4 = 22 ! CHECK: func4 = real(22)
   FUNC4 = .false. ! expected-error {{assigning to 'real' from incompatible type 'logical'}}
 END
 
@@ -42,7 +42,7 @@ FUNCTION FUNC5(ARG, IARG)
   if(FUNC5 .EQ. 1.0) FUNC5 = 2.0
 
   FUNC5 = ARG ! CHECK: func5 = arg
-  FUNC5 = IARG ! CHECK: func5 = REAL(iarg)
+  FUNC5 = IARG ! CHECK: func5 = real(iarg)
 END
 
 FUNCTION IFUNC()

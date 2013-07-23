@@ -8,7 +8,7 @@ SUBROUTINE SUB(ARR, ARR2, ARR3)
   INTEGER i
 
   i = ARR(1) ! CHECK: i = arr(1)
-  i = ARR3(3,2) ! CHECK: i = INT(arr3(3, 2))
+  i = ARR3(3,2) ! CHECK: i = int(arr3(3, 2))
 END
 
 SUBROUTINE BUS(L, ARR, ARR2)
@@ -18,8 +18,8 @@ SUBROUTINE BUS(L, ARR, ARR2)
   DIMENSION ARR(L)
 
   ! ARR is REAL by implicit
-  I = ARR(1) ! CHECK: i = INT(arr(1))
-  I = ARR2(1) ! CHECK: i = INT(arr2(1))
+  I = ARR(1) ! CHECK: i = int(arr(1))
+  I = ARR2(1) ! CHECK: i = int(arr2(1))
 END
 
 SUBROUTINE USB(LENGTH)

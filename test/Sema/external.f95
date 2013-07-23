@@ -20,7 +20,7 @@ PROGRAM exttest
   REAL R
   COMPLEX C
 
-  I = FUNC() + FUNC2() ! CHECK: i = INT((REAL(func())+func2()))
+  I = FUNC() + FUNC2() ! CHECK: i = int((real(func())+func2()))
   C = F4(I) ! CHECK: c = f4(i)
 
 END PROGRAM

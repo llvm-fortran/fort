@@ -17,29 +17,29 @@ PROGRAM assignment
   chars = 'STRING'
 
   i = i ! CHECK: i = i
-  i = r ! CHECK: i = INT(r)
-  i = d ! CHECK: i = INT(d)
-  i = c ! CHECK: i = INT(c)
+  i = r ! CHECK: i = int(r)
+  i = d ! CHECK: i = int(d)
+  i = c ! CHECK: i = int(c)
   i = l ! expected-error{{assigning to 'integer' from incompatible type 'logical'}}
   i = chars ! expected-error{{assigning to 'integer' from incompatible type 'character (Len=10)'}}
 
-  r = i ! CHECK: r = REAL(i)
+  r = i ! CHECK: r = real(i)
   r = r ! CHECK: r = r
-  r = d ! CHECK: r = REAL(d)
-  r = c ! CHECK: r = REAL(c)
+  r = d ! CHECK: r = real(d)
+  r = c ! CHECK: r = real(c)
   r = l ! expected-error{{assigning to 'real' from incompatible type 'logical'}}
   r = chars ! expected-error{{assigning to 'real' from incompatible type 'character (Len=10)'}}
 
-  d = i ! CHECK: d = REAL(i,Kind=8)
-  d = r ! CHECK: d = REAL(r,Kind=8)
+  d = i ! CHECK: d = real(i,Kind=8)
+  d = r ! CHECK: d = real(r,Kind=8)
   d = d ! CHECK: d = d
-  d = c ! CHECK: d = REAL(c,Kind=8)
+  d = c ! CHECK: d = real(c,Kind=8)
   d = l ! expected-error{{assigning to 'double precision' from incompatible type 'logical'}}
   d = chars ! expected-error{{assigning to 'double precision' from incompatible type 'character (Len=10)'}}
 
-  c = i ! CHECK: c = CMPLX(i)
-  c = r ! CHECK: c = CMPLX(r)
-  c = d ! CHECK: c = CMPLX(d)
+  c = i ! CHECK: c = cmplx(i)
+  c = r ! CHECK: c = cmplx(r)
+  c = d ! CHECK: c = cmplx(d)
   c = c ! CHECK: c = c
   c = l ! expected-error{{assigning to 'complex' from incompatible type 'logical'}}
   c = chars ! expected-error{{assigning to 'complex' from incompatible type 'character (Len=10)'}}

@@ -8,10 +8,10 @@ PROGRAM imptest
   I = 22 ! CHECK: i = 22
   J = I ! CHECK: j = i
   k = J ! CHECK: k = j
-  M = 0.0 ! CHECK: m = INT(0)
+  M = 0.0 ! CHECK: m = int(0)
   n = -1 ! CHECK: n = (-1)
 
   R = 33.25 ! CHECK: r = 33.25
-  Z = 1 ! CHECK: z = REAL(1)
+  Z = 1 ! CHECK: z = real(1)
   a = -11.23
 END PROGRAM imptest

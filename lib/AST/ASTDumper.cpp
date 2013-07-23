@@ -625,13 +625,13 @@ void ASTDumper::VisitDefinedUnaryOperatorExpr(const DefinedUnaryOperatorExpr *E)
 void ASTDumper::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
   auto Type = E->getType();
   if(Type->isIntegerType())
-    OS << "INT(";
+    OS << "int(";
   else if(Type->isRealType())
-    OS << "REAL(";
+    OS << "real(";
   else if(Type->isComplexType())
-    OS << "CMPLX(";
+    OS << "cmplx(";
   else if(Type->isLogicalType())
-    OS << "LOGICAL(";
+    OS << "logical(";
   dumpExpr(E->getExpression());
   if(const ExtQuals *Ext = Type.getExtQualsPtrOrNull())
     OS << ",Kind=" << BuiltinType::getTypeKindString(Ext->getKindSelector());

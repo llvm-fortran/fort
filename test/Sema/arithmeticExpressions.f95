@@ -24,31 +24,31 @@ PROGRAM arithexpressions
 
   r = r + 1.0 ! CHECK: (r+1)
 
-  r = r * i ! CHECK: r = (r*REAL(i))
-  d = d - i ! CHECK: d = (d-REAL(i,Kind=8))
-  c = c / i ! CHECK: c = (c/CMPLX(i))
+  r = r * i ! CHECK: r = (r*real(i))
+  d = d - i ! CHECK: d = (d-real(i,Kind=8))
+  c = c / i ! CHECK: c = (c/cmplx(i))
   r = r ** I ! CHECK: r = (r**i)
   d = d ** i ! CHECK: d = (d**i)
   c = c ** i ! CHECK: c = (c**i)
 
-  r = i * r ! CHECK: r = (REAL(i)*r)
+  r = i * r ! CHECK: r = (real(i)*r)
   r = r - r ! CHECK: r = (r-r)
-  d = D / r ! CHECK: d = (d/REAL(r,Kind=8))
-  C = c ** r ! CHECK: c = (c**CMPLX(r))
+  d = D / r ! CHECK: d = (d/real(r,Kind=8))
+  C = c ** r ! CHECK: c = (c**cmplx(r))
 
-  d = i + d ! CHECK: d = (REAL(i,Kind=8)+d)
-  d = r * d ! CHECK: d = (REAL(r,Kind=8)*d)
+  d = i + d ! CHECK: d = (real(i,Kind=8)+d)
+  d = r * d ! CHECK: d = (real(r,Kind=8)*d)
   d = d - 2.0D1 ! CHECK: d = (d-20)
   d = c / d
 
-  c = i + c ! CHECK: c = (CMPLX(i)+c)
-  c = r - c ! CHECK: c = (CMPLX(r)-c)
+  c = i + c ! CHECK: c = (cmplx(i)+c)
+  c = r - c ! CHECK: c = (cmplx(r)-c)
   c = d * c
   c = c / c ! CHECK: (c/c)
-  c = c ** r ! CHECK: c = (c**CMPLX(r))
+  c = c ** r ! CHECK: c = (c**cmplx(r))
 
   i = +(i)
-  i = -r ! CHECK: i = INT((-r))
+  i = -r ! CHECK: i = int((-r))
   c = -c
 
   i = +.FALSE. ! expected-error {{invalid argument type 'logical' to an arithmetic unary expression}}

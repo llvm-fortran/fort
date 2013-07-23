@@ -56,8 +56,8 @@ PROGRAM dotest
         R = 1.0
 110   END IF ! expected-error {{invalid terminating statement for a DO loop}}
 
-    DO 120 I = 1.0, 8.0D1 ! CHECK: INT(1)
-120 CONTINUE ! CHECK: INT(80)
+    DO 120 I = 1.0, 8.0D1 ! CHECK: int(1)
+120 CONTINUE ! CHECK: int(80)
 
     DO I = 1,10
     END DO
