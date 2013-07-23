@@ -574,7 +574,7 @@ void ASTDumper::VisitComplexConstantExpr(const ComplexConstantExpr *E)  {
 }
 
 void ASTDumper::VisitCharacterConstantExpr(const CharacterConstantExpr *E)  {
-  OS << E->getValue();
+  OS << "'" << E->getValue() << "'";
 }
 
 void ASTDumper::VisitBOZConstantExpr(const BOZConstantExpr *E) {

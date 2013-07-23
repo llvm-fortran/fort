@@ -26,7 +26,7 @@ namespace flang {
 ///         # [ , array-name ( array-spec ) ] ...
 Parser::StmtResult Parser::ParseDIMENSIONStmt() {
   // Check if this is an assignment.
-  if (PeekAhead(tok::equal))
+  if (IsNextToken(tok::equal))
     return StmtResult();
 
   auto Loc = ConsumeToken();
@@ -80,7 +80,7 @@ Parser::StmtResult Parser::ParseEQUIVALENCEStmt() {
 ///         PARAMETER ( named-constant-def-list )
 Parser::StmtResult Parser::ParsePARAMETERStmt() {
   // Check if this is an assignment.
-  if (PeekAhead(tok::equal))
+  if (IsNextToken(tok::equal))
     return StmtResult();
 
   auto Loc = ConsumeToken();
@@ -138,7 +138,7 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
 ///      or IMPLICIT NONE
 Parser::StmtResult Parser::ParseIMPLICITStmt() {
   // Check if this is an assignment.
-  if (PeekAhead(tok::equal))
+  if (IsNextToken(tok::equal))
     return StmtResult();
 
   auto Loc = ConsumeToken();
@@ -237,7 +237,7 @@ Parser::StmtResult Parser::ParseEXTERNALStmt() {
 ///         INTRINSIC [::] intrinsic-procedure-name-list
 Parser::StmtResult Parser::ParseINTRINSICStmt(bool IsActuallyExternal) {
   // Check if this is an assignment.
-  if (PeekAhead(tok::equal))
+  if (IsNextToken(tok::equal))
     return StmtResult();
 
   auto Loc = ConsumeToken();

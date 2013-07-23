@@ -149,8 +149,8 @@ private:
   bool EnterIncludeFile(const std::string &Filename);
   bool LeaveIncludeFile();
 
-  /// - Returns true if the next token is a token kind
-  bool PeekAhead(tok::TokenKind TokKind);
+  /// IsNextToken - Returns true if the next token is a token kind
+  bool IsNextToken(tok::TokenKind TokKind);
 
   void Lex();
   void ClassifyToken(Token &T);

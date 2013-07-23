@@ -67,6 +67,7 @@ Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  
   Tok.startToken();
   NextTok.startToken();
 
+  PrevTokLocEnd = Tok.getLocation();
   ParenCount = BraceCount = BracketCount = 0;
 }
 
@@ -100,7 +101,7 @@ SourceLocation Parser::getExpectedLoc() const {
   return Tok.getLocation();
 }
 
-bool Parser::PeekAhead(tok::TokenKind TokKind) {
+bool Parser::IsNextToken(tok::TokenKind TokKind) {
   if (NextTok.is(tok::unknown))
     TheLexer.Lex(NextTok, true);
   return NextTok.is(TokKind);
@@ -589,7 +590,7 @@ bool Parser::ParseProgramUnit() {
     return true;
 
   ParseStatementLabel();
-  if (PeekAhead(tok::equal))
+  if (IsNextToken(tok::equal))
     return ParseMainProgram();
 
   // FIXME: These calls should return something proper.
@@ -988,7 +989,7 @@ bool Parser::ParseDeclarationConstruct() {
     break;
   case tok::kw_TYPE:
   case tok::kw_CLASS: {
-    if(!PeekAhead(tok::l_paren)){
+    if(!IsNextToken(tok::l_paren)){
       //FIXME: error handling?
       ParseDerivedTypeDefinitionStmt();
       break;
@@ -1125,7 +1126,7 @@ Parser::StmtResult Parser::ParsePROGRAMStmt() {
 ///      or USE [ [ , module-nature ] :: ] module-name , ONLY : [ only-list ]
 Parser::StmtResult Parser::ParseUSEStmt() {
   // Check if this is an assignment.
-  if (PeekAhead(tok::equal))
+  if (IsNextToken(tok::equal))
     return StmtResult();
 
   Lex();
@@ -1236,7 +1237,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
 ///         IMPORT [ [ :: ] import-name-list ]
 Parser::StmtResult Parser::ParseIMPORTStmt() {
   // Check if this is an assignment.
-  if (PeekAhead(tok::equal))
+  if (IsNextToken(tok::equal))
     return StmtResult();
 
   SourceLocation Loc = Tok.getLocation();
@@ -1376,17 +1377,19 @@ bool Parser::ParseSpecificationStmt() {
   }
 
   if(Result.isInvalid())
-    LexToEndOfStatement();
+    SkipUntilNextStatement();
   if(Result.isUsable())
     Actions.getCurrentBody()->Append(Result.take());
 
   return false;
 notImplemented:
-  Diag.Report(Tok.getLocation(),
+  auto Max = getMaxLocationOfCurrentToken();
+  auto Loc = ConsumeAnyToken();
+  Diag.Report(Loc,
               diag::err_unsupported_stmt)
-      << SourceRange(Tok.getLocation(),
-                     getMaxLocationOfCurrentToken());
-  LexToEndOfStatement();
+      << SourceRange( Loc,
+                      Max);
+  SkipUntilNextStatement();
   return false;
 }
 
@@ -1526,7 +1529,7 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
     ExprResult Repeat;
     SourceLocation RepeatLoc;
     if(Tok.is(tok::int_literal_constant)
-       && PeekAhead(tok::star)) {
+       && IsNextToken(tok::star)) {
       Repeat = ParsePrimaryExpr();
       RepeatLoc = Tok.getLocation();
       EatIfPresentInSameStmt(tok::star);
@@ -1587,7 +1590,7 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
         Diag.Report(getExpectedLoc(), diag::err_expected_expression);
         return ExprError();
       }
-      if(PeekAhead(tok::equal)) break;
+      if(IsNextToken(tok::equal)) break;
     } else {
       Diag.Report(getExpectedLoc(), diag::err_expected_comma);
       return ExprError();

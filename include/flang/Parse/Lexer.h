@@ -356,6 +356,18 @@ public:
   void getSpelling(const Token &Tok,
                    llvm::SmallVectorImpl<llvm::StringRef> &Spelling) const;
 
+  /// getFixedFormIdentifierSpelling - Return the 'spelling' of the Tok token
+  /// as determined by fixed-form identifier rules (i.e. whitespaces are ignored)
+  void getFixedFormIdentifierSpelling(const Token &Tok,
+                                      llvm::SmallVectorImpl<llvm::StringRef> &Spelling,
+                                      const char *TokStart, unsigned TokLen) const;
+
+  /// getFixedFormLiteralSpelling - Return the 'spelling' of the Tok token
+  /// as determined by the fixed-form rules.
+  void getFixedFormLiteralSpelling(const Token &Tok,
+                                   llvm::SmallVectorImpl<llvm::StringRef> &Spelling,
+                                   const char *TokStart, unsigned TokLen) const;
+
   /// PrintError - Error printing methods.
   void PrintError(const char *Loc, const std::string &Msg) const;
 };

@@ -274,12 +274,6 @@ void Lexer::LineOfText::GetNextLine() {
 
     // Fixed form
     while (I != 72 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
-      if (*BufPtr == '\'' || *BufPtr == '"') {
-        // TODO: A BOZ constant doesn't get parsed like a character literal.
-        GetCharacterLiteral(I, LineBegin);
-        if (I == 72 || isVerticalWhitespace(*BufPtr))
-          break;
-      }
       ++I, ++BufPtr;
     }
     if(!Atoms.empty())
@@ -654,57 +648,18 @@ void Lexer::getSpelling(const Token &Tok,
   if (!Tok.needsCleaning())
     return Spelling.push_back(llvm::StringRef(TokStart, TokLen));
 
+  if(Text.LanguageOptions.FixedForm) {
+    if(Tok.isLiteral()) {
+      getFixedFormLiteralSpelling(Tok, Spelling, TokStart, TokLen);
+      return;
+    }
+    getFixedFormIdentifierSpelling(Tok, Spelling, TokStart, TokLen);
+    return;
+  }
+
   const char *CurPtr = TokStart;
   const char *Start = TokStart;
   unsigned Len = 0;
-
-  if(Text.LanguageOptions.FixedForm) {
-    while (true) {
-      while (Len != TokLen) {
-        if(!isHorizontalWhitespace(*CurPtr) &&
-           !isVerticalWhitespace(*CurPtr)) {
-          ++CurPtr, ++Len;
-          continue;
-        }
-        break;
-      }
-
-      Spelling.push_back(llvm::StringRef(Start, CurPtr - Start));
-
-      if(!isVerticalWhitespace(*CurPtr)) {
-        // Skip spaces
-        while (Len != TokLen && isHorizontalWhitespace(*CurPtr))
-          ++CurPtr, ++Len;
-        if(Len >= TokLen)
-          break;
-        Start = CurPtr;
-        continue;
-      }
-
-      if (Len >= TokLen)
-        break;
-      Start = ++CurPtr; ++Len;
-
-      while (true) {
-        // Skip blank lines...
-        while (Len != TokLen && isWhitespace(*CurPtr))
-          ++CurPtr, ++Len;
-
-        if (*CurPtr != 'C' && *CurPtr != 'c' && *CurPtr != '*')
-          break;
-
-        // ...and lines with only comments.
-        while (Len != TokLen && *CurPtr != '\n' && *CurPtr != '\r')
-          ++CurPtr, ++Len;
-      }
-
-      if(Len >= TokLen)
-        break;
-
-      Start = ++CurPtr; ++Len;
-    }
-    return;
-  }
 
   while (true) {
     while (Len != TokLen) {
@@ -748,6 +703,103 @@ void Lexer::getSpelling(const Token &Tok,
     }
 
     if (*CurPtr != '&' || Len >= TokLen)
+      break;
+
+    Start = ++CurPtr; ++Len;
+  }
+}
+
+void  Lexer::getFixedFormIdentifierSpelling(const Token &Tok,
+                                            llvm::SmallVectorImpl<llvm::StringRef> &Spelling,
+                                            const char *TokStart,
+                                            unsigned TokLen) const {
+  const char *CurPtr = TokStart;
+  const char *Start = TokStart;
+  unsigned Len = 0;
+
+  while (true) {
+    while (Len != TokLen) {
+      if(!isHorizontalWhitespace(*CurPtr) &&
+         !isVerticalWhitespace(*CurPtr)) {
+        ++CurPtr, ++Len;
+        continue;
+      }
+      break;
+    }
+
+    Spelling.push_back(llvm::StringRef(Start, CurPtr - Start));
+
+    if(!isVerticalWhitespace(*CurPtr)) {
+      // Skip spaces
+      while (Len != TokLen && isHorizontalWhitespace(*CurPtr))
+        ++CurPtr, ++Len;
+      if(Len >= TokLen)
+        break;
+      Start = CurPtr;
+      continue;
+    }
+
+    if (Len >= TokLen)
+      break;
+    Start = ++CurPtr; ++Len;
+
+    while (true) {
+      // Skip blank lines...
+      while (Len != TokLen && isWhitespace(*CurPtr))
+        ++CurPtr, ++Len;
+
+      if (*CurPtr != 'C' && *CurPtr != 'c' && *CurPtr != '*')
+        break;
+
+      // ...and lines with only comments.
+      while (Len != TokLen && *CurPtr != '\n' && *CurPtr != '\r')
+        ++CurPtr, ++Len;
+    }
+
+    if(Len >= TokLen)
+      break;
+
+    Start = ++CurPtr; ++Len;
+  }
+}
+
+void  Lexer::getFixedFormLiteralSpelling(const Token &Tok,
+                                         llvm::SmallVectorImpl<llvm::StringRef> &Spelling,
+                                         const char *TokStart,
+                                         unsigned TokLen) const {
+  const char *CurPtr = TokStart;
+  const char *Start = TokStart;
+  unsigned Len = 0;
+
+  while (true) {
+    while (Len != TokLen) {
+      if(!isVerticalWhitespace(*CurPtr)) {
+        ++CurPtr, ++Len;
+        continue;
+      }
+      break;
+    }
+
+    Spelling.push_back(llvm::StringRef(Start, CurPtr - Start));
+
+    if (Len >= TokLen)
+      break;
+    Start = ++CurPtr; ++Len;
+
+    while (true) {
+      // Skip blank lines...
+      while (Len != TokLen && isWhitespace(*CurPtr))
+        ++CurPtr, ++Len;
+
+      if (*CurPtr != 'C' && *CurPtr != 'c' && *CurPtr != '*')
+        break;
+
+      // ...and lines with only comments.
+      while (Len != TokLen && *CurPtr != '\n' && *CurPtr != '\r')
+        ++CurPtr, ++Len;
+    }
+
+    if(Len >= TokLen)
       break;
 
     Start = ++CurPtr; ++Len;
