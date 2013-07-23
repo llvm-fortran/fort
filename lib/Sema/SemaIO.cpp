@@ -24,12 +24,6 @@ StarFormatSpec *Sema::ActOnStarFormatSpec(ASTContext &C, SourceLocation Loc) {
   return StarFormatSpec::Create(C, Loc);
 }
 
-DefaultCharFormatSpec *Sema::ActOnDefaultCharFormatSpec(ASTContext &C,
-                                                        SourceLocation Loc,
-                                                        ExprResult Fmt) {
-  return DefaultCharFormatSpec::Create(C, Loc, Fmt);
-}
-
 static void CheckStmtLabelIsFormat(DiagnosticsEngine &Diags, Stmt *S, Expr *Label) {
   if(!isa<FormatStmt>(S)) {
     Diags.Report(Label->getLocation(), diag::err_fmt_spec_stmt_label_not_format)
@@ -61,6 +55,21 @@ LabelFormatSpec *Sema::ActOnLabelFormatSpec(ASTContext &C, SourceLocation Loc,
 
   // FIXME: TODO.
   return LabelFormatSpec::Create(C, Loc, StmtLabelReference());
+}
+
+FormatSpec *Sema::ActOnExpressionFormatSpec(ASTContext &C, SourceLocation Loc,
+                                            Expr *E) {
+  auto Type = E->getType();
+  if(Type->isCharacterType())
+    return CharacterExpFormatSpec::Create(C, Loc, E);
+  if(auto Var = dyn_cast<VarExpr>(E)) {
+    if(Type->isIntegerType())
+      return VarLabelFormatSpec::Create(C, Loc, Var);
+  }
+  Diags.Report(Loc, diag::err_typecheck_expected_format_spec)
+    << Type << E->getSourceRange();
+  // Return an empty character literal spec when an error occurs.
+  return CharacterExpFormatSpec::Create(C, Loc, CharacterConstantExpr::Create(Context, Loc, Loc, ""));
 }
 
 ExternalStarUnitSpec *Sema::ActOnStarUnitSpec(ASTContext &C, SourceLocation Loc,

@@ -127,6 +127,16 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParseReturnStmt();
   case tok::kw_CALL:
     return ParseCallStmt();
+  case tok::kw_READ:
+  case tok::kw_OPEN:
+  case tok::kw_CLOSE:
+  case tok::kw_INQUIRE:
+  case tok::kw_BACKSPACE:
+  case tok::kw_ENDFILE:
+  case tok::kw_REWIND:
+    Diag.Report(ConsumeToken(), diag::err_unsupported_stmt);
+    return StmtError();
+
 
   case tok::eof:
   case tok::kw_END:
@@ -186,17 +196,17 @@ Parser::StmtResult Parser::ParseGotoStmt() {
 
     // Assigned goto
     SmallVector<Expr*, 4> AllowedValues;
-    if(EatIfPresentInSameStmt(tok::l_paren)) {
+    if(ConsumeIfPresent(tok::l_paren)) {
       do {
         auto E = ParseStatementLabelReference();
         if(E.isInvalid()) {
           Diag.Report(getExpectedLoc(), diag::err_expected_stmt_label);
-          return StmtError();
+          SkipUntilNextStatement();
+          return Actions.ActOnAssignedGotoStmt(Context, Loc, Var, AllowedValues, StmtLabel);
         }
         AllowedValues.append(1, E.get());
-      } while(EatIfPresent(tok::comma));
-      if(!EatIfPresentInSameStmt(tok::r_paren))
-        Diag.Report(getExpectedLoc(), diag::err_expected_rparen);
+      } while(ConsumeIfPresent(tok::comma));
+      ExpectAndConsume(tok::r_paren);
     }
     return Actions.ActOnAssignedGotoStmt(Context, Loc, Var, AllowedValues, StmtLabel);
   }
@@ -292,11 +302,8 @@ Parser::StmtResult Parser::ParseElseIfStmt() {
 
   ExprResult Condition = ParseExpectedConditionExpression("ELSE IF");
   if(Condition.isInvalid()) return StmtError();
-  if (!EatIfPresentInSameStmt(tok::kw_THEN)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_kw)
-        << "THEN";
-    return StmtError();
-  }
+  if(!ExpectAndConsume(tok::kw_THEN, diag::err_expected_kw, "THEN"))
+    SkipUntilNextStatement();
   return Actions.ActOnElseIfStmt(Context, Loc, Condition, StmtLabel);
 }
 
@@ -454,12 +461,8 @@ Parser::StmtResult Parser::ParsePrintStmt() {
   SourceLocation Loc = ConsumeToken();
 
   FormatSpec *FS = ParseFMTSpec(false);
-
-  if (!EatIfPresentInSameStmt(tok::comma)) {
-    Diag.Report(Tok.getLocation(),
-                diag::err_expected_comma);
+  if(!ExpectAndConsume(tok::comma))
     return StmtError();
-  }
 
   SmallVector<ExprResult, 4> OutputItemList;
   ParseIOList(OutputItemList);
@@ -515,12 +518,17 @@ UnitSpec *Parser::ParseUNITSpec(bool IsLabeled) {
 
 FormatSpec *Parser::ParseFMTSpec(bool IsLabeled) {
   auto Loc = Tok.getLocation();
-  if(!EatIfPresentInSameStmt(tok::star)) {
-    // integer literal label
-    auto Destination = ParseStatementLabelReference();
-    if(!Destination.isInvalid())
-      return Actions.ActOnLabelFormatSpec(Context, Loc, Destination);
-    // FIXME: character expr / integer expr
+  if(!ConsumeIfPresent(tok::star)) {
+    if(Tok.is(tok::int_literal_constant)) {
+      auto Destination = ParseStatementLabelReference();
+      if(!Destination.isInvalid())
+        return Actions.ActOnLabelFormatSpec(Context, Loc, Destination);
+    }
+    auto E = ParseExpression();
+    if(E.isUsable())
+      return Actions.ActOnExpressionFormatSpec(Context, Loc, E.get());
+    // NB: return empty format string on error.
+    return Actions.ActOnExpressionFormatSpec(Context, Loc, CharacterConstantExpr::Create(Context, Loc, Loc, ""));
   }
 
   return Actions.ActOnStarFormatSpec(Context, Loc);

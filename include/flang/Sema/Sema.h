@@ -270,11 +270,10 @@ public:
                           ArrayRef<ArraySpec *> Dims);
 
   StarFormatSpec *ActOnStarFormatSpec(ASTContext &C, SourceLocation Loc);
-  DefaultCharFormatSpec *ActOnDefaultCharFormatSpec(ASTContext &C,
-                                                    SourceLocation Loc,
-                                                    ExprResult Fmt);
   LabelFormatSpec *ActOnLabelFormatSpec(ASTContext &C, SourceLocation Loc,
                                         ExprResult Label);
+  FormatSpec *ActOnExpressionFormatSpec(ASTContext &C, SourceLocation Loc,
+                                             Expr *E);
 
   ExternalStarUnitSpec *ActOnStarUnitSpec(ASTContext &C, SourceLocation Loc,
                                           bool IsLabeled);
@@ -435,6 +434,9 @@ public:
   /// Returns true if a variable reference points to an integer
   /// variable
   bool CheckIntegerVar(const VarExpr *E);
+
+  /// Returns true if an expression is a character expression
+  bool CheckCharacterExpression(const Expr *E);
 
   /// Returns true if two types have the same type class
   /// and kind.

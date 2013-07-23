@@ -17,16 +17,18 @@
 
 #include "flang/Basic/SourceLocation.h"
 #include "flang/AST/Stmt.h"
-#include "flang/Sema/Ownership.h"
 #include "flang/Basic/LLVM.h"
+
+// FIXME: add dumping using ASTDumper
 
 namespace flang {
 
 class ASTContext;
 
+/// Format Spec - this class represents a format specifier.
 class FormatSpec {
 protected:
-  enum FormatType { FS_DefaultCharExpr, FS_Label, FS_Star };
+  enum FormatType { FS_CharExpr, FS_Label, FS_Star, FS_VarLabel };
 private:
   FormatType ID;
   SourceLocation Loc;
@@ -41,8 +43,9 @@ public:
   static bool classof(const FormatSpec *) { return true; }
 };
 
+/// StarFormatSpec - represents a '*' format specifier.
 class StarFormatSpec : public FormatSpec {
-  StarFormatSpec(SourceLocation L);
+  StarFormatSpec(SourceLocation Loc);
 public:
   static StarFormatSpec *Create(ASTContext &C, SourceLocation Loc);
 
@@ -52,24 +55,27 @@ public:
   }
 };
 
-class DefaultCharFormatSpec : public FormatSpec {
-  ExprResult Fmt;
-  DefaultCharFormatSpec(SourceLocation L, ExprResult Fmt);
+/// CharacterExprFormatSpec - represents a character expression
+/// format specifier.
+class CharacterExpFormatSpec : public FormatSpec {
+  Expr *Fmt;
+  CharacterExpFormatSpec(SourceLocation Loc, Expr *Fmt);
 public:
-  static DefaultCharFormatSpec *Create(ASTContext &C, SourceLocation Loc,
-                                       ExprResult Fmt);
+  static CharacterExpFormatSpec *Create(ASTContext &C, SourceLocation Loc,
+                                       Expr *Fmt);
 
-  ExprResult getFormat() const { return Fmt; }
+  Expr *getFormat() const { return Fmt; }
 
-  static bool classof(const DefaultCharFormatSpec *) { return true; }
+  static bool classof(const CharacterExpFormatSpec *) { return true; }
   static bool classof(const FormatSpec *F) {
-    return F->getFormatSpecID() == FS_DefaultCharExpr;
+    return F->getFormatSpecID() == FS_CharExpr;
   }
 };
 
+/// LabelFormatSpec - represents a statement label format specifier.
 class LabelFormatSpec : public FormatSpec {
   StmtLabelReference StmtLabel;
-  LabelFormatSpec(SourceLocation L, StmtLabelReference Label);
+  LabelFormatSpec(SourceLocation Loc, StmtLabelReference Label);
 public:
   static LabelFormatSpec *Create(ASTContext &C, SourceLocation Loc,
                                  StmtLabelReference Label);
@@ -80,6 +86,24 @@ public:
   static bool classof(const LabelFormatSpec *) { return true; }
   static bool classof(const FormatSpec *F) {
     return F->getFormatSpecID() == FS_Label;
+  }
+};
+
+/// VarLabelFormatSpec - represents an integer variable format specifier,
+/// where the variable holds the value of the statement label which
+/// points to the relevant format statement.
+class VarLabelFormatSpec : public FormatSpec {
+  VarExpr *Var;
+  VarLabelFormatSpec(SourceLocation Loc, VarExpr *VarRef);
+public:
+  static VarLabelFormatSpec *Create(ASTContext &C, SourceLocation Loc,
+                                    VarExpr *Var);
+
+  VarExpr *getVar() const { return Var; }
+
+  static bool classof(const VarLabelFormatSpec *) { return true; }
+  static bool classof(const FormatSpec *F) {
+    return F->getFormatSpecID() == FS_VarLabel;
   }
 };
 

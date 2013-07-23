@@ -19,16 +19,16 @@ StarFormatSpec *StarFormatSpec::Create(ASTContext &C, SourceLocation Loc) {
   return new (C) StarFormatSpec(Loc);
 }
 
-DefaultCharFormatSpec::DefaultCharFormatSpec(SourceLocation L, ExprResult F)
-  : FormatSpec(FormatSpec::FS_DefaultCharExpr, L), Fmt(F) {}
+CharacterExpFormatSpec::CharacterExpFormatSpec(SourceLocation Loc, Expr *F)
+  : FormatSpec(FormatSpec::FS_CharExpr, Loc), Fmt(F) {}
 
-DefaultCharFormatSpec *DefaultCharFormatSpec::Create(ASTContext &C, SourceLocation Loc,
-                                                   ExprResult Fmt) {
-  return new (C) DefaultCharFormatSpec(Loc, Fmt);
+CharacterExpFormatSpec *CharacterExpFormatSpec::Create(ASTContext &C, SourceLocation Loc,
+                                                   Expr *Fmt) {
+  return new (C) CharacterExpFormatSpec(Loc, Fmt);
 }
 
-LabelFormatSpec::LabelFormatSpec(SourceLocation L, StmtLabelReference Label)
-  : FormatSpec(FormatSpec::FS_Label, L), StmtLabel(Label) {}
+LabelFormatSpec::LabelFormatSpec(SourceLocation Loc, StmtLabelReference Label)
+  : FormatSpec(FormatSpec::FS_Label, Loc), StmtLabel(Label) {}
 
 LabelFormatSpec *LabelFormatSpec::Create(ASTContext &C, SourceLocation Loc,
                                          StmtLabelReference Label) {
@@ -39,6 +39,14 @@ void LabelFormatSpec::setLabel(StmtLabelReference Label) {
   assert(!StmtLabel.Statement);
   assert(Label.Statement);
   StmtLabel = Label;
+}
+
+VarLabelFormatSpec::VarLabelFormatSpec(SourceLocation Loc, VarExpr *VarRef)
+  : FormatSpec(FormatSpec::FS_VarLabel, Loc), Var(VarRef) {}
+
+VarLabelFormatSpec *VarLabelFormatSpec::Create(ASTContext &C, SourceLocation Loc,
+                                               VarExpr *Var) {
+  return new (C) VarLabelFormatSpec(Loc, Var);
 }
 
 } //namespace flang

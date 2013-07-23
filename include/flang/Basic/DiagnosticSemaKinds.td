@@ -58,12 +58,16 @@ def err_typecheck_logical_unary_expr : Error<
 
 def err_typecheck_expected_logical_expr : Error<
   "expected a logical expression instead of an expression with type %0">;
+def err_typecheck_expected_char_expr : Error<
+  "expected a character expression instead of an expression with type %0">;
 def err_typecheck_expected_int_var : Error<
   "expected an integer variable instead of a variable with type %0">;
 def err_typecheck_expected_do_var : Error<
   "expected a real or an integer variable instead of variable with type %0">;
 def err_typecheck_expected_do_expr : Error<
   "expected a real or an integer expression">;
+def err_typecheck_expected_format_spec : Error<
+  "expected a valid format specifier instead of an expression with type %0">;
 
 def err_typecheck_array_constructor_invalid_item : Error<
   "invalid item in an array constructor with element type %0">;
