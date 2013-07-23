@@ -947,7 +947,7 @@ bool Parser::ParseExecutionPart() {
   while (true) {
     StmtResult SR = ParseExecutableConstruct();
     if (SR.isInvalid()) {
-      LexToEndOfStatement();
+      SkipUntilNextStatement();
       HadError = true;
     } else if (!SR.isUsable()) {
       break;

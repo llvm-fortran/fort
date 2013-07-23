@@ -13,7 +13,7 @@ PROGRAM dotest
     DO 20 I = 1,10,2
 20    R = R + I
 
-    DO 30 'V' = 1,100,5 ! expected-error {{expected a real or an integer variable}}
+    DO 30 'V' = 1,100,5 ! expected-error {{expected identifier}}
       R = R - I
 30  CONTINUE
 

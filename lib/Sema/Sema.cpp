@@ -519,6 +519,37 @@ Decl *Sema::ResolveIdentifier(const IdentifierInfo *IDInfo) {
   return nullptr;
 }
 
+VarDecl *Sema::ExpectVarRefOrDeclImplicitVar(SourceLocation IDLoc,
+                                             const IdentifierInfo *IDInfo) {
+  auto Result = ResolveIdentifier(IDInfo);
+  if(Result){
+    if(auto VD = dyn_cast<VarDecl>(Result))
+      return VD;
+    Diags.Report(IDLoc, diag::err_expected_var_ref);
+    Diags.Report(Result->getLocation(), diag::note_previous_definition);
+    return nullptr;
+  }
+
+  Result = ActOnImplicitEntityDecl(Context, IDLoc, IDInfo);
+  if(Result)
+    return cast<VarDecl>(Result);
+  return nullptr;
+}
+
+VarDecl *Sema::ExpectVarRef(SourceLocation IDLoc,
+                            const IdentifierInfo *IDInfo) {
+  auto Result = ResolveIdentifier(IDInfo);
+  if(Result) {
+    if(auto VD = dyn_cast<VarDecl>(Result))
+      return VD;
+    Diags.Report(IDLoc, diag::err_expected_var_ref);
+    Diags.Report(Result->getLocation(), diag::note_previous_definition);
+  }
+  Diags.Report(IDLoc, diag::err_undeclared_var_use)
+    << IDInfo;
+  return nullptr;
+}
+
 StmtResult Sema::ActOnCompoundStmt(ASTContext &C, SourceLocation Loc,
                                    ArrayRef<Stmt*> Body, Expr *StmtLabel) {
   if(Body.size() == 1) {
@@ -1004,6 +1035,7 @@ void StmtLabelResolver::VisitAssignStmt(AssignStmt *S) {
 StmtResult Sema::ActOnAssignStmt(ASTContext &C, SourceLocation Loc,
                                  ExprResult Value, VarExpr* VarRef,
                                  Expr *StmtLabel) {
+  CheckIntegerVar(VarRef);
   Stmt *Result;
   auto Decl = getCurrentStmtLabelScope()->Resolve(Value.get());
   if(!Decl) {
@@ -1027,11 +1059,13 @@ void StmtLabelResolver::VisitAssignedGotoStmt(AssignedGotoStmt *S) {
 
 StmtResult Sema::ActOnAssignedGotoStmt(ASTContext &C, SourceLocation Loc,
                                        VarExpr* VarRef,
-                                       ArrayRef<ExprResult> AllowedValues,
+                                       ArrayRef<Expr*> AllowedValues,
                                        Expr *StmtLabel) {
+  CheckIntegerVar(VarRef);
+
   SmallVector<StmtLabelReference, 4> AllowedLabels(AllowedValues.size());
   for(size_t I = 0; I < AllowedValues.size(); ++I) {
-    auto Decl = getCurrentStmtLabelScope()->Resolve(AllowedValues[I].get());
+    auto Decl = getCurrentStmtLabelScope()->Resolve(AllowedValues[I]);
     AllowedLabels[I] = Decl? StmtLabelReference(Decl): StmtLabelReference();
   }
   auto Result = AssignedGotoStmt::Create(C, Loc, VarRef, AllowedLabels, StmtLabel);
@@ -1039,7 +1073,7 @@ StmtResult Sema::ActOnAssignedGotoStmt(ASTContext &C, SourceLocation Loc,
   for(size_t I = 0; I < AllowedValues.size(); ++I) {
     if(!AllowedLabels[I].Statement) {
       getCurrentStmtLabelScope()->DeclareForwardReference(
-        StmtLabelScope::ForwardDecl(AllowedValues[I].get(), Result, I));
+        StmtLabelScope::ForwardDecl(AllowedValues[I], Result, I));
     }
   }
 

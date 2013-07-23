@@ -155,13 +155,16 @@ Parser::StmtResult Parser::ParseAssignStmt() {
   ConsumeToken();
   if(!ExpectAndConsume(tok::kw_TO, diag::err_expected_kw, "TO"))
     return StmtError();
-  auto VarLoc = Tok.getLocation();
-  auto Var = ParseIntegerVariableReference();
-  if(!Var) {
-    Diag.Report(VarLoc, diag::err_expected_int_var)
-        << "TO";
+
+  auto IDInfo = Tok.getIdentifierInfo();
+  auto IDLoc = Tok.getLocation();
+  if(!ExpectAndConsume(tok::identifier))
     return StmtError();
-  }
+  auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo);
+  if(!VD)
+    return StmtError();
+  auto Var = VarExpr::Create(Context, IDLoc, VD);
+
   return Actions.ActOnAssignStmt(Context, Loc, Value, Var, StmtLabel);
 }
 
@@ -170,15 +173,19 @@ Parser::StmtResult Parser::ParseGotoStmt() {
 
   auto Destination = ParseStatementLabelReference();
   if(Destination.isInvalid()) {
-    auto Var = ParseIntegerVariableReference();
-    if(!Var) {
-      Diag.Report(Tok.getLocation(), diag::err_expected_stmt_label_after)
+    if(!IsPresent(tok::identifier)) {
+      Diag.Report(getExpectedLoc(), diag::err_expected_stmt_label_after)
           << "GO TO";
       return StmtError();
     }
+    auto IDInfo = Tok.getIdentifierInfo();
+    auto IDLoc = ConsumeToken();
+    auto VD = Actions.ExpectVarRef(IDLoc, IDInfo);
+    if(!VD) return StmtError();
+    auto Var = VarExpr::Create(Context, IDLoc, VD);
 
     // Assigned goto
-    SmallVector<ExprResult, 4> AllowedValues;
+    SmallVector<Expr*, 4> AllowedValues;
     if(EatIfPresentInSameStmt(tok::l_paren)) {
       do {
         auto E = ParseStatementLabelReference();
@@ -186,7 +193,7 @@ Parser::StmtResult Parser::ParseGotoStmt() {
           Diag.Report(getExpectedLoc(), diag::err_expected_stmt_label);
           return StmtError();
         }
-        AllowedValues.append(1, E);
+        AllowedValues.append(1, E.get());
       } while(EatIfPresent(tok::comma));
       if(!EatIfPresentInSameStmt(tok::r_paren))
         Diag.Report(getExpectedLoc(), diag::err_expected_rparen);
@@ -303,6 +310,7 @@ Parser::StmtResult Parser::ParseEndIfStmt() {
   return Actions.ActOnEndIfStmt(Context, Loc, StmtLabel);
 }
 
+// FIXME: improve error recovery
 Parser::StmtResult Parser::ParseDoStmt() {
   auto Loc = ConsumeToken();
 
@@ -311,25 +319,27 @@ Parser::StmtResult Parser::ParseDoStmt() {
     TerminalStmt = ParseStatementLabelReference();
     if(TerminalStmt.isInvalid()) return StmtError();
   }
-  auto DoVar = ParseVariableReference();
-  if(!DoVar) {
-    Diag.Report(Tok.getLocation(),diag::err_expected_do_var);
+
+  // the do var
+  auto IDInfo = Tok.getIdentifierInfo();
+  auto IDLoc = Tok.getLocation();
+  if(!ExpectAndConsume(tok::identifier))
     return StmtError();
-  }
-  if(!EatIfPresentInSameStmt(tok::equal)) {
-    Diag.Report(getExpectedLoc(),diag::err_expected_equal);
+  auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo);
+  if(!VD)
     return StmtError();
-  }
+  auto DoVar = VarExpr::Create(Context, IDLoc, VD);
+
+  if(!ExpectAndConsume(tok::equal))
+    return StmtError();
   auto E1 = ParseExpectedFollowupExpression("=");
   if(E1.isInvalid()) return StmtError();
-  if(!EatIfPresentInSameStmt(tok::comma)) {
-    Diag.Report(getExpectedLoc(),diag::err_expected_comma);
+  if(!ExpectAndConsume(tok::comma))
     return StmtError();
-  }
   auto E2 = ParseExpectedFollowupExpression(",");
   if(E2.isInvalid()) return StmtError();
   ExprResult E3;
-  if(EatIfPresentInSameStmt(tok::comma)) {
+  if(ConsumeIfPresent(tok::comma)) {
     E3 = ParseExpectedFollowupExpression(",");
     if(E3.isInvalid()) return StmtError();
   }

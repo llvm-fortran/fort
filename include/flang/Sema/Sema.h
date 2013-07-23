@@ -157,6 +157,17 @@ public:
 
   Decl *ResolveIdentifier(const IdentifierInfo *IDInfo);
 
+  /// \brief Returns a variable declaration if the given identifier resolves
+  /// to a variable, or null otherwise. If the identifier isn't resolved
+  /// an implicit variable declaration will be created whenever possible.
+  VarDecl *ExpectVarRefOrDeclImplicitVar(SourceLocation IDLoc,
+                                         const IdentifierInfo *IDInfo);
+
+  /// \brief Returns a variable declaration if the given identifier resolves to
+  /// a variable, or null otherwise.
+  VarDecl *ExpectVarRef(SourceLocation IDLoc,
+                        const IdentifierInfo *IDInfo);
+
   // FIXME: TODO more features.
   RecordDecl *ActOnDerivedTypeDecl(ASTContext &C, SourceLocation Loc,
                                    SourceLocation NameLoc, const IdentifierInfo* IDInfo);
@@ -275,7 +286,7 @@ public:
                              Expr *StmtLabel);
 
   StmtResult ActOnAssignedGotoStmt(ASTContext &C, SourceLocation Loc,
-                                   VarExpr* VarRef, ArrayRef<ExprResult> AllowedValues,
+                                   VarExpr* VarRef, ArrayRef<Expr *> AllowedValues,
                                    Expr *StmtLabel);
 
   StmtResult ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
@@ -420,6 +431,10 @@ public:
 
   /// Returns true if an expression is an integer expression
   bool CheckIntegerExpression(const Expr *E);
+
+  /// Returns true if a variable reference points to an integer
+  /// variable
+  bool CheckIntegerVar(const VarExpr *E);
 
   /// Returns true if two types have the same type class
   /// and kind.

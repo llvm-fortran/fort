@@ -460,9 +460,6 @@ private:
   void ParseStatementLabel();
   ExprResult ParseStatementLabelReference(bool ConsumeToken = true);
 
-  VarExpr *ParseVariableReference();
-  VarExpr *ParseIntegerVariableReference();
-
   // Declaration construct functions
   bool ParseDerivedTypeDefinitionStmt();
   bool ParseDerivedTypeComponent();

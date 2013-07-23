@@ -28,6 +28,8 @@ def err_expected_scalar_or_character_expr : Error<
   "expected an integer, real, complex or character expression">;
 def err_expected_scalar_or_character_constant_expr : Error<
   "expected an integer, real, complex or character constant expression">;
+def err_expected_var_ref : Error<
+  "expected a variable reference">;
 
 def err_expr_not_assignable : Error<
   "expression is not assignable">;
@@ -56,6 +58,8 @@ def err_typecheck_logical_unary_expr : Error<
 
 def err_typecheck_expected_logical_expr : Error<
   "expected a logical expression instead of an expression with type %0">;
+def err_typecheck_expected_int_var : Error<
+  "expected an integer variable instead of a variable with type %0">;
 def err_typecheck_expected_do_var : Error<
   "expected a real or an integer variable instead of variable with type %0">;
 def err_typecheck_expected_do_expr : Error<

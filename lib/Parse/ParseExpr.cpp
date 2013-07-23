@@ -887,33 +887,4 @@ ExprResult Parser::ParsePartReference() {
   return E;
 }
 
-/// Parser a variable reference
-VarExpr *Parser::ParseVariableReference() {
-  if(Tok.isAtStartOfStatement() ||
-     !Tok.is(tok::identifier))
-    return nullptr;
-  const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
-  if (!IDInfo) return nullptr;
-  auto Declaration = Actions.ResolveIdentifier(IDInfo);
-  if (!Declaration)
-    return nullptr;
-  auto VD = dyn_cast<VarDecl>(Declaration);
-  if(!VD)
-    return nullptr;
-
-  auto E = VarExpr::Create(Context, Tok.getLocation(), VD);
-  Lex();
-  return E;
-}
-
-/// Parses an integer variable reference
-VarExpr *Parser::ParseIntegerVariableReference() {
-  auto E = ParseVariableReference();
-  if(E) {
-    return static_cast<VarExpr*>(E)->getType()->isIntegerType()?
-           E : nullptr;
-  }
-  return nullptr;
-}
-
 } //namespace flang
