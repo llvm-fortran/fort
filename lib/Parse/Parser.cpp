@@ -898,9 +898,10 @@ bool Parser::ParseImplicitPartList() {
   while (true) {
     StmtResult S = ParseImplicitPart();
     if (S.isUsable()) {
+      ExpectStatementEnd();
       Actions.getCurrentBody()->Append(S.take());
     } else if (S.isInvalid()) {
-      LexToEndOfStatement();
+      SkipUntilNextStatement();
       HasErrors = true;
     } else {
       break;
@@ -949,9 +950,9 @@ bool Parser::ParseExecutionPart() {
     if (SR.isInvalid()) {
       SkipUntilNextStatement();
       HadError = true;
-    } else if (!SR.isUsable()) {
-      break;
-    }
+    } else if (SR.isUsable())
+      ExpectStatementEnd();
+    else break;
   }
 
   return HadError;
@@ -1381,8 +1382,10 @@ bool Parser::ParseSpecificationStmt() {
 
   if(Result.isInvalid())
     SkipUntilNextStatement();
-  if(Result.isUsable())
+  if(Result.isUsable()) {
+    ExpectStatementEnd();
     Actions.getCurrentBody()->Append(Result.take());
+  }
 
   return false;
 notImplemented:
