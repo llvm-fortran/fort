@@ -205,6 +205,10 @@ ExprResult Sema::TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
   // Logical assignment
   else if(LHSType->isLogicalType()) {
     if(!RHSType->isLogicalType()) goto typeError;
+    if(!ExtQualsSameKind(Context, LHSExtQuals, RHSExtQuals,
+                        LHSTypeof, RHSTypeof))
+      RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
+                                     LHSTypeof, RHS.take());
   }
 
   // Character assignment

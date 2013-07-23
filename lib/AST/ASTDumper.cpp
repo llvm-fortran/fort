@@ -630,6 +630,8 @@ void ASTDumper::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
     OS << "REAL(";
   else if(Type->isComplexType())
     OS << "CMPLX(";
+  else if(Type->isLogicalType())
+    OS << "LOGICAL(";
   dumpExpr(E->getExpression());
   if(const ExtQuals *Ext = Type.getExtQualsPtrOrNull())
     OS << ",Kind=" << BuiltinType::getTypeKindString(Ext->getKindSelector());
