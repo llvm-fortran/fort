@@ -413,21 +413,13 @@ Parser::StmtResult Parser::ParseCallStmt() {
   if(!ExpectAndConsume(tok::identifier))
     return StmtError();
 
-  auto Decl = Actions.ResolveIdentifier(ID);
-  auto FD = dyn_cast_or_null<FunctionDecl>(Decl);
-  if(!FD) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_func_after)
-      << "CALL";
-    return StmtError();
-  }
-
   SmallVector<Expr*, 8> Arguments;
   if(!Tok.isAtStartOfStatement()) {
     if(ParseFunctionCallArgumentList(Arguments, RParenLoc).isInvalid())
       SkipUntilNextStatement();
   }
 
-  return Actions.ActOnCallStmt(Context, Loc, RParenLoc, FuncIdRange, FD, Arguments, StmtLabel);
+  return Actions.ActOnCallStmt(Context, Loc, RParenLoc, FuncIdRange, ID, Arguments, StmtLabel);
 }
 
 /// ParseAssignmentStmt

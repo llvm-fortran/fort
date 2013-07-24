@@ -14,4 +14,5 @@ PROGRAM imptest
   R = 33.25 ! CHECK: r = 33.25
   Z = 1 ! CHECK: z = real(1)
   a = -11.23
+  x = y ! CHECK: x = y
 END PROGRAM imptest

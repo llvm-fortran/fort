@@ -546,7 +546,7 @@ class VarExpr : public Expr {
   const VarDecl *Variable;
   VarExpr(SourceLocation Loc, const VarDecl *Var);
 public:
-  static VarExpr *Create(ASTContext &C, SourceLocation L, const VarDecl *V);
+  static VarExpr *Create(ASTContext &C, SourceLocation L, VarDecl *V);
 
   const VarDecl *getVarDecl() const { return Variable; }
 

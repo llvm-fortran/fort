@@ -187,6 +187,10 @@ def err_typecheck_call_too_many_args_at_most_one : Error<
   "%select{intrinsic function|function|subroutine}0 call, "
   "expected at most single argument %1, have %2 arguments">;
 
+def err_call_requires_subroutine: Error<
+  "statement requires a subroutine reference ("
+  "%select{variable|intrinsic function|function}0 %1 invalid)">;
+
 def err_spec_not_applicable_undeclared_ident : Error<
   "'%0' statement can't be applied because the identifier %1 "
   "isn't declared in the current context">;

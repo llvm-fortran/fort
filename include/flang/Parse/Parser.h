@@ -354,6 +354,7 @@ private:
 
   // Designator parsing methods.
   ExprResult ParseDesignator(bool IsLvalue);
+  ExprResult ParseNameOrCall();
   ExprResult ParseArrayElement();
   ExprResult ParseArraySection();
   ExprResult ParseCoindexedNamedObject();

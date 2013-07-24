@@ -831,10 +831,12 @@ public:
 
 /// VarDecl - An instance of this class is created to represent a variable
 /// declaration or definition.
+/// FIXME: document var kinds
 class VarDecl : public DeclaratorDecl {
 public:
   enum VarKind {
-    LocalVariable = 0,
+    UnusedSymbol = 0,
+    LocalVariable,
     FunctionArgument,
     ParameterVariable
   };
@@ -871,11 +873,15 @@ public:
     Init = E;
   }
 
+  inline bool isUnusedSymbol() const {
+    return SubDeclKind == UnusedSymbol;
+  }
   inline bool isLocalVariable() const { return SubDeclKind == LocalVariable; }
   inline bool isParameter() const { return SubDeclKind == ParameterVariable; }
   inline bool isArgument() const { return SubDeclKind == FunctionArgument; }
 
   void MutateIntoParameter(Expr *Value);
+  void MarkUsedAsVariable (SourceLocation Loc);
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }

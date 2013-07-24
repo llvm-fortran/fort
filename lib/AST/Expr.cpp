@@ -211,7 +211,8 @@ VarExpr::VarExpr(SourceLocation Loc, const VarDecl *Var)
   : Expr(VarExprClass, Var->getType(), Loc),
     Variable(Var) {}
 
-VarExpr *VarExpr::Create(ASTContext &C, SourceLocation Loc, const VarDecl *VD) {
+VarExpr *VarExpr::Create(ASTContext &C, SourceLocation Loc, VarDecl *VD) {
+  VD->MarkUsedAsVariable(Loc);
   return new (C) VarExpr(Loc, VD);
 }
 

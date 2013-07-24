@@ -32,5 +32,4 @@ PROGRAM expressions
 
   x = ! expected-error {{expected an expression after '='}}
 
-  x = A ! expected-error {{use of undeclared identifier 'a'}}
 ENDPROGRAM expressions

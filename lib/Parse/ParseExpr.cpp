@@ -532,7 +532,6 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
   }
   case tok::identifier:
     possible_keyword_as_ident:
-    parse_designator:
     E = Parser::ParseDesignator(IsLvalue);
     if (E.isInvalid()) return E;
     break;
@@ -566,40 +565,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 ///      or structure-component
 ///      or substring
 ExprResult Parser::ParseDesignator(bool IsLvalue) {
-  if(DontResolveIdentifiers) {
-    auto E = UnresolvedIdentifierExpr::Create(Context,
-                                              Tok.getLocation(),
-                                              Tok.getIdentifierInfo());
-    Lex();
-    return E;
-  }
-
-  // [R504]:
-  //   object-name :=
-  //       name
-  const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
-  if (!IDInfo) return ExprError();
-  auto Declaration = Actions.ResolveIdentifier(IDInfo);
-  VarDecl *VD;
-  if (!Declaration) {
-    /// Declare implicit declarations only if the expression is lvalue
-    if(!IsLvalue) {
-      Diag.Report(Tok.getLocation(), diag::err_undeclared_var_use)
-        << IDInfo;
-      Lex();
-      return ExprError();
-    }
-    // This variable hasn't been specified before. We need to apply any IMPLICIT
-    // rules to it.
-    Decl *D = Actions.ActOnImplicitEntityDecl(Context, Tok.getLocation(),
-                                              IDInfo);
-    if (!D) {
-      Lex();
-      return ExprError();
-    }
-    VD = cast<VarDecl>(D);
-  }
-  else VD = dyn_cast<VarDecl>(Declaration);
+  auto E = ParseNameOrCall();
 
   struct ScopedFlag {
     bool value;
@@ -617,54 +583,18 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
   if(DontResolveIdentifiersInSubExpressions)
     DontResolveIdentifiers = true;
 
-  if(!VD) {
-    auto Loc = Tok.getLocation();
-    auto Range = SourceRange(Loc, getMaxLocationOfCurrentToken());
-    ConsumeToken();
-
-    if(IntrinsicFunctionDecl *IFunc = dyn_cast<IntrinsicFunctionDecl>(Declaration)) {
-      SmallVector<Expr*, 8> Arguments;
-      SourceLocation RParenLoc = Tok.getLocation();
-      auto Result = ParseFunctionCallArgumentList(Arguments, RParenLoc);
-      if(Result.isInvalid())
-        return ExprError();
-      return Actions.ActOnIntrinsicFunctionCallExpr(Context, Loc, IFunc, Arguments);
-    }
-    else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
-      // FIXME: allow subroutines, but errors in sema
-      if(!Func->isSubroutine()) {
-        return ParseCallExpression(Range, Func);
-      }
-    }
-    else if(isa<ReturnVarDecl>(Declaration)) {
-      auto Func = Actions.CurrentContextAsFunction();
-      if(Func->isNormalFunction())
-        return ReturnedValueExpr::Create(Context, Loc, Func);
-    }
-
-    Diag.Report(Loc, diag::err_expected_var);
-    return ExprError();
-  }
-
-  ExprResult E = VarExpr::Create(Context, Tok.getLocation(), VD);
-  Lex();
-
-  if(Tok.is(tok::l_paren)){
-    if(VD->getType()->isArrayType()) {
+  while(true) {
+    if(!E.isUsable())
+      break;
+    if(!IsPresent(tok::l_paren))
+      break;
+    auto EType = E.get()->getType();
+    if(EType->isArrayType())
       E = ParseArraySubscript(E);
-      if(Tok.is(tok::l_paren)) {
-        if(VD->getType()->isArrayOfCharacterType())
-          return ParseSubstring(E);
-        else {
-          Diag.Report(Tok.getLocation(),diag::err_unexpected_lparen);
-          return ExprError();
-        }
-      }
-      return E;
-    } else if(VD->getType()->isCharacterType()) {
-      return ParseSubstring(E);
-    } else {
-      Diag.Report(Tok.getLocation(),diag::err_unexpected_lparen);
+    else if(EType->isCharacterType())
+      E = ParseSubstring(E);
+    else {
+      Diag.Report(Tok.getLocation(), diag::err_unexpected_lparen);
       return ExprError();
     }
   }
@@ -672,7 +602,61 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
   return E;
 }
 
+/// ParseNameOrCall - Parse a name or a call expression
+ExprResult Parser::ParseNameOrCall() {
+  auto IDInfo = Tok.getIdentifierInfo();
+  assert(IDInfo && "Token isn't an identifier");
+  auto IDEndLoc = getMaxLocationOfCurrentToken();
+  auto IDLoc = ConsumeToken();
 
+  if(DontResolveIdentifiers) {
+    auto E = UnresolvedIdentifierExpr::Create(Context,
+                                              IDLoc,
+                                              IDInfo);
+    return E;
+  }
+
+  // [R504]:
+  //   object-name :=
+  //       name
+  auto Declaration = Actions.ResolveIdentifier(IDInfo);
+  if(!Declaration) {
+    if(IsPresent(tok::l_paren))
+      Declaration = Actions.ActOnImplicitFunctionDecl(Context, IDLoc, IDInfo);
+    else
+      Declaration = Actions.ActOnImplicitEntityDecl(Context, IDLoc, IDInfo);
+    if(!Declaration)
+      return ExprError();
+  } else {
+    // INTEGER f
+    // X = f(10) <-- implicit function declaration.
+    if(IsPresent(tok::l_paren))
+      Declaration = Actions.ActOnPossibleImplicitFunctionDecl(Context, IDLoc, IDInfo, Declaration);
+  }
+
+  if(VarDecl *VD = dyn_cast<VarDecl>(Declaration))
+    return VarExpr::Create(Context, IDLoc, VD);
+  else if(IntrinsicFunctionDecl *IFunc = dyn_cast<IntrinsicFunctionDecl>(Declaration)) {
+    SmallVector<Expr*, 8> Arguments;
+    SourceLocation RParenLoc = Tok.getLocation();
+    auto Result = ParseFunctionCallArgumentList(Arguments, RParenLoc);
+    if(Result.isInvalid())
+      return ExprError();
+    return Actions.ActOnIntrinsicFunctionCallExpr(Context, IDLoc, IFunc, Arguments);
+  } else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
+    // FIXME: allow subroutines, but errors in sema
+    if(!Func->isSubroutine()) {
+      return ParseCallExpression(SourceRange(IDLoc, IDEndLoc), Func);
+    }
+  } else if(isa<ReturnVarDecl>(Declaration)) {
+    auto Func = Actions.CurrentContextAsFunction();
+    if(Func->isNormalFunction())
+      return ReturnedValueExpr::Create(Context, IDLoc, Func);
+  }
+
+  Diag.Report(IDLoc, diag::err_expected_var);
+  return ExprError();
+}
 
 /// ParseCallExpression - Parse a call expression
 ExprResult Parser::ParseCallExpression(SourceRange IdRange, FunctionDecl *Function) {

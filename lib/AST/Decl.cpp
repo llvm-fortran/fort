@@ -335,6 +335,11 @@ void VarDecl::MutateIntoParameter(Expr *Value) {
   SubDeclKind = ParameterVariable;
 }
 
+void VarDecl::MarkUsedAsVariable (SourceLocation Loc) {
+  if(SubDeclKind == UnusedSymbol)
+    SubDeclKind = LocalVariable;
+}
+
 //===----------------------------------------------------------------------===//
 // ReturnVarDecl Implementation
 //===----------------------------------------------------------------------===//

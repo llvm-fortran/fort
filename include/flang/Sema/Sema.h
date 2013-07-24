@@ -172,6 +172,13 @@ public:
   Decl *ActOnImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo);
 
+  Decl *ActOnImplicitFunctionDecl(ASTContext &C, SourceLocation IDLoc,
+                                  const IdentifierInfo *IDInfo);
+
+  Decl *ActOnPossibleImplicitFunctionDecl(ASTContext &C, SourceLocation IDLoc,
+                                          const IdentifierInfo *IDInfo,
+                                          Decl *PrevDecl);
+
   /// Returns a declaration which matches the identifier in this context
   Decl *LookupIdentifier(const IdentifierInfo *IDInfo);
 
@@ -339,7 +346,7 @@ public:
 
   StmtResult ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
                            SourceRange IdRange,
-                           FunctionDecl *Function,
+                           const IdentifierInfo *IDInfo,
                            ArrayRef<Expr*> Arguments, Expr *StmtLabel);
 
   StmtResult ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,

@@ -13,6 +13,6 @@ PROGRAM vartest
 
   REAL :: Y ! expected-error {{redefinition of 'y'}}
 
-  i = K ! expected-error {{use of undeclared identifier 'k'}}
+  i = K
 
 END PROGRAM

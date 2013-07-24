@@ -458,6 +458,53 @@ Decl *Sema::ActOnImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
   return ActOnEntityDecl(C, Type, IDLoc, IDInfo);
 }
 
+
+Decl *Sema::ActOnImplicitFunctionDecl(ASTContext &C, SourceLocation IDLoc,
+                                      const IdentifierInfo *IDInfo) {
+  auto FuncResult = IntrinsicFunctionMapping.Resolve(IDInfo);
+  if(!FuncResult.IsInvalid) {
+    auto Func = IntrinsicFunctionDecl::Create(C, CurContext, IDLoc, IDInfo,
+                                              C.IntegerTy, FuncResult.Function);
+    CurContext->addDecl(Func);
+    return Func;
+  }
+
+  auto Type = ResolveImplicitType(IDInfo);
+  if(Type.isNull()) {
+    Diags.Report(IDLoc, diag::err_undeclared_var_use)
+      << IDInfo;
+    return nullptr;
+  }
+
+  auto Func = FunctionDecl::Create(C, FunctionDecl::External, CurContext,
+                                   DeclarationNameInfo(IDInfo, IDLoc), Type);
+  return Func;
+}
+
+Decl *Sema::ActOnPossibleImplicitFunctionDecl(ASTContext &C, SourceLocation IDLoc,
+                                              const IdentifierInfo *IDInfo,
+                                              Decl *PrevDecl) {
+  if(PrevDecl->getDeclContext() == CurContext) {
+    if(auto VD = dyn_cast<VarDecl>(PrevDecl)) {
+      if(VD->isUnusedSymbol()) {
+        auto VarType = VD->getType();
+        // NB: AMBIGUITY - return the variable as it is probably
+        // an array access or character substring expression.
+        if(VarType->isArrayType() || VarType->isCharacterType())
+          return PrevDecl;
+
+        // FIXME: what about intrinsic?
+        auto Func = FunctionDecl::Create(C, FunctionDecl::External, CurContext,
+                                         DeclarationNameInfo(IDInfo, IDLoc), VarType);
+        CurContext->removeDecl(VD);
+        CurContext->addDecl(Func);
+        return Func;
+      }
+    }
+  }
+  return PrevDecl;
+}
+
 Decl *Sema::LookupIdentifier(const IdentifierInfo *IDInfo) {
   auto Result = CurContext->lookup(IDInfo);
   if(Result.first >= Result.second) return nullptr;
@@ -682,7 +729,7 @@ StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
   SourceLocation TypeLoc;
   if (auto Prev = LookupIdentifier(IDInfo)) {
     auto VD = dyn_cast<VarDecl>(Prev);
-    if(VD && VD->isLocalVariable()) {
+    if(VD && VD->isUnusedSymbol()) {
         Type = VD->getType();
         TypeLoc = VD->getLocation();
         CurContext->removeDecl(VD);
