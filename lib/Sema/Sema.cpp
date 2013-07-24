@@ -76,39 +76,6 @@ void Sema::PushExecutableProgramUnit(ExecutableProgramUnitScope &Scope) {
   CurExecutableStmts = &Scope.Body;
 }
 
-// Unterminated labeled do statement
-static void ReportUnterminatedLabeledDoStmt(DiagnosticsEngine &Diags,
-                                            const BlockStmtBuilder::Entry &S,
-                                            SourceLocation Loc) {
-  std::string Str;
-  llvm::raw_string_ostream Stream(Str);
-  S.ExpectedEndDoLabel->dump(Stream);
-  Diags.Report(Loc, diag::err_expected_stmt_label_end_do) << Stream.str();
-}
-
-// Unterminated if/do statement
-void Sema::ReportUnterminatedStmt(const BlockStmtBuilder::Entry &S,
-                                  SourceLocation Loc,
-                                  bool ReportUnterminatedLabeledDo) {
-  const char * Keyword;
-  switch(S.Statement->getStmtClass()) {
-  case Stmt::IfStmtClass: Keyword = "END IF"; break;
-  case Stmt::DoWhileStmtClass:
-  case Stmt::DoStmtClass: {
-    if(S.ExpectedEndDoLabel) {
-      if(ReportUnterminatedLabeledDo)
-        ReportUnterminatedLabeledDoStmt(Diags, S, Loc);
-      return;
-    }
-    else Keyword = "END DO";
-    break;
-  }
-  default:
-    llvm_unreachable("Invalid stmt");
-  }
-  Diags.Report(Loc, diag::err_expected_kw) << Keyword;
-}
-
 void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
 
   // Fix the forward statement label references
@@ -162,7 +129,7 @@ void BlockStmtBuilder::Enter(Entry S) {
 }
 
 Stmt *BlockStmtBuilder::CreateBody(ASTContext &C,
-                                             const Entry &Last) {
+                                   const Entry &Last) {
   auto Ref = ArrayRef<Stmt*>(StmtList);
   return BlockStmt::Create(C, Last.Statement->getLocation(),
                            ArrayRef<Stmt*>(Ref.begin() + Last.BeginOffset,
@@ -196,13 +163,6 @@ void BlockStmtBuilder::Leave(ASTContext &C) {
 Stmt *BlockStmtBuilder::LeaveOuterBody(ASTContext &C, SourceLocation Loc) {
   if(StmtList.size() == 1) return StmtList[0];
   return BlockStmt::Create(C, Loc, StmtList);
-}
-
-bool BlockStmtBuilder::HasEntered(Stmt::StmtClass StmtType) const {
-  for(auto I : ControlFlowStack) {
-    if(I.is(StmtType)) return true;
-  }
-  return false;
 }
 
 void BlockStmtBuilder::Append(Stmt *S) {

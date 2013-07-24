@@ -600,6 +600,25 @@ public:
                               SourceLocation Loc,
                               bool ReportUnterminatedLabeledDo = true);
 
+  /// Leaves the last block construct, and performs any clean up
+  /// that might be needed.
+  void LeaveLastBlock();
+
+  /// Leaves block constructs until a do construct is reached.
+  /// NB: the do statements with a termination label such as DO 100 I = ..
+  /// are popped.
+  Stmt *LeaveBlocksUntilDo(SourceLocation Loc);
+
+  /// Returns true if the current statement is inside a do construct which
+  /// is terminated by the given statement label.
+  bool IsInLabeledDo(const Expr *StmtLabel);
+
+  /// Leaves block constructs until a label termination do construct is reached.
+  DoStmt *LeaveBlocksUntilLabeledDo(SourceLocation Loc, const Expr *StmtLabel);
+
+  /// Leaves block constructs until an if construct is reached.
+  IfStmt *LeaveBlocksUntilIf(SourceLocation Loc);
+
 };
 
 } // end flang namespace

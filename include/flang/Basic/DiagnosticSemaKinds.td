@@ -112,15 +112,15 @@ def warn_unused_stmt_label : Warning<"unused statement label '%0'">,
   InGroup<UnusedLabel>, DefaultIgnore;
 
 def err_expected_stmt_label_end_do : Error<
-  "expected a statement with a statement label '%0' to mark the end of a do loop">;
+  "expected a do termination statement with a statement label '%0'">;
 
 def err_invalid_do_terminating_stmt : Error<
   "invalid terminating statement for a DO loop">;
 
 def err_stmt_not_in_if : Error<
-  "'%0' statement must be a part of an if construct">;
+  "use of '%0' outside an if construct">;
 def err_end_do_without_do : Error<
-  "use of 'END DO' without the do statement">;
+  "use of 'end do' outside a do construct">;
 
 def err_use_implicit_none_stmt : Error<
   "use of 'IMPLICIT NONE' after 'IMPLICIT'">;

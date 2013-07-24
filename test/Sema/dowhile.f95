@@ -8,8 +8,8 @@ PROGRAM dowhiletest
   END DO
 
   IF(.true.) THEN
-    DO WHILE(.false.)
+    DO WHILE(.false.) ! expected-note {{to match this 'do'}}
 
-    END IF ! expected-error {{expected 'END DO'}}
+    END IF ! expected-error {{expected 'end do'}}
 
-END ! expected-error {{expected 'END DO'}}
+END

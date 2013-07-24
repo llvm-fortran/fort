@@ -10,9 +10,9 @@ PROGRAM iftest
     I = 2
   END IF
 
-  ELSE ! expected-error {{'ELSE' statement must be a part of an if construct}}
-  ELSE IF(2 == 2) THEN ! expected-error {{'ELSE IF' statement must be a part of an if construct}}
-  END IF ! expected-error {{'END IF' statement must be a part of an if construct}}
+  ELSE ! expected-error {{use of 'else' outside an if construct}}
+  ELSE IF(2 == 2) THEN ! expected-error {{use of 'else if' outside an if construct}}
+  END IF ! FIXME: report as out of place end if?
 
   IF(2) THEN ! expected-error {{statement requires an expression of logical type ('integer' invalid)}}
     I = 3
@@ -28,8 +28,4 @@ PROGRAM iftest
     I = 3
   END IF
 
-  IF(.true.) THEN
-    DO I = 1, 10
-  END IF ! expected-error {{expected 'END DO'}}
-
-END PROGRAM ! expected-error {{expected 'END DO'}}
+END PROGRAM

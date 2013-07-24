@@ -56,6 +56,6 @@ PROGRAM iftest
     ENDIF
   END IF
 
-  IF(1 == 2) THEN
-    C = "NO" ! expected-error@+1 {{expected 'END IF'}}
+  IF(1 == 2) THEN ! expected-note {{to match this 'if'}}
+    C = "NO" ! expected-error@+1 {{expected 'end if'}}
 END PROGRAM iftest

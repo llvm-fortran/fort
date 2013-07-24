@@ -12,20 +12,19 @@ PROGRAM dotest
       R = I * R
 10  CONTINUE ! expected-note {{previous definition is here}}
 
-    END DO ! expected-error {{use of 'END DO' without the do statement}}
+    END DO ! expected-error {{use of 'end do' outside a do construct}}
 
     DO 10 I = 1, 5 ! expected-error {{the statement label '10' must be declared after the 'DO' statement}}
 20    R = R * R
 
     DO 25 II = 1, 10
-      IF(.true.) THEN
-25      CONTINUE ! expected-error {{expected 'END IF'}}
-      END IF
+      IF(.true.) THEN ! expected-note {{to match this 'if'}}
+25      CONTINUE ! expected-error {{expected 'end if'}}
 
     DO 666 I = 1, 10,2  ! expected-error {{use of undeclared statement label '666'}}
-      R = I * R
-
-    END DO ! expected-error {{expected a statement with a statement label '666' to mark the end of a do loop}}
+      R = I * R ! expected-note@-1 {{to match this 'do'}}
+    END DO ! expected-error {{expected a do termination statement with a statement label '666'}}
+    CONTINUE ! expected-error@-1 {{use of 'end do' outside a do construct}}
 
     DO 30 C = 1, 3 ! expected-error {{statement requires an integer variable ('complex' invalid)}}
 30  CONTINUE

@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the checking and AST construction for the DATA
-// statement.
+// This file implements the checking and AST construction for the executable
+// statements.
 //
 //===----------------------------------------------------------------------===//
 
@@ -16,6 +16,7 @@
 #include "flang/Sema/DeclSpec.h"
 #include "flang/Sema/SemaDiagnostic.h"
 #include "flang/Sema/SemaInternal.h"
+#include "flang/Parse/ParseDiagnostic.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Stmt.h"
@@ -103,6 +104,10 @@ StmtResult Sema::ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
+// =========================================================================
+// Block statements entry
+// =========================================================================
+
 StmtResult Sema::ActOnIfStmt(ASTContext &C, SourceLocation Loc,
                              ExprResult Condition, Expr *StmtLabel) {
   if(Condition.isUsable())
@@ -114,98 +119,6 @@ StmtResult Sema::ActOnIfStmt(ASTContext &C, SourceLocation Loc,
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   getCurrentBody()->Enter(Result);
   return Result;
-}
-
-StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
-                                 ExprResult Condition, Expr *StmtLabel) {
-  if(!getCurrentBody()->HasEntered() ||
-     !getCurrentBody()->LastEntered().is(Stmt::IfStmtClass)) {
-    if(getCurrentBody()->HasEntered(Stmt::IfStmtClass))
-      ReportUnterminatedStmt( getCurrentBody()->LastEntered(), Loc);
-    else
-      Diags.Report(Loc, diag::err_stmt_not_in_if) << "ELSE IF";
-    return StmtError();
-  }
-
-  // typecheck
-  if(Condition.isUsable())
-    StmtRequiresLogicalExpression(Loc, Condition.get());
-
-  auto Result = IfStmt::Create(C, Loc, Condition.get(), StmtLabel);
-  auto ParentIf = cast<IfStmt>(getCurrentBody()->LastEntered().Statement);
-  getCurrentBody()->Leave(C);
-  if(Condition.isUsable())
-    ParentIf->setElseStmt(Result);
-  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  getCurrentBody()->Enter(Result);
-  return Result;
-}
-
-StmtResult Sema::ActOnElseStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
-  if(!getCurrentBody()->HasEntered() ||
-     !getCurrentBody()->LastEntered().is(Stmt::IfStmtClass)) {
-    if(getCurrentBody()->HasEntered(Stmt::IfStmtClass))
-      ReportUnterminatedStmt(getCurrentBody()->LastEntered(), Loc);
-    else
-      Diags.Report(Loc, diag::err_stmt_not_in_if) << "ELSE";
-    return StmtError();
-  }
-  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::ElseStmtClass, Loc, nullptr, StmtLabel);
-  getCurrentBody()->Append(Result);
-  getCurrentBody()->LeaveIfThen(C);
-  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  return Result;
-}
-
-StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
-  // Report begin .. end mismatch
-  if(!getCurrentBody()->HasEntered() ||
-     !getCurrentBody()->LastEntered().is(Stmt::IfStmtClass)) {
-    if(getCurrentBody()->HasEntered(Stmt::IfStmtClass))
-      ReportUnterminatedStmt(getCurrentBody()->LastEntered(), Loc);
-    else
-      Diags.Report(Loc, diag::err_stmt_not_in_if) << "END IF";
-    return StmtError();
-  }
-
-  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndIfStmtClass, Loc, nullptr, StmtLabel);
-  getCurrentBody()->Append(Result);
-  getCurrentBody()->Leave(C);
-  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  return Result;
-}
-
-/// The terminal statement of a DO-loop must not be an unconditional GO TO,
-/// assigned GO TO, arithmetic IF, block IF, ELSE IF, ELSE, END IF, RETURN, STOP, END, or DO statement.
-/// If the terminal statement of a DO-loop is a logical IF statement,
-/// it may contain any executable statement except a DO,
-/// block IF, ELSE IF, ELSE, END IF, END, or another logical IF statement.
-///
-/// FIXME: TODO full
-static bool IsValidDoLogicalIfThenStatement(const Stmt *S) {
-  switch(S->getStmtClass()) {
-  case Stmt::DoStmtClass: case Stmt::IfStmtClass: case Stmt::DoWhileStmtClass:
-  case Stmt::ConstructPartStmtClass:
-    return false;
-  default:
-    return true;
-  }
-}
-
-bool Sema::IsValidDoTerminatingStatement(const Stmt *S) {
-  switch(S->getStmtClass()) {
-  case Stmt::GotoStmtClass: case Stmt::AssignedGotoStmtClass:
-  case Stmt::StopStmtClass: case Stmt::DoStmtClass:
-  case Stmt::DoWhileStmtClass:
-  case Stmt::ConstructPartStmtClass:
-    return false;
-  case Stmt::IfStmtClass: {
-    auto NextStmt = cast<IfStmt>(S)->getThenStmt();
-    return NextStmt && IsValidDoLogicalIfThenStatement(NextStmt);
-  }
-  default:
-    return true;
-  }
 }
 
 void StmtLabelResolver::VisitDoStmt(DoStmt *S) {
@@ -271,44 +184,6 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, SourceLocation E
   return Result;
 }
 
-/// FIXME: Fortran 90+: make multiple do end at one label obsolete
-void Sema::CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S) {
-  if(!getCurrentBody()->HasEntered())
-    return;
-
-  auto I = getCurrentBody()->ControlFlowStack.size();
-  size_t LastUnterminated = 0;
-  do {
-    I--;
-    if(!isa<DoStmt>(getCurrentBody()->ControlFlowStack[I].Statement)) {
-      if(!LastUnterminated) LastUnterminated = I;
-    } else {
-      auto ParentDo = cast<DoStmt>(getCurrentBody()->ControlFlowStack[I].Statement);
-      auto ParentDoExpectedLabel = getCurrentBody()->ControlFlowStack[I].ExpectedEndDoLabel;
-      if(!ParentDoExpectedLabel) {
-        if(!LastUnterminated) LastUnterminated = I;
-      } else {
-        if(getCurrentStmtLabelScope()->IsSame(ParentDoExpectedLabel, StmtLabel)) {
-          // END DO
-          getCurrentStmtLabelScope()->RemoveForwardReference(ParentDo);
-          if(!IsValidDoTerminatingStatement(S)) {
-            Diags.Report(S->getLocation(),
-                         diag::err_invalid_do_terminating_stmt);
-          }
-          ParentDo->setTerminatingStmt(StmtLabelReference(S));
-          if(!LastUnterminated) {
-            RemoveLoopVar(ParentDo->getDoVar());
-            getCurrentBody()->Leave(Context);
-          }
-          else
-            ReportUnterminatedStmt(getCurrentBody()->ControlFlowStack[LastUnterminated],
-                                   S->getLocation());
-        } else if(!LastUnterminated) LastUnterminated = I;
-      }
-    }
-  } while(I>0);
-}
-
 StmtResult Sema::ActOnDoWhileStmt(ASTContext &C, SourceLocation Loc, ExprResult Condition,
                                   Expr *StmtLabel) {
   if(Condition.isUsable())
@@ -321,42 +196,211 @@ StmtResult Sema::ActOnDoWhileStmt(ASTContext &C, SourceLocation Loc, ExprResult 
   return Result;
 }
 
-StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
-  // Report begin .. end mismatch
-  if(!getCurrentBody()->HasEntered() ||
-     (!isa<DoStmt>(getCurrentBody()->LastEntered().Statement) &&
-      !isa<DoWhileStmt>(getCurrentBody()->LastEntered().Statement))) {
-    bool HasMatchingDo = false;
-    for(auto I : getCurrentBody()->ControlFlowStack) {
-      if(isa<DoWhileStmt>(I.Statement) ||
-        (isa<DoStmt>(I.Statement) && !I.ExpectedEndDoLabel)) {
-        HasMatchingDo = true;
-        break;
+
+// =============================================================
+// Block statements termination and control flow
+// =============================================================
+
+void Sema::ReportUnterminatedStmt(const BlockStmtBuilder::Entry &S,
+                                  SourceLocation Loc,
+                                  bool ReportUnterminatedLabeledDo) {
+  const char *Keyword;
+  const char *BeginKeyword;
+  switch(S.Statement->getStmtClass()) {
+  case Stmt::IfStmtClass:
+    Keyword = "end if";
+    BeginKeyword = "if";
+    break;
+  case Stmt::DoWhileStmtClass:
+  case Stmt::DoStmtClass: {
+    if(S.ExpectedEndDoLabel) {
+      if(ReportUnterminatedLabeledDo) {
+        std::string Str;
+        llvm::raw_string_ostream Stream(Str);
+        S.ExpectedEndDoLabel->dump(Stream);
+        Diags.Report(Loc, diag::err_expected_stmt_label_end_do) << Stream.str();
+        Diags.Report(S.Statement->getLocation(), diag::note_matching) << "do";
       }
+      return;
     }
-    if(!HasMatchingDo)
-      Diags.Report(Loc, diag::err_end_do_without_do);
-    else ReportUnterminatedStmt(getCurrentBody()->LastEntered(), Loc);
-    return StmtError();
+    Keyword = "end do";
+    BeginKeyword = "do";
+    break;
   }
+  default:
+    llvm_unreachable("Invalid stmt");
+  }
+  Diags.Report(Loc, diag::err_expected_kw) << Keyword;
+  Diags.Report(S.Statement->getLocation(), diag::note_matching) << BeginKeyword;
+}
 
-  auto Last = getCurrentBody()->LastEntered();
-
-  if(auto Do = dyn_cast<DoStmt>(Last.Statement)) {
-    // If last loop was a DO with terminating label, we expect it to finish before this loop
-    if(getCurrentBody()->LastEntered().ExpectedEndDoLabel) {
-      //FIXME: ReportUnterminatedLabeledDoStmt(getCurrentBody()->LastEntered(), Loc);
-      return StmtError();
-    }
+void Sema::LeaveLastBlock() {
+  auto Last = getCurrentBody()->LastEntered().Statement;
+  if(auto Do = dyn_cast<DoStmt>(Last)) {
     RemoveLoopVar(Do->getDoVar());
   }
+  getCurrentBody()->Leave(Context);
+}
 
-  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndDoStmtClass, Loc, nullptr, StmtLabel);
+IfStmt *Sema::LeaveBlocksUntilIf(SourceLocation Loc) {
+  auto Stack = getCurrentBody()->ControlFlowStack;
+  for(size_t I = Stack.size(); I != 0;) {
+    --I;
+    if(auto If = dyn_cast<IfStmt>(Stack[I].Statement))
+      return If;
+    ReportUnterminatedStmt(Stack[I], Loc);
+    LeaveLastBlock();
+  }
+  return nullptr;
+}
+
+Stmt *Sema::LeaveBlocksUntilDo(SourceLocation Loc) {
+  auto Stack = getCurrentBody()->ControlFlowStack;
+  for(size_t I = Stack.size(); I != 0;) {
+    --I;
+    auto S = Stack[I].Statement;
+    if(isa<DoWhileStmt>(S) ||
+       isa<DoStmt>(S) && !Stack[I].hasExpectedDoLabel())
+      return S;
+    ReportUnterminatedStmt(Stack[I], Loc);
+    LeaveLastBlock();
+  }
+  return nullptr;
+}
+
+/// The terminal statement of a DO-loop must not be an unconditional GO TO,
+/// assigned GO TO, arithmetic IF, block IF, ELSE IF, ELSE, END IF, RETURN, STOP, END, or DO statement.
+/// If the terminal statement of a DO-loop is a logical IF statement,
+/// it may contain any executable statement except a DO,
+/// block IF, ELSE IF, ELSE, END IF, END, or another logical IF statement.
+///
+/// FIXME: TODO full
+static bool IsValidDoLogicalIfThenStatement(const Stmt *S) {
+  switch(S->getStmtClass()) {
+  case Stmt::DoStmtClass: case Stmt::IfStmtClass: case Stmt::DoWhileStmtClass:
+  case Stmt::ConstructPartStmtClass:
+    return false;
+  default:
+    return true;
+  }
+}
+
+bool Sema::IsValidDoTerminatingStatement(const Stmt *S) {
+  switch(S->getStmtClass()) {
+  case Stmt::GotoStmtClass: case Stmt::AssignedGotoStmtClass:
+  case Stmt::StopStmtClass: case Stmt::DoStmtClass:
+  case Stmt::DoWhileStmtClass:
+  case Stmt::ConstructPartStmtClass:
+    return false;
+  case Stmt::IfStmtClass: {
+    auto NextStmt = cast<IfStmt>(S)->getThenStmt();
+    return NextStmt && IsValidDoLogicalIfThenStatement(NextStmt);
+  }
+  default:
+    return true;
+  }
+}
+
+bool Sema::IsInLabeledDo(const Expr *StmtLabel) {
+  auto Stack = getCurrentBody()->ControlFlowStack;
+  for(size_t I = Stack.size(); I != 0;) {
+    --I;
+    if(isa<DoStmt>(Stack[I].Statement)) {
+      if(Stack[I].hasExpectedDoLabel()) {
+        if(getCurrentStmtLabelScope()->IsSame(Stack[I].ExpectedEndDoLabel, StmtLabel))
+          return true;
+      }
+    }
+  }
+  return false;
+}
+
+DoStmt *Sema::LeaveBlocksUntilLabeledDo(SourceLocation Loc, const Expr *StmtLabel) {
+  auto Stack = getCurrentBody()->ControlFlowStack;
+  for(size_t I = Stack.size(); I != 0;) {
+    --I;
+    if(auto Do = dyn_cast<DoStmt>(Stack[I].Statement)) {
+      if(Stack[I].hasExpectedDoLabel()) {
+        if(getCurrentStmtLabelScope()->IsSame(Stack[I].ExpectedEndDoLabel, StmtLabel))
+          return Do;
+      }
+    }
+    ReportUnterminatedStmt(Stack[I], Loc);
+    LeaveLastBlock();
+  }
+  return nullptr;
+}
+
+StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
+                                 ExprResult Condition, Expr *StmtLabel) {
+  auto IfBegin = LeaveBlocksUntilIf(Loc);
+  if(!IfBegin)
+    Diags.Report(Loc, diag::err_stmt_not_in_if) << "else if";
+
+  // typecheck
+  if(Condition.isUsable())
+    StmtRequiresLogicalExpression(Loc, Condition.get());
+
+  auto Result = IfStmt::Create(C, Loc, Condition.get(), StmtLabel);
+  if(IfBegin) {
+    LeaveLastBlock();
+    if(Condition.isUsable())
+      IfBegin->setElseStmt(Result);
+  }
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  getCurrentBody()->Enter(Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnElseStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
+  auto IfBegin = LeaveBlocksUntilIf(Loc);
+  if(!IfBegin)
+    Diags.Report(Loc, diag::err_stmt_not_in_if) << "else";
+
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::ElseStmtClass, Loc, nullptr, StmtLabel);
   getCurrentBody()->Append(Result);
-  getCurrentBody()->Leave(C);
+  if(IfBegin) getCurrentBody()->LeaveIfThen(C);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
+
+StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
+  auto IfBegin = LeaveBlocksUntilIf(Loc);
+  if(!IfBegin)
+    Diags.Report(Loc, diag::err_stmt_not_in_if) << "end if";
+
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndIfStmtClass, Loc, nullptr, StmtLabel);
+  getCurrentBody()->Append(Result);
+  if(IfBegin) LeaveLastBlock();
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
+  auto DoBegin = LeaveBlocksUntilDo(Loc);
+  if(!DoBegin)
+    Diags.Report(Loc, diag::err_end_do_without_do);
+
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndDoStmtClass, Loc, nullptr, StmtLabel);
+  getCurrentBody()->Append(Result);
+  if(DoBegin) LeaveLastBlock();
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+/// FIXME: Fortran 90+: make multiple do end at one label obsolete
+void Sema::CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S) {
+  if(!getCurrentBody()->HasEntered()) return;
+  if(!IsInLabeledDo(StmtLabel)) return;
+  auto DoBegin = LeaveBlocksUntilLabeledDo(S->getLocation(), StmtLabel);
+
+  getCurrentStmtLabelScope()->RemoveForwardReference(DoBegin);
+  if(!IsValidDoTerminatingStatement(S))
+    Diags.Report(S->getLocation(), diag::err_invalid_do_terminating_stmt);
+  DoBegin->setTerminatingStmt(StmtLabelReference(S));
+  LeaveLastBlock();
+}
+
 
 StmtResult Sema::ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   auto Result = ContinueStmt::Create(C, Loc, StmtLabel);

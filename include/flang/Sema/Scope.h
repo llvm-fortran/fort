@@ -56,8 +56,9 @@ public:
     Entry(IfStmt *S)
       : Statement(S), BeginOffset(0) {
     }
-    inline bool is(Stmt::StmtClass StmtType) const {
-      return Statement->getStmtClass() == StmtType;
+
+    bool hasExpectedDoLabel() const {
+      return ExpectedEndDoLabel != nullptr;
     }
   };
 
@@ -75,13 +76,12 @@ public:
     return StmtList;
   }
 
-  inline const Entry &LastEntered() const {
+  const Entry &LastEntered() const {
     return ControlFlowStack.back();
   }
-  inline bool HasEntered() const {
+  bool HasEntered() const {
     return ControlFlowStack.size() != 0;
   }
-  bool HasEntered(Stmt::StmtClass StmtType) const;
 
   void Append(Stmt *S);
 private:
@@ -191,7 +191,7 @@ public:
   bool ApplyNone();
 
   /// \brief returns true if IMPLICIT NONE was used in this scope.
-  inline bool isNoneInThisScope() const {
+  bool isNoneInThisScope() const {
     return None;
   }
 

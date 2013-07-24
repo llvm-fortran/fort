@@ -50,7 +50,6 @@ PROGRAM dotest
     ENDDO
 
     DO x I = 1,2 ! expected-error {{expected '='}}
-    ! END DO
+    END DO
 
-    DO I = 1,5 ! expected-error@+1 {{expected 'END DO'}}
 END PROGRAM
