@@ -230,9 +230,13 @@ private:
   /// should be a keyword. This is required for fixed-form lexing.
   ///
   /// kw is an optional hint (Not used ATM).
-  void SetNextTokenShouldBeKeyword(tok::TokenKind kw = tok::unknown) {
+  void SetNextTokenShouldBeKeyword(tok::TokenKind Keyword = tok::unknown) {
     IdentifierLexingContext C;
-    C.Kind = IdentifierLexingContext::StatementStart;
+    if(Keyword != tok::unknown) {
+      C.Kind = IdentifierLexingContext::MergedKeyword;
+      C.Keyword = Keyword;
+    }
+    else C.Kind = IdentifierLexingContext::StatementStart;
     TheLexer.SetIdContext(C);
   }
 

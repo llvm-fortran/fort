@@ -309,12 +309,90 @@ Parser::MatchFixedFormIdentifier(Token &T, IdentifierLexingContext Context) {
   if(Context.Kind == IdentifierLexingContext::StatementStart) {
     auto KW = Identifiers.lookupKeyword(NameStr);
     if(KW) {
-      if(tok::isDelimiterKeyword(KW->getTokenID()))
-        return ResetIdentAction;
-      return RememberIdentAction;
+      auto ID = KW->getTokenID();
+
+      /// We need to look for these keywords in the start
+      /// of a statement because they can be merged
+      /// with other identifiers.
+      switch(ID) {
+      // ASSIGN10TOI
+      case tok::kw_ASSIGN:
+      // DOI=1,10
+      case tok::kw_DO:
+      // ENDDOconstructname
+      case tok::kw_ENDDO:
+      // ELSEconstructname
+      case tok::kw_ELSE:
+      // ENDIFconstructname
+      case tok::kw_ENDIF:
+      // CASEDEFAULTconstructname
+      // FIXME: add
+      //case tok::kw_CASEDEFAULT:
+      // ENDSELECTconstructname
+      case tok::kw_ENDSELECT:
+      // GOTOI
+      case tok::kw_GOTO:
+      // CALLfoo
+      case tok::kw_CALL:
+      // STOP1
+      case tok::kw_STOP:
+      // ENTRYwhat
+      case tok::kw_ENTRY:
+      // RETURN1
+      case tok::kw_RETURN:
+      // CYCLE/EXITconstructname
+      // FIXME: add
+      //case tok::kw_CYCLE:
+      //case tok::kw_EXIT:
+      // PRINTfmt
+      case tok::kw_PRINT:
+      // READfmt
+      case tok::kw_READ:
+      // INTEGERvar
+      case tok::kw_INTEGER:
+      case tok::kw_REAL:
+      case tok::kw_COMPLEX:
+      case tok::kw_DOUBLEPRECISION:
+      case tok::kw_DOUBLECOMPLEX:
+      case tok::kw_LOGICAL:
+      case tok::kw_CHARACTER:
+      // IMPLICITREAL
+      case tok::kw_IMPLICIT:
+      // DIMENSIONI(10)
+      case tok::kw_DIMENSION:
+      // EXTERNALfoo
+      case tok::kw_EXTERNAL:
+      // INTRINSICfoo
+      case tok::kw_INTRINSIC:
+      // COMMONi
+      case tok::kw_COMMON:
+      // DATAa/1/
+      case tok::kw_DATA:
+      // SAVEi
+      case tok::kw_SAVE:
+      // PROGRAMname
+      case tok::kw_PROGRAM:
+      // ENDPROGRAMname
+      case tok::kw_ENDPROGRAM:
+      // SUBROUTINEfoo
+      case tok::kw_SUBROUTINE:
+      case tok::kw_ENDSUBROUTINE:
+      // FUNCTIONfoo
+      case tok::kw_FUNCTION:
+      case tok::kw_ENDFUNCTION:
+        return RememberIdentAction;
+        break;
+      default:
+        break;
+      }
+      return ResetIdentAction;
     }
   }
-
+  else if(Context.Kind == IdentifierLexingContext::MergedKeyword) {
+    auto KW = Identifiers.lookupKeyword(NameStr);
+    if(KW && KW->getTokenID() == Context.Keyword)
+      return RememberIdentAction;
+  }
   return NoIdentAction;
 }
 

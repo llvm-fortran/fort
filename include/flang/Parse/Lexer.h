@@ -57,6 +57,7 @@ public:
     MergedKeyword
   };
   ContextKind Kind;
+  tok::TokenKind Keyword;
 
   IdentifierLexingContext()
     : Kind(Default) {}

@@ -161,7 +161,7 @@ Parser::StmtResult Parser::ParseAssignStmt() {
         << "ASSIGN";
     return StmtError();
   }
-  SetNextTokenShouldBeKeyword();
+  SetNextTokenShouldBeKeyword(tok::kw_TO);
   ConsumeToken();
   if(!ExpectAndConsume(tok::kw_TO, diag::err_expected_kw, "TO"))
     return StmtError();
