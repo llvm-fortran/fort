@@ -433,28 +433,23 @@ StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation
                                ArrayRef<Expr*> Arguments, Expr *StmtLabel) {
   auto Prev = ResolveIdentifier(IDInfo);
   FunctionDecl *Function;
-  if(Prev && Prev->getDeclContext() == CurContext) {
+  if(Prev) {
     Function = dyn_cast<FunctionDecl>(Prev);
     if(!Function) {
       Diags.Report(Loc, diag::err_call_requires_subroutine)
         << /* intrinsicfunction|variable= */ (isa<IntrinsicFunctionDecl>(Prev)? 1: 0)
         << IDInfo << IdRange;
       return StmtError();
-    }
-  } else {
-    Function = dyn_cast_or_null<FunctionDecl>(Prev);
-    if(!Function) {
-      // an implicit function declaration.
-      Function = FunctionDecl::Create(Context, FunctionDecl::External, CurContext,
-                                      DeclarationNameInfo(IDInfo, IdRange.Start), QualType());
-      CurContext->addDecl(Function);
-    }
-  }
-
-  if(Function->isNormalFunction() || Function->isStatementFunction()) {
+    } else if(Function->isNormalFunction() || Function->isStatementFunction()) {
       Diags.Report(Loc, diag::err_call_requires_subroutine)
         << /* function= */ 2 << IDInfo << IdRange;
       return StmtError();
+    }
+  } else {
+    // an implicit function declaration.
+    Function = FunctionDecl::Create(Context, FunctionDecl::External, CurContext,
+                                    DeclarationNameInfo(IDInfo, IdRange.Start), QualType());
+    CurContext->addDecl(Function);
   }
 
   CheckCallArgumentCount(Function, Arguments, RParenLoc, IdRange);
