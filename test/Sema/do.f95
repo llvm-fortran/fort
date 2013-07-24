@@ -27,11 +27,11 @@ PROGRAM dotest
 
     END DO ! expected-error {{expected a statement with a statement label '666' to mark the end of a do loop}}
 
-    DO 30 C = 1, 3 ! expected-error {{expected a real or an integer variable instead of variable with type 'complex'}}
+    DO 30 C = 1, 3 ! expected-error {{statement requires an integer variable ('complex' invalid)}}
 30  CONTINUE
 
-    DO 40 I = 'A', 'Z' ! expected-error {{expected a real or an integer expression}}
-40  CONTINUE ! expected-error@-1 {{expected a real or an integer expression}}
+    DO 40 I = 'A', 'Z' ! expected-error {{expected a scalar expression ('character' invalid)}}
+40  CONTINUE ! expected-error@-1 {{expected a scalar expression ('character' invalid)}}
 
     DO 50 I = 1, 20
 50  GOTO 40 ! expected-error {{invalid terminating statement for a DO loop}}

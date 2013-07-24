@@ -104,11 +104,38 @@ bool Sema::CheckIntegerExpression(const Expr *E) {
   return false;
 }
 
-bool Sema::CheckIntegerVar(const VarExpr *E) {
-  if(E->getType()->isIntegerType())
+bool Sema::CheckScalarNumericExpression(const Expr *E) {
+  if(E->getType()->isIntegerType() ||
+     E->getType()->isRealType())
     return true;
   Diags.Report(E->getLocation(),
-               diag::err_typecheck_expected_int_var)
+               diag::err_expected_scalar_numeric_expr)
+    << E->getType() << E->getSourceRange();
+  return false;
+}
+
+bool Sema::StmtRequiresIntegerVar(SourceLocation Loc, const VarExpr *E) {
+  if(E->getType()->isIntegerType())
+    return true;
+  Diags.Report(Loc,
+               diag::err_typecheck_stmt_requires_int_var)
+    << E->getType() << E->getSourceRange();
+  return false;
+}
+
+bool Sema::StmtRequiresScalarNumericVar(SourceLocation Loc, const VarExpr *E, unsigned DiagId) {
+  if(E->getType()->isIntegerType() ||
+     E->getType()->isRealType())
+    return true;
+  Diags.Report(Loc, DiagId)
+    << E->getType() << E->getSourceRange();
+  return false;
+}
+
+bool Sema::StmtRequiresLogicalExpression(SourceLocation Loc, const Expr *E) {
+  if(E->getType()->isLogicalType())
+    return true;
+  Diags.Report(Loc, diag::err_typecheck_stmt_requires_logical_expr)
     << E->getType() << E->getSourceRange();
   return false;
 }

@@ -28,6 +28,8 @@ def err_expected_scalar_or_character_expr : Error<
   "expected an integer, real, complex or character expression">;
 def err_expected_scalar_or_character_constant_expr : Error<
   "expected an integer, real, complex or character constant expression">;
+def err_expected_scalar_numeric_expr : Error<
+  "expected a scalar expression (%0 invalid)">;
 def err_expected_var_ref : Error<
   "expected a variable reference">;
 
@@ -56,16 +58,18 @@ def err_typecheck_arith_unary_expr : Error<
 def err_typecheck_logical_unary_expr : Error<
   "invalid argument type %0 to a logical unary expression">;
 
+def err_typecheck_stmt_requires_int_expr : Error<
+  "statement requires an expression of integer type (%0 invalid)">;
+def err_typecheck_stmt_requires_int_var : Error<
+  "statement requires an integer variable (%0 invalid)">;
 def err_typecheck_expected_logical_expr : Error<
   "expected a logical expression instead of an expression with type %0">;
+def err_typecheck_stmt_requires_logical_expr : Error<
+  "statement requires an expression of logical type (%0 invalid)">;
 def err_typecheck_expected_char_expr : Error<
   "expected a character expression instead of an expression with type %0">;
 def err_typecheck_expected_int_var : Error<
   "expected an integer variable instead of a variable with type %0">;
-def err_typecheck_expected_do_var : Error<
-  "expected a real or an integer variable instead of variable with type %0">;
-def err_typecheck_expected_do_expr : Error<
-  "expected a real or an integer expression">;
 def err_typecheck_expected_format_spec : Error<
   "expected a valid format specifier instead of an expression with type %0">;
 

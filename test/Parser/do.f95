@@ -33,9 +33,8 @@ PROGRAM dotest
     DO 80 I = 1,3, ! expected-error {{expected an expression after ','}}
 80    CONTINUE
 
-    ! FIXME:
-    !DO 90 I =
-    ! 1 , 4
+    DO 90 I = ! expected-error {{expected an expression after '='}}
+     1 , 4    ! expected-error {{}}
 90  CONTINUE
 
     DO 100 I = 1, ! expected-error {{expected an expression after ','}}

@@ -188,6 +188,9 @@ public:
   VarDecl *ExpectVarRef(SourceLocation IDLoc,
                         const IdentifierInfo *IDInfo);
 
+  VarExpr *ConstructRecoveryVariable(ASTContext &C, SourceLocation Loc,
+                                     QualType T);
+
   // FIXME: TODO more features.
   RecordDecl *ActOnDerivedTypeDecl(ASTContext &C, SourceLocation Loc,
                                    SourceLocation NameLoc, const IdentifierInfo* IDInfo);
@@ -318,7 +321,8 @@ public:
   StmtResult ActOnElseStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
   StmtResult ActOnEndIfStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
-  StmtResult ActOnDoStmt(ASTContext &C, SourceLocation Loc, ExprResult TerminatingStmt,
+  StmtResult ActOnDoStmt(ASTContext &C, SourceLocation Loc, SourceLocation EqualLoc,
+                         ExprResult TerminatingStmt,
                          VarExpr *DoVar, ExprResult E1, ExprResult E2,
                          ExprResult E3, Expr *StmtLabel);
 
@@ -451,9 +455,19 @@ public:
   /// Returns true if an expression is an integer expression
   bool CheckIntegerExpression(const Expr *E);
 
+  /// Returns true if an expression is a scalar numeric expression
+  bool CheckScalarNumericExpression(const Expr *E);
+
   /// Returns true if a variable reference points to an integer
   /// variable
-  bool CheckIntegerVar(const VarExpr *E);
+  bool StmtRequiresIntegerVar(SourceLocation Loc, const VarExpr *E);
+
+  /// Returns true if a variable reference points to an integer
+  /// or a real variable
+  bool StmtRequiresScalarNumericVar(SourceLocation Loc, const VarExpr *E, unsigned DiagId);
+
+  /// Returns true if an expression is a logical expression
+  bool StmtRequiresLogicalExpression(SourceLocation Loc, const Expr *E);
 
   /// Returns true if an expression is a character expression
   bool CheckCharacterExpression(const Expr *E);
@@ -577,6 +591,14 @@ public:
 
   /// Returns true if the variable can be assigned to (mutated)
   bool CheckVarIsAssignable(const VarExpr *E);
+
+  /// Returns true if a statement is a valid do terminator
+  bool IsValidDoTerminatingStatement(const Stmt *S);
+
+  /// Reports an unterminated construct such as do, if, etc.
+  void ReportUnterminatedStmt(const BlockStmtBuilder::Entry &S,
+                              SourceLocation Loc,
+                              bool ReportUnterminatedLabeledDo = true);
 
 };
 

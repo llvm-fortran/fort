@@ -267,17 +267,13 @@ ExprResult Parser::ParseExpectedConditionExpression(const char *DiagAfter) {
 Parser::StmtResult Parser::ParseIfStmt() {
   auto Loc = ConsumeToken();
 
-  if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after, "IF")) {
-    SkipUntilNextStatement();
-    return StmtError();
-  }
-  ExprResult Condition = ParseExpectedFollowupExpression("(");
-  if(Condition.isInvalid()) return StmtError();
+  ExprResult Condition;
+  if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after, "IF"))
+    goto error;
+  Condition = ParseExpectedFollowupExpression("(");
+  if(Condition.isInvalid()) goto error;
   SetNextTokenShouldBeKeyword();
-  if (!ExpectAndConsume(tok::r_paren)) {
-    SkipUntilNextStatement();
-    return StmtError();
-  }
+  if (!ExpectAndConsume(tok::r_paren)) goto error;
   if (!ConsumeIfPresent(tok::kw_THEN)){
     // if-stmt
     if(Tok.isAtStartOfStatement()) {
@@ -295,15 +291,18 @@ Parser::StmtResult Parser::ParseIfStmt() {
 
   // if-construct.
   return Actions.ActOnIfStmt(Context, Loc, Condition, StmtLabel);
+error:
+  SkipUntilNextStatement();
+  return Actions.ActOnIfStmt(Context, Loc, Condition, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseElseIfStmt() {
   auto Loc = ConsumeToken();
-
   ExprResult Condition = ParseExpectedConditionExpression("ELSE IF");
-  if(Condition.isInvalid()) return StmtError();
-  if(!ExpectAndConsume(tok::kw_THEN, diag::err_expected_kw, "THEN"))
-    SkipUntilNextStatement();
+  if(!Condition.isInvalid()) {
+    if(!ExpectAndConsume(tok::kw_THEN, diag::err_expected_kw, "THEN"))
+      SkipUntilNextStatement();
+  } else SkipUntilNextStatement();
   return Actions.ActOnElseIfStmt(Context, Loc, Condition, StmtLabel);
 }
 
@@ -317,11 +316,14 @@ Parser::StmtResult Parser::ParseEndIfStmt() {
   return Actions.ActOnEndIfStmt(Context, Loc, StmtLabel);
 }
 
-// FIXME: improve error recovery
 Parser::StmtResult Parser::ParseDoStmt() {
   auto Loc = ConsumeToken();
 
   ExprResult TerminalStmt;
+  VarExpr *DoVar = nullptr;
+  ExprResult E1, E2, E3;
+  auto EqLoc = Loc;
+
   if(Tok.is(tok::int_literal_constant)) {
     TerminalStmt = ParseStatementLabelReference();
     if(TerminalStmt.isInvalid()) return StmtError();
@@ -331,34 +333,34 @@ Parser::StmtResult Parser::ParseDoStmt() {
   auto IDInfo = Tok.getIdentifierInfo();
   auto IDLoc = Tok.getLocation();
   if(!ExpectAndConsume(tok::identifier))
-    return StmtError();
-  auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo);
-  if(!VD)
-    return StmtError();
-  auto DoVar = VarExpr::Create(Context, IDLoc, VD);
+    goto error;
+  if(auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo))
+    DoVar = VarExpr::Create(Context, IDLoc, VD);
 
+  EqLoc = getMaxLocationOfCurrentToken();
   if(!ExpectAndConsume(tok::equal))
-    return StmtError();
-  auto E1 = ParseExpectedFollowupExpression("=");
-  if(E1.isInvalid()) return StmtError();
-  if(!ExpectAndConsume(tok::comma))
-    return StmtError();
-  auto E2 = ParseExpectedFollowupExpression(",");
-  if(E2.isInvalid()) return StmtError();
-  ExprResult E3;
+    goto error;
+  E1 = ParseExpectedFollowupExpression("=");
+  if(E1.isInvalid()) goto error;
+  if(!ExpectAndConsume(tok::comma)) goto error;
+  E2 = ParseExpectedFollowupExpression(",");
+  if(E2.isInvalid()) goto error;
   if(ConsumeIfPresent(tok::comma)) {
     E3 = ParseExpectedFollowupExpression(",");
-    if(E3.isInvalid()) return StmtError();
+    if(E3.isInvalid()) goto error;
   }
 
-  return Actions.ActOnDoStmt(Context, Loc, TerminalStmt,
+  return Actions.ActOnDoStmt(Context, Loc, EqLoc, TerminalStmt,
+                             DoVar, E1, E2, E3, StmtLabel);
+error:
+  SkipUntilNextStatement();
+  return Actions.ActOnDoStmt(Context, Loc, EqLoc, TerminalStmt,
                              DoVar, E1, E2, E3, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseDoWhileStmt() {
   auto Loc = ConsumeToken();
   auto Condition = ParseExpectedConditionExpression("WHILE");
-  if(Condition.isInvalid()) return StmtError();
   return Actions.ActOnDoWhileStmt(Context, Loc, Condition, StmtLabel);
 }
 

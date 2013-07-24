@@ -4,7 +4,7 @@ PROGRAM dowhiletest
   DO WHILE(.true.)
   END DO
 
-  DO WHILE(1) ! expected-error {{expected a logical expression instead of an expression with type 'integer'}}
+  DO WHILE(1) ! expected-error {{statement requires an expression of logical type ('integer' invalid)}}
   END DO
 
   IF(.true.) THEN

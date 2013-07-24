@@ -23,7 +23,7 @@ SUBROUTINE SUBB ! expected-note {{previous definition is here}}
   INTEGER SUBB ! expected-error {{redefinition of 'subb'}}
   REAL FUNC2
   IF(SUBB .EQ. 0) FUNC2 = 0 ! expected-error {{expected a variable}}
-END
+END ! expected-error {{expected 'END IF'}}
 
 FUNCTION FUNC3()
   INTEGER FUNC3
