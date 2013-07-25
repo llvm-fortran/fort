@@ -271,7 +271,10 @@ Parser::StmtResult Parser::ParseIfStmt() {
   if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after, "IF"))
     goto error;
   Condition = ParseExpectedFollowupExpression("(");
-  if(Condition.isInvalid()) goto error;
+  if(Condition.isInvalid()) {
+    if(!SkipUntil(tok::r_paren, true, true))
+      goto error;
+  }
   SetNextTokenShouldBeKeyword();
   if (!ExpectAndConsume(tok::r_paren)) goto error;
   if (!ConsumeIfPresent(tok::kw_THEN)){

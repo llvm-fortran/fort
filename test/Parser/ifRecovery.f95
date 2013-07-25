@@ -7,7 +7,7 @@ PROGRAM dotest
     if .true. then ! expected-error {{expected '(' after 'IF'}}
     end if
 
-    if () ! expected-error {{expected an expression}}
+    if () then ! expected-error {{expected an expression}}
     end if
 
     if (.false. ! expected-error {{expected ')'}}
@@ -16,5 +16,7 @@ PROGRAM dotest
     if(.true.) then
     else if then  ! expected-error {{expected '(' after 'ELSE IF'}}
     end if
+
+    if(::) i = 0 ! expected-error {{expected an expression}}
 
 END
