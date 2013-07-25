@@ -54,6 +54,7 @@ CodeGenModule::CodeGenModule(ASTContext &C, const CodeGenOptions &CGO,
   IntPtrTy = llvm::IntegerType::get(LLVMContext, PointerWidthInBits);
   Int8PtrTy = Int8Ty->getPointerTo(0);
   Int8PtrPtrTy = Int8PtrTy->getPointerTo(0);
+  RuntimeCC = llvm::CallingConv::C;
 
   IORuntime = CreateLibflangIORuntime(*this);
 }
