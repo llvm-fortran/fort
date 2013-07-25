@@ -910,6 +910,15 @@ void Lexer::LexIdentifier(Token &Result) {
 /// LexFixedFormIdentifier - Lex a fixed form identifier token.
 /// Pick the longest match out of all possible matches
 void Lexer::LexFixedFormIdentifier(Token &Result) {
+  /// Early out for the common case to improve perfomance
+  if(CurIdContext.Kind == IdentifierLexingContext::Default) {
+    unsigned char C = getCurrentChar();
+    while (isIdentifierBody(C))
+      C = getNextChar();
+    FormTokenWithChars(Result, tok::identifier);
+    return;
+  }
+
   // Match [_A-Za-z0-9]*, we have already matched [A-Za-z$]
   unsigned char C = getCurrentChar();
 

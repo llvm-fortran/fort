@@ -103,6 +103,7 @@ CGFunctionInfo *CGFunctionInfo::Create(ASTContext &C,
   for(unsigned I = 0; I < Info->NumArgs; ++I)
     Info->Args[I] = Arguments[I];
   Info->ReturnInfo = Returns;
+  return Info;
 }
 
 RValueTy CodeGenFunction::EmitCall(const CallExpr *E) {
