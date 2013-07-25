@@ -52,4 +52,13 @@ PROGRAM dotest
     DO x I = 1,2 ! expected-error {{expected '='}}
     END DO
 
+    DO 200,I = 1,5
+200 CONTINUE
+
+    DO,I=1,5
+    ENDDO
+
+    DO,WHILE(.false.)
+    END DO
+
 END PROGRAM

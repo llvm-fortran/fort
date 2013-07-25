@@ -346,7 +346,6 @@ static void Fortran90ArithmeticBinaryTypingRules(ASTContext &C,
   }
 }
 
-// FIXME: verify return type for binary expressions.
 ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
                                  BinaryExpr::Operator Op,
                                  ExprResult LHS, ExprResult RHS) {
@@ -354,6 +353,8 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
 
   auto LHSType = LHS.get()->getType();
   auto RHSType = RHS.get()->getType();
+  if(LHSType.isNull() || RHSType.isNull())
+    return ExprError();
   QualType ReturnType;
 
   switch(Op) {

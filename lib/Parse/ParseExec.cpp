@@ -328,6 +328,9 @@ Parser::StmtResult Parser::ParseDoStmt() {
     TerminalStmt = ParseStatementLabelReference();
     if(TerminalStmt.isInvalid()) return StmtError();
   }
+  ConsumeIfPresent(tok::comma);
+  if(IsPresent(tok::kw_WHILE))
+    return ParseDoWhileStmt();
 
   // the do var
   auto IDInfo = Tok.getIdentifierInfo();
