@@ -179,6 +179,9 @@ public:
                                           const IdentifierInfo *IDInfo,
                                           Decl *PrevDecl);
 
+  bool ApplyImplicitRulesToArgument(VarDecl *Arg,
+                                    SourceRange Range = SourceRange());
+
   /// Returns a declaration which matches the identifier in this context
   Decl *LookupIdentifier(const IdentifierInfo *IDInfo);
 

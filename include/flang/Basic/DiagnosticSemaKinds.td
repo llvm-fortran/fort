@@ -91,6 +91,8 @@ def err_array_implied_shape_incompatible : Error<
   "use of dimension declarator '*' for a local variable %0">;
 def err_array_explicit_arg_shape_incompatible : Error<
   "use of argument dimension for a local variable %0">;
+def err_array_explicit_shape_requires_int_arg : Error<
+  "array specifier requires an integer argument (%0 invalid)">;
 def err_array_subscript_dimension_count_mismatch : Error<
   "array subscript must have %0 subscript %plural{1:expression|:expressions}0">;
 

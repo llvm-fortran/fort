@@ -44,11 +44,7 @@ void Sema::ActOnSpecificationPart() {
     // arguments
     for(auto Arg : FD->getArguments()) {
       if(Arg->getType().isNull()) {
-        auto Type = ResolveImplicitType(Arg->getIdentifier());
-        if(Type.isNull()) {
-          Diags.Report(Arg->getLocation(), diag::err_arg_no_implicit_type)
-            << Arg->getIdentifier();
-        } else Arg->setType(Type);
+        ApplyImplicitRulesToArgument(Arg);
       }
     }
   }

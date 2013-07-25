@@ -505,6 +505,20 @@ Decl *Sema::ActOnPossibleImplicitFunctionDecl(ASTContext &C, SourceLocation IDLo
   return PrevDecl;
 }
 
+bool Sema::ApplyImplicitRulesToArgument(VarDecl *Arg, SourceRange Range) {
+  auto Type = ResolveImplicitType(Arg->getIdentifier());
+  if(Type.isNull()) {
+    Diags.Report(Range.isValid()? Range.Start : Arg->getLocation(),
+                 diag::err_arg_no_implicit_type)
+     << (Range.isValid()? Range : Arg->getSourceRange())
+     << Arg->getIdentifier();
+    Arg->setType(Context.RealTy); //Prevent further errors
+    return false;
+  }
+  Arg->setType(Type);
+  return true;
+}
+
 Decl *Sema::LookupIdentifier(const IdentifierInfo *IDInfo) {
   auto Result = CurContext->lookup(IDInfo);
   if(Result.first >= Result.second) return nullptr;
@@ -970,25 +984,32 @@ QualType Sema::ActOnArraySpec(ASTContext &C, QualType ElemTy,
   return QualType(ArrayType::Create(C, ElemTy, Dims), 0);
 }
 
-// FIXME: what about the case of SUBROUTINE F(X,A) { REAL A(X) }
 bool Sema::CheckArrayBoundValue(Expr *E) {
-  // Make sure it's an integer expression
-  auto Type = E->getType();
-  if(!Type.isNull() && !Type->isIntegerType()) {
-    Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
-      << E->getSourceRange();
-    return false;
-  }
-
   if(auto VE = dyn_cast<VarExpr>(E)) {
-    if(VE->getVarDecl()->isArgument()) {
-      if(Type.isNull()) {
-        Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
-          << E->getSourceRange();
+    auto VD = VE->getVarDecl();
+    if(VD->isArgument()) {
+      if(VD->getType().isNull()) {
+        if(!ApplyImplicitRulesToArgument(const_cast<VarDecl*>(VD),
+                                         E->getSourceRange()))
+          return false;
+        VE->setType(VD->getType());
+      }
+      if(!VD->getType()->isIntegerType()) {
+        Diags.Report(E->getLocation(), diag::err_array_explicit_shape_requires_int_arg)
+          << VD->getType() << E->getSourceRange();
         return false;
       }
       return true;
     }
+  }
+
+  auto Type = E->getType();
+
+  // Make sure it's an integer expression
+  if(!Type.isNull() && !Type->isIntegerType()) {
+    Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
+      << E->getSourceRange();
+    return false;
   }
 
   // Make sure the value is a constant expression.s

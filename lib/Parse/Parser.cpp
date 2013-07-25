@@ -1117,10 +1117,8 @@ bool Parser::ParseForAllConstruct() {
 ///      or deferred-shape-spec-list
 ///      or assumed-size-spec
 bool Parser::ParseArraySpec(SmallVectorImpl<ArraySpec*> &Dims) {
-  if(!EatIfPresentInSameStmt(tok::l_paren)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
+  if(!ExpectAndConsume(tok::l_paren))
     goto error;
-  }
 
   // [R511], [R512], [R513]:
   //   explicit-shape-spec :=
@@ -1140,19 +1138,15 @@ bool Parser::ParseArraySpec(SmallVectorImpl<ArraySpec*> &Dims) {
   //
   //   C708: int-expr shall be of type integer.
   do {
-    if(Tok.is(tok::star)) {
-      Dims.push_back(ImpliedShapeSpec::Create(Context, Tok.getLocation()));
-      Lex();
-    }
+    if(IsPresent(tok::star))
+      Dims.push_back(ImpliedShapeSpec::Create(Context, ConsumeToken()));
     else {
       ExprResult E = ParseExpression();
       if (E.isInvalid()) goto error;
-      if(EatIfPresentInSameStmt(tok::colon)) {
-        if(Tok.is(tok::star)) {
-          Dims.push_back(ImpliedShapeSpec::Create(Context, Tok.getLocation(),
+      if(ConsumeIfPresent(tok::colon)) {
+        if(IsPresent(tok::star))
+          Dims.push_back(ImpliedShapeSpec::Create(Context, ConsumeToken(),
                                                   E.take()));
-          Lex();
-        }
         else {
           ExprResult E2 = ParseExpression();
           if(E2.isInvalid()) goto error;
@@ -1161,13 +1155,10 @@ bool Parser::ParseArraySpec(SmallVectorImpl<ArraySpec*> &Dims) {
       }
       else Dims.push_back(ExplicitShapeSpec::Create(Context, E.take()));
     }
-  } while (EatIfPresentInSameStmt(tok::comma));
+  } while (ConsumeIfPresent(tok::comma));
 
-  if (!EatIfPresentInSameStmt(tok::r_paren)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_rparen)
-      << FixItHint(getExpectedLocForFixIt(),")");
+  if (!ExpectAndConsume(tok::r_paren))
     goto error;
-  }
 
   return false;
  error:
