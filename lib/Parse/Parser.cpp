@@ -1549,8 +1549,7 @@ Parser::StmtResult Parser::ParseCOMMONStmt() {
 ///     data-stmt :=
 ///         DATA data-stmt-set [ [,] data-stmt-set ] ...
 Parser::StmtResult Parser::ParseDATAStmt() {
-  SourceLocation Loc = Tok.getLocation();
-  Lex();
+  SourceLocation Loc = ConsumeToken();
 
   SmallVector<Stmt *,8> StmtList;
 
@@ -1559,6 +1558,7 @@ Parser::StmtResult Parser::ParseDATAStmt() {
     if(Stmt.isInvalid()) return StmtError();
     StmtList.push_back(Stmt.take());
     if(Tok.isAtStartOfStatement()) break;
+    ConsumeIfPresent(tok::comma);
   }
 
   return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
