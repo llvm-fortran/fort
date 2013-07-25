@@ -453,10 +453,10 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors) {
   // FIXME: no Kind for double complex and double precision
   switch (DS.getTypeSpecType()) {
   default:
-    Lex();
+    ConsumeToken();
     if (ConsumeIfPresent(tok::star)) {
       // FIXME: proper obsolete COMPLEX*16 support
-      Lex();
+      ConsumeAnyToken();
       DS.setDoublePrecision();
     }
 
@@ -496,7 +496,7 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors) {
     //       scalar-int-expr
     //    or *
     //    or :
-    Lex();
+    ConsumeToken();
 
     if(EatIfPresentInSameStmt(tok::star)) {
       ParseCharacterStarLengthSpec(DS);

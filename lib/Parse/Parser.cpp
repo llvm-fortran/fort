@@ -854,6 +854,7 @@ bool Parser::ParseExternalSubprogram() {
 
 bool Parser::ParseTypedExternalSubprogram() {
   DeclSpec ReturnType;
+  SetNextTokenShouldBeKeyword(tok::kw_FUNCTION);
   ParseDeclarationTypeSpec(ReturnType);
   if(Tok.isNot(tok::kw_FUNCTION)) {
     Diag.Report(getExpectedLoc(), diag::err_expected_kw)
