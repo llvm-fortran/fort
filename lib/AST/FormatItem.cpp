@@ -46,6 +46,20 @@ RealDataEditDesc *RealDataEditDesc::Create(ASTContext &C, SourceLocation Loc,
   return new(C) RealDataEditDesc(Loc, Descriptor, RepeatCount, W, D, E);
 }
 
+LogicalDataEditDesc::LogicalDataEditDesc(SourceLocation Loc,
+                                         tok::TokenKind Descriptor,
+                                         IntegerConstantExpr *RepeatCount,
+                                         IntegerConstantExpr *W)
+  : DataEditDesc(Loc, Descriptor, RepeatCount, W) {}
+
+LogicalDataEditDesc *
+LogicalDataEditDesc::Create(ASTContext &C, SourceLocation Loc,
+                            tok::TokenKind Descriptor,
+                            IntegerConstantExpr *RepeatCount,
+                            IntegerConstantExpr *W) {
+  return new(C) LogicalDataEditDesc(Loc, Descriptor, RepeatCount, W);
+}
+
 CharacterDataEditDesc::CharacterDataEditDesc(SourceLocation Loc, tok::TokenKind Descriptor,
                                              IntegerConstantExpr *RepeatCount,
                                              IntegerConstantExpr *w)
@@ -110,6 +124,11 @@ void IntegerDataEditDesc::print(llvm::raw_ostream &O) {
   getW()->dump(O);
 }
 void RealDataEditDesc::print(llvm::raw_ostream &O) {
+  if(getRepeatCount()) getRepeatCount()->dump(O);
+  O << tok::getTokenName(tok::TokenKind(getDescriptor()));
+  if(getW()) getW()->dump(O);
+}
+void LogicalDataEditDesc::print(llvm::raw_ostream &O) {
   if(getRepeatCount()) getRepeatCount()->dump(O);
   O << tok::getTokenName(tok::TokenKind(getDescriptor()));
   if(getW()) getW()->dump(O);

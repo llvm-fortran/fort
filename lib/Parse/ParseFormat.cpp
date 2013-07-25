@@ -235,6 +235,12 @@ Parser::FormatItemResult Parser::ParseFORMATItem() {
                                                W, MD, E);
 
 
+  case tok::fs_L:
+    W = FDParser.ParseIntExpr(DescriptorStr.data());
+    FDParser.MustBeDone();
+    return Actions.ActOnFORMATLogicalDataEditDesc(Context, Loc, Desc,
+                                                  PreInt, W);
+
   case tok::fs_A:
     if(!FDParser.IsDone())
       W = FDParser.ParseIntExpr();

@@ -417,6 +417,11 @@ public:
                                                IntegerConstantExpr *D,
                                                IntegerConstantExpr *E);
 
+  FormatItemResult ActOnFORMATLogicalDataEditDesc(ASTContext &C, SourceLocation Loc,
+                                                  tok::TokenKind Kind,
+                                                  IntegerConstantExpr *RepeatCount,
+                                                  IntegerConstantExpr *W);
+
   FormatItemResult ActOnFORMATCharacterDataEditDesc(ASTContext &C, SourceLocation Loc,
                                                     tok::TokenKind Kind,
                                                     IntegerConstantExpr *RepeatCount,

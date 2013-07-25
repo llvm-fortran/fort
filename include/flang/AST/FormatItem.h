@@ -151,7 +151,31 @@ public:
   }
 };
 
-// A, L(?)
+// L
+class LogicalDataEditDesc : public DataEditDesc {
+  LogicalDataEditDesc(SourceLocation Loc, tok::TokenKind Descriptor,
+                      IntegerConstantExpr *RepeatCount,
+                      IntegerConstantExpr *w);
+
+public:
+  static LogicalDataEditDesc *Create(ASTContext &C, SourceLocation Loc,
+                                     tok::TokenKind Descriptor,
+                                     IntegerConstantExpr *RepeatCount,
+                                     IntegerConstantExpr *W);
+
+  void print(llvm::raw_ostream&);
+
+  static bool classof(const FormatItem *D) {
+    switch(D->getDescriptor()) {
+    case tok::fs_L:
+      return true;
+    default: break;
+    }
+    return false;
+  }
+};
+
+// A
 class CharacterDataEditDesc : public DataEditDesc {
   CharacterDataEditDesc(SourceLocation Loc, tok::TokenKind Descriptor,
                           IntegerConstantExpr *RepeatCount,
@@ -159,15 +183,15 @@ class CharacterDataEditDesc : public DataEditDesc {
 
 public:
   static CharacterDataEditDesc *Create(ASTContext &C, SourceLocation Loc,
-                                         tok::TokenKind Descriptor,
-                                         IntegerConstantExpr *RepeatCount,
-                                         IntegerConstantExpr *W);
+                                       tok::TokenKind Descriptor,
+                                       IntegerConstantExpr *RepeatCount,
+                                       IntegerConstantExpr *W);
 
   void print(llvm::raw_ostream&);
 
   static bool classof(const FormatItem *D) {
     switch(D->getDescriptor()) {
-    case tok::fs_A: case tok::fs_L:
+    case tok::fs_A:
       return true;
     default: break;
     }

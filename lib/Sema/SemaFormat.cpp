@@ -76,6 +76,15 @@ FormatItemResult Sema::ActOnFORMATRealDataEditDesc(ASTContext &C, SourceLocation
   return RealDataEditDesc::Create(C, Loc, Kind, RepeatCount, W, D, E);
 }
 
+FormatItemResult Sema::ActOnFORMATLogicalDataEditDesc(ASTContext &C, SourceLocation Loc,
+                                                      tok::TokenKind Kind,
+                                                      IntegerConstantExpr *RepeatCount,
+                                                      IntegerConstantExpr *W) {
+  CheckPositive(Diags, RepeatCount);
+  CheckPositive(Diags, W);
+  return LogicalDataEditDesc::Create(C, Loc, Kind, RepeatCount, W);
+}
+
 FormatItemResult Sema::ActOnFORMATCharacterDataEditDesc(ASTContext &C, SourceLocation Loc,
                                                         tok::TokenKind Kind,
                                                         IntegerConstantExpr *RepeatCount,
