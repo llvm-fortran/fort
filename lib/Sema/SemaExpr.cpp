@@ -478,8 +478,8 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
 typecheckInvalidOperands:
   Diags.Report(Loc,DiagType)
       << LHSType << RHSType
-      << SourceRange(LHS.get()->getLocStart(),
-                     RHS.get()->getLocEnd());
+      << SourceRange(LHS.get()->getSourceRange())
+      << SourceRange(RHS.get()->getSourceRange());
   return ExprError();
 }
 

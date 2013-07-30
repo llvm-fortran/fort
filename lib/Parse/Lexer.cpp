@@ -912,10 +912,19 @@ void Lexer::LexIdentifier(Token &Result) {
 void Lexer::LexFixedFormIdentifier(Token &Result) {
   /// Early out for the common case to improve perfomance
   if(CurIdContext.Kind == IdentifierLexingContext::Default) {
+    bool NeedsCleaning = false;
     unsigned char C = getCurrentChar();
-    while (isIdentifierBody(C))
+    while (!Text.empty() && !Text.AtEndOfLine()) {
+      if(!isIdentifierBody(C)){
+        if(!isHorizontalWhitespace(C))
+          break;
+        NeedsCleaning = true;
+      }
       C = getNextChar();
+    }
     FormTokenWithChars(Result, tok::identifier);
+    if(NeedsCleaning)
+      Result.setFlag(Token::NeedsCleaning);
     return;
   }
 
