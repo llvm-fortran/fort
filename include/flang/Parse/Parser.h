@@ -15,6 +15,7 @@
 #define FLANG_PARSER_PARSER_H__
 
 #include "flang/AST/ASTContext.h"
+#include "flang/AST/Stmt.h"
 #include "flang/Basic/Diagnostic.h"
 #include "flang/Basic/IdentifierTable.h"
 #include "flang/Basic/LangOptions.h"
@@ -98,6 +99,9 @@ private:
 
   /// StmtLabel - If set, this is the statement label for the statement.
   Expr *StmtLabel;
+
+  /// ConstructName - If set, this is the construct name for the construct.
+  ConstructName StmtConstructName;
 
   unsigned short ParenCount, BracketCount, BraceCount;
 
@@ -464,6 +468,14 @@ private:
 
   void ParseStatementLabel();
   ExprResult ParseStatementLabelReference(bool ConsumeToken = true);
+
+  /// ParseConstructNameLabel - Parses an optional construct-name ':' label.
+  /// If the construct name isn't there, then set the ConstructName to null.
+  void ParseConstructNameLabel();
+
+  /// ParseTrailingConstructName - Parses an optional trailing construct-name identifier.
+  /// If the construct name isn't there, then set the ConstructName to null.
+  void ParseTrailingConstructName();
 
   // Declaration construct functions
   bool ParseDerivedTypeDefinitionStmt();

@@ -45,7 +45,7 @@ void StmtLabelScope::Declare(Expr *StmtLabel, Stmt *Statement) {
 Stmt *StmtLabelScope::Resolve(Expr *StmtLabel) const {
   auto Key = GetStmtLabelValue(StmtLabel);
   auto Result = StmtLabelDeclsInScope.find(Key);
-  if(Result == StmtLabelDeclsInScope.end()) return 0;
+  if(Result == StmtLabelDeclsInScope.end()) return nullptr;
   Result->second->setStmtLabelUsed();
   return Result->second;
 }
@@ -69,6 +69,20 @@ void StmtLabelScope::RemoveForwardReference(const Stmt *User) {
 bool StmtLabelScope::IsSame(const Expr *StmtLabelA,
                             const Expr *StmtLabelB) const {
   return GetStmtLabelValue(StmtLabelA) == GetStmtLabelValue(StmtLabelB);
+}
+
+void ConstructNameScope::setParent(ConstructNameScope *P) {
+  Parent = P;
+}
+
+void ConstructNameScope::Declare(const IdentifierInfo *Name, NamedConstructStmt *Construct) {
+  Constructs.insert(std::make_pair(Name, Construct));
+}
+
+NamedConstructStmt *ConstructNameScope::Resolve(const IdentifierInfo *ConstructName) const {
+  auto Result = Constructs.find(ConstructName);
+  if(Result == Constructs.end()) return nullptr;
+  return Result->second;
 }
 
 ImplicitTypingScope::ImplicitTypingScope(ImplicitTypingScope *Prev)

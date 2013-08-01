@@ -709,16 +709,47 @@ public:
   }
 };
 
+/// ConstructName - represents the name of the construct statement
+struct ConstructName {
+  SourceLocation Loc;
+  const IdentifierInfo *IDInfo;
+
+  ConstructName(SourceLocation L, const IdentifierInfo *ID)
+    : Loc(L), IDInfo(ID) {}
+  bool isUsable() const {
+    return IDInfo != nullptr;
+  }
+};
+
+/// NamedConstructStmt - A base class
+/// for named constructs such as if, do, etc.
+class NamedConstructStmt : public Stmt {
+  ConstructName Name;
+
+protected:
+  NamedConstructStmt(StmtClass Type, SourceLocation Loc, Expr *StmtLabel, ConstructName name)
+    : Stmt(Type, Loc, StmtLabel), Name(name) {}
+public:
+
+  ConstructName getName() const { return Name; }
+
+  static bool classof(const NamedConstructStmt*) { return true; }
+  static bool classof(const Stmt *S){
+    return S->getStmtClass() >= firstNamedConstructStmtConstant &&
+           S->getStmtClass() <= lastNamedConstructStmtConstant;
+  }
+};
+
 /// IfStmt
 /// An if statement is also a control flow statement
-class IfStmt : public Stmt {
+class IfStmt : public NamedConstructStmt {
   Expr *Condition;
   Stmt *ThenArm, *ElseArm;
 
-  IfStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel);
+  IfStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel, ConstructName Name);
 public:
   static IfStmt *Create(ASTContext &C, SourceLocation Loc,
-                        Expr *Condition, Expr *StmtLabel);
+                        Expr *Condition, Expr *StmtLabel, ConstructName Name);
 
   inline Expr *getCondition() const { return Condition; }
   inline Stmt *getThenStmt() const { return ThenArm; }
@@ -734,10 +765,10 @@ public:
 
 /// A base class for statements with own body which
 /// the program will execute when entering this body.
-class CFBlockStmt : public Stmt {
+class CFBlockStmt : public NamedConstructStmt {
   Stmt *Body;
 protected:
-  CFBlockStmt(StmtClass Type, SourceLocation Loc, Expr *StmtLabel);
+  CFBlockStmt(StmtClass Type, SourceLocation Loc, Expr *StmtLabel, ConstructName Name);
 public:
   Stmt *getBody() const { return Body; }
   void setBody(Stmt *Body);
@@ -756,12 +787,12 @@ class DoStmt : public CFBlockStmt {
 
   DoStmt(SourceLocation Loc, StmtLabelReference TermStmt, VarExpr *DoVariable,
          Expr *InitialParam, Expr *TerminalParam,
-         Expr *IncrementationParam,Expr *StmtLabel);
+         Expr *IncrementationParam, Expr *StmtLabel, ConstructName Name);
 public:
   static DoStmt *Create(ASTContext &C,SourceLocation Loc, StmtLabelReference TermStmt,
                         VarExpr *DoVariable, Expr *InitialParam,
                         Expr *TerminalParam,Expr *IncrementationParam,
-                        Expr *StmtLabel);
+                        Expr *StmtLabel, ConstructName Name);
 
   StmtLabelReference getTerminatingStmt() const { return TerminatingStmt; }
   void setTerminatingStmt(StmtLabelReference Stmt);
@@ -780,10 +811,10 @@ public:
 class DoWhileStmt : public CFBlockStmt {
   Expr *Condition;
 
-  DoWhileStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel);
+  DoWhileStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel, ConstructName Name);
 public:
   static DoWhileStmt *Create(ASTContext &C, SourceLocation Loc,
-                             Expr *Condition, Expr *StmtLabel);
+                             Expr *Condition, Expr *StmtLabel, ConstructName Name);
 
   Expr *getCondition() const { return Condition; }
 

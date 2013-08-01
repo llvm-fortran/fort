@@ -143,7 +143,6 @@ public:
   void setParent(StmtLabelScope *P);
 
   /// \brief Declares a new statement label.
-  /// Returns true if such declaration already exits.
   void Declare(Expr *StmtLabel, Stmt *Statement);
 
   /// \brief Tries to resolve a statement label reference.
@@ -159,6 +158,30 @@ public:
 
   /// \brief Returns true is the two statement labels are identical.
   bool IsSame(const Expr *StmtLabelA, const Expr *StmtLabelB) const;
+};
+
+/// ConstructNameScope - This is a component of a scope which assists with
+/// declaring and resolving construct names.
+/// NB: the parent construct name scopes aren't searched when resolving.
+///
+class ConstructNameScope {
+  ConstructNameScope *Parent;
+  llvm::DenseMap<const IdentifierInfo*, NamedConstructStmt*> Constructs;
+
+public:
+
+  ConstructNameScope *getParent() const {
+    return Parent;
+  }
+  void setParent(ConstructNameScope *P);
+
+  /// \brief Declares a new construct name.
+  /// Returns true if such declaration already exits.
+  void Declare(const IdentifierInfo *Name, NamedConstructStmt *Construct);
+
+  /// \brief Tries to resolve a construct name reference.
+  /// Returns null if the name wasn't declared.
+  NamedConstructStmt *Resolve(const IdentifierInfo *ConstructName) const;
 };
 
 /// ImplicitTypingScope - This is a component of a scope which assist with
@@ -232,6 +255,7 @@ public:
 class ExecutableProgramUnitScope {
 public:
   StmtLabelScope StmtLabels;
+  ConstructNameScope NamedConstructs;
   ImplicitTypingScope ImplicitTypingRules;
   BlockStmtBuilder Body;
 };

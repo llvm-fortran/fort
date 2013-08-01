@@ -30,7 +30,9 @@ namespace flang {
 Sema::Sema(ASTContext &ctxt, DiagnosticsEngine &D)
   : Context(ctxt), Diags(D), CurContext(0), IntrinsicFunctionMapping(LangOptions()),
     CurExecutableStmts(nullptr),
-    CurStmtLabelScope(nullptr), CurImplicitTypingScope(nullptr) {
+    CurStmtLabelScope(nullptr),
+    CurNamedConstructs(nullptr),
+    CurImplicitTypingScope(nullptr) {
 }
 
 Sema::~Sema() {}
@@ -69,6 +71,10 @@ void Sema::PushExecutableProgramUnit(ExecutableProgramUnitScope &Scope) {
   Scope.StmtLabels.setParent(CurStmtLabelScope);
   CurStmtLabelScope = &Scope.StmtLabels;
 
+  // Enter new construct name scope
+  Scope.NamedConstructs.setParent(CurNamedConstructs);
+  CurNamedConstructs = &Scope.NamedConstructs;
+
   // Enter new implicit typing scope
   Scope.ImplicitTypingRules.setParent(CurImplicitTypingScope);
   CurImplicitTypingScope = &Scope.ImplicitTypingRules;
@@ -105,8 +111,11 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
     }
   }
 
-  // Clear the statement labels scope
+  // Restore the previous statement labels
   CurStmtLabelScope = CurStmtLabelScope->getParent();
+
+  // Restore the previous named constructs
+  CurNamedConstructs = CurNamedConstructs->getParent();
 
   // Report unterminated statements.
   if(CurExecutableStmts->HasEntered()) {
@@ -187,6 +196,18 @@ void Sema::DeclareStatementLabel(Expr *StmtLabel, Stmt *S) {
     /// Check to see if it matches the last do stmt.
     CheckStatementLabelEndDo(StmtLabel, S);
   }
+}
+
+void Sema::DeclareConstructName(ConstructName Name, NamedConstructStmt *S) {
+  if(auto Construct = CurNamedConstructs->Resolve(Name.IDInfo)) {
+    Diags.Report(Name.Loc,
+                 diag::err_redefinition_of_construct_name)
+      << Name.IDInfo;
+    Diags.Report(Construct->getName().Loc,
+                 diag::note_previous_definition)
+     << SourceRange(Construct->getName().Loc, Construct->getLocation());
+  } else
+    CurNamedConstructs->Declare(Name.IDInfo, S);
 }
 
 void Sema::ActOnTranslationUnit(TranslationUnitScope &Scope) {

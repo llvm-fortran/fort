@@ -50,6 +50,9 @@ class Sema {
   /// \brief A statement label scope for the current program unit.
   StmtLabelScope *CurStmtLabelScope;
 
+  /// \brief A named constructs scope for the current program unit.
+  ConstructNameScope *CurNamedConstructs;
+
   /// \brief A class which supports the executable statements in
   /// the current scope.
   BlockStmtBuilder *CurExecutableStmts;
@@ -100,15 +103,19 @@ public:
 
   DeclContext *getContainingDC(DeclContext *DC);
 
-  inline StmtLabelScope *getCurrentStmtLabelScope() const {
+  StmtLabelScope *getCurrentStmtLabelScope() const {
     return CurStmtLabelScope;
   }
 
-  inline ImplicitTypingScope *getCurrentImplicitTypingScope() const {
+  ConstructNameScope *getCurrentConstructNameScope() const {
+    return CurNamedConstructs;
+  }
+
+  ImplicitTypingScope *getCurrentImplicitTypingScope() const {
     return CurImplicitTypingScope;
   }
 
-  inline BlockStmtBuilder *getCurrentBody() const {
+  BlockStmtBuilder *getCurrentBody() const {
     return CurExecutableStmts;
   }
 
@@ -130,6 +137,8 @@ public:
 
   void DeclareStatementLabel(Expr *StmtLabel, Stmt *S);
   void CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S);
+
+  void DeclareConstructName(ConstructName Name, NamedConstructStmt *S);
 
   /// translation unit actions
   void ActOnTranslationUnit(TranslationUnitScope &Scope);
@@ -325,21 +334,26 @@ public:
                            ExprResult Destination, Expr *StmtLabel);
 
   StmtResult ActOnIfStmt(ASTContext &C, SourceLocation Loc,
-                         ExprResult Condition, Expr *StmtLabel);
+                         ExprResult Condition, ConstructName Name,
+                         Expr *StmtLabel);
   StmtResult ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
-                             ExprResult Condition, Expr *StmtLabel);
-  StmtResult ActOnElseStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
-  StmtResult ActOnEndIfStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
+                             ExprResult Condition, ConstructName Name, Expr *StmtLabel);
+  StmtResult ActOnElseStmt(ASTContext &C, SourceLocation Loc,
+                           ConstructName Name, Expr *StmtLabel);
+  StmtResult ActOnEndIfStmt(ASTContext &C, SourceLocation Loc,
+                            ConstructName Name, Expr *StmtLabel);
 
   StmtResult ActOnDoStmt(ASTContext &C, SourceLocation Loc, SourceLocation EqualLoc,
                          ExprResult TerminatingStmt,
                          VarExpr *DoVar, ExprResult E1, ExprResult E2,
-                         ExprResult E3, Expr *StmtLabel);
+                         ExprResult E3, ConstructName Name,
+                         Expr *StmtLabel);
 
   StmtResult ActOnDoWhileStmt(ASTContext &C, SourceLocation Loc, ExprResult Condition,
-                              Expr *StmtLabel);
+                              ConstructName Name, Expr *StmtLabel);
 
-  StmtResult ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
+  StmtResult ActOnEndDoStmt(ASTContext &C, SourceLocation Loc,
+                            ConstructName Name, Expr *StmtLabel);
 
   StmtResult ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
@@ -633,6 +647,9 @@ public:
 
   /// Leaves block constructs until an if construct is reached.
   IfStmt *LeaveBlocksUntilIf(SourceLocation Loc);
+
+  /// Checks to see if the part of the constructs has a valid construct name.
+  void CheckConstructNameMatch(Stmt *Part, ConstructName Name, Stmt *S);
 
 };
 

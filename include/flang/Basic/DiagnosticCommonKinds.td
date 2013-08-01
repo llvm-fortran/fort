@@ -32,6 +32,7 @@ def note_type_being_defined : Note<
 /// note_matching - this is used as a continuation of a previous diagnostic,
 /// e.g. to specify the '(' when we expected a ')'.
 def note_matching : Note<"to match this '%0'">;
+def note_matching_ident : Note<"to match this %0">;
 
 def note_using : Note<"using">;
 def note_possibility : Note<"one possibility">;

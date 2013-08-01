@@ -1142,6 +1142,10 @@ void Lexer::SetIdContext(IdentifierLexingContext C) {
 void Lexer::LexTokenInternal(Token &Result, bool IsPeekAhead) {
   // Check to see if there is still more of the line to lex.
   if (Text.empty() || Text.AtEndOfLine()) {
+    if(IsPeekAhead) {
+      Result.setKind(tok::unknown);
+      return;
+    }
     Text.Reset();
     Text.GetNextLine();
   }

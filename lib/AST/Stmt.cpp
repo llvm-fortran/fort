@@ -379,14 +379,15 @@ void GotoStmt::setDestination(StmtLabelReference Destination) {
 // If Statement
 //===----------------------------------------------------------------------===//
 
-IfStmt::IfStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel)
-  : Stmt(IfStmtClass, Loc, StmtLabel), Condition(Cond),
+IfStmt::IfStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel,
+               ConstructName Name)
+  : NamedConstructStmt(IfStmtClass, Loc, StmtLabel, Name), Condition(Cond),
     ThenArm(nullptr), ElseArm(nullptr)  {
 }
 
 IfStmt *IfStmt::Create(ASTContext &C, SourceLocation Loc,
-                       Expr *Condition, Expr *StmtLabel) {
-  return new(C) IfStmt(Loc, Condition, StmtLabel);
+                       Expr *Condition, Expr *StmtLabel, ConstructName Name) {
+  return new(C) IfStmt(Loc, Condition, StmtLabel, Name);
 }
 
 void IfStmt::setThenStmt(Stmt *Body) {
@@ -405,8 +406,8 @@ void IfStmt::setElseStmt(Stmt *Body) {
 // Control flow block Statement
 //===----------------------------------------------------------------------===//
 
-CFBlockStmt::CFBlockStmt(StmtClass Type, SourceLocation Loc, Expr *StmtLabel)
-  : Stmt(Type, Loc, StmtLabel), Body(nullptr) {}
+CFBlockStmt::CFBlockStmt(StmtClass Type, SourceLocation Loc, Expr *StmtLabel, ConstructName Name)
+  : NamedConstructStmt(Type, Loc, StmtLabel, Name), Body(nullptr) {}
 
 void CFBlockStmt::setBody(Stmt *Body) {
   assert(!this->Body);
@@ -421,17 +422,17 @@ void CFBlockStmt::setBody(Stmt *Body) {
 DoStmt::DoStmt(SourceLocation Loc, StmtLabelReference TermStmt,
                VarExpr *DoVariable, Expr *InitialParam,
                Expr *TerminalParam, Expr *IncrementationParam,
-               Expr *StmtLabel)
-  : CFBlockStmt(DoStmtClass, Loc, StmtLabel), TerminatingStmt(TermStmt), DoVar(DoVariable),
+               Expr *StmtLabel, ConstructName Name)
+  : CFBlockStmt(DoStmtClass, Loc, StmtLabel, Name), TerminatingStmt(TermStmt), DoVar(DoVariable),
     Init(InitialParam), Terminate(TerminalParam), Increment(IncrementationParam) {
 }
 
 DoStmt *DoStmt::Create(ASTContext &C, SourceLocation Loc, StmtLabelReference TermStmt,
                        VarExpr *DoVariable, Expr *InitialParam,
                        Expr *TerminalParam, Expr *IncrementationParam,
-                       Expr *StmtLabel) {
+                       Expr *StmtLabel, ConstructName Name) {
   return new(C) DoStmt(Loc, TermStmt, DoVariable, InitialParam,TerminalParam,
-                       IncrementationParam, StmtLabel);
+                       IncrementationParam, StmtLabel, Name);
 }
 
 void DoStmt::setTerminatingStmt(StmtLabelReference Stmt) {
@@ -444,13 +445,14 @@ void DoStmt::setTerminatingStmt(StmtLabelReference Stmt) {
 // Do while statement
 //===----------------------------------------------------------------------===//
 
-DoWhileStmt::DoWhileStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel)
-  : CFBlockStmt(DoWhileStmtClass, Loc, StmtLabel), Condition(Cond) {
+DoWhileStmt::DoWhileStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel,
+                         ConstructName Name)
+  : CFBlockStmt(DoWhileStmtClass, Loc, StmtLabel, Name), Condition(Cond) {
 }
 
 DoWhileStmt *DoWhileStmt::Create(ASTContext &C, SourceLocation Loc,
-                                 Expr *Condition, Expr *StmtLabel) {
-  return new(C) DoWhileStmt(Loc, Condition, StmtLabel);
+                                 Expr *Condition, Expr *StmtLabel, ConstructName Name) {
+  return new(C) DoWhileStmt(Loc, Condition, StmtLabel, Name);
 }
 
 //===----------------------------------------------------------------------===//

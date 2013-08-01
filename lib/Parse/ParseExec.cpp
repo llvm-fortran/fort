@@ -90,6 +90,7 @@ StmtResult Parser::ParseExecutableConstruct() {
 ///[obs] or computed-goto-stmt
 Parser::StmtResult Parser::ParseActionStmt() {
   ParseStatementLabel();
+  ParseConstructNameLabel();
       
   StmtResult SR;
   switch (Tok.getKind()) {
@@ -283,40 +284,53 @@ Parser::StmtResult Parser::ParseIfStmt() {
       Diag.Report(getExpectedLoc(), diag::err_expected_executable_stmt);
       return StmtError();
     }
-    auto Result = Actions.ActOnIfStmt(Context, Loc, Condition, StmtLabel);
+    auto Result = Actions.ActOnIfStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
     if(Result.isInvalid()) return Result;
     // NB: Don't give the action stmt my label
     StmtLabel = nullptr;
     auto Action = ParseActionStmt();
-    Actions.ActOnEndIfStmt(Context, Loc, nullptr);
+    Actions.ActOnEndIfStmt(Context, Loc, ConstructName(SourceLocation(), nullptr), nullptr);
     return Action.isInvalid()? StmtError() : Result;
   }
 
   // if-construct.
-  return Actions.ActOnIfStmt(Context, Loc, Condition, StmtLabel);
+  return Actions.ActOnIfStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
 error:
   SkipUntilNextStatement();
-  return Actions.ActOnIfStmt(Context, Loc, Condition, StmtLabel);
+  return Actions.ActOnIfStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
 }
 
+// FIXME: fixed-form THENconstructname
 Parser::StmtResult Parser::ParseElseIfStmt() {
   auto Loc = ConsumeToken();
-  ExprResult Condition = ParseExpectedConditionExpression("ELSE IF");
-  if(!Condition.isInvalid()) {
-    if(!ExpectAndConsume(tok::kw_THEN, diag::err_expected_kw, "THEN"))
-      SkipUntilNextStatement();
-  } else SkipUntilNextStatement();
-  return Actions.ActOnElseIfStmt(Context, Loc, Condition, StmtLabel);
+  ExprResult Condition;
+  if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after, "ELSE IF"))
+    goto error;
+  Condition = ParseExpectedFollowupExpression("(");
+  if(Condition.isInvalid()) {
+    if(!SkipUntil(tok::r_paren, true, true))
+      goto error;
+  }
+  SetNextTokenShouldBeKeyword(tok::kw_THEN);
+  if (!ExpectAndConsume(tok::r_paren)) goto error;
+  if (!ExpectAndConsume(tok::kw_THEN, diag::err_expected_kw, "THEN")) goto error;
+  ParseTrailingConstructName();
+  return Actions.ActOnElseIfStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
+error:
+  SkipUntilNextStatement();
+  return Actions.ActOnElseIfStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseElseStmt() {
   auto Loc = ConsumeToken();
-  return Actions.ActOnElseStmt(Context, Loc, StmtLabel);
+  ParseTrailingConstructName();
+  return Actions.ActOnElseStmt(Context, Loc, StmtConstructName, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseEndIfStmt() {
   auto Loc = ConsumeToken();
-  return Actions.ActOnEndIfStmt(Context, Loc, StmtLabel);
+  ParseTrailingConstructName();
+  return Actions.ActOnEndIfStmt(Context, Loc, StmtConstructName, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseDoStmt() {
@@ -357,22 +371,23 @@ Parser::StmtResult Parser::ParseDoStmt() {
   }
 
   return Actions.ActOnDoStmt(Context, Loc, EqLoc, TerminalStmt,
-                             DoVar, E1, E2, E3, StmtLabel);
+                             DoVar, E1, E2, E3, StmtConstructName, StmtLabel);
 error:
   SkipUntilNextStatement();
   return Actions.ActOnDoStmt(Context, Loc, EqLoc, TerminalStmt,
-                             DoVar, E1, E2, E3, StmtLabel);
+                             DoVar, E1, E2, E3, StmtConstructName, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseDoWhileStmt() {
   auto Loc = ConsumeToken();
   auto Condition = ParseExpectedConditionExpression("WHILE");
-  return Actions.ActOnDoWhileStmt(Context, Loc, Condition, StmtLabel);
+  return Actions.ActOnDoWhileStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseEndDoStmt() {
   auto Loc = ConsumeToken();
-  return Actions.ActOnEndDoStmt(Context, Loc, StmtLabel);
+  ParseTrailingConstructName();
+  return Actions.ActOnEndDoStmt(Context, Loc, StmtConstructName, StmtLabel);
 }
 
 /// ParseContinueStmt

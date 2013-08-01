@@ -62,7 +62,7 @@ Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  
     CurBuffer(0), Context(actions.Context), Diag(D), Actions(actions),
     Identifiers(Opts), DontResolveIdentifiers(false),
     DontResolveIdentifiersInSubExpressions(false),
-    LexFORMATTokens(false) {
+    LexFORMATTokens(false), StmtConstructName(SourceLocation(),nullptr) {
   getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBuffer));
   Tok.startToken();
   NextTok.startToken();
@@ -168,6 +168,8 @@ void Parser::Lex() {
 #define MERGE_TOKENS(A, B)                      \
   if (!NextTok.isAtStartOfStatement() && NextTok.is(tok::kw_ ## B)) {              \
     Tok.setKind(tok::kw_ ## A ## B);            \
+    Tok.setLength((NextTok.getLocation().getPointer() + \
+                  NextTok.getLength()) - (Tok.getLocation().getPointer())); \
     break;                                      \
   }                                             \
 
@@ -250,6 +252,8 @@ void Parser::Lex() {
 
   TheLexer.Lex(NextTok);
   ClassifyToken(NextTok);
+
+
 }
 
 void Parser::ClassifyToken(Token &T) {
@@ -406,14 +410,14 @@ static inline bool CheckIsAtStartOfStatement(const Token &Tok, bool DoCheck) {
 
 bool Parser::IsPresent(tok::TokenKind TokKind, bool InSameStatement) {
   if(!CheckIsAtStartOfStatement(Tok, InSameStatement) &&
-     TokKind == tok::identifier? isTokenIdentifier() : Tok.is(TokKind))
+     (TokKind == tok::identifier? isTokenIdentifier() : Tok.is(TokKind)))
     return true;
   return false;
 }
 
 bool Parser::ConsumeIfPresent(tok::TokenKind OptionalTok, bool InSameStatement) {
-  if(!CheckIsAtStartOfStatement(Tok, InSameStatement) &&
-     OptionalTok == tok::identifier? isTokenIdentifier() : Tok.is(OptionalTok)) {
+  if(!CheckIsAtStartOfStatement(Tok, InSameStatement)  &&
+     (OptionalTok == tok::identifier? isTokenIdentifier() : Tok.is(OptionalTok))) {
     ConsumeAnyToken();
     return true;
   }
@@ -631,6 +635,35 @@ ExprResult Parser::ParseStatementLabelReference(bool ConsumeToken) {
                                             NumStr);
   if(ConsumeToken) Lex();
   return Result;
+}
+
+/// ParseConstructNameLabel - Parses an optional construct-name ':' label.
+/// If the construct name isn't there, then set the ConstructName to null.
+///
+/// FIXME: check for do, if, select case after
+void Parser::ParseConstructNameLabel() {
+  if(Tok.is(tok::identifier)) {
+    if(IsNextToken(tok::colon)) {
+      auto ID = Tok.getIdentifierInfo();
+      auto Loc = ConsumeToken();
+      StmtConstructName = ConstructName(Loc, ID);
+      SetNextTokenShouldBeKeyword();
+      ConsumeToken(); // eat the ':'
+      return;
+    }
+  }
+  StmtConstructName.IDInfo = nullptr;
+}
+
+/// ParseTrailingConstructName - Parses an optional trailing construct-name identifier.
+/// If the construct name isn't there, then set the ConstructName to null.
+void Parser::ParseTrailingConstructName() {
+  if(IsPresent(tok::identifier)) {
+    auto ID = Tok.getIdentifierInfo();
+    auto Loc = ConsumeToken();
+    StmtConstructName = ConstructName(Loc, ID);
+  } else
+    StmtConstructName = ConstructName(getExpectedLoc(), nullptr);
 }
 
 // Assumed syntax rules

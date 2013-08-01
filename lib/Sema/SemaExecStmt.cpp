@@ -109,14 +109,16 @@ StmtResult Sema::ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
 // =========================================================================
 
 StmtResult Sema::ActOnIfStmt(ASTContext &C, SourceLocation Loc,
-                             ExprResult Condition, Expr *StmtLabel) {
+                             ExprResult Condition, ConstructName Name,
+                             Expr *StmtLabel) {
   if(Condition.isUsable())
     StmtRequiresLogicalExpression(Loc, Condition.get());
 
-  auto Result = IfStmt::Create(C, Loc, Condition.get(), StmtLabel);
+  auto Result = IfStmt::Create(C, Loc, Condition.get(), StmtLabel, Name);
   if(Condition.isUsable())
     getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  if(Name.isUsable()) DeclareConstructName(Name, Result);
   getCurrentBody()->Enter(Result);
   return Result;
 }
@@ -129,7 +131,9 @@ void StmtLabelResolver::VisitDoStmt(DoStmt *S) {
 StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, SourceLocation EqualLoc,
                              ExprResult TerminatingStmt,
                              VarExpr *DoVar, ExprResult E1, ExprResult E2,
-                             ExprResult E3, Expr *StmtLabel) {
+                             ExprResult E3,
+                             ConstructName Name,
+                             Expr *StmtLabel) {
   // typecheck
   bool AddToBody = true;
   if(DoVar) {
@@ -168,7 +172,7 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, SourceLocation E
   }
   auto Result = DoStmt::Create(C, Loc, StmtLabelReference(),
                                DoVar, E1.get(), E2.get(),
-                               E3.get(), StmtLabel);
+                               E3.get(), StmtLabel, Name);
   if(DoVar)
     AddLoopVar(DoVar);
   if(AddToBody)
@@ -177,6 +181,7 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, SourceLocation E
     getCurrentStmtLabelScope()->DeclareForwardReference(
       StmtLabelScope::ForwardDecl(TerminatingStmt.get(), Result));
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  if(Name.isUsable()) DeclareConstructName(Name, Result);
   if(TerminatingStmt.get())
     getCurrentBody()->Enter(BlockStmtBuilder::Entry(
                              Result,TerminatingStmt.get()));
@@ -185,17 +190,45 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, SourceLocation E
 }
 
 StmtResult Sema::ActOnDoWhileStmt(ASTContext &C, SourceLocation Loc, ExprResult Condition,
+                                  ConstructName Name,
                                   Expr *StmtLabel) {
   if(Condition.isUsable())
     StmtRequiresLogicalExpression(Loc, Condition.get());
 
-  auto Result = DoWhileStmt::Create(C, Loc, Condition.get(), StmtLabel);
+  auto Result = DoWhileStmt::Create(C, Loc, Condition.get(), StmtLabel, Name);
   if(Condition.isUsable()) getCurrentBody()->Append(Result);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  if(Name.isUsable()) DeclareConstructName(Name, Result);
   getCurrentBody()->Enter(Result);
   return Result;
 }
 
+// FIXME: else if source range
+// FIXME: improve invalid_construct_name ?
+void Sema::CheckConstructNameMatch(Stmt *Part, ConstructName Name, Stmt *S) {
+  auto Construct = cast<NamedConstructStmt>(S);
+  auto ExpectedName = Construct->getName().IDInfo;
+  if(Name.isUsable()) {
+    if(!ExpectedName) {
+      Diags.Report(Name.Loc, diag::err_use_of_invalid_construct_name);
+    }
+    else if(ExpectedName != Name.IDInfo) {
+      Diags.Report(Name.Loc, diag::err_expected_construct_name)
+        << ExpectedName; // FIXME: source range
+      Diags.Report(Construct->getName().Loc, diag::note_matching_ident)
+        << ExpectedName
+        << SourceRange(Construct->getName().Loc, Construct->getLocation());
+    }
+    return;
+  }
+  if(ExpectedName) {
+    Diags.Report(Name.Loc, diag::err_expected_construct_name)
+      << ExpectedName;
+    Diags.Report(Construct->getName().Loc, diag::note_matching_ident)
+      << ExpectedName
+      << SourceRange(Construct->getName().Loc, Construct->getLocation());
+  }
+}
 
 // =============================================================
 // Block statements termination and control flow
@@ -332,7 +365,8 @@ DoStmt *Sema::LeaveBlocksUntilLabeledDo(SourceLocation Loc, const Expr *StmtLabe
 }
 
 StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
-                                 ExprResult Condition, Expr *StmtLabel) {
+                                 ExprResult Condition, ConstructName Name,
+                                 Expr *StmtLabel) {
   auto IfBegin = LeaveBlocksUntilIf(Loc);
   if(!IfBegin)
     Diags.Report(Loc, diag::err_stmt_not_in_if) << "else if";
@@ -341,9 +375,11 @@ StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
   if(Condition.isUsable())
     StmtRequiresLogicalExpression(Loc, Condition.get());
 
-  auto Result = IfStmt::Create(C, Loc, Condition.get(), StmtLabel);
+  auto Result = IfStmt::Create(C, Loc, Condition.get(), StmtLabel,
+                               IfBegin? IfBegin->getName() : ConstructName(Loc, nullptr));
   if(IfBegin) {
     LeaveLastBlock();
+    CheckConstructNameMatch(Result, Name, IfBegin);
     if(Condition.isUsable())
       IfBegin->setElseStmt(Result);
   }
@@ -352,38 +388,52 @@ StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
-StmtResult Sema::ActOnElseStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
+StmtResult Sema::ActOnElseStmt(ASTContext &C, SourceLocation Loc,
+                               ConstructName Name, Expr *StmtLabel) {
   auto IfBegin = LeaveBlocksUntilIf(Loc);
   if(!IfBegin)
     Diags.Report(Loc, diag::err_stmt_not_in_if) << "else";
 
   auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::ElseStmtClass, Loc, nullptr, StmtLabel);
   getCurrentBody()->Append(Result);
-  if(IfBegin) getCurrentBody()->LeaveIfThen(C);
+  if(IfBegin) {
+    getCurrentBody()->LeaveIfThen(C);
+    CheckConstructNameMatch(Result, Name, IfBegin);
+  }
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+
   return Result;
 }
 
-StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
+StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SourceLocation Loc,
+                                ConstructName Name, Expr *StmtLabel) {
   auto IfBegin = LeaveBlocksUntilIf(Loc);
   if(!IfBegin)
     Diags.Report(Loc, diag::err_stmt_not_in_if) << "end if";
 
   auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndIfStmtClass, Loc, nullptr, StmtLabel);
   getCurrentBody()->Append(Result);
-  if(IfBegin) LeaveLastBlock();
+  if(IfBegin) {
+    LeaveLastBlock();
+    CheckConstructNameMatch(Result, Name, IfBegin);
+  }
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
-StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
+StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SourceLocation Loc,
+                                ConstructName Name,
+                                Expr *StmtLabel) {
   auto DoBegin = LeaveBlocksUntilDo(Loc);
   if(!DoBegin)
     Diags.Report(Loc, diag::err_end_do_without_do);
 
   auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndDoStmtClass, Loc, nullptr, StmtLabel);
   getCurrentBody()->Append(Result);
-  if(DoBegin) LeaveLastBlock();
+  if(DoBegin) {
+    LeaveLastBlock();
+    CheckConstructNameMatch(Result, Name, DoBegin);
+  }
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
