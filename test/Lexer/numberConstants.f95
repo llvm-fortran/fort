@@ -17,6 +17,8 @@ PROGRAM constants
   Y = 0.4d4
   Y = -0.125D-2
   Y = 1.0d+2
+  if(1.LT.2) then
+  end if
 
   X = 1e ! expected-error {{exponent has no digits}}
   Y = -2D- ! expected-error {{exponent has no digits}}

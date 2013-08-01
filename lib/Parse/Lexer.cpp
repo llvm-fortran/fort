@@ -1030,12 +1030,18 @@ void Lexer::LexNumericConstant(Token &Result) {
   bool IsExp = false;
   char PrevChar = getCurrentChar();
   if (PrevChar == '.') {
-    IsReal = true;
-    char C = getNextChar();
-    if(C == 'E' || C == 'e' || C == 'D' || C == 'd')
+    char C = peekNextChar();
+    if(isDecimalNumberBody(C)) {
+      getNextChar();
+      IsReal = true;
+      if (LexIntegerLiteralConstant())
+        PrevChar = '\0';
+    }
+    else if(C == 'E' || C == 'e' || C == 'D' || C == 'd') {
+      getNextChar();
+      IsReal = true;
       IsExp = true;
-    else if (LexIntegerLiteralConstant())
-      PrevChar = '\0';
+    } else PrevChar = '\0';
   }
 
   // Could be part of a defined operator. Form numeric constant from what we now
