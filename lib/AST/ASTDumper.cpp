@@ -76,6 +76,8 @@ public:
   void VisitIfStmt(const IfStmt *S);
   void VisitDoStmt(const DoStmt *S);
   void VisitDoWhileStmt(const DoWhileStmt *S);
+  void VisitCycleStmt(const CycleStmt *S);
+  void VisitExitStmt(const ExitStmt *S);
   void VisitContinueStmt(const ContinueStmt *S);
   void VisitStopStmt(const StopStmt *S);
   void VisitReturnStmt(const ReturnStmt *S);
@@ -488,6 +490,20 @@ void ASTDumper::VisitDoWhileStmt(const DoWhileStmt *S) {
   OS << ")\n";
   if(S->getBody())
     dumpSubStmt(S->getBody());
+}
+
+void ASTDumper::VisitCycleStmt(const CycleStmt *S) {
+  OS << "cycle";
+  if(S->getLoopName().isUsable())
+    OS << ' ' << S->getLoopName().IDInfo->getName();
+  OS << "\n";
+}
+
+void ASTDumper::VisitExitStmt(const ExitStmt *S) {
+  OS << "exit";
+  if(S->getLoopName().isUsable())
+    OS << ' ' << S->getLoopName().IDInfo->getName();
+  OS << "\n";
 }
 
 void ASTDumper::VisitContinueStmt(const ContinueStmt *S) {

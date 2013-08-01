@@ -345,9 +345,8 @@ Parser::MatchFixedFormIdentifier(Token &T, IdentifierLexingContext Context) {
       // RETURN1
       case tok::kw_RETURN:
       // CYCLE/EXITconstructname
-      // FIXME: add
-      //case tok::kw_CYCLE:
-      //case tok::kw_EXIT:
+      case tok::kw_CYCLE:
+      case tok::kw_EXIT:
       // PRINTfmt
       case tok::kw_PRINT:
       // READfmt

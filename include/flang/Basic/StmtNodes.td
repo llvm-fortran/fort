@@ -36,6 +36,8 @@ def IfStmt : DStmt<NamedConstructStmt>;
 def CFBlockStmt : DStmt<NamedConstructStmt, 1>;
 def DoStmt : DStmt<CFBlockStmt>;
 def DoWhileStmt : DStmt<CFBlockStmt>;
+def CycleStmt : Stmt;
+def ExitStmt : Stmt;
 def ContinueStmt : Stmt;
 def StopStmt : Stmt;
 def ReturnStmt : Stmt;

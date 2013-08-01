@@ -456,6 +456,30 @@ DoWhileStmt *DoWhileStmt::Create(ASTContext &C, SourceLocation Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// Cycle Statement
+//===----------------------------------------------------------------------===//
+
+CycleStmt::CycleStmt(SourceLocation Loc, Expr *StmtLabel, Stmt *loop, ConstructName loopName)
+  : Stmt(CycleStmtClass, Loc, StmtLabel), Loop(loop), LoopName(loopName) {}
+
+CycleStmt *CycleStmt::Create(ASTContext &C, SourceLocation Loc, Stmt *Loop,
+                             Expr *StmtLabel, ConstructName LoopName) {
+  return new(C) CycleStmt(Loc, StmtLabel, Loop, LoopName);
+}
+
+//===----------------------------------------------------------------------===//
+// Exit Statement
+//===----------------------------------------------------------------------===//
+
+ExitStmt::ExitStmt(SourceLocation Loc, Expr *StmtLabel, Stmt *loop, ConstructName loopName)
+  : Stmt(ExitStmtClass, Loc, StmtLabel), Loop(loop), LoopName(loopName) {}
+
+ExitStmt *ExitStmt::Create(ASTContext &C, SourceLocation Loc, Stmt *Loop,
+                             Expr *StmtLabel, ConstructName LoopName) {
+  return new(C) ExitStmt(Loc, StmtLabel, Loop, LoopName);
+}
+
+//===----------------------------------------------------------------------===//
 // Continue Statement
 //===----------------------------------------------------------------------===//
 

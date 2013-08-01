@@ -128,6 +128,10 @@ def err_stmt_not_in_if : Error<
   "use of '%0' outside an if construct">;
 def err_end_do_without_do : Error<
   "use of 'end do' outside a do construct">;
+def err_stmt_not_in_loop : Error<
+  "'%0' statement not in loop statement">;
+def err_stmt_not_in_named_loop : Error<
+  "'%0' statement not in loop statement named %1">;
 
 def err_use_implicit_none_stmt : Error<
   "use of 'IMPLICIT NONE' after 'IMPLICIT'">;

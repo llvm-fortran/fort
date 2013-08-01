@@ -114,6 +114,10 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParseDoWhileStmt();
   case tok::kw_ENDDO:
     return ParseEndDoStmt();
+  case tok::kw_CYCLE:
+    return ParseCycleStmt();
+  case tok::kw_EXIT:
+    return ParseExitStmt();
   case tok::kw_CONTINUE:
     return ParseContinueStmt();
   case tok::kw_STOP:
@@ -388,6 +392,18 @@ Parser::StmtResult Parser::ParseEndDoStmt() {
   auto Loc = ConsumeToken();
   ParseTrailingConstructName();
   return Actions.ActOnEndDoStmt(Context, Loc, StmtConstructName, StmtLabel);
+}
+
+Parser::StmtResult Parser::ParseCycleStmt() {
+  auto Loc = ConsumeToken();
+  ParseTrailingConstructName();
+  return Actions.ActOnCycleStmt(Context, Loc, StmtConstructName, StmtLabel);
+}
+
+Parser::StmtResult Parser::ParseExitStmt() {
+  auto Loc = ConsumeToken();
+  ParseTrailingConstructName();
+  return Actions.ActOnExitStmt(Context, Loc, StmtConstructName, StmtLabel);
 }
 
 /// ParseContinueStmt

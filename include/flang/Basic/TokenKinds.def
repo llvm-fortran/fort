@@ -159,6 +159,8 @@ KEYWORD(ENUM                   , KEYALL)
 KEYWORD(MODULE                 , KEYNOTF77)
 KEYWORD(SUBMODULE              , KEYNOTF77)
 KEYWORD(BLOCK                  , KEYALL) // DATA defined below.
+KEYWORD(CYCLE                  , KEYNOTF77)
+KEYWORD(EXIT                   , KEYNOTF77)
 
 KEYWORD(CLASS                  , KEYNOTF77) // [5.2]    declaration-type-spec
 KEYWORD(TYPE                   , KEYNOTF77) //   ''

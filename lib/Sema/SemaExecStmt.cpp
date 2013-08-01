@@ -451,6 +451,46 @@ void Sema::CheckStatementLabelEndDo(Expr *StmtLabel, Stmt *S) {
   LeaveLastBlock();
 }
 
+Stmt *Sema::CheckWithinLoopRange(const char *StmtString, SourceLocation Loc, ConstructName Name) {
+  auto Stack = getCurrentBody()->ControlFlowStack;
+  for(size_t I = Stack.size(); I != 0;) {
+    --I;
+    auto S = Stack[I].Statement;
+    if(!Name.isUsable() ||
+       (isa<NamedConstructStmt>(S) &&
+        cast<NamedConstructStmt>(S)->getName().IDInfo == Name.IDInfo)) {
+      if(isa<DoStmt>(S) ||
+         isa<DoWhileStmt>(S))
+        return S;
+    }
+  }
+  if(!Name.isUsable())
+    Diags.Report(Loc, diag::err_stmt_not_in_loop)
+      << StmtString;
+  else
+    Diags.Report(Loc, diag::err_stmt_not_in_named_loop)
+      << StmtString << Name.IDInfo;
+  return nullptr;
+}
+
+StmtResult Sema::ActOnCycleStmt(ASTContext &C, SourceLocation Loc,
+                                ConstructName LoopName, Expr *StmtLabel) {
+  auto Loop = CheckWithinLoopRange("cycle", Loc, LoopName);
+  auto Result = CycleStmt::Create(C, Loc, Loop, StmtLabel, LoopName);
+  getCurrentBody()->Append(Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnExitStmt(ASTContext &C, SourceLocation Loc,
+                               ConstructName LoopName, Expr *StmtLabel) {
+  auto Loop = CheckWithinLoopRange("exit", Loc, LoopName);
+  auto Result = ExitStmt::Create(C, Loc, Loop, StmtLabel, LoopName);
+  getCurrentBody()->Append(Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
 
 StmtResult Sema::ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   auto Result = ContinueStmt::Create(C, Loc, StmtLabel);

@@ -427,6 +427,8 @@ private:
   StmtResult ParseDoStmt();
   StmtResult ParseDoWhileStmt();
   StmtResult ParseEndDoStmt();
+  StmtResult ParseCycleStmt();
+  StmtResult ParseExitStmt();
 
   StmtResult ParseContinueStmt();
   StmtResult ParseStopStmt();

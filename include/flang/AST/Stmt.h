@@ -824,6 +824,50 @@ public:
   }
 };
 
+/// CycleStmt
+class CycleStmt : public Stmt {
+  ConstructName LoopName;
+  Stmt *Loop;
+  CycleStmt(SourceLocation Loc, Expr *StmtLabel, Stmt *loop, ConstructName loopName);
+public:
+  static CycleStmt *Create(ASTContext &C, SourceLocation Loc, Stmt *Loop,
+                           Expr *StmtLabel, ConstructName LoopName);
+
+  ConstructName getLoopName() const {
+    return LoopName;
+  }
+  Stmt *getLoop() const {
+    return Loop;
+  }
+
+  static bool classof(const CycleStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == CycleStmtClass;
+  }
+};
+
+/// ExitStmt
+class ExitStmt : public Stmt {
+  ConstructName LoopName;
+  Stmt *Loop;
+  ExitStmt(SourceLocation Loc, Expr *StmtLabel, Stmt *loop, ConstructName loopName);
+public:
+  static ExitStmt *Create(ASTContext &C, SourceLocation Loc, Stmt *Loop,
+                          Expr *StmtLabel, ConstructName LoopName);
+
+  ConstructName getLoopName() const {
+    return LoopName;
+  }
+  Stmt *getLoop() const {
+    return Loop;
+  }
+
+  static bool classof(const ExitStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == ExitStmtClass;
+  }
+};
+
 /// ContinueStmt
 class ContinueStmt : public Stmt {
   ContinueStmt(SourceLocation Loc, Expr *StmtLabel);

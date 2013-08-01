@@ -355,6 +355,12 @@ public:
   StmtResult ActOnEndDoStmt(ASTContext &C, SourceLocation Loc,
                             ConstructName Name, Expr *StmtLabel);
 
+  StmtResult ActOnCycleStmt(ASTContext &C, SourceLocation Loc,
+                            ConstructName LoopName, Expr *StmtLabel);
+
+  StmtResult ActOnExitStmt(ASTContext &C, SourceLocation Loc,
+                           ConstructName LoopName, Expr *StmtLabel);
+
   StmtResult ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
   StmtResult ActOnStopStmt(ASTContext &C, SourceLocation Loc, ExprResult StopCode, Expr *StmtLabel);
@@ -650,6 +656,11 @@ public:
 
   /// Checks to see if the part of the constructs has a valid construct name.
   void CheckConstructNameMatch(Stmt *Part, ConstructName Name, Stmt *S);
+
+  /// Checks to see if a statement is inside an outer loop or a loop
+  /// associated with a given name, and returns this loop. Null
+  /// is returned when an error occurs.
+  Stmt *CheckWithinLoopRange(const char *StmtString, SourceLocation Loc, ConstructName Name);
 
 };
 
