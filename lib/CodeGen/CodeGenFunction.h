@@ -46,6 +46,8 @@ namespace flang {
 namespace CodeGen {
   class CodeGenTypes;
 
+  class LoopScope;
+
 /// CodeGenFunction - This class organizes the per-function state that is used
 /// while generating LLVM code.
 class CodeGenFunction {
@@ -96,8 +98,12 @@ class CodeGenFunction {
   llvm::Value *AssignedGotoVarPtr;
   llvm::BasicBlock *AssignedGotoDispatchBlock;
 
-
   bool IsMainProgram;
+
+protected:
+  const LoopScope *CurLoopScope;
+  friend class LoopScope;
+
 public:
   CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn);
   ~CodeGenFunction();
@@ -212,6 +218,8 @@ public:
   void EmitIfStmt(const IfStmt *S);
   void EmitDoStmt(const DoStmt *S);
   void EmitDoWhileStmt(const DoWhileStmt *S);
+  void EmitCycleStmt(const CycleStmt *S);
+  void EmitExitStmt(const ExitStmt *S);
   void EmitStopStmt(const StopStmt *S);
   void EmitReturnStmt(const ReturnStmt *S);
   void EmitCallStmt(const CallStmt *S);

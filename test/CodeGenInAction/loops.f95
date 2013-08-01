@@ -40,4 +40,27 @@ PROGRAM loops
   END DO               ! CHECK-NEXT: I=2
   PRINT *, 'END'       ! CHECK-NEXT: END
 
+  do i = 1,3 ! CHECK-NEXT: I=1
+    print *, 'I=', I ! CHECK-NEXT: I=2
+    if(i == 2) exit
+  end do
+  PRINT *, 'END'       ! CHECK-NEXT: END
+
+  i = -1
+  loop: do while(.true.)
+    i = i + 1
+    if(i < 1) cycle loop
+    print *, 'I=', I ! CHECK-NEXT: I=1
+    if(i >= 2) exit loop ! CHECK-NEXT: I=2
+  end do loop
+  PRINT *, 'END'       ! CHECK-NEXT: END
+
+  outer: do i = 1,5
+    inner: do j = 1,3
+      if(i <= 4) cycle outer
+      print *, 'I=', J ! CHECK-NEXT: I=1
+    end do inner  ! CHECK-NEXT: I=2
+  end do outer ! CHECK-NEXT: I=3
+  PRINT *, 'END'       ! CHECK-NEXT: END
+
 END PROGRAM

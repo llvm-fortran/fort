@@ -32,7 +32,8 @@ CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn)
     Builder(cgm.getModule().getContext()),
     UnreachableBlock(nullptr), CurFn(Fn), IsMainProgram(false),
     ReturnValuePtr(nullptr), AllocaInsertPt(nullptr),
-    AssignedGotoVarPtr(nullptr), AssignedGotoDispatchBlock(nullptr) {
+    AssignedGotoVarPtr(nullptr), AssignedGotoDispatchBlock(nullptr),
+    CurLoopScope(nullptr) {
 }
 
 CodeGenFunction::~CodeGenFunction() {

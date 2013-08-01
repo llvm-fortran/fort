@@ -60,6 +60,12 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
     void VisitDoWhileStmt(const DoWhileStmt *S) {
       CG->EmitDoWhileStmt(S);
     }
+    void VisitCycleStmt(const CycleStmt *S) {
+      CG->EmitCycleStmt(S);
+    }
+    void VisitExitStmt(const ExitStmt *S) {
+      CG->EmitExitStmt(S);
+    }
     void VisitStopStmt(const StopStmt *S) {
       CG->EmitStopStmt(S);
     }
@@ -211,21 +217,28 @@ void CodeGenFunction::EmitIfStmt(const IfStmt *S) {
   EmitBlock(MergeBlock);
 }
 
-// FIXME: Use for exit/cycle statements
 class LoopScope {
 public:
+  CodeGenFunction *CGF;
   const LoopScope *Previous;
+  const Stmt *Loop;
   llvm::BasicBlock *ContinueTarget;
   llvm::BasicBlock *BreakTarget;
 
-  LoopScope(const CodeGenFunction *CGF,
+  LoopScope(CodeGenFunction *cgf,
             const Stmt *S,
             llvm::BasicBlock *ContinueBB,
             llvm::BasicBlock *BreakBB)
-  : Previous(nullptr), ContinueTarget(ContinueBB),
-    BreakTarget(BreakBB) {
+    : CGF(cgf), Previous(cgf->CurLoopScope), Loop(S),
+      ContinueTarget(ContinueBB), BreakTarget(BreakBB) {
+      cgf->CurLoopScope = this;
     }
   ~LoopScope() {
+    CGF->CurLoopScope = Previous;
+  }
+  const LoopScope *getScope(const Stmt *S) const {
+    if(Loop == S) return this;
+    return Previous->getScope(S);
   }
 };
 
@@ -324,6 +337,16 @@ void CodeGenFunction::EmitDoWhileStmt(const DoWhileStmt *S) {
   EmitStmt(S->getBody());
   EmitBranch(Loop);
   EmitBlock(EndLoop);
+}
+
+void CodeGenFunction::EmitCycleStmt(const CycleStmt *S) {
+  EmitBranch(CurLoopScope->getScope(S->getLoop())->ContinueTarget);
+  EmitBlock(createBasicBlock("after-cycle"));
+}
+
+void CodeGenFunction::EmitExitStmt(const ExitStmt *S) {
+  EmitBranch(CurLoopScope->getScope(S->getLoop())->BreakTarget);
+  EmitBlock(createBasicBlock("after-exit"));
 }
 
 void CodeGenFunction::EmitStopStmt(const StopStmt *S) {
