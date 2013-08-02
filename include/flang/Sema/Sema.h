@@ -162,6 +162,8 @@ public:
   FunctionDecl *ActOnStatementFunction(ASTContext &C,
                                        SourceLocation IDLoc,
                                        const IdentifierInfo *IDInfo);
+  VarDecl *ActOnStatementFunctionArgument(ASTContext &C, SourceLocation IDLoc,
+                                          const IdentifierInfo *IDInfo);
   void ActOnStatementFunctionBody(SourceLocation Loc, ExprResult Body);
   void ActOnEndStatementFunction(ASTContext &C);
 

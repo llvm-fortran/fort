@@ -992,7 +992,7 @@ StmtResult Parser::ParseStatementFunction() {
       auto Loc = Tok.getLocation();
       if(!ExpectAndConsume(tok::identifier))
         break;
-      auto Arg = Actions.ActOnSubProgramArgument(Context, Loc, ArgID);
+      auto Arg = Actions.ActOnStatementFunctionArgument(Context, Loc, ArgID);
       if(Arg)
         ArgumentList.push_back(Arg);
     } while(ConsumeIfPresent(tok::comma));

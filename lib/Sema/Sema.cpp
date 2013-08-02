@@ -327,6 +327,26 @@ VarDecl *Sema::ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
   return VD;
 }
 
+VarDecl *Sema::ActOnStatementFunctionArgument(ASTContext &C, SourceLocation IDLoc,
+                                              const IdentifierInfo *IDInfo) {
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+    return nullptr;
+  }
+  QualType Type;
+  if(auto Prev = ResolveIdentifier(IDInfo)) {
+     if(auto VD = dyn_cast<VarDecl>(Prev))
+       Type = VD->getType();
+  }
+
+  VarDecl *VD = VarDecl::CreateArgument(C, CurContext, IDLoc, IDInfo);
+  if(!Type.isNull())
+    VD->setType(Type);
+  CurContext->addDecl(VD);
+  return VD;
+}
+
 void Sema::ActOnSubProgramStarArgument(ASTContext &C, SourceLocation Loc) {
   // FIXME: TODO
 }

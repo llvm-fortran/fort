@@ -10,6 +10,12 @@ PROGRAM test
   CHARACTER*(10) ABC
   ABC(I) = 'ABC'
 
+  COMPLEX ZP
+  BAR(ZP) = AIMAG(ZP)
+
+  INTEGER FOO ! expected-note@+1 {{previous definition is here}}
+  FOO(I,I) = 1 ! expected-error {{redefinition of 'i'}}
+
   Z(A) = 'Hello' ! expected-error {{assigning to 'real' from incompatible type 'character'}}
 
   I = X(2) ! CHECK: i = int(x(2))
