@@ -9,8 +9,8 @@ PROGRAM exttest
 
   INTEGER FUNC ! expected-error {{the return type for a function 'func' was already specified}}
 
-  INTEGER F3(10) ! expected-error {{invalid type for a function 'f3'}}
-  EXTERNAL F3
+  INTEGER F3(10) ! expected-note {{previous definition is here}}
+  EXTERNAL F3 ! expected-error {{redefinition of 'f3'}}
 
   EXTERNAL F4
   COMPLEX F4

@@ -940,7 +940,7 @@ bool Parser::ParseExternalSubprogram(DeclSpec &ReturnType) {
         if(Arg)
           ArgumentList.push_back(Arg);
         Lex();
-      } while(EatIfPresentInSameStmt(tok::comma));
+      } while(ConsumeIfPresent(tok::comma));
     }
 
     // closing ')'
@@ -974,7 +974,47 @@ bool Parser::ParseExternalSubprogram(DeclSpec &ReturnType) {
   return false;
 }
 
+/// ParseStatementFunction - parse a statement function.
+///
+/// NB: ambiguity with array assignment I(X) = 1 isi handled
+/// by the caller by checking with Sema.
+StmtResult Parser::ParseStatementFunction() {
+  auto ID = Tok.getIdentifierInfo();
+  auto Loc = ConsumeToken();
 
+  SmallVector<VarDecl* ,8> ArgumentList;
+  Actions.ActOnStatementFunction(Context, Loc, ID);
+  ExpectAndConsume(tok::l_paren);
+  bool DontParseBody = false;
+  if(!ConsumeIfPresent(tok::r_paren)) {
+    do {
+      auto ArgID = Tok.getIdentifierInfo();
+      auto Loc = Tok.getLocation();
+      if(!ExpectAndConsume(tok::identifier))
+        break;
+      auto Arg = Actions.ActOnSubProgramArgument(Context, Loc, ArgID);
+      if(Arg)
+        ArgumentList.push_back(Arg);
+    } while(ConsumeIfPresent(tok::comma));
+    if(!ExpectAndConsume(tok::r_paren,0,"",tok::r_paren))
+      DontParseBody = true;
+  }
+  Actions.ActOnSubProgramArgumentList(Context, ArgumentList);
+  Actions.ActOnFunctionSpecificationPart();
+  if(!DontParseBody) {
+    if(ExpectAndConsume(tok::equal)) {
+      auto Body = ParseExpectedFollowupExpression("=");
+      if(Body.isInvalid()) SkipUntilNextStatement();
+      else {
+        Actions.ActOnStatementFunctionBody(Body);
+        ExpectStatementEnd();
+      }
+    } else
+      SkipUntilNextStatement();
+  }
+  Actions.ActOnEndStatementFunction(Context);
+  return StmtError();
+}
 
 /// ParseModule - Parse a module.
 ///
@@ -1095,7 +1135,7 @@ bool Parser::ParseDeclarationConstructList() {
 bool Parser::ParseDeclarationConstruct() {
   ParseStatementLabel();
 
-  SmallVector<DeclResult, 4> Decls;
+  SmallVector<DeclResult, 4> Decls;  
 
   switch (Tok.getKind()) {
   default:
@@ -1392,7 +1432,7 @@ bool Parser::ParseProcedureDeclStmt() {
   return false;
 }
 
-/// ParseSpecificationStmt - Parse the specification statement.
+/// ParseSpecificationStmt - Parse the specification statement or a statement function.
 ///
 ///   [R212]:
 ///     specification-stmt :=
@@ -1418,7 +1458,17 @@ bool Parser::ParseProcedureDeclStmt() {
 bool Parser::ParseSpecificationStmt() {
   StmtResult Result;
   switch (Tok.getKind()) {
-  default: return true;
+  default:
+    // statement function.
+    if(Tok.is(tok::identifier)) {
+      if(IsNextToken(tok::l_paren)) {
+        if(Actions.IsValidStatementFunctionIdentifier(Tok.getIdentifierInfo())) {
+          Result = ParseStatementFunction();
+          break;
+        }
+      }
+    }
+    return true;
   case tok::kw_PUBLIC:
   case tok::kw_PRIVATE:
     Result = ParseACCESSStmt();

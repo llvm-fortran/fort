@@ -39,6 +39,9 @@ namespace flang {
 ///      or select-type-construct
 ///      or where-construct
 StmtResult Parser::ParseExecutableConstruct() {
+  ParseStatementLabel();
+  ParseConstructNameLabel();
+
   StmtResult SR = ParseActionStmt();
   if (SR.isInvalid()) return StmtError();
   if (!SR.isUsable()) return StmtResult();
@@ -89,9 +92,6 @@ StmtResult Parser::ParseExecutableConstruct() {
 ///[obs] or arithmetic-if-stmt
 ///[obs] or computed-goto-stmt
 Parser::StmtResult Parser::ParseActionStmt() {
-  ParseStatementLabel();
-  ParseConstructNameLabel();
-      
   StmtResult SR;
   switch (Tok.getKind()) {
   default:

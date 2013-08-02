@@ -159,7 +159,16 @@ public:
   void ActOnSubProgramArgumentList(ASTContext &C, ArrayRef<VarDecl*> Arguments);
   void ActOnEndSubProgram(ASTContext &C, SourceLocation Loc);
 
+  FunctionDecl *ActOnStatementFunction(ASTContext &C,
+                                       SourceLocation IDLoc,
+                                       const IdentifierInfo *IDInfo);
+  void ActOnStatementFunctionBody(ExprResult Body);
+  void ActOnEndStatementFunction(ASTContext &C);
+
   void ActOnSpecificationPart();
+
+  void ActOnFunctionSpecificationPart();
+
   VarDecl *GetVariableForSpecification(const IdentifierInfo *IDInfo,
                                        SourceLocation ErrorLoc,
                                        SourceRange ErrorRange,
@@ -209,6 +218,11 @@ public:
 
   VarExpr *ConstructRecoveryVariable(ASTContext &C, SourceLocation Loc,
                                      QualType T);
+
+  /// \brief Returns true if the given identifier can be used as the function name
+  /// in a statement function declaration. This function resolves the ambiguity
+  /// of statement function declarations and array subscript assignments.
+  bool IsValidStatementFunctionIdentifier(const IdentifierInfo *IDInfo);
 
   // FIXME: TODO more features.
   RecordDecl *ActOnDerivedTypeDecl(ASTContext &C, SourceLocation Loc,

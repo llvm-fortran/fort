@@ -341,6 +341,8 @@ private:
   bool ParseModule();
   bool ParseBlockData();
 
+  StmtResult ParseStatementFunction();
+
   bool ParseSpecificationPart();
   bool ParseImplicitPartList();
   StmtResult ParseImplicitPart();

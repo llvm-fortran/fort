@@ -341,6 +341,44 @@ void Sema::ActOnEndSubProgram(ASTContext &C, SourceLocation Loc) {
   PopDeclContext();
 }
 
+bool Sema::IsValidStatementFunctionIdentifier(const IdentifierInfo *IDInfo) {
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    if(auto VD = dyn_cast<VarDecl>(Prev))
+      return VD->isUnusedSymbol();
+    return false;
+  }
+  return true;
+}
+
+FunctionDecl *Sema::ActOnStatementFunction(ASTContext &C,
+                                           SourceLocation IDLoc,
+                                           const IdentifierInfo *IDInfo) {
+  bool Declare = true;
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+    Declare = false;
+  }
+
+  DeclarationNameInfo NameInfo(IDInfo, IDLoc);
+  auto ParentDC = CurContext;
+
+  auto Func = FunctionDecl::Create(C, FunctionDecl::StatementFunction,
+                                   ParentDC, NameInfo, QualType());
+  if(Declare)
+    ParentDC->addDecl(Func);
+  PushDeclContext(Func);
+  return Func;
+}
+
+void Sema::ActOnStatementFunctionBody(ExprResult Body) {
+  CurrentContextAsFunction()->setBody(Body.get());
+}
+
+void Sema::ActOnEndStatementFunction(ASTContext &C) {
+  PopDeclContext();
+}
+
 /// \brief Convert the specified DeclSpec to the appropriate type object.
 QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
   QualType Result;
@@ -439,6 +477,7 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDL
     if(T->isArrayType()) {
       CheckArrayTypeDeclarationCompability(T->asArrayType(), VD);
       SubT = T->asArrayType()->getElementType();
+      VD->MarkUsedAsVariable(IDLoc);
     }
     else if(SubT->isCharacterType())
       CheckCharacterLengthDeclarationCompability(SubT, VD);

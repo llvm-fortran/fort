@@ -24,12 +24,11 @@
 
 namespace flang {
 
-/// Applies the specification statements to the declarations.
-void Sema::ActOnSpecificationPart() {
+void Sema::ActOnFunctionSpecificationPart() {
   /// If necessary, apply the implicit typing rules to the current function and its arguments.
   if(auto FD = dyn_cast<FunctionDecl>(CurContext)) {
     // function type
-    if(FD->isNormalFunction()) {
+    if(FD->isNormalFunction() || FD->isStatementFunction()) {
       if(FD->getType().isNull()) {
         auto Type = ResolveImplicitType(FD->getIdentifier());
         if(Type.isNull()) {
@@ -48,7 +47,11 @@ void Sema::ActOnSpecificationPart() {
       }
     }
   }
+}
 
+/// Applies the specification statements to the declarations.
+void Sema::ActOnSpecificationPart() {
+  ActOnFunctionSpecificationPart();
   auto Body = getCurrentBody()->getDeclStatements();
 
   for(ArrayRef<Stmt*>::iterator I = Body.begin(), End = Body.end();
@@ -100,8 +103,10 @@ bool Sema::ApplySpecification(const DimensionStmt *Stmt) {
   else {
     auto T = ActOnArraySpec(Context, VD->getType(), Stmt->getIDList());
     VD->setType(T);
-    if(T->isArrayType())
+    if(T->isArrayType()) {
       CheckArrayTypeDeclarationCompability(T->asArrayType(), VD);
+      VD->MarkUsedAsVariable(Stmt->getLocation());
+    }
   }
   return false;
 }

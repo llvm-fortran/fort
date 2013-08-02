@@ -693,13 +693,13 @@ public:
 private:
   unsigned ArgumentCount;
   VarDecl **Arguments;
-  Stmt *Body;
+  llvm::PointerUnion<Stmt*,Expr*> Body;
 
   FunctionDecl(Kind DK, FunctionKind FK, DeclContext *DC,
                const DeclarationNameInfo &NameInfo, QualType T)
     : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
       DeclContext(DK), ArgumentCount(0), Arguments(nullptr),
-      Body(nullptr) {
+      Body((Stmt*)nullptr) {
       SubDeclKind = FK;
     }
 public:
@@ -719,7 +719,9 @@ public:
   void setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList);
 
   void setBody(Stmt *S);
-  Stmt *getBody() const { return Body; }
+  void setBody(Expr *E);
+  Stmt *getBody() const { return Body.get<Stmt*>(); }
+  Expr *getBodyExpr() const { return Body.get<Expr*>(); }
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }

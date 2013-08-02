@@ -172,19 +172,27 @@ void ASTDumper::VisitFunctionDecl(const FunctionDecl *D) {
     D->getType().print(OS);
     OS << ' ';
   }
-  OS << (D->isNormalFunction()? "function " : "subroutine ")
+  OS << (D->isNormalFunction()? "function " : (D->isStatementFunction()? "stmt function " : "subroutine "))
      << D->getName() << "(";
   auto Args = D->getArguments();
   for(size_t I = 0; I < Args.size(); ++I) {
     if(I) OS << ", ";
     OS << cast<VarDecl>(Args[I])->getName();
   }
-  OS << ")\n";
-  indent++;
-  dumpDeclContext(D);
-  indent--;
-  if(D->getBody())
-    dumpSubStmt(D->getBody());
+
+  if(D->isStatementFunction()) {
+    OS << ") = ";
+    if(D->getBodyExpr())
+      dumpExpr(D->getBodyExpr());
+    OS << "\n";
+  } else {
+    OS << ")\n";
+    indent++;
+    dumpDeclContext(D);
+    indent--;
+    if(D->getBody())
+      dumpSubStmt(D->getBody());
+  }
 }
 
 void ASTDumper::VisitVarDecl(const VarDecl *D) {

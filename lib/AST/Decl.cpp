@@ -243,8 +243,11 @@ FunctionDecl *FunctionDecl::Create(ASTContext &C, FunctionKind FK,
 }
 
 void FunctionDecl::setBody(Stmt *S) {
-  assert(!Body);
   Body = S;
+}
+
+void FunctionDecl::setBody(Expr *E) {
+  Body = E;
 }
 
 void FunctionDecl::setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList) {
