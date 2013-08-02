@@ -25,4 +25,6 @@ PROGRAM test
 
   print *, ABC(1)
 
+  CALL X(3) ! expected-error {{statement requires a subroutine reference (function 'x' invalid)}}
+
 END PROGRAM test
