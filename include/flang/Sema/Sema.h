@@ -162,7 +162,7 @@ public:
   FunctionDecl *ActOnStatementFunction(ASTContext &C,
                                        SourceLocation IDLoc,
                                        const IdentifierInfo *IDInfo);
-  void ActOnStatementFunctionBody(ExprResult Body);
+  void ActOnStatementFunctionBody(SourceLocation Loc, ExprResult Body);
   void ActOnEndStatementFunction(ASTContext &C);
 
   void ActOnSpecificationPart();

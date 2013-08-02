@@ -354,24 +354,34 @@ FunctionDecl *Sema::ActOnStatementFunction(ASTContext &C,
                                            SourceLocation IDLoc,
                                            const IdentifierInfo *IDInfo) {
   bool Declare = true;
+  QualType ReturnType;
   if (auto Prev = LookupIdentifier(IDInfo)) {
-    Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
-    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
-    Declare = false;
+    auto VD = dyn_cast<VarDecl>(Prev);
+    if(!VD || !VD->isUnusedSymbol()) {
+      Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+      Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+      Declare = false;
+    } else {
+      ReturnType = VD->getType();
+      CurContext->removeDecl(Prev);
+    }
   }
 
   DeclarationNameInfo NameInfo(IDInfo, IDLoc);
   auto ParentDC = CurContext;
 
   auto Func = FunctionDecl::Create(C, FunctionDecl::StatementFunction,
-                                   ParentDC, NameInfo, QualType());
+                                   ParentDC, NameInfo, ReturnType);
   if(Declare)
     ParentDC->addDecl(Func);
   PushDeclContext(Func);
   return Func;
 }
 
-void Sema::ActOnStatementFunctionBody(ExprResult Body) {
+void Sema::ActOnStatementFunctionBody(SourceLocation Loc, ExprResult Body) {
+  auto Func = CurrentContextAsFunction();
+  auto Type = Func->getType();
+  Body = TypecheckAssignment(Type, Body, Loc, Loc);
   CurrentContextAsFunction()->setBody(Body.get());
 }
 

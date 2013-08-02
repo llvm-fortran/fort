@@ -1002,11 +1002,12 @@ StmtResult Parser::ParseStatementFunction() {
   Actions.ActOnSubProgramArgumentList(Context, ArgumentList);
   Actions.ActOnFunctionSpecificationPart();
   if(!DontParseBody) {
+    auto EqLoc = Tok.getLocation();
     if(ExpectAndConsume(tok::equal)) {
       auto Body = ParseExpectedFollowupExpression("=");
       if(Body.isInvalid()) SkipUntilNextStatement();
       else {
-        Actions.ActOnStatementFunctionBody(Body);
+        Actions.ActOnStatementFunctionBody(EqLoc, Body);
         ExpectStatementEnd();
       }
     } else
