@@ -33,7 +33,7 @@ CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn)
     UnreachableBlock(nullptr), CurFn(Fn), IsMainProgram(false),
     ReturnValuePtr(nullptr), AllocaInsertPt(nullptr),
     AssignedGotoVarPtr(nullptr), AssignedGotoDispatchBlock(nullptr),
-    CurLoopScope(nullptr) {
+    CurLoopScope(nullptr), CurInlinedStmtFunc(nullptr) {
 }
 
 CodeGenFunction::~CodeGenFunction() {

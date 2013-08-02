@@ -23,4 +23,6 @@ PROGRAM test
 
   A = Y(2.0) ! CHECK: a = y(2)
 
+  print *, ABC(1)
+
 END PROGRAM test

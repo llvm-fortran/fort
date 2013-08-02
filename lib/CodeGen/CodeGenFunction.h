@@ -47,6 +47,7 @@ namespace CodeGen {
   class CodeGenTypes;
 
   class LoopScope;
+  class StatementFunctionInliningScope;
 
 /// CodeGenFunction - This class organizes the per-function state that is used
 /// while generating LLVM code.
@@ -103,6 +104,8 @@ class CodeGenFunction {
 protected:
   const LoopScope *CurLoopScope;
   friend class LoopScope;
+  const StatementFunctionInliningScope *CurInlinedStmtFunc;
+  friend class StatementFunctionInliningScope;
 
 public:
   CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn);
@@ -351,6 +354,11 @@ public:
   llvm::CallInst *EmitRuntimeCall(llvm::Value *Func);
   llvm::CallInst *EmitRuntimeCall(llvm::Value *Func, llvm::ArrayRef<llvm::Value*> Args);
   llvm::CallInst *EmitRuntimeCall2(llvm::Value *Func, llvm::Value *A1, llvm::Value *A2);
+
+  RValueTy EmitStatementFunctionCall(const FunctionDecl *Function,
+                                     ArrayRef<Expr*> Arguments);
+  bool IsInlinedArgument(const VarDecl *VD);
+  const Expr *GetInlinedArgumentValue(const VarDecl *VD);
 
   // arrays
   llvm::Value *EmitArrayElementPtr(const Expr *Target,

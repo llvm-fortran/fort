@@ -115,6 +115,9 @@ RValueTy CodeGenFunction::EmitCall(const FunctionDecl *Function,
                                    CallArgList &ArgList,
                                    ArrayRef<Expr*> Arguments,
                                    bool ReturnsNothing) {
+  if(Function->isStatementFunction())
+    // statement functions are inlined.
+    return EmitStatementFunctionCall(Function, Arguments);
   CGFunction CGFunc = CGM.GetFunction(Function);
   return EmitCall(CGFunc.getFunction(), CGFunc.getInfo(),
                   ArgList, Arguments, ReturnsNothing);
@@ -324,6 +327,48 @@ llvm::CallInst *CodeGenFunction::EmitRuntimeCall2(llvm::Value *Func, llvm::Value
   auto Result = Builder.CreateCall2(Func, A1, A2);
   Result->setCallingConv(CGM.getRuntimeCC());
   return Result;
+}
+
+class StatementFunctionInliningScope {
+public:
+  CodeGenFunction *CGF;
+  const FunctionDecl *Func;
+  const StatementFunctionInliningScope *Previous;
+  llvm::DenseMap<const VarDecl*, const Expr*> Args;
+
+  StatementFunctionInliningScope(CodeGenFunction *cgf,
+                                 const FunctionDecl *Function,
+                                 ArrayRef<Expr*> Arguments)
+    : CGF(cgf), Func(Function), Previous(cgf->CurInlinedStmtFunc) {
+      cgf->CurInlinedStmtFunc = this;
+      for(size_t I = 0; I < Arguments.size(); ++I)
+        Args.insert(std::make_pair(Function->getArguments()[I], Arguments[I]));
+    }
+  ~StatementFunctionInliningScope() {
+    CGF->CurInlinedStmtFunc = Previous;
+  }
+  const Expr *getArgValue(const VarDecl *Arg) const {
+    auto result = Args.find(Arg);
+    if(result != Args.end())
+      return result->second;
+    return Previous->getArgValue(Arg);
+  }
+};
+
+RValueTy CodeGenFunction::EmitStatementFunctionCall(const FunctionDecl *Function,
+                                                    ArrayRef<Expr*> Arguments) {
+  StatementFunctionInliningScope Scope(this, Function, Arguments);
+  return EmitRValue(Function->getBodyExpr());
+}
+
+bool CodeGenFunction::IsInlinedArgument(const VarDecl *VD) {
+  if(VD->isArgument())
+    return cast<FunctionDecl>(VD->getDeclContext())->isStatementFunction();
+  return false;
+}
+
+const Expr *CodeGenFunction::GetInlinedArgumentValue(const VarDecl *VD) {
+  return CurInlinedStmtFunc->getArgValue(VD);
 }
 
 }
