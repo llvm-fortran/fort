@@ -19,4 +19,14 @@ PROGRAM jumps
   ASSIGN 3 TO J     ! CHECK-NEXT: not
   IF(I == 1) GO TO J! CHECK-NEXT: yes
 
+  GOTO(1,2,1) 0
+  PRINT *, 'twin'   ! CHECK-NEXT: twin
+
+  I = 0
+  GOTO(4) 1
+5 I = 1
+  PRINT *, 'win'    ! CHECK-NEXT: win
+4 IF(I == 0) GOTO(4,5) 2
+  PRINT *, 'done'   ! CHECK-NEXT: done
+
 END PROGRAM

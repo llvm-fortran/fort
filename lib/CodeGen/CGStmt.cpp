@@ -51,6 +51,9 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
     void VisitAssignedGotoStmt(const AssignedGotoStmt *S) {
       CG->EmitAssignedGotoStmt(S);
     }
+    void VisitComputedGotoStmt(const ComputedGotoStmt *S) {
+      CG->EmitComputedGotoStmt(S);
+    }
     void VisitIfStmt(const IfStmt *S) {
       CG->EmitIfStmt(S);
     }
@@ -134,30 +137,23 @@ void CodeGenFunction::EmitStmtLabel(const Stmt *S) {
   if(S->isStmtLabelUsedAsAssignTarget())
     AssignedGotoTargets.push_back(S);
 
-  auto AlreadyCreated = GotoTargets.find(S);
-  if(AlreadyCreated != GotoTargets.end()) {
-    auto Block = AlreadyCreated->second;
-    EmitBlock(Block);
-    return;
-  }
+  EmitBlock(GetGotoTarget(S));
+}
 
+llvm::BasicBlock *CodeGenFunction::GetGotoTarget(const Stmt *S) {
+  auto Result = GotoTargets.find(S);
+  if(Result != GotoTargets.end())
+    return Result->second;
   auto Block = createBasicBlock("");
-  EmitBlock(Block);
   GotoTargets.insert(std::make_pair(S, Block));
+  return Block;
 }
 
 void CodeGenFunction::EmitGotoStmt(const GotoStmt *S) {
-  auto Dest = S->getDestination().Statement;
-  auto Result = GotoTargets.find(Dest);
-  if(Result != GotoTargets.end()) {
-    Builder.CreateBr(Result->second);
-    return;
-  }
+  auto Dest = GetGotoTarget(S->getDestination().Statement);
 
-  auto Block = createBasicBlock("");
-  Builder.CreateBr(Block);
-  GotoTargets.insert(std::make_pair(Dest, Block));
-  EmitBlock(createBasicBlock("next"));
+  Builder.CreateBr(Dest);
+  EmitBlock(createBasicBlock("goto-continue"));
 }
 
 void CodeGenFunction::EmitAssignStmt(const AssignStmt *S) {
@@ -197,6 +193,21 @@ void CodeGenFunction::EmitAssignedGotoDispatcher() {
   EmitBlock(DefaultCase);
   // FiXME raise error
   Builder.CreateUnreachable();
+}
+
+void CodeGenFunction::EmitComputedGotoStmt(const ComputedGotoStmt *S) {
+  auto Operand = EmitScalarExpr(S->getExpression());
+  auto Type = Operand->getType();
+  auto DefaultCase = createBasicBlock("computed-goto-continue");
+  auto Targets = S->getTargets();
+  auto Switch = Builder.CreateSwitch(Operand, DefaultCase,
+                                     Targets.size());
+  for(size_t I = 0; I < Targets.size(); ++I) {
+    auto Dest = GetGotoTarget(Targets[I].Statement);
+    auto Val = llvm::ConstantInt::get(Type, int(I) + 1);
+    Switch->addCase(cast<llvm::ConstantInt>(Val), Dest);
+  }
+  EmitBlock(DefaultCase);
 }
 
 void CodeGenFunction::EmitIfStmt(const IfStmt *S) {

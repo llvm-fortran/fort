@@ -213,11 +213,13 @@ public:
 
   void EmitStmt(const Stmt *S);
   void EmitStmtLabel(const Stmt *S);
+  llvm::BasicBlock *GetGotoTarget(const Stmt *S);
 
   void EmitGotoStmt(const GotoStmt *S);
   void EmitAssignStmt(const AssignStmt *S);
   void EmitAssignedGotoStmt(const AssignedGotoStmt *S);
   void EmitAssignedGotoDispatcher();
+  void EmitComputedGotoStmt(const ComputedGotoStmt *S);
   void EmitIfStmt(const IfStmt *S);
   void EmitDoStmt(const DoStmt *S);
   void EmitDoWhileStmt(const DoWhileStmt *S);

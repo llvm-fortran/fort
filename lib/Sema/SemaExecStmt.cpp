@@ -123,6 +123,7 @@ StmtResult Sema::ActOnComputedGotoStmt(ASTContext &C, SourceLocation Loc,
   for(size_t I = 0; I < Targets.size(); ++I) {
     auto Decl = getCurrentStmtLabelScope()->Resolve(Targets[I]);
     TargetLabels[I] = Decl? StmtLabelReference(Decl): StmtLabelReference();
+    if(Decl) Decl->setStmtLabelUsedAsGotoTarget();
   }
   auto Result = ComputedGotoStmt::Create(C, Loc, Operand.get(), TargetLabels, StmtLabel);
 
