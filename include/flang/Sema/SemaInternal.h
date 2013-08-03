@@ -34,6 +34,7 @@ public:
   void VisitAssignStmt(AssignStmt *S);
   void VisitAssignedGotoStmt(AssignedGotoStmt *S);
   void VisitGotoStmt  (GotoStmt *S);
+  void VisitComputedGotoStmt(ComputedGotoStmt *S);
   void VisitDoStmt    (DoStmt *S);
 
   void VisitLabelFormatSpec(LabelFormatSpec *FS);

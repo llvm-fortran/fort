@@ -185,6 +185,22 @@ Parser::StmtResult Parser::ParseAssignStmt() {
 
 Parser::StmtResult Parser::ParseGotoStmt() {
   SourceLocation Loc = ConsumeToken();
+  if(ConsumeIfPresent(tok::l_paren)) {
+    // computed goto.
+    SmallVector<Expr*, 4> Targets;
+    do {
+      auto E = ParseStatementLabelReference();
+      if(E.isInvalid()) break;
+      Targets.append(1, E.get());
+    } while(ConsumeIfPresent(tok::comma));
+    ExprResult Operand;
+    bool ParseOperand = true;
+    if(!ExpectAndConsume(tok::r_paren)) {
+      if(!SkipUntil(tok::r_paren)) ParseOperand = false;
+    }
+    if(ParseOperand) Operand = ParseExpectedExpression();
+    return Actions.ActOnComputedGotoStmt(Context, Loc, Targets, Operand, StmtLabel);
+  }
 
   auto Destination = ParseStatementLabelReference();
   if(Destination.isInvalid()) {

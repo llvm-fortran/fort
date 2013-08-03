@@ -104,6 +104,14 @@ bool Sema::CheckIntegerExpression(const Expr *E) {
   return false;
 }
 
+bool Sema::StmtRequiresIntegerExpression(SourceLocation Loc, const Expr *E) {
+  if(E->getType()->isIntegerType())
+    return true;
+  Diags.Report(Loc, diag::err_typecheck_stmt_requires_int_expr)
+    << E->getType() << E->getSourceRange();
+  return false;
+}
+
 bool Sema::CheckScalarNumericExpression(const Expr *E) {
   if(E->getType()->isIntegerType() ||
      E->getType()->isRealType())

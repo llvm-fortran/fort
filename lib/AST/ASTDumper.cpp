@@ -73,6 +73,7 @@ public:
   void VisitAssignStmt(const AssignStmt *S);
   void VisitAssignedGotoStmt(const AssignedGotoStmt *S);
   void VisitGotoStmt(const GotoStmt *S);
+  void VisitComputedGotoStmt(const ComputedGotoStmt *S);
   void VisitIfStmt(const IfStmt *S);
   void VisitDoStmt(const DoStmt *S);
   void VisitDoWhileStmt(const DoWhileStmt *S);
@@ -458,6 +459,20 @@ void ASTDumper::VisitGotoStmt(const GotoStmt *S) {
   OS << "goto ";
   if(S->getDestination().Statement)
     dumpExpr(S->getDestination().Statement->getStmtLabel());
+  OS << "\n";
+}
+
+void ASTDumper::VisitComputedGotoStmt(const ComputedGotoStmt *S) {
+  OS << "goto (";
+  auto Targets = S->getTargets();
+  for(size_t I = 0; I < Targets.size(); ++I) {
+    if(I) OS << ", ";
+    if(Targets[I].Statement)
+      dumpExpr(Targets[I].Statement->getStmtLabel());
+  }
+  OS << ") ";
+  if(S->getExpression())
+    dumpExpr(S->getExpression());
   OS << "\n";
 }
 

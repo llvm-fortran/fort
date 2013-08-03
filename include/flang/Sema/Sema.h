@@ -349,6 +349,10 @@ public:
   StmtResult ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
                            ExprResult Destination, Expr *StmtLabel);
 
+  StmtResult ActOnComputedGotoStmt(ASTContext &C, SourceLocation Loc,
+                                   ArrayRef<Expr*> Targets,
+                                   ExprResult Operand, Expr *StmtLabel);
+
   StmtResult ActOnIfStmt(ASTContext &C, SourceLocation Loc,
                          ExprResult Condition, ConstructName Name,
                          Expr *StmtLabel);
@@ -505,6 +509,9 @@ public:
 
   /// Returns true if an expression is an integer expression
   bool CheckIntegerExpression(const Expr *E);
+
+  /// Returns true if an expression is an integer expression
+  bool StmtRequiresIntegerExpression(SourceLocation Loc, const Expr *E);
 
   /// Returns true if an expression is a scalar numeric expression
   bool CheckScalarNumericExpression(const Expr *E);

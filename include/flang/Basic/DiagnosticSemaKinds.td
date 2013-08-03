@@ -239,6 +239,11 @@ def err_data_stmt_not_enought_values : Error<
 def err_data_stmt_invalid_item : Error<
   "invalid item for a 'DATA' statement">;
 
+def warn_deprecated_computed_goto_stmt : Warning<"computed goto statement is deprecated">,
+    InGroup<Deprecated>;
+def warn_deprecated_arith_if_stmt : Warning<"arithmetic if statement is deprecated">,
+    InGroup<Deprecated>;
+
 }
 
 }

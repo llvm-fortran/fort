@@ -104,6 +104,40 @@ StmtResult Sema::ActOnGotoStmt(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
+void StmtLabelResolver::VisitComputedGotoStmt(ComputedGotoStmt *S) {
+  S->setTarget(Info.ResolveCallbackData,StmtLabelReference(StmtLabelDecl));
+  StmtLabelDecl->setStmtLabelUsedAsGotoTarget();
+}
+
+StmtResult Sema::ActOnComputedGotoStmt(ASTContext &C, SourceLocation Loc,
+                                       ArrayRef<Expr*> Targets,
+                                       ExprResult Operand, Expr *StmtLabel) {
+  if(!getLangOpts().Fortran77) {
+    Diags.Report(Loc, diag::warn_deprecated_computed_goto_stmt);
+  }
+
+  if(Operand.isUsable())
+    StmtRequiresIntegerExpression(Loc, Operand.get());
+
+  SmallVector<StmtLabelReference, 4> TargetLabels(Targets.size());
+  for(size_t I = 0; I < Targets.size(); ++I) {
+    auto Decl = getCurrentStmtLabelScope()->Resolve(Targets[I]);
+    TargetLabels[I] = Decl? StmtLabelReference(Decl): StmtLabelReference();
+  }
+  auto Result = ComputedGotoStmt::Create(C, Loc, Operand.get(), TargetLabels, StmtLabel);
+
+  for(size_t I = 0; I < Targets.size(); ++I) {
+    if(!TargetLabels[I].Statement) {
+      getCurrentStmtLabelScope()->DeclareForwardReference(
+        StmtLabelScope::ForwardDecl(Targets[I], Result, I));
+    }
+  }
+
+  getCurrentBody()->Append(Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
 // =========================================================================
 // Block statements entry
 // =========================================================================

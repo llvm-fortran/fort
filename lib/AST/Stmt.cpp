@@ -376,6 +376,29 @@ void GotoStmt::setDestination(StmtLabelReference Destination) {
 }
 
 //===----------------------------------------------------------------------===//
+// Computed Goto Statement
+//===----------------------------------------------------------------------===//
+
+ComputedGotoStmt::ComputedGotoStmt(ASTContext &C, SourceLocation Loc, Expr *e,
+                                   ArrayRef<StmtLabelReference> Targets,
+                                   Expr *StmtLabel)
+  : ListStmt(C, ComputedGotoStmtClass, Loc, Targets, StmtLabel), E(e) {}
+
+ComputedGotoStmt *ComputedGotoStmt::Create(ASTContext &C, SourceLocation Loc,
+                                           Expr *Expression,
+                                           ArrayRef<StmtLabelReference> Targets,
+                                           Expr *StmtLabel) {
+  return new(C) ComputedGotoStmt(C, Loc, Expression, Targets, StmtLabel);
+}
+
+void ComputedGotoStmt::setTarget(size_t I, StmtLabelReference Address) {
+  assert(I < getTargets().size());
+  assert(!getTargets()[I].Statement);
+  assert(Address.Statement);
+  getMutableList()[I] = Address;
+}
+
+//===----------------------------------------------------------------------===//
 // If Statement
 //===----------------------------------------------------------------------===//
 

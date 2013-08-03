@@ -31,6 +31,7 @@ def BlockStmt  : Stmt;
 def AssignStmt : Stmt;
 def AssignedGotoStmt : Stmt;
 def GotoStmt : Stmt;
+def ComputedGotoStmt : Stmt;
 def NamedConstructStmt : Stmt<1>;
 def IfStmt : DStmt<NamedConstructStmt>;
 def CFBlockStmt : DStmt<NamedConstructStmt, 1>;

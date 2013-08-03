@@ -709,6 +709,31 @@ public:
   }
 };
 
+/// ComputedGotoStmt - a computed goto jump
+class ComputedGotoStmt : public ListStmt<StmtLabelReference> {
+  Expr *E;
+  ComputedGotoStmt(ASTContext &C, SourceLocation Loc, Expr *e,
+                   ArrayRef<StmtLabelReference> Targets, Expr *StmtLabel);
+public:
+  static ComputedGotoStmt *Create(ASTContext &C, SourceLocation Loc,
+                                  Expr *Expression,
+                                  ArrayRef<StmtLabelReference> Targets,
+                                  Expr *StmtLabel);
+
+  inline Expr *getExpression() const {
+    return E;
+  }
+  inline ArrayRef<StmtLabelReference> getTargets() const {
+    return getIDList();
+  }
+  void setTarget(size_t I, StmtLabelReference Address);
+
+  static bool classof(const ComputedGotoStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == ComputedGotoStmtClass;
+  }
+};
+
 /// ConstructName - represents the name of the construct statement
 struct ConstructName {
   SourceLocation Loc;
