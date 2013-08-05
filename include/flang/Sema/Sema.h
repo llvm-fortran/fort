@@ -176,7 +176,7 @@ public:
   VarDecl *GetVariableForSpecification(SourceLocation StmtLoc, const IdentifierInfo *IDInfo,
                                        SourceLocation IDLoc,
                                        bool CanBeArgument = true);
-  bool ApplySpecification(SourceLocation StmtLoc, const DimensionStmt *Stmt);
+  bool ApplySpecification(SourceLocation StmtLoc, const DimensionStmt *S);
   bool ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S);
   bool ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S, VarDecl *VD);
 

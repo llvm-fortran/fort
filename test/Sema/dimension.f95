@@ -16,7 +16,7 @@ PROGRAM dimtest
   DIMENSION ARR(10) ! expected-error {{use of undeclared identifier 'arr'}}
   DIMENSION SCALAR(20) ! expected-error {{specification statement requires a local variable or an argument}}
 
-  DIMENSION TheArray(10, 20) ! expected-error {{'DIMENSION' statement can't be applied to the variable 'thearray' because it is already an array}}
+  DIMENSION TheArray(10, 20) ! expected-error {{the specification statement 'dimension' cannot be applied to the array variable 'thearray'}}
 
   REAL A
 

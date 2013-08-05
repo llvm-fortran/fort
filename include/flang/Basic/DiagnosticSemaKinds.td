@@ -213,10 +213,9 @@ def err_spec_requires_local_var : Error<
 def err_spec_requires_local_var_arg : Error<
   "specification statement requires a local variable or an argument">;
 def err_spec_dimension_already_array : Error<
-  "'DIMENSION' statement can't be applied to the variable %0 "
-   "because it is already an array">;
- def err_spec_qual_reapplication : Error<
-   "reapplication of '%0' to the variable %1">;
+  "the specification statement 'dimension' cannot be applied to the array variable %0">;
+def err_spec_qual_reapplication : Error<
+ "the specification statement '%0' cannot be applied to the variable %1 more than once">;
 
 def err_format_without_stmt_label : Error<
   "'FORMAT' statement is missing a statement label">;

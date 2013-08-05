@@ -100,23 +100,23 @@ VarDecl *Sema::GetVariableForSpecification(SourceLocation StmtLoc,
   return nullptr;
 }
 
-bool Sema::ApplySpecification(SourceLocation StmtLoc, const DimensionStmt *Stmt) {
+bool Sema::ApplySpecification(SourceLocation StmtLoc, const DimensionStmt *S) {
   auto VD = GetVariableForSpecification(StmtLoc,
-                                        Stmt->getVariableName(),
-                                        Stmt->getLocation());
+                                        S->getVariableName(),
+                                        S->getLocation());
   if(!VD) return true;
   if(isa<ArrayType>(VD->getType())) {
-    Diags.Report(Stmt->getLocation(),
+    Diags.Report(StmtLoc,
                  diag::err_spec_dimension_already_array)
-      << Stmt->getVariableName() << Stmt->getSourceRange();
+      << S->getVariableName() << getIdentifierRange(S->getLocation(), S->getVariableName());
     return true;
   }
   else {
-    auto T = ActOnArraySpec(Context, VD->getType(), Stmt->getIDList());
+    auto T = ActOnArraySpec(Context, VD->getType(), S->getIDList());
     VD->setType(T);
     if(T->isArrayType()) {
       CheckArrayTypeDeclarationCompability(T->asArrayType(), VD);
-      VD->MarkUsedAsVariable(Stmt->getLocation());
+      VD->MarkUsedAsVariable(S->getLocation());
     }
   }
   return false;

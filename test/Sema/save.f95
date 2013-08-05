@@ -20,11 +20,11 @@ END
 SUBROUTINE BAZ()
   INTEGER I, L
   SAVE I, L
-  SAVE I ! expected-error {{reapplication of 'save' to the variable 'i'}}
+  SAVE I ! expected-error {{the specification statement 'save' cannot be applied to the variable 'i' more than once}}
 END
 
 SUBROUTINE FEZ()
   INTEGER I, var
   SAVE var
-  SAVE ! expected-error {{reapplication of 'save' to the variable 'var'}}
+  SAVE ! expected-error {{the specification statement 'save' cannot be applied to the variable 'var' more than once}}
 END
