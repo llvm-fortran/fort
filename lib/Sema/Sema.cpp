@@ -896,6 +896,16 @@ StmtResult Sema::ActOnSAVE(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
+StmtResult Sema::ActOnEQUIVALENCE(ASTContext &C, SourceLocation Loc,
+                                  SourceLocation PartLoc,
+                                  ArrayRef<Expr*> ObjectList,
+                                  Expr *StmtLabel) {
+  // FIXME
+  auto Result = EquivalenceStmt::Create(C, PartLoc, ObjectList, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
 /// FIXME: allow outer scope integer constants.
 /// FIXME: walk constant expressions like 1+1.
 ExprResult Sema::ActOnDATAOuterImpliedDoExpr(ASTContext &C,

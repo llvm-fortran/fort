@@ -585,6 +585,25 @@ public:
   }
 };
 
+/// EquivalenceStmt - this is a part of EQUIVALENCE statement.
+class EquivalenceStmt : public Stmt, public MultiArgumentExpr {
+  EquivalenceStmt(ASTContext &C, SourceLocation Loc,
+                  ArrayRef<Expr*> Objects, Expr *StmtLabel);
+public:
+  static EquivalenceStmt *Create(ASTContext &C, SourceLocation Loc,
+                                 ArrayRef<Expr*> Objects,
+                                 Expr *StmtLabel);
+
+  ArrayRef<Expr*> getObjects() const {
+    return getArguments();
+  }
+
+  static bool classof(const EquivalenceStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == EquivalenceStmtClass;
+  }
+};
+
 /// DataStmt - this is a part of the DATA statement
 class DataStmt : public Stmt {
   unsigned NumNames;

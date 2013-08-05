@@ -311,6 +311,12 @@ public:
                        const IdentifierInfo *IDInfo,
                        Expr *StmtLabel);
 
+  // EQUIVALENCE statement
+  StmtResult ActOnEQUIVALENCE(ASTContext &C, SourceLocation Loc,
+                              SourceLocation PartLoc,
+                              ArrayRef<Expr*> ObjectList,
+                              Expr *StmtLabel);
+
   // DATA statement:
   StmtResult ActOnDATA(ASTContext &C, SourceLocation Loc,
                        ArrayRef<ExprResult> LHS,

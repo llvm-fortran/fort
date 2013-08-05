@@ -69,6 +69,7 @@ public:
   void VisitExternalStmt(const ExternalStmt *S);
   void VisitIntrinsicStmt(const IntrinsicStmt *S);
   void VisitSaveStmt(const SaveStmt *S);
+  void VisitEquivalenceStmt(const EquivalenceStmt *S);
   void VisitDataStmt(const DataStmt *S);
   void VisitBlockStmt(const BlockStmt *S);
   void VisitAssignStmt(const AssignStmt *S);
@@ -420,6 +421,14 @@ void ASTDumper::VisitSaveStmt(const SaveStmt *S) {
   dumpCompoundPartStart("save");
   if(S->getIdentifier())
     OS << S->getIdentifier()->getName();
+  dumpCompoundPartEnd();
+}
+
+void ASTDumper::VisitEquivalenceStmt(const EquivalenceStmt *S) {
+  dumpCompoundPartStart("equivalence");
+  OS << "(";
+  dumpExprList(S->getObjects());
+  OS << ") ";
   dumpCompoundPartEnd();
 }
 

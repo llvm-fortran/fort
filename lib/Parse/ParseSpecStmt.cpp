@@ -70,7 +70,64 @@ Parser::StmtResult Parser::ParseDIMENSIONStmt() {
 ///     equivalence-stmt :=
 ///         EQUIVALENCE equivalence-set-list
 Parser::StmtResult Parser::ParseEQUIVALENCEStmt() {
-  return StmtResult();
+  // Check if this is an assignment.
+  if (IsNextToken(tok::equal))
+    return StmtResult();
+
+  auto Loc = ConsumeToken();
+  SmallVector<Stmt*, 8> StmtList;
+  SmallVector<Expr*, 8> ObjectList;
+
+  bool OuterError = false;
+  while(true) {
+    auto PartLoc = Tok.getLocation();
+    if(!ExpectAndConsume(tok::l_paren)) {
+      if(!SkipUntil(tok::l_paren)) {
+        OuterError = true;
+        break;
+      }
+    }
+
+    ObjectList.clear();
+    bool InnerError = false;
+    do {
+      auto E = ParseExpectedExpression();
+      if(E.isInvalid()) {
+        InnerError = true;
+        break;
+      } else if(E.isUsable())
+        ObjectList.push_back(E.get());
+    } while(ConsumeIfPresent(tok::comma));
+
+    auto S = Actions.ActOnEQUIVALENCE(Context, Loc, PartLoc, ObjectList, nullptr);
+    if(S.isUsable())
+      StmtList.push_back(S.get());
+
+    if(InnerError) {
+      if(!SkipUntil(tok::r_paren, true, true)) {
+        OuterError = true;
+        break;
+      }
+    }
+    if(!ExpectAndConsume(tok::r_paren)) {
+      if(!SkipUntil(tok::r_paren)) {
+        OuterError = true;
+        break;
+      }
+    }
+
+    if(ConsumeIfPresent(tok::comma)) continue;
+    if(IsPresent(tok::l_paren)) {
+      ExpectAndConsume(tok::comma);
+      continue;
+    }
+    break;
+  }
+
+  if(OuterError) SkipUntilNextStatement();
+  else ExpectStatementEnd();
+
+  return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
 /// ParsePARAMETERStmt - Parse the PARAMETER statement.

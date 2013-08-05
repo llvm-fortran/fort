@@ -1497,7 +1497,7 @@ bool Parser::ParseSpecificationStmt() {
     break;
   case tok::kw_EQUIVALENCE:
     Result = ParseEQUIVALENCEStmt();
-    goto notImplemented;
+    break;
   case tok::kw_EXTERNAL:
     Result = ParseEXTERNALStmt();
     break;

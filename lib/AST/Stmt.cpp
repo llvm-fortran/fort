@@ -282,6 +282,21 @@ SaveStmt *SaveStmt::Create(ASTContext &C, SourceLocation Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// Equivalence Statement
+//===----------------------------------------------------------------------===//
+
+EquivalenceStmt::EquivalenceStmt(ASTContext &C, SourceLocation Loc,
+                                 ArrayRef<Expr*> Objects, Expr *StmtLabel)
+  : Stmt(EquivalenceStmtClass, Loc, StmtLabel), MultiArgumentExpr(C, Objects) {
+}
+
+EquivalenceStmt *EquivalenceStmt::Create(ASTContext &C, SourceLocation Loc,
+                                         ArrayRef<Expr*> Objects,
+                                         Expr *StmtLabel) {
+  return new(C) EquivalenceStmt(C, Loc, Objects, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Data Statement
 //===----------------------------------------------------------------------===//
 

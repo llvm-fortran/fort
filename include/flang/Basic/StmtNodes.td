@@ -25,6 +25,7 @@ def ParameterStmt : Stmt;
 def ExternalStmt : Stmt;
 def IntrinsicStmt : Stmt;
 def SaveStmt : Stmt;
+def EquivalenceStmt : Stmt;
 def DataStmt : Stmt;
 
 // executable statements
