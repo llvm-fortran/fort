@@ -149,6 +149,18 @@ QualType ASTContext::getComplexType(QualType ElementType) {
   return ComplexTy;
 }
 
+QualType ASTContext::getTypeWithQualifers(QualType Type, Qualifiers Quals) {
+  auto ExtQuals = Type.getExtQualsPtrOrNull();
+
+  return ExtQuals? getExtQualType(Type.getTypePtr(),
+                                  Quals,
+                                  ExtQuals->getKindSelector(),
+                                  ExtQuals->isDoublePrecisionKind(),
+                                  ExtQuals->isStarLengthSelector(),
+                                  ExtQuals->getLengthSelector()) :
+                   getExtQualType(Type.getTypePtr(), Quals);
+}
+
 /// getPointerType - Return the uniqued reference to the type for a pointer to
 /// the specified type.
 PointerType *ASTContext::getPointerType(const Type *Ty, unsigned NumDims) {

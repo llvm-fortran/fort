@@ -268,6 +268,20 @@ IntrinsicStmt *IntrinsicStmt::Create(ASTContext &C, SourceLocation Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// Save Statement
+//===----------------------------------------------------------------------===//
+
+SaveStmt::SaveStmt(SourceLocation Loc, const IdentifierInfo *Name,
+                   Expr *StmtLabel)
+  : Stmt(SaveStmtClass, Loc, StmtLabel), IDInfo(Name) {}
+
+SaveStmt *SaveStmt::Create(ASTContext &C, SourceLocation Loc,
+                           const IdentifierInfo *Name,
+                           Expr *StmtLabel) {
+  return new(C) SaveStmt(Loc, Name, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Data Statement
 //===----------------------------------------------------------------------===//
 

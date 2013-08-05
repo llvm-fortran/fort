@@ -2,8 +2,7 @@
 PROGRAM dimtest
   IMPLICIT NONE
 
-  ! FIXME: How about 'scalar' was defined here or something
-  PARAMETER(SCALAR = 1.0) ! expected-note {{previous definition is here}}
+  PARAMETER(SCALAR = 1.0) ! expected-note {{'scalar' is a parameter constant defined here}}
 
   ! FIXME: note as above?
   REAL TheArray(10, 20)
@@ -14,13 +13,13 @@ PROGRAM dimtest
   INTEGER Y, Z
   DIMENSION Y(20), Z(10)
 
-  DIMENSION ARR(10) ! expected-error {{'DIMENSION' statement can't be applied because the identifier 'arr' isn't declared in the current context}}
-  DIMENSION SCALAR(20) ! expected-error {{'DIMENSION' statement can't be applied because 'scalar' isn't a variable}}
+  DIMENSION ARR(10) ! expected-error {{use of undeclared identifier 'arr'}}
+  DIMENSION SCALAR(20) ! expected-error {{specification statement requires a local variable or an argument}}
 
   DIMENSION TheArray(10, 20) ! expected-error {{'DIMENSION' statement can't be applied to the variable 'thearray' because it is already an array}}
 
   REAL A
 
-  DIMENSION A(10), FOO(5:100) ! expected-error {{'DIMENSION' statement can't be applied because the identifier 'foo' isn't declared in the current context}}
+  DIMENSION A(10), FOO(5:100) ! expected-error {{use of undeclared identifier 'foo'}}
 
 ENDPROGRAM

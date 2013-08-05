@@ -104,7 +104,7 @@ SourceLocation Parser::getExpectedLoc() const {
 bool Parser::IsNextToken(tok::TokenKind TokKind) {
   if (NextTok.is(tok::unknown))
     TheLexer.Lex(NextTok, true);
-  return NextTok.is(TokKind);
+  return NextTok.is(TokKind) && !NextTok.isAtStartOfStatement();
 }
 
 /// Lex - Get the next token.
@@ -1521,7 +1521,7 @@ bool Parser::ParseSpecificationStmt() {
     goto notImplemented;
   case tok::kw_SAVE:
     Result = ParseSAVEStmt();
-    goto notImplemented;
+    break;
   case tok::kw_TARGET:
     Result = ParseTARGETStmt();
     goto notImplemented;
@@ -1842,15 +1842,6 @@ Parser::StmtResult Parser::ParsePOINTERStmt() {
 ///     protected-stmt :=
 ///         PROTECTED [::] entity-name-list
 Parser::StmtResult Parser::ParsePROTECTEDStmt() {
-  return StmtResult();
-}
-
-/// ParseSAVEStmt - Parse the SAVE statement.
-///
-///   [R543]:
-///     save-stmt :=
-///         SAVE [ [::] saved-entity-list ]
-Parser::StmtResult Parser::ParseSAVEStmt() {
   return StmtResult();
 }
 

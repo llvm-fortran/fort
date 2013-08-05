@@ -562,6 +562,29 @@ public:
   }
 };
 
+/// SaveStmt - this is a part of SAVE statement.
+/// if the identifier is null, this statement represents
+/// a SAVE statement without object list.
+class SaveStmt : public Stmt {
+  const IdentifierInfo *IDInfo;
+
+  SaveStmt(SourceLocation Loc, const IdentifierInfo *Name,
+           Expr *StmtLabel);
+public:
+  static SaveStmt *Create(ASTContext &C, SourceLocation Loc,
+                          const IdentifierInfo *Name,
+                          Expr *StmtLabel);
+
+  const IdentifierInfo *getIdentifier() const {
+    return IDInfo;
+  }
+
+  static bool classof(const SaveStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == SaveStmtClass;
+  }
+};
+
 /// DataStmt - this is a part of the DATA statement
 class DataStmt : public Stmt {
   unsigned NumNames;

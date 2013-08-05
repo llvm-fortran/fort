@@ -275,5 +275,41 @@ Parser::StmtResult Parser::ParseINTRINSICStmt(bool IsActuallyExternal) {
   return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
+/// ParseSAVEStmt - Parse the SAVE statement.
+///
+///   [R543]:
+///     save-stmt :=
+///         SAVE [ [::] saved-entity-list ]
+///
+/// FIXME: common blocks '/' block-name '/'
+Parser::StmtResult Parser::ParseSAVEStmt() {
+  // Check if this is an assignment.
+  if (IsNextToken(tok::equal))
+    return StmtResult();
 
+  auto Loc = ConsumeToken();
+  if(Tok.isAtStartOfStatement())
+    return Actions.ActOnSAVE(Context, Loc, StmtLabel);
+
+  ConsumeIfPresent(tok::coloncolon);
+  SmallVector<Stmt *,8> StmtList;
+  bool ListParsedOk = true;
+  do {
+    auto IDLoc = Tok.getLocation();
+    auto II = Tok.getIdentifierInfo();
+    if(!ExpectAndConsume(tok::identifier)){
+      ListParsedOk = false;
+      break;
+    }
+    auto Stmt = Actions.ActOnSAVE(Context, Loc, IDLoc, II, nullptr);
+    if(Stmt.isUsable())
+      StmtList.push_back(Stmt.get());
+  } while(ConsumeIfPresent(tok::comma));
+
+  if(ListParsedOk) ExpectStatementEnd();
+  else SkipUntilNextStatement();
+
+  return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
+
+} // end namespace flang

@@ -24,6 +24,7 @@ def AsynchronousStmt : Stmt;
 def ParameterStmt : Stmt;
 def ExternalStmt : Stmt;
 def IntrinsicStmt : Stmt;
+def SaveStmt : Stmt;
 def DataStmt : Stmt;
 
 // executable statements

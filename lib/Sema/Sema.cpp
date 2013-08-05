@@ -37,6 +37,11 @@ Sema::Sema(ASTContext &ctxt, DiagnosticsEngine &D)
 
 Sema::~Sema() {}
 
+// FIXME
+SourceRange Sema::getIdentifierRange(SourceLocation Loc, const IdentifierInfo *IDInfo) {
+  return SourceRange(Loc, SourceLocation::getFromPointer(Loc.getPointer()+IDInfo->getLength()));
+}
+
 // getContainingDC - Determines the context to return to after temporarily
 // entering a context.  This depends in an unnecessarily complicated way on the
 // exact ordering of callbacks from the parser.
@@ -660,15 +665,6 @@ VarDecl *Sema::ExpectVarRef(SourceLocation IDLoc,
 
 StmtResult Sema::ActOnCompoundStmt(ASTContext &C, SourceLocation Loc,
                                    ArrayRef<Stmt*> Body, Expr *StmtLabel) {
-  if(Body.size() == 1) {
-    auto Result = Body[0];
-    if(StmtLabel) {
-      DeclareStatementLabel(StmtLabel, Result);
-      Result->setLocation(Loc);
-      Result->setStmtLabel(StmtLabel);
-    }
-    return Result;
-  }
   auto Result = CompoundStmt::Create(C, Loc, Body, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
@@ -881,6 +877,21 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
   CurContext->addDecl(Decl);
 
   auto Result = IntrinsicStmt::Create(C, IDLoc, IDInfo, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnSAVE(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
+  auto Result = SaveStmt::Create(C, Loc, nullptr, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnSAVE(ASTContext &C, SourceLocation Loc,
+                           SourceLocation IDLoc,
+                           const IdentifierInfo *IDInfo,
+                           Expr *StmtLabel) {
+  auto Result = SaveStmt::Create(C, IDLoc, IDInfo, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }

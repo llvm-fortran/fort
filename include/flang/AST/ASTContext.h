@@ -67,12 +67,13 @@ class ASTContext : public llvm::RefCountedBase<ASTContext> {
 public:
   /// getExtQualType - Return a type with extended qualifiers.
   QualType getExtQualType(const Type *Base, Qualifiers Quals,
-                          unsigned KindSel, bool IsDoublePrecisionKind,
-                          bool IsStarLength,
-                          unsigned LenSel) const;
+                          unsigned KindSel = BuiltinType::NoKind, bool IsDoublePrecisionKind = false,
+                          bool IsStarLength = false,
+                          unsigned LenSel = 0) const;
   QualType getQualTypeOtherKind(QualType Type, QualType KindType);
   QualType getComplexTypeElementType(QualType Type);
   QualType getComplexType(QualType ElementType);
+  QualType getTypeWithQualifers(QualType Type, Qualifiers Quals);
 
   const llvm::fltSemantics& getFPTypeSemantics(QualType Type);
 

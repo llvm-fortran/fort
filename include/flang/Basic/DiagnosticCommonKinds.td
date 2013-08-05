@@ -22,6 +22,7 @@ def note_declared_at : Note<"declared here">;
 def note_stmt_label_declared_at : Note<"statement label was declared here">;
 def note_previous_definition : Note<"previous definition is here">;
 def note_previous_declaration : Note<"previous declaration is here">;
+def note_previous_definition_kind : Note<"%0 is %select{an argument|a parameter constant}1 defined here">;
 def note_previous_implicit_declaration : Note<
   "previous implicit declaration is here">;
 def note_previous_use : Note<"previous use is here">;

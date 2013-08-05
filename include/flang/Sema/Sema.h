@@ -119,6 +119,8 @@ public:
     return CurExecutableStmts;
   }
 
+  SourceRange getIdentifierRange(SourceLocation Loc, const IdentifierInfo *IDInfo);
+
   inline ExprResult ExprError() const { return ExprResult(true); }
   inline StmtResult StmtError() const { return StmtResult(true); }
 
@@ -171,11 +173,12 @@ public:
 
   void ActOnFunctionSpecificationPart();
 
-  VarDecl *GetVariableForSpecification(const IdentifierInfo *IDInfo,
-                                       SourceLocation ErrorLoc,
-                                       SourceRange ErrorRange,
-                                       const char *DiagStmtType);
-  bool ApplySpecification(const DimensionStmt *Stmt);
+  VarDecl *GetVariableForSpecification(SourceLocation StmtLoc, const IdentifierInfo *IDInfo,
+                                       SourceLocation IDLoc,
+                                       bool CanBeArgument = true);
+  bool ApplySpecification(SourceLocation StmtLoc, const DimensionStmt *Stmt);
+  bool ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S);
+  bool ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S, VarDecl *VD);
 
   QualType ActOnTypeName(ASTContext &C, DeclSpec &DS);
   VarDecl *ActOnKindSelector(ASTContext &C, SourceLocation IDLoc,
@@ -299,6 +302,14 @@ public:
                             SourceLocation IDLoc,
                             const IdentifierInfo *IDInfo,
                             Expr *StmtLabel);
+
+  // SAVE statement
+  StmtResult ActOnSAVE(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
+
+  StmtResult ActOnSAVE(ASTContext &C, SourceLocation Loc,
+                       SourceLocation IDLoc,
+                       const IdentifierInfo *IDInfo,
+                       Expr *StmtLabel);
 
   // DATA statement:
   StmtResult ActOnDATA(ASTContext &C, SourceLocation Loc,

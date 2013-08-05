@@ -208,9 +208,15 @@ def err_spec_not_applicable_undeclared_ident : Error<
 def err_spec_not_applicable_not_var : Error<
   "'%0' statement can't be applied because %1 "
   "isn't a variable">;
+def err_spec_requires_local_var : Error<
+  "specification statement requires a local variable">;
+def err_spec_requires_local_var_arg : Error<
+  "specification statement requires a local variable or an argument">;
 def err_spec_dimension_already_array : Error<
   "'DIMENSION' statement can't be applied to the variable %0 "
    "because it is already an array">;
+ def err_spec_qual_reapplication : Error<
+   "reapplication of '%0' to the variable %1">;
 
 def err_format_without_stmt_label : Error<
   "'FORMAT' statement is missing a statement label">;

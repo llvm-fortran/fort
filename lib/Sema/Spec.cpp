@@ -58,41 +58,52 @@ void Sema::ActOnSpecificationPart() {
       I != End; ++I) {
     ArrayRef<Stmt*> StmtList;
 
-    if (const CompoundStmt *BundledStmt = dyn_cast<CompoundStmt>(*I))
+    auto StmtLoc = (*I)->getLocation();
+    if (const CompoundStmt *BundledStmt = dyn_cast<CompoundStmt>(*I)) {
       StmtList = BundledStmt->getBody();
+      StmtLoc = BundledStmt->getLocation();
+    }
     else StmtList = ArrayRef<Stmt*>(*I);
     for(auto S : StmtList) {
       if (const DimensionStmt *DimStmt = dyn_cast<DimensionStmt>(S)){
-        ApplySpecification(DimStmt);
+        ApplySpecification(StmtLoc, DimStmt);
+      }
+      else if(const SaveStmt *SavStmt = dyn_cast<SaveStmt>(S)) {
+        ApplySpecification(StmtLoc, SavStmt);
       }
     }
   }
 }
 
-VarDecl *Sema::GetVariableForSpecification(const IdentifierInfo *IDInfo,
-                                           SourceLocation ErrorLoc,
-                                           SourceRange ErrorRange,
-                                           const char *DiagStmtType) {
+VarDecl *Sema::GetVariableForSpecification(SourceLocation StmtLoc,
+                                           const IdentifierInfo *IDInfo,
+                                           SourceLocation IDLoc,
+                                           bool CanBeArgument) {
+  auto IdRange = getIdentifierRange(IDLoc, IDInfo);
   auto Declaration = LookupIdentifier(IDInfo);
   if(Declaration) {
     auto VD = dyn_cast<VarDecl>(Declaration);
-    if(VD && !VD->isParameter()) return VD;
-    Diags.Report(ErrorLoc, diag::err_spec_not_applicable_not_var)
-     << DiagStmtType << IDInfo << ErrorRange;
-    Diags.Report(Declaration->getLocation(), diag::note_previous_definition);
+    if(VD && !(VD->isParameter() || (!CanBeArgument && VD->isArgument())))
+      return VD;
+    Diags.Report(StmtLoc, CanBeArgument? diag::err_spec_requires_local_var_arg : diag::err_spec_requires_local_var)
+      << IDInfo << IdRange;
+    if(VD) {
+      Diags.Report(Declaration->getLocation(), diag::note_previous_definition_kind)
+          << IDInfo << (VD->isArgument()? 0 : 1) << getIdentifierRange(Declaration->getLocation(), VD->getIdentifier());
+    } else
+      Diags.Report(Declaration->getLocation(), diag::note_previous_definition);
   } else {
-    Diags.Report(ErrorLoc, diag::err_spec_not_applicable_undeclared_ident)
-     << DiagStmtType << IDInfo << ErrorRange;
+    Diags.Report(IDLoc, diag::err_undeclared_var_use)
+     << IDInfo << IdRange;
   }
 
   return nullptr;
 }
 
-bool Sema::ApplySpecification(const DimensionStmt *Stmt) {
-  auto VD = GetVariableForSpecification(Stmt->getVariableName(),
-                                        Stmt->getLocation(),
-                                        Stmt->getSourceRange(),
-                                        "DIMENSION");
+bool Sema::ApplySpecification(SourceLocation StmtLoc, const DimensionStmt *Stmt) {
+  auto VD = GetVariableForSpecification(StmtLoc,
+                                        Stmt->getVariableName(),
+                                        Stmt->getLocation());
   if(!VD) return true;
   if(isa<ArrayType>(VD->getType())) {
     Diags.Report(Stmt->getLocation(),
@@ -108,6 +119,47 @@ bool Sema::ApplySpecification(const DimensionStmt *Stmt) {
       VD->MarkUsedAsVariable(Stmt->getLocation());
     }
   }
+  return false;
+}
+
+bool Sema::ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S) {
+  if(!S->getIdentifier()) {
+    for(DeclContext::decl_iterator I = CurContext->decls_begin(),
+        End = CurContext->decls_end(); I != End; ++I) {
+      auto VD = dyn_cast<VarDecl>(*I);
+      if(VD && !(VD->isParameter() || VD->isArgument())) {
+        ApplySpecification(StmtLoc, S, VD);
+      }
+    }
+    return false;
+  }
+  auto VD = GetVariableForSpecification(StmtLoc,
+                                        S->getIdentifier(),
+                                        S->getLocation(),
+                                        false);
+  if(!VD) return true;
+  return ApplySpecification(StmtLoc, S, VD);
+}
+
+bool Sema::ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S, VarDecl *VD) {
+  auto Type = VD->getType();
+  auto Ext = Type.getExtQualsPtrOrNull();
+  Qualifiers Quals;
+  if(Ext){
+    Quals = Ext->getQualifiers();
+    if(Quals.hasAttributeSpec(Qualifiers::AS_save)) {
+      if(S->getIdentifier()) {
+        Diags.Report(StmtLoc, diag::err_spec_qual_reapplication)
+          << "save" << VD->getIdentifier() << getIdentifierRange(S->getLocation(), S->getIdentifier());
+      } else {
+        Diags.Report(StmtLoc, diag::err_spec_qual_reapplication)
+          << "save" << VD->getIdentifier();
+      }
+      return true;
+    }
+  }
+  Quals.addAttributeSpecs(Qualifiers::AS_save);
+  VD->setType(Context.getQualifiedType(Type, Quals));
   return false;
 }
 
