@@ -532,6 +532,46 @@ ExitStmt *ExitStmt::Create(ASTContext &C, SourceLocation Loc, Stmt *Loop,
 }
 
 //===----------------------------------------------------------------------===//
+// Select Case Statement
+//===----------------------------------------------------------------------===//
+
+SelectCaseStmt::SelectCaseStmt(SourceLocation Loc, Expr *Operand,
+                               Expr *StmtLabel, ConstructName Name)
+  : NamedConstructStmt(SelectCaseStmtClass, Loc, StmtLabel, Name),
+    E(Operand), FirstCase(nullptr) {}
+
+SelectCaseStmt *SelectCaseStmt::Create(ASTContext &C, SourceLocation Loc,
+                                       Expr *Operand, Expr *StmtLabel,
+                                       ConstructName Name) {
+  return new(C) SelectCaseStmt(Loc, Operand, StmtLabel, Name);
+}
+
+//===----------------------------------------------------------------------===//
+// Case Statement
+//===----------------------------------------------------------------------===//
+
+CaseStmt::CaseStmt(SourceLocation Loc, Expr *StmtLabel, ConstructName Name)
+  : SelectionCase(CaseStmtClass, Loc, StmtLabel, Name) {}
+
+CaseStmt *CaseStmt::Create(ASTContext &C, SourceLocation Loc, Expr *StmtLabel,
+                           ConstructName Name) {
+  return new(C) CaseStmt(Loc, StmtLabel, Name);
+}
+
+//===----------------------------------------------------------------------===//
+// Default Case Statement
+//===----------------------------------------------------------------------===//
+
+DefaultCaseStmt::DefaultCaseStmt(SourceLocation Loc, Expr *StmtLabel,
+                                 ConstructName Name)
+  : SelectionCase(DefaultCaseStmtClass, Loc, StmtLabel, Name) {}
+
+DefaultCaseStmt *DefaultCaseStmt::Create(ASTContext &C, SourceLocation Loc,
+                                         Expr *StmtLabel, ConstructName Name) {
+  return new(C) DefaultCaseStmt(Loc, StmtLabel, Name);
+}
+
+//===----------------------------------------------------------------------===//
 // Continue Statement
 //===----------------------------------------------------------------------===//
 

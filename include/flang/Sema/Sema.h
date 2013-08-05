@@ -398,6 +398,16 @@ public:
   StmtResult ActOnExitStmt(ASTContext &C, SourceLocation Loc,
                            ConstructName LoopName, Expr *StmtLabel);
 
+  StmtResult ActOnSelectCaseStmt(ASTContext &C, SourceLocation Loc,
+                                 ExprResult Operand,
+                                 ConstructName Name, Expr *StmtLabel);
+
+  StmtResult ActOnCaseDefaultStmt(ASTContext &C, SourceLocation Loc,
+                                  ConstructName Name, Expr *StmtLabel);
+
+  StmtResult ActOnEndSelectStmt(ASTContext &C, SourceLocation Loc,
+                                ConstructName Name, Expr *StmtLabel);
+
   StmtResult ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
   StmtResult ActOnStopStmt(ASTContext &C, SourceLocation Loc, ExprResult StopCode, Expr *StmtLabel);

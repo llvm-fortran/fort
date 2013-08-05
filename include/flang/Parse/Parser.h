@@ -432,6 +432,10 @@ private:
   StmtResult ParseCycleStmt();
   StmtResult ParseExitStmt();
 
+  StmtResult ParseSelectCaseStmt();
+  StmtResult ParseCaseStmt();
+  StmtResult ParseEndSelectStmt();
+
   StmtResult ParseContinueStmt();
   StmtResult ParseStopStmt();
   StmtResult ParseReturnStmt();

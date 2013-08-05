@@ -116,6 +116,12 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParseEndDoStmt();
   case tok::kw_CYCLE:
     return ParseCycleStmt();
+  case tok::kw_SELECTCASE:
+    return ParseSelectCaseStmt();
+  case tok::kw_CASE:
+    return ParseCaseStmt();
+  case tok::kw_ENDSELECT:
+    return ParseEndSelectStmt();
   case tok::kw_EXIT:
     return ParseExitStmt();
   case tok::kw_CONTINUE:
@@ -420,6 +426,50 @@ Parser::StmtResult Parser::ParseExitStmt() {
   auto Loc = ConsumeToken();
   ParseTrailingConstructName();
   return Actions.ActOnExitStmt(Context, Loc, StmtConstructName, StmtLabel);
+}
+
+Parser::StmtResult Parser::ParseSelectCaseStmt() {
+  auto Loc = ConsumeToken();
+  ExprResult Operand;
+  if(ExpectAndConsume(tok::l_paren)) {
+    Operand = ParseExpectedFollowupExpression("(");
+    if(Operand.isUsable()) {
+      if(!ExpectAndConsume(tok::r_paren))
+        SkipUntilNextStatement();
+    } else SkipUntilNextStatement();
+  } else SkipUntilNextStatement();
+  return Actions.ActOnSelectCaseStmt(Context, Loc, Operand, StmtConstructName, StmtLabel);
+}
+
+Parser::StmtResult Parser::ParseCaseStmt() {
+  auto Loc = ConsumeToken();
+  if(ConsumeIfPresent(tok::kw_DEFAULT)) {
+    ParseTrailingConstructName();
+    return Actions.ActOnCaseDefaultStmt(Context, Loc, StmtConstructName, StmtLabel);
+  }
+
+  ExpectAndConsume(tok::l_paren);
+  do {
+    if(ConsumeIfPresent(tok::colon)) {
+      auto E = ParseExpectedFollowupExpression(":");
+    } else {
+      auto E = ParseExpectedExpression();
+      if(ConsumeIfPresent(tok::colon)) {
+        if(!(IsPresent(tok::comma) || IsPresent(tok::r_paren))) {
+          auto E2 = ParseExpectedFollowupExpression(":");
+        }
+      }
+    }
+  } while(ConsumeIfPresent(tok::comma));
+  ExpectAndConsume(tok::r_paren);
+
+  return StmtError();
+}
+
+Parser::StmtResult Parser::ParseEndSelectStmt() {
+  auto Loc = ConsumeToken();
+  ParseTrailingConstructName();
+  return Actions.ActOnEndSelectStmt(Context, Loc, StmtConstructName, StmtLabel);
 }
 
 /// ParseContinueStmt

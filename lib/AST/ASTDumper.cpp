@@ -81,6 +81,9 @@ public:
   void VisitDoWhileStmt(const DoWhileStmt *S);
   void VisitCycleStmt(const CycleStmt *S);
   void VisitExitStmt(const ExitStmt *S);
+  void VisitSelectCaseStmt(const SelectCaseStmt *S);
+  void VisitCaseStmt(const CaseStmt *S);
+  void VisitDefaultCaseStmt(const DefaultCaseStmt *S);
   void VisitContinueStmt(const ContinueStmt *S);
   void VisitStopStmt(const StopStmt *S);
   void VisitReturnStmt(const ReturnStmt *S);
@@ -343,6 +346,7 @@ void ASTDumper::VisitConstructPartStmt(const ConstructPartStmt *S) {
   case ConstructPartStmt::ElseStmtClass: OS << "else"; break;
   case ConstructPartStmt::EndIfStmtClass: OS << "end if"; break;
   case ConstructPartStmt::EndDoStmtClass: OS << "end do"; break;
+  case ConstructPartStmt::EndSelectStmtClass: OS << "end select"; break;
   default: break;
   }
   if(S->getConstructName()) OS << ' ' << S->getConstructName()->getName();
@@ -544,6 +548,21 @@ void ASTDumper::VisitExitStmt(const ExitStmt *S) {
   if(S->getLoopName().isUsable())
     OS << ' ' << S->getLoopName().IDInfo->getName();
   OS << "\n";
+}
+
+void ASTDumper::VisitSelectCaseStmt(const SelectCaseStmt *S) {
+  OS << "select case(";
+  dumpExprOrNull(S->getOperand());
+  OS << ")\n";
+}
+
+void ASTDumper::VisitCaseStmt(const CaseStmt *S) {
+  OS << "case (";
+  OS << ")\n";
+}
+
+void ASTDumper::VisitDefaultCaseStmt(const DefaultCaseStmt *S) {
+  OS << "case default\n";
 }
 
 void ASTDumper::VisitContinueStmt(const ContinueStmt *S) {

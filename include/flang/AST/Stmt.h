@@ -159,7 +159,8 @@ public:
   enum ConstructStmtClass {
     EndDoStmtClass,
     ElseStmtClass,
-    EndIfStmtClass
+    EndIfStmtClass,
+    EndSelectStmtClass
   };
   ConstructStmtClass ConstructId;
   const IdentifierInfo* ConstructName;
@@ -932,6 +933,85 @@ public:
   static bool classof(const ExitStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ExitStmtClass;
+  }
+};
+
+class SelectionCase;
+
+/// SelectCaseStmt
+class SelectCaseStmt : public NamedConstructStmt {
+  SelectionCase *FirstCase;
+  Expr *E;
+
+  SelectCaseStmt(SourceLocation Loc, Expr *Operand,
+                 Expr *StmtLabel, ConstructName Name);
+public:
+  static SelectCaseStmt *Create(ASTContext &C, SourceLocation Loc,
+                                Expr *Operand, Expr *StmtLabel,
+                                ConstructName Name);
+
+  Expr *getOperand() const {
+    return E;
+  }
+  SelectionCase *getFirstCase() const {
+    return FirstCase;
+  }
+
+  static bool classof(const SelectCaseStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == SelectCaseStmtClass;
+  }
+};
+
+class SelectionCase : public Stmt {
+  ConstructName Name;
+  SelectionCase *Next;
+
+protected:
+  SelectionCase(StmtClass StmtKind, SourceLocation Loc,
+                Expr *StmtLabel, ConstructName name)
+    : Stmt(StmtKind, Loc, StmtLabel), Name(name),
+      Next(nullptr) {}
+public:
+
+  ConstructName getName() const {
+    return Name;
+  }
+  SelectionCase *getNextCase() const {
+    return Next;
+  }
+
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() >= firstSelectionCaseConstant &&
+           S->getStmtClass() <= lastSelectionCaseConstant;
+  }
+};
+
+/// CaseStmt FIXME
+class CaseStmt : public SelectionCase {
+  CaseStmt(SourceLocation Loc, Expr *StmtLabel,
+           ConstructName Name);
+public:
+  static CaseStmt *Create(ASTContext &C, SourceLocation Loc,
+                          Expr *StmtLabel, ConstructName Name);
+
+  static bool classof(const CaseStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == CaseStmtClass;
+  }
+};
+
+/// DefaultCaseStmt
+class DefaultCaseStmt : public SelectionCase {
+  DefaultCaseStmt(SourceLocation Loc, Expr *StmtLabel,
+                  ConstructName Name);
+public:
+  static DefaultCaseStmt *Create(ASTContext &C, SourceLocation Loc,
+                                 Expr *StmtLabel, ConstructName Name);
+
+  static bool classof(const DefaultCaseStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == DefaultCaseStmtClass;
   }
 };
 

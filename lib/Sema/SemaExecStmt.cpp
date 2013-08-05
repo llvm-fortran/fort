@@ -238,6 +238,12 @@ StmtResult Sema::ActOnDoWhileStmt(ASTContext &C, SourceLocation Loc, ExprResult 
   return Result;
 }
 
+StmtResult Sema::ActOnSelectCaseStmt(ASTContext &C, SourceLocation Loc,
+                                     ExprResult Operand,
+                                     ConstructName Name, Expr *StmtLabel) {
+  return StmtError();
+}
+
 // FIXME: else if source range
 // FIXME: improve invalid_construct_name ?
 void Sema::CheckConstructNameMatch(Stmt *Part, ConstructName Name, Stmt *S) {
@@ -526,6 +532,15 @@ StmtResult Sema::ActOnExitStmt(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
+StmtResult Sema::ActOnCaseDefaultStmt(ASTContext &C, SourceLocation Loc,
+                                      ConstructName Name, Expr *StmtLabel) {
+  return StmtError();
+}
+
+StmtResult Sema::ActOnEndSelectStmt(ASTContext &C, SourceLocation Loc,
+                                    ConstructName Name, Expr *StmtLabel) {
+  return StmtError();
+}
 
 StmtResult Sema::ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
   auto Result = ContinueStmt::Create(C, Loc, StmtLabel);
