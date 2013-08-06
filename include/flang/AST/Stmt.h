@@ -936,11 +936,13 @@ public:
   }
 };
 
-class SelectionCase;
+class CaseStmt;
+class DefaultCaseStmt;
 
 /// SelectCaseStmt
 class SelectCaseStmt : public NamedConstructStmt {
-  SelectionCase *FirstCase;
+  CaseStmt *FirstCase;
+  DefaultCaseStmt *DefaultCase;
   Expr *E;
 
   SelectCaseStmt(SourceLocation Loc, Expr *Operand,
@@ -953,8 +955,14 @@ public:
   Expr *getOperand() const {
     return E;
   }
-  SelectionCase *getFirstCase() const {
+  CaseStmt *getFirstCase() const {
     return FirstCase;
+  }
+  DefaultCaseStmt *getDefaultCase() const {
+    return DefaultCase;
+  }
+  bool hasDefaultCase() const {
+    return DefaultCase != nullptr;
   }
 
   static bool classof(const SelectCaseStmt*) { return true; }
@@ -965,20 +973,14 @@ public:
 
 class SelectionCase : public Stmt {
   ConstructName Name;
-  SelectionCase *Next;
-
 protected:
   SelectionCase(StmtClass StmtKind, SourceLocation Loc,
                 Expr *StmtLabel, ConstructName name)
-    : Stmt(StmtKind, Loc, StmtLabel), Name(name),
-      Next(nullptr) {}
+    : Stmt(StmtKind, Loc, StmtLabel), Name(name) {}
 public:
 
   ConstructName getName() const {
     return Name;
-  }
-  SelectionCase *getNextCase() const {
-    return Next;
   }
 
   static bool classof(const Stmt *S) {
@@ -987,13 +989,25 @@ public:
   }
 };
 
-/// CaseStmt FIXME
-class CaseStmt : public SelectionCase {
-  CaseStmt(SourceLocation Loc, Expr *StmtLabel,
-           ConstructName Name);
+/// CaseStmt
+class CaseStmt : public SelectionCase, public MultiArgumentExpr {
+  CaseStmt *Next;
+
+  CaseStmt(ASTContext &C, SourceLocation Loc,
+           ArrayRef<Expr*> Values,
+           Expr *StmtLabel, ConstructName Name);
 public:
   static CaseStmt *Create(ASTContext &C, SourceLocation Loc,
+                          ArrayRef<Expr*> Values,
                           Expr *StmtLabel, ConstructName Name);
+
+  CaseStmt *getNextCase() const {
+    return Next;
+  }
+  void setNextCase(CaseStmt *S);
+  ArrayRef<Expr*> getValues() const {
+    return getArguments();
+  }
 
   static bool classof(const CaseStmt*) { return true; }
   static bool classof(const Stmt *S) {

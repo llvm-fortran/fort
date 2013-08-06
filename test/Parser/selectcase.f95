@@ -26,4 +26,8 @@ PROGRAM selecttest
     I = 0
   END SELECT
 
+  SELECT CASE(I ! expected-error {{expected ')'}}
+  CASE () ! expected-error {{expected an expression}}
+  END SELECT
+
 END

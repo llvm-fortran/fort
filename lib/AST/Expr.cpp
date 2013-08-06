@@ -387,6 +387,25 @@ SourceLocation ArrayConstructorExpr::getLocEnd() const {
   return getItems().back()->getLocEnd();
 }
 
+RangeExpr::RangeExpr(SourceLocation Loc, Expr *First, Expr *Second)
+  : Expr(RangeExprClass, QualType(), Loc), E1(First), E2(Second) {
+}
+
+RangeExpr *RangeExpr::Create(ASTContext &C, SourceLocation Loc,
+                             Expr *First, Expr *Second) {
+  return new(C) RangeExpr(Loc, First, Second);
+}
+
+SourceLocation RangeExpr::getLocStart() const {
+  if(hasFirstExpr()) return E1->getLocStart();
+  return getLocation();
+}
+
+SourceLocation RangeExpr::getLocEnd() const {
+  if(hasSecondExpr()) return E2->getLocEnd();
+  return getLocation();
+}
+
 //===----------------------------------------------------------------------===//
 // Array Specification
 //===----------------------------------------------------------------------===//

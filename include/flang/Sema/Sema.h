@@ -405,6 +405,10 @@ public:
   StmtResult ActOnCaseDefaultStmt(ASTContext &C, SourceLocation Loc,
                                   ConstructName Name, Expr *StmtLabel);
 
+  StmtResult ActOnCaseStmt(ASTContext &C, SourceLocation Loc,
+                           ArrayRef<Expr*> Values,
+                           ConstructName Name, Expr *StmtLabel);
+
   StmtResult ActOnEndSelectStmt(ASTContext &C, SourceLocation Loc,
                                 ConstructName Name, Expr *StmtLabel);
 

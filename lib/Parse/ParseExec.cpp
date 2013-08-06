@@ -430,6 +430,7 @@ Parser::StmtResult Parser::ParseExitStmt() {
 
 Parser::StmtResult Parser::ParseSelectCaseStmt() {
   auto Loc = ConsumeToken();
+
   ExprResult Operand;
   if(ExpectAndConsume(tok::l_paren)) {
     Operand = ParseExpectedFollowupExpression("(");
@@ -438,6 +439,7 @@ Parser::StmtResult Parser::ParseSelectCaseStmt() {
         SkipUntilNextStatement();
     } else SkipUntilNextStatement();
   } else SkipUntilNextStatement();
+
   return Actions.ActOnSelectCaseStmt(Context, Loc, Operand, StmtConstructName, StmtLabel);
 }
 
@@ -448,22 +450,48 @@ Parser::StmtResult Parser::ParseCaseStmt() {
     return Actions.ActOnCaseDefaultStmt(Context, Loc, StmtConstructName, StmtLabel);
   }
 
+  SmallVector<Expr*, 8> Values;
+
   ExpectAndConsume(tok::l_paren);
   do {
+    auto ColonLoc = Tok.getLocation();
     if(ConsumeIfPresent(tok::colon)) {
       auto E = ParseExpectedFollowupExpression(":");
+      if(E.isInvalid()) goto error;
+      if(E.isUsable())
+        Values.push_back(RangeExpr::Create(Context, ColonLoc, nullptr, E.get()));
     } else {
       auto E = ParseExpectedExpression();
+      if(E.isInvalid()) goto error;
+      ColonLoc = Tok.getLocation();
       if(ConsumeIfPresent(tok::colon)) {
         if(!(IsPresent(tok::comma) || IsPresent(tok::r_paren))) {
           auto E2 = ParseExpectedFollowupExpression(":");
+          if(E2.isInvalid()) goto error;
+          if(E.isUsable() || E2.isUsable())
+            Values.push_back(RangeExpr::Create(Context, ColonLoc, E.get(), E2.get()));
+        } else {
+          if(E.isUsable())
+            Values.push_back(RangeExpr::Create(Context, ColonLoc, E.get(), nullptr));
         }
+      } else {
+        if(E.isUsable())
+          Values.push_back(E.get());
       }
     }
   } while(ConsumeIfPresent(tok::comma));
-  ExpectAndConsume(tok::r_paren);
 
-  return StmtError();
+  if(ExpectAndConsume(tok::r_paren)) {
+    ParseTrailingConstructName();
+  } else SkipUntilNextStatement();
+
+  return Actions.ActOnCaseStmt(Context, Loc, Values, StmtConstructName, StmtLabel);
+
+error:
+  if(SkipUntil(tok::r_paren)) {
+    ParseTrailingConstructName();
+  } else SkipUntilNextStatement();
+  return Actions.ActOnCaseStmt(Context, Loc, Values, StmtConstructName, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseEndSelectStmt() {

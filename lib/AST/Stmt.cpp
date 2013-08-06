@@ -538,7 +538,7 @@ ExitStmt *ExitStmt::Create(ASTContext &C, SourceLocation Loc, Stmt *Loop,
 SelectCaseStmt::SelectCaseStmt(SourceLocation Loc, Expr *Operand,
                                Expr *StmtLabel, ConstructName Name)
   : NamedConstructStmt(SelectCaseStmtClass, Loc, StmtLabel, Name),
-    E(Operand), FirstCase(nullptr) {}
+    E(Operand), FirstCase(nullptr), DefaultCase(nullptr) {}
 
 SelectCaseStmt *SelectCaseStmt::Create(ASTContext &C, SourceLocation Loc,
                                        Expr *Operand, Expr *StmtLabel,
@@ -550,12 +550,20 @@ SelectCaseStmt *SelectCaseStmt::Create(ASTContext &C, SourceLocation Loc,
 // Case Statement
 //===----------------------------------------------------------------------===//
 
-CaseStmt::CaseStmt(SourceLocation Loc, Expr *StmtLabel, ConstructName Name)
-  : SelectionCase(CaseStmtClass, Loc, StmtLabel, Name) {}
+CaseStmt::CaseStmt(ASTContext &C, SourceLocation Loc,
+                   ArrayRef<Expr *> Values, Expr *StmtLabel, ConstructName Name)
+  : SelectionCase(CaseStmtClass, Loc, StmtLabel, Name),
+    MultiArgumentExpr(C, Values), Next(nullptr) {}
 
-CaseStmt *CaseStmt::Create(ASTContext &C, SourceLocation Loc, Expr *StmtLabel,
+CaseStmt *CaseStmt::Create(ASTContext &C, SourceLocation Loc,
+                           ArrayRef<Expr *> Values, Expr *StmtLabel,
                            ConstructName Name) {
-  return new(C) CaseStmt(Loc, StmtLabel, Name);
+  return new(C) CaseStmt(C, Loc, Values, StmtLabel, Name);
+}
+
+void CaseStmt::setNextCase(CaseStmt *S) {
+  assert(!Next);
+  Next = S;
 }
 
 //===----------------------------------------------------------------------===//

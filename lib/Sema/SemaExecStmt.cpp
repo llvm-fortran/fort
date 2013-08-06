@@ -534,6 +534,14 @@ StmtResult Sema::ActOnExitStmt(ASTContext &C, SourceLocation Loc,
 
 StmtResult Sema::ActOnCaseDefaultStmt(ASTContext &C, SourceLocation Loc,
                                       ConstructName Name, Expr *StmtLabel) {
+  auto Result = DefaultCaseStmt::Create(C, Loc, StmtLabel, Name);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnCaseStmt(ASTContext &C, SourceLocation Loc,
+                               ArrayRef<Expr*> Values,
+                               ConstructName Name, Expr *StmtLabel) {
   return StmtError();
 }
 

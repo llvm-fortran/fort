@@ -121,6 +121,7 @@ public:
   void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
   void VisitImpliedDoExpr(const ImpliedDoExpr *E);
   void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
+  void VisitRangeExpr(const RangeExpr *E);
 
   // array specification
   void dumpArraySpec(const ArraySpec *S);
@@ -558,6 +559,7 @@ void ASTDumper::VisitSelectCaseStmt(const SelectCaseStmt *S) {
 
 void ASTDumper::VisitCaseStmt(const CaseStmt *S) {
   OS << "case (";
+  dumpExprList(S->getValues());
   OS << ")\n";
 }
 
@@ -796,6 +798,12 @@ void ASTDumper::VisitArrayConstructorExpr(const ArrayConstructorExpr *E) {
   OS << "(/";
   dumpExprList(E->getItems());
   OS << " /)";
+}
+
+void ASTDumper::VisitRangeExpr(const RangeExpr *E) {
+  dumpExprOrNull(E->getFirstExpr());
+  OS << ":";
+  dumpExprOrNull(E->getSecondExpr());
 }
 
 // array specification

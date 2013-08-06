@@ -39,3 +39,4 @@ def IntrinsicCallExpr : Expr;
 //Other
 def ImpliedDoExpr : Expr;
 def ArrayConstructorExpr : Expr; // (/ /)
+def RangeExpr : Expr; // a : b

@@ -846,6 +846,37 @@ public:
   static bool classof(const ArrayConstructorExpr *) { return true; }
 };
 
+/// RangeExpr - [E1] : [E2]
+class RangeExpr : public Expr {
+  Expr *E1, *E2;
+
+  RangeExpr(SourceLocation Loc, Expr *First, Expr *Second);
+public:
+  static RangeExpr *Create(ASTContext &C, SourceLocation Loc,
+                           Expr *First, Expr *Second);
+
+  Expr *getFirstExpr() const {
+    return E1;
+  }
+  Expr *getSecondExpr() const {
+    return E2;
+  }
+  bool hasFirstExpr() const {
+    return E1 != nullptr;
+  }
+  bool hasSecondExpr() const {
+    return E2 != nullptr;
+  }
+
+  SourceLocation getLocStart() const;
+  SourceLocation getLocEnd() const;
+
+  static bool classof(const Expr *E) {
+    return E->getExprClass() == RangeExprClass;
+  }
+  static bool classof(const RangeExpr *) { return true; }
+};
+
 } // end flang namespace
 
 #endif
