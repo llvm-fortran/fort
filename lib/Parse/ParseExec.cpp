@@ -24,6 +24,21 @@
 
 namespace flang {
 
+void Parser::CheckStmtOrder(SourceLocation Loc, StmtResult SR) {
+  auto S = SR.get();
+  if(PrevStmtWasSelectCase) {
+    PrevStmtWasSelectCase = false;
+    if(SR.isUsable() && (isa<SelectionCase>(S) ||
+       (isa<ConstructPartStmt>(S) &&
+        cast<ConstructPartStmt>(S)->getConstructStmtClass() == ConstructPartStmt::EndSelectStmtClass)))
+      return;
+    Diag.Report(SR.isUsable()? S->getLocation() : Loc,
+                diag::err_expected_case_or_end_select);
+  }
+  if(SR.isUsable() && isa<SelectCaseStmt>(S))
+    PrevStmtWasSelectCase = true;
+}
+
 /// ParseExecutableConstruct - Parse the executable construct.
 ///
 ///   [R213]:
@@ -42,7 +57,9 @@ StmtResult Parser::ParseExecutableConstruct() {
   ParseStatementLabel();
   ParseConstructNameLabel();
 
+  auto Loc = Tok.getLocation();
   StmtResult SR = ParseActionStmt();
+  CheckStmtOrder(Loc, SR);
   if (SR.isInvalid()) return StmtError();
   if (!SR.isUsable()) return StmtResult();
 

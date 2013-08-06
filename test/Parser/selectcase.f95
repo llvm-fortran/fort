@@ -30,4 +30,15 @@ PROGRAM selecttest
   CASE () ! expected-error {{expected an expression}}
   END SELECT
 
+  SELECT CASE(1)
+    I = 0 ! expected-error {{expected 'case' or 'end select' statement after 'select case' statement}}
+    I = 1
+  END SELECT
+
+  SELECT CASE(1)
+    SELECT CASE(2) ! expected-error {{expected 'case' or 'end select' statement after 'select case' statement}}
+    END SELECT
+    I = 1
+  END SELECT
+
 END

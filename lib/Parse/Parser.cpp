@@ -69,6 +69,7 @@ Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  
 
   PrevTokLocEnd = Tok.getLocation();
   ParenCount = BraceCount = BracketCount = 0;
+  PrevStmtWasSelectCase = false;
 }
 
 bool Parser::EnterIncludeFile(const std::string &Filename) {

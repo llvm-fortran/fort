@@ -64,6 +64,8 @@ def ext_expected_semi_decl_list : ExtWarn<
   "expected ';' at end of declaration list">;
 def err_expected_member_name_or_semi : Error<
   "expected member name or ';' after declaration specifiers">;
+def err_expected_case_or_end_select : Error<
+  "expected 'case' or 'end select' statement after 'select case' statement">;
 
 def err_expected_end_statement_at_end_of_stmt : Error<
   "expected line break or ';' at end of statement">;

@@ -134,6 +134,10 @@ private:
   /// the program, including program keywords.
   mutable IdentifierTable Identifiers;
 
+  /// PrevStmtWasSelectCase - if set, this indicates that the last statement
+  /// was select case and a case or an end select statement is expected.
+  bool PrevStmtWasSelectCase;
+
   /// getIdentifierInfo - Return information about the specified identifier
   /// token.
   IdentifierInfo *getIdentifierInfo(std::string &Name) const {
@@ -329,7 +333,6 @@ private:
   /// Returns true.
   bool SkipUntilNextStatement();
 
-
   // High-level parsing methods.
   bool ParseInclude();
   bool ParseProgramUnit();
@@ -351,6 +354,7 @@ private:
   bool ParseDeclarationConstructList();
   bool ParseDeclarationConstruct();
   bool ParseForAllConstruct();
+  void CheckStmtOrder(SourceLocation Loc, StmtResult SR);
   StmtResult ParseExecutableConstruct();
 
   bool ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls);

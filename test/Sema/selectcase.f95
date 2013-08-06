@@ -77,10 +77,4 @@ PROGRAM selecttest
   CASE DEFAULT ! expected-error {{use of 'case default' outside a select case construct}}
   END SELECT ! expected-error {{use of 'end select' outside a select case construct}}
 
-  SELECT CASE(1)
-  ! FIXME: errors
-    I = 0
-    I = 1
-  END SELECT
-
 END
