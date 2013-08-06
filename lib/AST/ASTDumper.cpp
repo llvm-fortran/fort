@@ -57,6 +57,8 @@ public:
   // statements
   void dumpStmt(const Stmt *S);
   void dumpSubStmt(const Stmt *S);
+  void dumpConstructNamePrefix(ConstructName Name);
+  void dumpConstructNameSuffix(ConstructName Name);
 
   void VisitConstructPartStmt(const ConstructPartStmt *S);
   void VisitDeclStmt(const DeclStmt *S);
@@ -342,6 +344,16 @@ void ASTDumper::dumpSubStmt(const Stmt *S) {
   }
 }
 
+void ASTDumper::dumpConstructNamePrefix(ConstructName Name) {
+  if(Name.isUsable())
+    OS << Name.IDInfo->getName() << ": ";
+}
+
+void ASTDumper::dumpConstructNameSuffix(ConstructName Name) {
+  if(Name.isUsable())
+    OS << " " << Name.IDInfo->getName();
+}
+
 void ASTDumper::VisitConstructPartStmt(const ConstructPartStmt *S) {
   switch(S->getConstructStmtClass()) {
   case ConstructPartStmt::ElseStmtClass: OS << "else"; break;
@@ -350,7 +362,7 @@ void ASTDumper::VisitConstructPartStmt(const ConstructPartStmt *S) {
   case ConstructPartStmt::EndSelectStmtClass: OS << "end select"; break;
   default: break;
   }
-  if(S->getConstructName()) OS << ' ' << S->getConstructName()->getName();
+  dumpConstructNameSuffix(S->getName());
   OS << "\n";
 }
 
@@ -499,6 +511,7 @@ void ASTDumper::VisitComputedGotoStmt(const ComputedGotoStmt *S) {
 }
 
 void ASTDumper::VisitIfStmt(const IfStmt* S) {
+  dumpConstructNamePrefix(S->getName());
   OS << "if ";
   dumpExpr(S->getCondition());
   OS << "\n";
@@ -510,6 +523,7 @@ void ASTDumper::VisitIfStmt(const IfStmt* S) {
 }
 
 void ASTDumper::VisitDoStmt(const DoStmt *S) {
+  dumpConstructNamePrefix(S->getName());
   OS<<"do ";
   if(S->getTerminatingStmt().Statement) {
     dumpExpr(S->getTerminatingStmt().Statement->getStmtLabel());
@@ -530,6 +544,7 @@ void ASTDumper::VisitDoStmt(const DoStmt *S) {
 }
 
 void ASTDumper::VisitDoWhileStmt(const DoWhileStmt *S) {
+  dumpConstructNamePrefix(S->getName());
   OS << "do while(";
   dumpExpr(S->getCondition());
   OS << ")\n";
@@ -552,6 +567,7 @@ void ASTDumper::VisitExitStmt(const ExitStmt *S) {
 }
 
 void ASTDumper::VisitSelectCaseStmt(const SelectCaseStmt *S) {
+  dumpConstructNamePrefix(S->getName());
   OS << "select case(";
   dumpExprOrNull(S->getOperand());
   OS << ")\n";
@@ -562,13 +578,17 @@ void ASTDumper::VisitSelectCaseStmt(const SelectCaseStmt *S) {
 void ASTDumper::VisitCaseStmt(const CaseStmt *S) {
   OS << "case (";
   dumpExprList(S->getValues());
-  OS << ")\n";
+  OS << ")";
+  dumpConstructNameSuffix(S->getName());
+  OS << "\n";
   if(S->getBody())
     dumpSubStmt(S->getBody());
 }
 
 void ASTDumper::VisitDefaultCaseStmt(const DefaultCaseStmt *S) {
-  OS << "case default\n";
+  OS << "case default";
+  dumpConstructNameSuffix(S->getName());
+  OS << "\n";
   if(S->getBody())
     dumpSubStmt(S->getBody());
 }

@@ -151,6 +151,18 @@ public:
   void operator delete(void*, void*) throw() { }
 };
 
+/// ConstructName - represents the name of the construct statement
+struct ConstructName {
+  SourceLocation Loc;
+  const IdentifierInfo *IDInfo;
+
+  ConstructName(SourceLocation L, const IdentifierInfo *ID)
+    : Loc(L), IDInfo(ID) {}
+  bool isUsable() const {
+    return IDInfo != nullptr;
+  }
+};
+
 /// ConstructPartStmt - Represents a part of a construct
 /// like END, END DO, ELSE
 ///
@@ -163,23 +175,23 @@ public:
     EndSelectStmtClass
   };
   ConstructStmtClass ConstructId;
-  const IdentifierInfo* ConstructName;
+  ConstructName Name;
 
 private:
   ConstructPartStmt(ConstructStmtClass StmtType, SourceLocation Loc,
-                    const IdentifierInfo *Construct,
+                    ConstructName name,
                     Expr *StmtLabel);
 public:
   static ConstructPartStmt *Create(ASTContext &C, ConstructStmtClass StmtType,
                                    SourceLocation Loc,
-                                   const IdentifierInfo *Construct,
+                                   ConstructName Name,
                                    Expr *StmtLabel);
 
   ConstructStmtClass getConstructStmtClass() const {
     return ConstructId;
   }
-  const IdentifierInfo *getConstructName() const {
-    return ConstructName;
+  ConstructName getName() const {
+    return Name;
   }
 
   static bool classof(const Stmt *S) {
@@ -774,18 +786,6 @@ public:
   static bool classof(const ComputedGotoStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ComputedGotoStmtClass;
-  }
-};
-
-/// ConstructName - represents the name of the construct statement
-struct ConstructName {
-  SourceLocation Loc;
-  const IdentifierInfo *IDInfo;
-
-  ConstructName(SourceLocation L, const IdentifierInfo *ID)
-    : Loc(L), IDInfo(ID) {}
-  bool isUsable() const {
-    return IDInfo != nullptr;
   }
 };
 

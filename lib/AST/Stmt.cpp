@@ -30,18 +30,18 @@ Stmt::~Stmt() {}
 //===----------------------------------------------------------------------===//
 
 ConstructPartStmt::ConstructPartStmt(ConstructStmtClass StmtType, SourceLocation Loc,
-                                     const IdentifierInfo *Construct,
+                                     ConstructName name,
                                      Expr *StmtLabel)
   : Stmt(ConstructPartStmtClass, Loc, StmtLabel),
-    ConstructId(StmtType), ConstructName(Construct) {
+    ConstructId(StmtType), Name(name) {
 }
 
 
 ConstructPartStmt *ConstructPartStmt::Create(ASTContext &C, ConstructStmtClass StmtType,
                                              SourceLocation Loc,
-                                             const IdentifierInfo *Construct,
+                                             ConstructName Name,
                                              Expr *StmtLabel) {
-  return new(C) ConstructPartStmt(StmtType, Loc, Construct, StmtLabel);
+  return new(C) ConstructPartStmt(StmtType, Loc, Name, StmtLabel);
 }
 
 //===----------------------------------------------------------------------===//

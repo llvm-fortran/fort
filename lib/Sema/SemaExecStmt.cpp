@@ -486,7 +486,7 @@ StmtResult Sema::ActOnElseStmt(ASTContext &C, SourceLocation Loc,
   if(!IfBegin)
     Diags.Report(Loc, diag::err_stmt_not_in_if) << "else";
 
-  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::ElseStmtClass, Loc, nullptr, StmtLabel);
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::ElseStmtClass, Loc, Name, StmtLabel);
   getCurrentBody()->Append(Result);
   if(IfBegin) {
     getCurrentBody()->LeaveIfThen(C);
@@ -503,7 +503,7 @@ StmtResult Sema::ActOnEndIfStmt(ASTContext &C, SourceLocation Loc,
   if(!IfBegin)
     Diags.Report(Loc, diag::err_stmt_not_in_if) << "end if";
 
-  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndIfStmtClass, Loc, nullptr, StmtLabel);
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndIfStmtClass, Loc, Name, StmtLabel);
   getCurrentBody()->Append(Result);
   if(IfBegin) {
     LeaveLastBlock();
@@ -520,7 +520,7 @@ StmtResult Sema::ActOnEndDoStmt(ASTContext &C, SourceLocation Loc,
   if(!DoBegin)
     Diags.Report(Loc, diag::err_end_do_without_do);
 
-  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndDoStmtClass, Loc, nullptr, StmtLabel);
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndDoStmtClass, Loc, Name, StmtLabel);
   getCurrentBody()->Append(Result);
   if(DoBegin) {
     LeaveLastBlock();
@@ -663,7 +663,7 @@ StmtResult Sema::ActOnEndSelectStmt(ASTContext &C, SourceLocation Loc,
   if(!SelectConstruct)
     Diags.Report(Loc, diag::err_stmt_not_in_select_case) << "end select";
 
-  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndSelectStmtClass, Loc, nullptr, StmtLabel);
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndSelectStmtClass, Loc, Name, StmtLabel);
   getCurrentBody()->Append(Result);
   if(SelectConstruct) {
     LeaveLastBlock();
