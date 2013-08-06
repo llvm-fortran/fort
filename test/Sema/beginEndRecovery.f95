@@ -33,4 +33,21 @@ program recovery
 200 continue ! expected-error {{expected 'end do'}}
 
 100 continue
+
+    select case(i)
+    case (1)
+      if (.true.) then ! expected-note {{to match this 'if'}}
+    end select ! expected-error {{expected 'end if'}}
+
+    select case(i)
+    case (1)
+      do while(.false.) ! expected-note {{to match this 'do'}}
+    case default ! expected-error {{expected 'end do'}}
+    end select
+
+    if(i >= 0) then
+      select case(i) ! expected-note {{to match this 'select case'}}
+      case (1,2,3)
+        i = i + 1
+    end if ! expected-error {{expected 'end select'}}
 end

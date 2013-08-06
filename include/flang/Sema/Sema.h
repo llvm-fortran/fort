@@ -406,7 +406,7 @@ public:
                                   ConstructName Name, Expr *StmtLabel);
 
   StmtResult ActOnCaseStmt(ASTContext &C, SourceLocation Loc,
-                           ArrayRef<Expr*> Values,
+                           llvm::MutableArrayRef<Expr*> Values,
                            ConstructName Name, Expr *StmtLabel);
 
   StmtResult ActOnEndSelectStmt(ASTContext &C, SourceLocation Loc,
@@ -556,7 +556,13 @@ public:
   bool StmtRequiresScalarNumericVar(SourceLocation Loc, const VarExpr *E, unsigned DiagId);
 
   /// Returns true if an expression is a logical expression
+  bool CheckLogicalExpression(const Expr *E);
+
+  /// Returns true if an expression is a logical expression
   bool StmtRequiresLogicalExpression(SourceLocation Loc, const Expr *E);
+
+  /// Returns true if an expression is an integer, logical or a character expression.
+  bool StmtRequiresIntegerOrLogicalOrCharacterExpression(SourceLocation Loc, const Expr *E);
 
   /// Returns true if an expression is a character expression
   bool CheckCharacterExpression(const Expr *E);
@@ -569,6 +575,13 @@ public:
   /// real, complex) or character
   bool CheckTypeScalarOrCharacter(const Expr *E, QualType T,
                                   bool IsConstant = false);
+
+  /// Typechecks the expression - the following rules are correct:
+  /// if the expected type is integer and expression is integer(any kind)
+  /// if the expected type is logical and expression is logical(any kind)
+  /// if the expected type is character and expression is character(same kind)
+  Expr *TypecheckExprIntegerOrLogicalOrSameCharacter(Expr *E,
+                                                     QualType ExpectedType);
 
   /// Checks that all of the expressions have the same type
   /// class and kind.
@@ -707,6 +720,9 @@ public:
 
   /// Leaves block constructs until an if construct is reached.
   IfStmt *LeaveBlocksUntilIf(SourceLocation Loc);
+
+  /// Leaves block constructs until a select case construct is reached.
+  SelectCaseStmt *LeaveBlocksUntilSelectCase(SourceLocation Loc);
 
   /// Checks to see if the part of the constructs has a valid construct name.
   void CheckConstructNameMatch(Stmt *Part, ConstructName Name, Stmt *S);

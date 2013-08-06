@@ -14,8 +14,8 @@
 let Component = "Sema" in {
 let CategoryName = "Semantic Issue" in {
 
-def err_expected_integer_expr : Error<
-  "expected an integer expression">;
+def err_typecheck_expected_integer_expr : Error<
+  "expected an expression of integer type (%0 invalid)">;
 def err_expected_integer_gt_0 : Error<
   "expected an integer greater than 0">;
 def err_expected_positive_integer : Error<
@@ -63,11 +63,13 @@ def err_typecheck_stmt_requires_int_expr : Error<
 def err_typecheck_stmt_requires_int_var : Error<
   "statement requires an integer variable (%0 invalid)">;
 def err_typecheck_expected_logical_expr : Error<
-  "expected a logical expression instead of an expression with type %0">;
+  "expected an expression of logical type (%0 invalid)">;
 def err_typecheck_stmt_requires_logical_expr : Error<
   "statement requires an expression of logical type (%0 invalid)">;
+def err_typecheck_stmt_requires_int_logical_char_expr : Error<
+  "statement requires an expression of integer, logical or character type (%0 invalid)">;
 def err_typecheck_expected_char_expr : Error<
-  "expected a character expression instead of an expression with type %0">;
+  "expected an expression of character type (%0 invalid)">;
 def err_typecheck_expected_int_var : Error<
   "expected an integer variable instead of a variable with type %0">;
 def err_typecheck_expected_format_spec : Error<
@@ -132,6 +134,8 @@ def err_stmt_not_in_loop : Error<
   "'%0' statement not in loop statement">;
 def err_stmt_not_in_named_loop : Error<
   "'%0' statement not in loop statement named %1">;
+def err_stmt_not_in_select_case : Error<
+  "use of '%0' outside a select case construct">;
 
 def err_use_implicit_none_stmt : Error<
   "use of 'IMPLICIT NONE' after 'IMPLICIT'">;
@@ -243,6 +247,9 @@ def err_data_stmt_not_enought_values : Error<
   "not enough values in a 'DATA' statement">;
 def err_data_stmt_invalid_item : Error<
   "invalid item for a 'DATA' statement">;
+
+def err_multiple_default_case_stmt : Error<
+  "multiple default cases in one select case construct">;
 
 def warn_deprecated_computed_goto_stmt : Warning<"computed goto statement is deprecated">,
     InGroup<Deprecated>;

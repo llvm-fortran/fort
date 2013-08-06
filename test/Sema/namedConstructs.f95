@@ -32,4 +32,14 @@ PROGRAM test
   DO I=1,10
   END DO ha ! expected-error {{use of construct name for an unnamed construct}}
 
+  foo: SELECT CASE(1)
+  CASE (1) foo
+  CASE DEFAULT foo
+  END SELECT foo
+
+  bar: SELECT CASE(1) ! expected-note {{to match this 'bar'}}
+  CASE (1) ! expected-error {{expected construct name 'bar'}}
+  CASE DEFAULT foo ! expected-error {{expected construct name 'bar'}}
+  END SELECT bar ! expected-note@-3 {{to match this 'bar'}}
+
 END

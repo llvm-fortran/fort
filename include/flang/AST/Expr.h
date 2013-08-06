@@ -867,6 +867,8 @@ public:
   bool hasSecondExpr() const {
     return E2 != nullptr;
   }
+  void setFirstExpr(Expr *E);
+  void setSecondExpr(Expr *E);
 
   SourceLocation getLocStart() const;
   SourceLocation getLocEnd() const;

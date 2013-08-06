@@ -537,13 +537,28 @@ ExitStmt *ExitStmt::Create(ASTContext &C, SourceLocation Loc, Stmt *Loop,
 
 SelectCaseStmt::SelectCaseStmt(SourceLocation Loc, Expr *Operand,
                                Expr *StmtLabel, ConstructName Name)
-  : NamedConstructStmt(SelectCaseStmtClass, Loc, StmtLabel, Name),
+  : CFBlockStmt(SelectCaseStmtClass, Loc, StmtLabel, Name),
     E(Operand), FirstCase(nullptr), DefaultCase(nullptr) {}
 
 SelectCaseStmt *SelectCaseStmt::Create(ASTContext &C, SourceLocation Loc,
                                        Expr *Operand, Expr *StmtLabel,
                                        ConstructName Name) {
   return new(C) SelectCaseStmt(Loc, Operand, StmtLabel, Name);
+}
+
+void SelectCaseStmt::addCase(CaseStmt *S) {
+  if(!FirstCase) {
+    FirstCase = S;
+    return;
+  }
+  auto I = FirstCase;
+  while(I->getNextCase())
+    I = I->getNextCase();
+  I->setNextCase(S);
+}
+
+void SelectCaseStmt::setDefaultCase(DefaultCaseStmt *S) {
+  DefaultCase = S;
 }
 
 //===----------------------------------------------------------------------===//

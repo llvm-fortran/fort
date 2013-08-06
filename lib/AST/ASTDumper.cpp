@@ -555,16 +555,22 @@ void ASTDumper::VisitSelectCaseStmt(const SelectCaseStmt *S) {
   OS << "select case(";
   dumpExprOrNull(S->getOperand());
   OS << ")\n";
+  if(S->getBody())
+    dumpSubStmt(S->getBody());
 }
 
 void ASTDumper::VisitCaseStmt(const CaseStmt *S) {
   OS << "case (";
   dumpExprList(S->getValues());
   OS << ")\n";
+  if(S->getBody())
+    dumpSubStmt(S->getBody());
 }
 
 void ASTDumper::VisitDefaultCaseStmt(const DefaultCaseStmt *S) {
   OS << "case default\n";
+  if(S->getBody())
+    dumpSubStmt(S->getBody());
 }
 
 void ASTDumper::VisitContinueStmt(const ContinueStmt *S) {

@@ -99,8 +99,8 @@ bool Sema::CheckIntegerExpression(const Expr *E) {
   if(E->getType()->isIntegerType())
     return true;
   Diags.Report(E->getLocation(),
-               diag::err_expected_integer_expr)
-    << E->getSourceRange();
+               diag::err_typecheck_expected_integer_expr)
+    << E->getType() << E->getSourceRange();
   return false;
 }
 
@@ -140,11 +140,29 @@ bool Sema::StmtRequiresScalarNumericVar(SourceLocation Loc, const VarExpr *E, un
   return false;
 }
 
+bool Sema::CheckLogicalExpression(const Expr *E) {
+  if(E->getType()->isLogicalType())
+    return true;
+  Diags.Report(E->getLocation(),
+               diag::err_typecheck_expected_logical_expr)
+    << E->getType() << E->getSourceRange();
+  return false;
+}
+
 bool Sema::StmtRequiresLogicalExpression(SourceLocation Loc, const Expr *E) {
   if(E->getType()->isLogicalType())
     return true;
   Diags.Report(Loc, diag::err_typecheck_stmt_requires_logical_expr)
     << E->getType() << E->getSourceRange();
+  return false;
+}
+
+bool Sema::StmtRequiresIntegerOrLogicalOrCharacterExpression(SourceLocation Loc, const Expr *E) {
+  auto Type = E->getType();
+  if(Type->isIntegerType() || Type->isLogicalType() || Type->isCharacterType())
+    return true;
+  Diags.Report(Loc, diag::err_typecheck_stmt_requires_int_logical_char_expr)
+    << Type << E->getSourceRange();
   return false;
 }
 
@@ -192,6 +210,31 @@ bool Sema::CheckTypeScalarOrCharacter(const Expr *E, QualType T, bool IsConstant
                  diag::err_expected_scalar_or_character_expr)
     << E->getSourceRange();
   return false;
+}
+
+Expr *Sema::TypecheckExprIntegerOrLogicalOrSameCharacter(Expr *E,
+                                                         QualType ExpectedType) {
+  auto GivenType = E->getType();
+  if(ExpectedType->isIntegerType()) {
+    if(CheckIntegerExpression(E)) {
+      if(!CheckTypesSameKind(ExpectedType, GivenType))
+        return ImplicitCastExpr::Create(Context, E->getLocation(), ExpectedType, E);
+    }
+  }
+  else if(ExpectedType->isLogicalType()) {
+    if(CheckLogicalExpression(E)) {
+      if(!CheckTypesSameKind(ExpectedType, GivenType))
+        return ImplicitCastExpr::Create(Context, E->getLocation(), ExpectedType, E);
+    }
+  } else {
+    assert(ExpectedType->isCharacterType());
+    if(!GivenType->isCharacterType() || !CheckTypesSameKind(ExpectedType, GivenType)) {
+      Diags.Report(E->getLocation(),
+                   diag::err_typecheck_expected_char_expr)
+        << E->getType() << E->getSourceRange();
+    }
+  }
+  return E;
 }
 
 void Sema::CheckExpressionListSameTypeKind(ArrayRef<Expr*> Expressions) {

@@ -241,7 +241,15 @@ StmtResult Sema::ActOnDoWhileStmt(ASTContext &C, SourceLocation Loc, ExprResult 
 StmtResult Sema::ActOnSelectCaseStmt(ASTContext &C, SourceLocation Loc,
                                      ExprResult Operand,
                                      ConstructName Name, Expr *StmtLabel) {
-  return StmtError();
+  if(Operand.isUsable())
+    StmtRequiresIntegerOrLogicalOrCharacterExpression(Loc, Operand.get());
+
+  auto Result = SelectCaseStmt::Create(C, Loc, Operand.get(), StmtLabel, Name);
+  if(Operand.isUsable()) getCurrentBody()->Append(Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  if(Name.isUsable()) DeclareConstructName(Name, Result);
+  getCurrentBody()->Enter(Result);
+  return Result;
 }
 
 // FIXME: else if source range
@@ -278,6 +286,8 @@ void Sema::CheckConstructNameMatch(Stmt *Part, ConstructName Name, Stmt *S) {
 void Sema::ReportUnterminatedStmt(const BlockStmtBuilder::Entry &S,
                                   SourceLocation Loc,
                                   bool ReportUnterminatedLabeledDo) {
+  if(isa<SelectionCase>(S.Statement))
+    return;
   const char *Keyword;
   const char *BeginKeyword;
   switch(S.Statement->getStmtClass()) {
@@ -301,6 +311,10 @@ void Sema::ReportUnterminatedStmt(const BlockStmtBuilder::Entry &S,
     BeginKeyword = "do";
     break;
   }
+  case Stmt::SelectCaseStmtClass:
+    Keyword = "end select";
+    BeginKeyword = "select case";
+    break;
   default:
     llvm_unreachable("Invalid stmt");
   }
@@ -336,6 +350,22 @@ Stmt *Sema::LeaveBlocksUntilDo(SourceLocation Loc) {
     if(isa<DoWhileStmt>(S) ||
        isa<DoStmt>(S) && !Stack[I].hasExpectedDoLabel())
       return S;
+    ReportUnterminatedStmt(Stack[I], Loc);
+    LeaveLastBlock();
+  }
+  return nullptr;
+}
+
+SelectCaseStmt *Sema::LeaveBlocksUntilSelectCase(SourceLocation Loc) {
+  auto Stack = getCurrentBody()->ControlFlowStack;
+  for(size_t I = Stack.size(); I != 0;) {
+    --I;
+    if(isa<SelectionCase>(Stack[I].Statement)) {
+      LeaveLastBlock();
+      --I;
+    }
+    if(auto Sel = dyn_cast<SelectCaseStmt>(Stack[I].Statement))
+      return Sel;
     ReportUnterminatedStmt(Stack[I], Loc);
     LeaveLastBlock();
   }
@@ -534,20 +564,92 @@ StmtResult Sema::ActOnExitStmt(ASTContext &C, SourceLocation Loc,
 
 StmtResult Sema::ActOnCaseDefaultStmt(ASTContext &C, SourceLocation Loc,
                                       ConstructName Name, Expr *StmtLabel) {
+  auto SelectConstruct = LeaveBlocksUntilSelectCase(Loc);
+  if(!SelectConstruct)
+    Diags.Report(Loc, diag::err_stmt_not_in_select_case) << "case default";
+
   auto Result = DefaultCaseStmt::Create(C, Loc, StmtLabel, Name);
+  getCurrentBody()->Append(Result);
+  if(SelectConstruct) {
+    if(SelectConstruct->hasDefaultCase()) {
+      Diags.Report(Loc, diag::err_multiple_default_case_stmt);
+      Diags.Report(SelectConstruct->getDefaultCase()->getLocation(), diag::note_duplicate_case_prev);
+    } else
+      SelectConstruct->setDefaultCase(Result);
+    CheckConstructNameMatch(Result, Name, SelectConstruct);
+    getCurrentBody()->Enter(Result);
+  }
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
 StmtResult Sema::ActOnCaseStmt(ASTContext &C, SourceLocation Loc,
-                               ArrayRef<Expr*> Values,
+                               llvm::MutableArrayRef<Expr*> Values,
                                ConstructName Name, Expr *StmtLabel) {
-  return StmtError();
+  auto SelectConstruct = LeaveBlocksUntilSelectCase(Loc);
+  if(!SelectConstruct)
+    Diags.Report(Loc, diag::err_stmt_not_in_select_case) << "case";
+
+  // typecheck the values and verify that the values are evaluatable
+  if (SelectConstruct && SelectConstruct->getOperand()) {
+    auto ExpectedType = SelectConstruct->getOperand()->getType();
+    for(auto &I : Values) {
+      if(auto Range = dyn_cast<RangeExpr>(I)) {
+        if(Range->hasFirstExpr()) {
+          if(CheckConstantExpression(Range->getFirstExpr()))
+            Range->setFirstExpr(TypecheckExprIntegerOrLogicalOrSameCharacter(
+                                  Range->getFirstExpr(), ExpectedType));
+        }
+        if(Range->hasSecondExpr()) {
+          if(CheckConstantExpression(Range->getSecondExpr()))
+            Range->setSecondExpr(TypecheckExprIntegerOrLogicalOrSameCharacter(
+                                   Range->getSecondExpr(), ExpectedType));
+        }
+      } else {
+        if(CheckConstantExpression(I))
+          I = TypecheckExprIntegerOrLogicalOrSameCharacter(I, ExpectedType);
+      }
+    }
+  } else {
+    for(auto I : Values) {
+      if(auto Range = dyn_cast<RangeExpr>(I)) {
+        if(Range->hasFirstExpr())
+          CheckConstantExpression(Range->getFirstExpr());
+        if(Range->hasSecondExpr())
+          CheckConstantExpression(Range->getSecondExpr());
+      }
+      else
+        CheckConstantExpression(I);
+    }
+  }
+
+  // FIXME: TODO check for overlapping ranges
+
+  auto Result = CaseStmt::Create(C, Loc, Values, StmtLabel, Name);
+  getCurrentBody()->Append(Result);
+  if(SelectConstruct) {
+    SelectConstruct->addCase(Result);
+    CheckConstructNameMatch(Result, Name, SelectConstruct);
+    getCurrentBody()->Enter(Result);
+  }
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnEndSelectStmt(ASTContext &C, SourceLocation Loc,
                                     ConstructName Name, Expr *StmtLabel) {
-  return StmtError();
+  auto SelectConstruct = LeaveBlocksUntilSelectCase(Loc);
+  if(!SelectConstruct)
+    Diags.Report(Loc, diag::err_stmt_not_in_select_case) << "end select";
+
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndSelectStmtClass, Loc, nullptr, StmtLabel);
+  getCurrentBody()->Append(Result);
+  if(SelectConstruct) {
+    LeaveLastBlock();
+    CheckConstructNameMatch(Result, Name, SelectConstruct);
+  }
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {

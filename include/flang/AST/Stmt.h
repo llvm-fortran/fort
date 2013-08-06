@@ -940,7 +940,7 @@ class CaseStmt;
 class DefaultCaseStmt;
 
 /// SelectCaseStmt
-class SelectCaseStmt : public NamedConstructStmt {
+class SelectCaseStmt : public CFBlockStmt {
   CaseStmt *FirstCase;
   DefaultCaseStmt *DefaultCase;
   Expr *E;
@@ -955,15 +955,19 @@ public:
   Expr *getOperand() const {
     return E;
   }
+
   CaseStmt *getFirstCase() const {
     return FirstCase;
   }
+  void addCase(CaseStmt *S);
+
   DefaultCaseStmt *getDefaultCase() const {
     return DefaultCase;
   }
   bool hasDefaultCase() const {
     return DefaultCase != nullptr;
   }
+  void setDefaultCase(DefaultCaseStmt *S);
 
   static bool classof(const SelectCaseStmt*) { return true; }
   static bool classof(const Stmt *S) {
@@ -971,17 +975,12 @@ public:
   }
 };
 
-class SelectionCase : public Stmt {
-  ConstructName Name;
+class SelectionCase : public CFBlockStmt {
 protected:
   SelectionCase(StmtClass StmtKind, SourceLocation Loc,
                 Expr *StmtLabel, ConstructName name)
-    : Stmt(StmtKind, Loc, StmtLabel), Name(name) {}
+    : CFBlockStmt(StmtKind, Loc, StmtLabel, name) {}
 public:
-
-  ConstructName getName() const {
-    return Name;
-  }
 
   static bool classof(const Stmt *S) {
     return S->getStmtClass() >= firstSelectionCaseConstant &&

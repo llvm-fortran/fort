@@ -396,6 +396,14 @@ RangeExpr *RangeExpr::Create(ASTContext &C, SourceLocation Loc,
   return new(C) RangeExpr(Loc, First, Second);
 }
 
+void RangeExpr::setFirstExpr(Expr *E) {
+  E1 = E;
+}
+
+void RangeExpr::setSecondExpr(Expr *E) {
+  E2 = E;
+}
+
 SourceLocation RangeExpr::getLocStart() const {
   if(hasFirstExpr()) return E1->getLocStart();
   return getLocation();
