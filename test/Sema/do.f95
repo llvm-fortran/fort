@@ -21,10 +21,6 @@ PROGRAM dotest
       IF(.true.) THEN ! expected-note {{to match this 'if'}}
 25      CONTINUE ! expected-error {{expected 'end if'}}
 
-    DO 666 I = 1, 10,2  ! expected-error {{use of undeclared statement label '666'}}
-      R = I * R ! expected-note@-1 {{to match this 'do'}}
-    END DO ! expected-error {{expected a do termination statement with a statement label '666'}}
-    CONTINUE ! expected-error@-1 {{use of 'end do' outside a do construct}}
 
     DO 30 C = 1, 3 ! expected-error {{statement requires an integer variable ('complex' invalid)}}
 30  CONTINUE
@@ -67,5 +63,10 @@ PROGRAM dotest
     DO 130 K = 10, 1, -1
       R = R + I + K
 130 CONTINUE
+
+    DO 666 J = 1, 10,2  ! expected-error {{use of undeclared statement label '666'}}
+      R = J * R
+    END DO ! expected-error {{use of 'end do' outside a do construct}}
+    CONTINUE
 
 END PROGRAM

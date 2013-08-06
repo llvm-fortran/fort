@@ -50,4 +50,32 @@ program recovery
       case (1,2,3)
         i = i + 1
     end if ! expected-error {{expected 'end select'}}
+
+    select case(i)
+    case (1)
+      do j = 1,10 ! expected-note {{to match this 'do'}}
+    case default ! expected-error {{expected 'end do'}}
+      end do ! expected-error {{use of 'end do' outside a do construct}}
+    end select
+
+    select case(j)
+    case (1)
+      if(i == 1) then ! expected-note {{to match this 'if'}}
+    case default ! expected-error {{expected 'end if'}}
+      end if ! expected-error {{use of 'end if' outside an if construct}}
+    end select
+
+    select case(i)
+    case (1)
+      do 400 j = 1, 10 ! expected-note {{to match this 'do'}}
+    case (2) ! expected-error {{expected a do termination statement with a statement label '400'}}
+400   continue
+    end select
+
+    if (i == 1) then
+      select case(j) ! expected-note {{to match this 'select case'}}
+      case (2)
+    end if ! expected-error {{expected 'end select'}}
+    end select ! expected-error {{use of 'end select' outside a select case construct}}
+
 end

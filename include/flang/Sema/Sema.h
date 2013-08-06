@@ -706,6 +706,9 @@ public:
   /// that might be needed.
   void LeaveLastBlock();
 
+  /// Leaves the block constructs until the given construct is reached.
+  void LeaveUnterminatedBlocksUntil(SourceLocation Loc, Stmt *S);
+
   /// Leaves block constructs until a do construct is reached.
   /// NB: the do statements with a termination label such as DO 100 I = ..
   /// are popped.

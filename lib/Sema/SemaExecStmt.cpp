@@ -330,46 +330,64 @@ void Sema::LeaveLastBlock() {
   getCurrentBody()->Leave(Context);
 }
 
-IfStmt *Sema::LeaveBlocksUntilIf(SourceLocation Loc) {
+void Sema::LeaveUnterminatedBlocksUntil(SourceLocation Loc, Stmt *S) {
   auto Stack = getCurrentBody()->ControlFlowStack;
   for(size_t I = Stack.size(); I != 0;) {
     --I;
-    if(auto If = dyn_cast<IfStmt>(Stack[I].Statement))
-      return If;
+    if(S == Stack[I].Statement)
+      break;
     ReportUnterminatedStmt(Stack[I], Loc);
     LeaveLastBlock();
   }
-  return nullptr;
+}
+
+IfStmt *Sema::LeaveBlocksUntilIf(SourceLocation Loc) {
+  IfStmt *Result = nullptr;
+  auto Stack = getCurrentBody()->ControlFlowStack;
+  for(size_t I = Stack.size(); I != 0;) {
+    --I;
+    if(auto If = dyn_cast<IfStmt>(Stack[I].Statement)) {
+      Result = If;
+      break;
+    }
+  }
+  if (Result)
+    LeaveUnterminatedBlocksUntil(Loc, Result);
+  return Result;
 }
 
 Stmt *Sema::LeaveBlocksUntilDo(SourceLocation Loc) {
+  Stmt *Result = nullptr;
   auto Stack = getCurrentBody()->ControlFlowStack;
   for(size_t I = Stack.size(); I != 0;) {
     --I;
     auto S = Stack[I].Statement;
     if(isa<DoWhileStmt>(S) ||
-       isa<DoStmt>(S) && !Stack[I].hasExpectedDoLabel())
-      return S;
-    ReportUnterminatedStmt(Stack[I], Loc);
-    LeaveLastBlock();
+       isa<DoStmt>(S) && !Stack[I].hasExpectedDoLabel()) {
+      Result = S;
+      break;
+    }
   }
-  return nullptr;
+  if (Result)
+    LeaveUnterminatedBlocksUntil(Loc, Result);
+  return Result;
 }
 
 SelectCaseStmt *Sema::LeaveBlocksUntilSelectCase(SourceLocation Loc) {
+  SelectCaseStmt *Result = nullptr;
   auto Stack = getCurrentBody()->ControlFlowStack;
   for(size_t I = Stack.size(); I != 0;) {
     --I;
-    if(isa<SelectionCase>(Stack[I].Statement)) {
-      LeaveLastBlock();
+    if(isa<SelectionCase>(Stack[I].Statement))
       --I;
+    if(auto Sel = dyn_cast<SelectCaseStmt>(Stack[I].Statement)) {
+      Result = Sel;
+      break;
     }
-    if(auto Sel = dyn_cast<SelectCaseStmt>(Stack[I].Statement))
-      return Sel;
-    ReportUnterminatedStmt(Stack[I], Loc);
-    LeaveLastBlock();
   }
-  return nullptr;
+  if (Result)
+    LeaveUnterminatedBlocksUntil(Loc, Result);
+  return Result;
 }
 
 /// The terminal statement of a DO-loop must not be an unconditional GO TO,
@@ -420,19 +438,22 @@ bool Sema::IsInLabeledDo(const Expr *StmtLabel) {
 }
 
 DoStmt *Sema::LeaveBlocksUntilLabeledDo(SourceLocation Loc, const Expr *StmtLabel) {
+  DoStmt *Result = nullptr;
   auto Stack = getCurrentBody()->ControlFlowStack;
   for(size_t I = Stack.size(); I != 0;) {
     --I;
     if(auto Do = dyn_cast<DoStmt>(Stack[I].Statement)) {
       if(Stack[I].hasExpectedDoLabel()) {
-        if(getCurrentStmtLabelScope()->IsSame(Stack[I].ExpectedEndDoLabel, StmtLabel))
-          return Do;
+        if(getCurrentStmtLabelScope()->IsSame(Stack[I].ExpectedEndDoLabel, StmtLabel)) {
+          Result = Do;
+          break;
+        }
       }
     }
-    ReportUnterminatedStmt(Stack[I], Loc);
-    LeaveLastBlock();
   }
-  return nullptr;
+  if (Result)
+    LeaveUnterminatedBlocksUntil(Loc, Result);
+  return Result;
 }
 
 StmtResult Sema::ActOnElseIfStmt(ASTContext &C, SourceLocation Loc,
