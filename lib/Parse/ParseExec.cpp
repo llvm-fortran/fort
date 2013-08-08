@@ -128,7 +128,7 @@ Parser::StmtResult Parser::ParseActionStmt() {
   case tok::kw_DO:
     return ParseDoStmt();
   case tok::kw_DOWHILE:
-    return ParseDoWhileStmt();
+    return ParseDoWhileStmt(false);
   case tok::kw_ENDDO:
     return ParseEndDoStmt();
   case tok::kw_CYCLE:
@@ -390,7 +390,7 @@ Parser::StmtResult Parser::ParseDoStmt() {
   }
   bool isDo = ConsumeIfPresent(tok::comma);
   if(IsPresent(tok::kw_WHILE))
-    return ParseDoWhileStmt();
+    return ParseDoWhileStmt(isDo);
 
   // the do var
   auto IDInfo = Tok.getIdentifierInfo();
@@ -399,6 +399,8 @@ Parser::StmtResult Parser::ParseDoStmt() {
     goto error;
 
   EqLoc = getMaxLocationOfCurrentToken();
+  if(Features.FixedForm && !isDo && IsPresent(tok::l_paren))
+    return ReparseAmbiguousStatement();
   if(!ExpectAndConsume(tok::equal))
     goto error;
   E1 = ParseExpectedFollowupExpression("=");
@@ -427,8 +429,10 @@ error:
                              DoVar, E1, E2, E3, StmtConstructName, StmtLabel);
 }
 
-Parser::StmtResult Parser::ParseDoWhileStmt() {
+Parser::StmtResult Parser::ParseDoWhileStmt(bool isDo) {
   auto Loc = ConsumeToken();
+  if(Features.FixedForm && !isDo && IsPresent(tok::equal))
+    return ReparseAmbiguousStatement();
   auto Condition = ParseExpectedConditionExpression("WHILE");
   return Actions.ActOnDoWhileStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
 }

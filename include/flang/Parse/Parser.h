@@ -439,7 +439,7 @@ private:
   ExprResult ParseExpectedConditionExpression(const char *DiagAfter);
 
   StmtResult ParseDoStmt();
-  StmtResult ParseDoWhileStmt();
+  StmtResult ParseDoWhileStmt(bool isDo);
   StmtResult ParseEndDoStmt();
   StmtResult ParseCycleStmt();
   StmtResult ParseExitStmt();
