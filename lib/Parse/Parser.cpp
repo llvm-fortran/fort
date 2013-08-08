@@ -112,19 +112,22 @@ bool Parser::IsNextToken(tok::TokenKind TokKind) {
 void Parser::Lex() {
   /// Reset paren count
   if(Tok.isAtStartOfStatement()) {
-    /* FIXME: - expression and exec
-     *if(ParenCount == 1) {
-      Diag.Report(getExpectedLoc(), diag::err_expected_single_rparen_stmt_end)
-        << FixItHint(getExpectedLocForFixIt(), ")");
-    } else if(ParenCount) {
-      llvm::SmallString<8> FixItInsertion;
-      for(unsigned I = 0; I < ParenCount; ++I)
-        FixItInsertion += ")";
-      Diag.Report(getExpectedLoc(), diag::err_expected_rparen_stmt_end)
-        << ParenCount
-        << FixItHint(getExpectedLocForFixIt(), FixItInsertion.str());
-    }*/
     ParenCount = 0;
+    StatementTokens.clear();
+  }
+  if(Tok.isNot(tok::unknown) && !Tok.isStored()) {
+    bool Store = true;
+    if(StatementTokens.size() &&
+       Tok.getLocation().getPointer() < (StatementTokens.back().getLocation().getPointer() + StatementTokens.back().getLength()))
+      Store = false;
+    if(Store) {
+      auto T = Tok;
+      T.setLength(Tok.getExtraLength());
+      T.setFlag(Token::Stored);
+      if(T.getIdentifierInfo())
+        T.setKind(tok::identifier);
+      StatementTokens.push_back(T);
+    }
   }
 
   PrevTokLocation = Tok.getLocation();
@@ -398,6 +401,14 @@ Parser::MatchFixedFormIdentifier(Token &T, IdentifierLexingContext Context) {
       return RememberIdentAction;
   }
   return NoIdentAction;
+}
+
+Parser::StmtResult Parser::ReparseAmbiguousStatement() {
+  StatementTokens.push_back(Tok);
+  TheLexer.ReparseStatement(StatementTokens);
+  Tok.startToken();
+  Lex();
+  return ParseAmbiguousAssignmentStmt();
 }
 
 /// \brief Returns true if the check flag is set,

@@ -138,6 +138,11 @@ private:
   /// was select case and a case or an end select statement is expected.
   bool PrevStmtWasSelectCase;
 
+  /// StatementTokens - the tokens for the current statement.
+  /// We need to remember them in case we want to reparse the statement
+  /// (fixed-form problems).
+  SmallVector<Token, 32> StatementTokens;
+
   /// getIdentifierInfo - Return information about the specified identifier
   /// token.
   IdentifierInfo *getIdentifierInfo(std::string &Name) const {
@@ -333,6 +338,9 @@ private:
   /// Returns true.
   bool SkipUntilNextStatement();
 
+  /// Certain fixed-form are ambigous, and might need to be reparsed.
+  StmtResult ReparseAmbiguousStatement();
+
   // High-level parsing methods.
   bool ParseInclude();
   bool ParseProgramUnit();
@@ -444,6 +452,7 @@ private:
   StmtResult ParseStopStmt();
   StmtResult ParseReturnStmt();
   StmtResult ParseCallStmt();
+  StmtResult ParseAmbiguousAssignmentStmt();
   StmtResult ParseAssignmentStmt();
   StmtResult ParsePrintStmt();
   StmtResult ParseWriteStmt();

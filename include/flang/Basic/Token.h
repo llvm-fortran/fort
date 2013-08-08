@@ -47,6 +47,9 @@ class Token {
   /// token.
   unsigned UintData;
 
+  /// ExtraUnitData - This holds the extra length of the token text.
+  unsigned ExtraUintData;
+
   /// PtrData - This is a union of three different pointer types, which depends
   /// on what type of token this is:
   ///  Identifiers, keywords, etc:
@@ -71,7 +74,8 @@ public:
   // Various flags set per token:
   enum TokenFlags {
     StartOfStatement = 0x01,  // At start of statement or only after whitespace
-    NeedsCleaning    = 0x02   // Contained a continuation
+    NeedsCleaning    = 0x02,   // Contained a continuation
+    Stored           = 0x04    // This is a stored token
   };
 
   tok::TokenKind getKind() const { return (tok::TokenKind)Kind; }
@@ -96,9 +100,15 @@ public:
   /// in the current file.
   SourceLocation getLocation() const { return Loc; }
   unsigned getLength() const { return UintData; }
+  unsigned getExtraLength() const {
+    return ExtraUintData;
+  }
 
   void setLocation(SourceLocation L) { Loc = L; }
-  void setLength(unsigned Len) { UintData = Len; }
+  void setLength(unsigned Len) { ExtraUintData = UintData = Len; }
+  void setExtraLength(unsigned Len) {
+    ExtraUintData = Len;
+  }
 
   const char *getName() const {
     return tok::getTokenName((tok::TokenKind)Kind);
@@ -170,6 +180,11 @@ public:
   /// needsCleaning - Return true if this token has a continuation.
   bool needsCleaning() const {
     return (Flags & NeedsCleaning) ? true : false;
+  }
+
+  /// isStored = Return true if this token was already stored.
+  bool isStored() const {
+    return (Flags & Stored) ? true : false;
   }
 };
 

@@ -18,6 +18,7 @@
 #include "flang/Basic/Token.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/ArrayRef.h"
 #include <string>
 #include <vector>
 
@@ -233,6 +234,13 @@ class Lexer {
   /// CurIdContext - the current context for lexing of identifiers.
   IdentifierLexingContext CurIdContext;
 
+  /// StatementTokens
+  ArrayRef<Token> StatementTokens;
+
+  /// StatementTokensOffset - if this >= 0, the lexed tokens
+  /// are taken from the StatementTokens.
+  int StatementTokensOffset;
+
   /// \brief Tracks all of the comment handlers that the client registered
   /// with this preprocessor.
   std::vector<CommentHandler *> CommentHandlers;
@@ -337,10 +345,22 @@ public:
   /// id context.
   void SetIdContext(IdentifierLexingContext C);
 
+  /// ReparseStatement - reparses a statement
+  void ReparseStatement(ArrayRef<Token> Tokens);
+
   /// Lex - Return the next token in the file. If this is the end of file, it
   /// return the tok::eof token. Return true if an error occurred and
   /// compilation should terminate, false if normal.
   void Lex(Token &Result, bool IsPeekAhead = false) {
+    if(StatementTokensOffset >= 0) {
+      if(StatementTokensOffset < StatementTokens.size()) {
+        Result = StatementTokens[StatementTokensOffset];
+        if(!IsPeekAhead) StatementTokensOffset++;
+        return;
+      }
+      StatementTokensOffset = -1;
+    }
+
     // Start a new token.
     Result.startToken();
 

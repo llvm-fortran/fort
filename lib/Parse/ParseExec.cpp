@@ -384,11 +384,11 @@ Parser::StmtResult Parser::ParseDoStmt() {
   ExprResult E1, E2, E3;
   auto EqLoc = Loc;
 
-  if(Tok.is(tok::int_literal_constant)) {
+  if(IsPresent(tok::int_literal_constant)) {
     TerminalStmt = ParseStatementLabelReference();
     if(TerminalStmt.isInvalid()) return StmtError();
   }
-  ConsumeIfPresent(tok::comma);
+  bool isDo = ConsumeIfPresent(tok::comma);
   if(IsPresent(tok::kw_WHILE))
     return ParseDoWhileStmt();
 
@@ -397,14 +397,14 @@ Parser::StmtResult Parser::ParseDoStmt() {
   auto IDLoc = Tok.getLocation();
   if(!ExpectAndConsume(tok::identifier))
     goto error;
-  if(auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo))
-    DoVar = VarExpr::Create(Context, IDLoc, VD);
 
   EqLoc = getMaxLocationOfCurrentToken();
   if(!ExpectAndConsume(tok::equal))
     goto error;
   E1 = ParseExpectedFollowupExpression("=");
   if(E1.isInvalid()) goto error;
+  if(Features.FixedForm && !isDo && Tok.isAtStartOfStatement())
+    return ReparseAmbiguousStatement();
   if(!ExpectAndConsume(tok::comma)) goto error;
   E2 = ParseExpectedFollowupExpression(",");
   if(E2.isInvalid()) goto error;
@@ -413,9 +413,15 @@ Parser::StmtResult Parser::ParseDoStmt() {
     if(E3.isInvalid()) goto error;
   }
 
+  if(auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo))
+    DoVar = VarExpr::Create(Context, IDLoc, VD);
   return Actions.ActOnDoStmt(Context, Loc, EqLoc, TerminalStmt,
                              DoVar, E1, E2, E3, StmtConstructName, StmtLabel);
 error:
+  if(IDInfo) {
+    if(auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo))
+      DoVar = VarExpr::Create(Context, IDLoc, VD);
+  }
   SkipUntilNextStatement();
   return Actions.ActOnDoStmt(Context, Loc, EqLoc, TerminalStmt,
                              DoVar, E1, E2, E3, StmtConstructName, StmtLabel);
@@ -568,6 +574,14 @@ Parser::StmtResult Parser::ParseCallStmt() {
   }
 
   return Actions.ActOnCallStmt(Context, Loc, RParenLoc, FuncIdRange, ID, Arguments, StmtLabel);
+}
+
+Parser::StmtResult Parser::ParseAmbiguousAssignmentStmt() {
+  ParseStatementLabel();
+  auto S = ParseAssignmentStmt();
+  if(S.isInvalid()) SkipUntilNextStatement();
+  else ExpectStatementEnd();
+  return S;
 }
 
 /// ParseAssignmentStmt

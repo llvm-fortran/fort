@@ -35,6 +35,7 @@ Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine
     LastTokenWasSemicolon(false), LastTokenWasStatementLabel(false),
     UseSpecificIdContext(false), TheParser(P) {
   InitCharacterInfo();
+  StatementTokensOffset = -1;
 }
 
 void Lexer::setBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr) {
@@ -955,12 +956,18 @@ void Lexer::LexFixedFormIdentifier(Token &Result) {
     }
   }
 
-  if(MatchedId)
+  unsigned ExtraLength = 0;
+
+  if(MatchedId) {
+    ExtraLength = getCurrentPtr() - TokStart;
     Text.SetState(LastMatchedIdState);
+  }
 
   // We let the parser determine what type of identifier this is: identifier,
   // keyword, or built-in function.
   FormTokenWithChars(Result, tok::identifier);
+  if(ExtraLength)
+    Result.setExtraLength(ExtraLength);
   if(NeedsCleaning)
     Result.setFlag(Token::NeedsCleaning);
 }
@@ -1139,6 +1146,11 @@ void Lexer::LexComment(Token &Result) {
 void Lexer::SetIdContext(IdentifierLexingContext C) {
   UseSpecificIdContext = true;
   CurIdContext = C;
+}
+
+void Lexer::ReparseStatement(ArrayRef<Token> Tokens) {
+  StatementTokens = Tokens;
+  StatementTokensOffset = 0;
 }
 
 /// LexTokenInternal - This implements a simple Fortran family lexer. It is an
