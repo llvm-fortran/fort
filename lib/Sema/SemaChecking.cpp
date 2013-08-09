@@ -95,6 +95,16 @@ bool Sema::CheckConstantExpression(const Expr *E) {
   return true;
 }
 
+bool Sema::StatementRequiresConstantExpression(SourceLocation Loc, const Expr *E) {
+  if(!E->isEvaluatable(Context)) {
+    Diags.Report(Loc,
+                 diag::err_stmt_requires_consant_expr)
+      << E->getSourceRange();
+    return false;
+  }
+  return true;
+}
+
 bool Sema::CheckIntegerExpression(const Expr *E) {
   if(E->getType()->isIntegerType())
     return true;
@@ -235,6 +245,24 @@ Expr *Sema::TypecheckExprIntegerOrLogicalOrSameCharacter(Expr *E,
     }
   }
   return E;
+}
+
+bool Sema::IsDefaultBuiltinOrDoublePrecisionType(QualType T) {
+  auto Ext = T.getExtQualsPtrOrNull();
+  if(!Ext) return true;
+  if(Ext->getKindSelector() == BuiltinType::NoKind ||
+     Ext->isDoublePrecisionKind())
+    return true;
+  return false;
+}
+
+bool Sema::CheckDefaultBuiltinOrDoublePrecisionExpression(const Expr *E) {
+  if(IsDefaultBuiltinOrDoublePrecisionType(E->getType()))
+    return true;
+  Diags.Report(E->getLocation(),
+               diag::err_typecheck_expected_default_kind_expr)
+    << E->getType() << E->getSourceRange();
+  return false;
 }
 
 void Sema::CheckExpressionListSameTypeKind(ArrayRef<Expr*> Expressions) {

@@ -30,6 +30,8 @@ def err_expected_scalar_or_character_constant_expr : Error<
   "expected an integer, real, complex or character constant expression">;
 def err_expected_scalar_numeric_expr : Error<
   "expected a scalar expression (%0 invalid)">;
+def err_expected_numeric_or_logical_expr : Error<
+  "expected an expression of integer, real, complex or logical type (%0 invalid)">;
 def err_expected_var_ref : Error<
   "expected a variable reference">;
 
@@ -70,6 +72,10 @@ def err_typecheck_stmt_requires_int_logical_char_expr : Error<
   "statement requires an expression of integer, logical or character type (%0 invalid)">;
 def err_typecheck_expected_char_expr : Error<
   "expected an expression of character type (%0 invalid)">;
+def err_typecheck_expected_default_kind_expr : Error<
+  "expected an expression with default type kind (%0 invalid)">;
+def err_typecheck_expected_expr_of_type : Error<
+  "expected an expression of %0 type (%1 invalid)">;
 def err_typecheck_expected_int_var : Error<
   "expected an integer variable instead of a variable with type %0">;
 def err_typecheck_expected_format_spec : Error<
@@ -77,6 +83,7 @@ def err_typecheck_expected_format_spec : Error<
 
 def err_typecheck_array_constructor_invalid_item : Error<
   "invalid item in an array constructor with element type %0">;
+
 
 def err_var_not_assignable : Error<
   "assignment to a do variable %0">;
@@ -154,6 +161,8 @@ def note_parameter_value_invalid_expr : Note<
   "this expression is not allowed in a constant expression">;
 def err_expected_constant_expr : Error<
   "expected a constant expression">;
+def err_stmt_requires_consant_expr : Error<
+  "statement requires a constant expression">;
 
 def err_intrinsic_invalid_func : Error<
   "invalid function name %0 in an intrinsic statement">;
@@ -216,10 +225,13 @@ def err_spec_requires_local_var : Error<
   "specification statement requires a local variable">;
 def err_spec_requires_local_var_arg : Error<
   "specification statement requires a local variable or an argument">;
+def err_spec_requires_var_or_arr_el : Error<
+  "specification statement requires a variable or an array element expression">;
 def err_spec_dimension_already_array : Error<
   "the specification statement 'dimension' cannot be applied to the array variable %0">;
 def err_spec_qual_reapplication : Error<
  "the specification statement '%0' cannot be applied to the variable %1 more than once">;
+
 
 def err_format_without_stmt_label : Error<
   "'FORMAT' statement is missing a statement label">;

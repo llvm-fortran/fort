@@ -317,6 +317,10 @@ public:
                               ArrayRef<Expr*> ObjectList,
                               Expr *StmtLabel);
 
+  bool CheckEquivalenceObject(SourceLocation Loc, Expr *E);
+
+  bool CheckEquivalenceType(QualType ExpectedType, const Expr *E);
+
   // DATA statement:
   StmtResult ActOnDATA(ASTContext &C, SourceLocation Loc,
                        ArrayRef<ExprResult> LHS,
@@ -538,6 +542,9 @@ public:
   /// Returns true if an expression is constant(i.e. evaluatable)
   bool CheckConstantExpression(const Expr *E);
 
+  /// Returns true if an expression is constant
+  bool StatementRequiresConstantExpression(SourceLocation Loc, const Expr *E);
+
   /// Returns true if an expression is an integer expression
   bool CheckIntegerExpression(const Expr *E);
 
@@ -582,6 +589,14 @@ public:
   /// if the expected type is character and expression is character(same kind)
   Expr *TypecheckExprIntegerOrLogicalOrSameCharacter(Expr *E,
                                                      QualType ExpectedType);
+
+  /// Returns true if the type is of default kind,
+  /// or is a double precision type
+  bool IsDefaultBuiltinOrDoublePrecisionType(QualType T);
+
+  /// Returns true if the expession's type is of default kind,
+  /// or is a double precision type
+  bool CheckDefaultBuiltinOrDoublePrecisionExpression(const Expr *E);
 
   /// Checks that all of the expressions have the same type
   /// class and kind.
