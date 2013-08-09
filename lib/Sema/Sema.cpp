@@ -921,20 +921,34 @@ bool Sema::CheckEquivalenceObject(SourceLocation Loc, Expr *E) {
 // FIXME: add support for derived types.
 // FIXME: check default character kind.
 bool Sema::CheckEquivalenceType(QualType ExpectedType, const Expr *E) {
+  auto ObjectType = E->getType();
+  if(ObjectType->isArrayType())
+    ObjectType = ObjectType->asArrayType()->getElementType();
+
   if(ExpectedType->isCharacterType()) {
-    CheckCharacterExpression(E);
+    if(!ObjectType->isCharacterType()) {
+      Diags.Report(E->getLocation(),
+                   diag::err_typecheck_expected_char_expr)
+        << ObjectType << E->getSourceRange();
+      return true;
+    }
   } else if(ExpectedType->isBuiltinType()) {
     if(IsDefaultBuiltinOrDoublePrecisionType(ExpectedType)) {
-      if(E->getType()->isCharacterType()) {
+      if(ObjectType->isCharacterType()) {
         Diags.Report(E->getLocation(), diag::err_expected_numeric_or_logical_expr)
-          << E->getType() << E->getSourceRange();
+          << ObjectType << E->getSourceRange();
         return true;
       }
-      CheckDefaultBuiltinOrDoublePrecisionExpression(E);
+      if(!IsDefaultBuiltinOrDoublePrecisionType(ObjectType)) {
+        Diags.Report(E->getLocation(),
+                     diag::err_typecheck_expected_default_kind_expr)
+          << ObjectType << E->getSourceRange();
+        return true;
+      }
     } else {
-      if(!CheckTypesSameKind(ExpectedType, E->getType())) {
+      if(!CheckTypesSameKind(ExpectedType, ObjectType)) {
         Diags.Report(E->getLocation(), diag::err_typecheck_expected_expr_of_type)
-          << ExpectedType << E->getType()
+          << ExpectedType << ObjectType
           << E->getSourceRange();
         return true;
       }
@@ -974,6 +988,8 @@ StmtResult Sema::ActOnEQUIVALENCE(ASTContext &C, SourceLocation Loc,
 
     if(ObjectType.isNull()) {
       ObjectType = I->getType();
+      if(ObjectType->isArrayType())
+        ObjectType = ObjectType->asArrayType()->getElementType();
     } else {
       if(CheckEquivalenceType(ObjectType, I))
         HasErrors = true;

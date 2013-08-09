@@ -248,6 +248,8 @@ Expr *Sema::TypecheckExprIntegerOrLogicalOrSameCharacter(Expr *E,
 }
 
 bool Sema::IsDefaultBuiltinOrDoublePrecisionType(QualType T) {
+  if(!T->isBuiltinType())
+    return false;
   auto Ext = T.getExtQualsPtrOrNull();
   if(!Ext) return true;
   if(Ext->getKindSelector() == BuiltinType::NoKind ||
