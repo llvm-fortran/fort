@@ -542,6 +542,11 @@ public:
   /// Returns true if an expression is constant(i.e. evaluatable)
   bool CheckConstantExpression(const Expr *E);
 
+  /// Returns true if an expression is dependent on a
+  /// function argument. Does integer typechecking and
+  /// reports argument type errors.
+  bool CheckArgumentDependentEvaluatableIntegerExpression(Expr *E);
+
   /// Returns true if an expression is constant
   bool StatementRequiresConstantExpression(SourceLocation Loc, const Expr *E);
 

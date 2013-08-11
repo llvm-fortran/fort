@@ -1191,23 +1191,8 @@ QualType Sema::ActOnArraySpec(ASTContext &C, QualType ElemTy,
 }
 
 bool Sema::CheckArrayBoundValue(Expr *E) {
-  if(auto VE = dyn_cast<VarExpr>(E)) {
-    auto VD = VE->getVarDecl();
-    if(VD->isArgument()) {
-      if(VD->getType().isNull()) {
-        if(!ApplyImplicitRulesToArgument(const_cast<VarDecl*>(VD),
-                                         E->getSourceRange()))
-          return false;
-        VE->setType(VD->getType());
-      }
-      if(!VD->getType()->isIntegerType()) {
-        Diags.Report(E->getLocation(), diag::err_array_explicit_shape_requires_int_arg)
-          << VD->getType() << E->getSourceRange();
-        return false;
-      }
-      return true;
-    }
-  }
+  if(CheckArgumentDependentEvaluatableIntegerExpression(E))
+    return true;
 
   auto Type = E->getType();
 

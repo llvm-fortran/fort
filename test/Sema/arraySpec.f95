@@ -11,11 +11,15 @@ SUBROUTINE SUB(ARR, ARR2, ARR3)
   i = ARR3(3,2) ! CHECK: i = int(arr3(3, 2))
 END
 
-SUBROUTINE BUS(L, ARR, ARR2)
-  INTEGER L
+SUBROUTINE BUS(L, J, A, ARR, ARR2, ARR3, ARR4, ARR5)
+  INTEGER L, J
   INTEGER I
+  REAL A
   REAL ARR2(L)
   DIMENSION ARR(L)
+  REAL ARR3(L+J+1)
+  REAL ARR4(L+A) ! expected-error {{array specifier requires an integer argument ('real' invalid)}}
+  REAL ARR5(L+I) ! expected-error {{expected a constant expression}}
 
   ! ARR is REAL by implicit
   I = ARR(1) ! CHECK: i = int(arr(1))

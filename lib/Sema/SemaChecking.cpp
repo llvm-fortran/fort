@@ -13,6 +13,7 @@
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
+#include "flang/AST/ExprVisitor.h"
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -93,6 +94,82 @@ bool Sema::CheckConstantExpression(const Expr *E) {
     return false;
   }
   return true;
+}
+
+class ArgumentDependentExprChecker : public ExprVisitor<ArgumentDependentExprChecker> {
+public:
+  ASTContext &Context;
+  Sema &Sem;
+  DiagnosticsEngine &Diags;
+  bool HasArgumentTypeErrors;
+  bool CheckEvaluatable;
+  bool ArgumentDependent;
+  bool Evaluatable;
+
+  ArgumentDependentExprChecker(ASTContext &C, Sema &S,
+                               DiagnosticsEngine &Diag)
+    : Context(C), Sem(S), Diags(Diag),
+      HasArgumentTypeErrors(false),
+      CheckEvaluatable(false), ArgumentDependent(false), Evaluatable(true) {}
+
+  void VisitVarExpr(VarExpr *E) {
+    auto VD = E->getVarDecl();
+    if(VD->isArgument()) {
+      ArgumentDependent = true;
+      if(!CheckEvaluatable) {
+        if(VD->getType().isNull()) {
+          if(!Sem.ApplyImplicitRulesToArgument(const_cast<VarDecl*>(VD),
+                                               E->getSourceRange())) {
+            HasArgumentTypeErrors = true;
+            return;
+          }
+          E->setType(VD->getType());
+        }
+        if(!VD->getType()->isIntegerType()) {
+          Diags.Report(E->getLocation(), diag::err_array_explicit_shape_requires_int_arg)
+            << VD->getType() << E->getSourceRange();
+          HasArgumentTypeErrors = true;
+        }
+      }
+    } else
+      VisitExpr(E);
+  }
+
+  void VisitBinaryExpr(BinaryExpr *E) {
+    Visit(E->getLHS());
+    Visit(E->getRHS());
+  }
+  void VisitUnaryExpr(UnaryExpr *E) {
+    Visit(E->getExpression());
+  }
+  void VisitImplicitCastExpr(ImplicitCastExpr *E) {
+    Visit(E->getExpression());
+  }
+  void VisitExpr(Expr *E) {
+    if(!E->isEvaluatable(Context)) {
+      Evaluatable = false;
+      if(CheckEvaluatable) {
+        Diags.Report(E->getLocation(),
+                     diag::err_expected_constant_expr)
+          << E->getSourceRange();
+      }
+    }
+  }
+};
+
+bool Sema::CheckArgumentDependentEvaluatableIntegerExpression(Expr *E) {
+  ArgumentDependentExprChecker EV(Context, *this, Diags);
+  EV.Visit(E);
+  if(EV.ArgumentDependent) {
+    /// Report unevaluatable errors.
+    if(!EV.Evaluatable) {
+      EV.CheckEvaluatable = true;
+      EV.Visit(E);
+    } else if(!EV.HasArgumentTypeErrors)
+      CheckIntegerExpression(E);
+    return true;
+  }
+  return false;
 }
 
 bool Sema::StatementRequiresConstantExpression(SourceLocation Loc, const Expr *E) {
