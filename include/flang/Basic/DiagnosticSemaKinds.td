@@ -82,7 +82,7 @@ def err_typecheck_expected_format_spec : Error<
   "expected a valid format specifier instead of an expression with type %0">;
 def err_typecheck_expected_array_of_dim_count : Error<
   "expected an expression of array type with %0 %plural{1:dimension|:dimensions}0"
-  "(%1 %plural{1:dimension|:dimensions}1 invalid)">;
+  " (%1 %plural{1:dimension|:dimensions}1 invalid)">;
 def err_typecheck_array_dim_shape_mismatch : Error<
   "expected an expression of array type with size %0 for the dimension %1 (size %2 invalid)">;
 

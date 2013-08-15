@@ -545,7 +545,7 @@ bool Sema::CheckArrayDimensionsCompability(const ArrayType *LHS,
         auto RHSSize = RHSBounds[1] - RHSBounds[0] + 1;
         if(LHSSize != RHSSize) {
           Diags.Report(Loc, diag::err_typecheck_array_dim_shape_mismatch)
-           << int(LHSSize) << unsigned(I) << int(RHSSize)
+           << int(LHSSize) << unsigned(I+1) << int(RHSSize)
            << LHSRange << RHSRange;
           return false;
         }
