@@ -163,14 +163,17 @@ static QualType TypeWithKind(ASTContext &C, QualType T, QualType TKind) {
   return C.getQualTypeOtherKind(T, TKind);
 }
 
-ExprResult Sema::TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
-                                     SourceLocation Loc, SourceLocation MinLoc,
-                                     SourceRange ExtraRange) {
-  const Type *LHSType = LHSTypeof.getTypePtr();
-  auto RHSTypeof = RHS.get()->getType();
-  const Type *RHSType = RHSTypeof.getTypePtr();
-  auto LHSExtQuals = LHSTypeof.getExtQualsPtrOrNull();
-  auto RHSExtQuals = RHS.get()->getType().getExtQualsPtrOrNull();
+enum TypecheckAction {
+  NoAction,
+  ImplicitCastAction,
+  ErrorAction
+};
+
+static TypecheckAction TypecheckAssignment(ASTContext &Context,
+                                           QualType LHSType, QualType RHSType) {
+  TypecheckAction Result = NoAction;
+  auto LHSExtQuals = LHSType.getExtQualsPtrOrNull();
+  auto RHSExtQuals = RHSType.getExtQualsPtrOrNull();
 
   // Arithmetic assigment
   bool IsRHSInteger = RHSType->isIntegerType();
@@ -181,48 +184,87 @@ ExprResult Sema::TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
 
   if(LHSType->isIntegerType()) {
     if(IsRHSInteger && ExtQualsSameKind(Context, LHSExtQuals, RHSExtQuals,
-                                        LHSTypeof, RHSTypeof)) ;
-    else if(IsRHSArithmetic)
-      RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                     LHSTypeof, RHS.take());
-    else goto typeError;
+                                        LHSType, RHSType)) ;
+    else if(IsRHSArithmetic) Result = ImplicitCastAction;
+    else Result = ErrorAction;
   } else if(LHSType->isRealType()) {
     if(IsRHSReal && ExtQualsSameKind(Context, LHSExtQuals, RHSExtQuals,
-                                     LHSTypeof, RHSTypeof)) ;
-    else if(IsRHSArithmetic)
-      RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                     LHSTypeof, RHS.take());
-    else goto typeError;
+                                     LHSType, RHSType)) ;
+    else if(IsRHSArithmetic) Result = ImplicitCastAction;
+    else Result = ErrorAction;
   } else if(LHSType->isComplexType()) {
     if(IsRHSComplex && ExtQualsSameKind(Context, LHSExtQuals, RHSExtQuals,
-                                        LHSTypeof, RHSTypeof)) ;
-    else if(IsRHSArithmetic)
-      RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                     LHSTypeof, RHS.take());
-    else goto typeError;
+                                        LHSType, RHSType)) ;
+    else if(IsRHSArithmetic) Result = ImplicitCastAction;
+    else Result = ErrorAction;
   }
 
   // Logical assignment
   else if(LHSType->isLogicalType()) {
-    if(!RHSType->isLogicalType()) goto typeError;
-    if(!ExtQualsSameKind(Context, LHSExtQuals, RHSExtQuals,
-                        LHSTypeof, RHSTypeof))
-      RHS = ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                     LHSTypeof, RHS.take());
+    if(!RHSType->isLogicalType())
+      Result = ErrorAction;
+    else if(!ExtQualsSameKind(Context, LHSExtQuals, RHSExtQuals,
+                         LHSType, RHSType))
+      Result = ImplicitCastAction;
   }
 
   // Character assignment
+  // FIXME: kinds
   else if(LHSType->isCharacterType()) {
-    if(!RHSType->isCharacterType()) goto typeError;
+    if(!RHSType->isCharacterType()) Result = ErrorAction;
   }
 
   // Invalid assignment
-  else goto typeError;
+  else return ErrorAction;
 
-  return RHS;
-typeError:
+  return Result;
+}
+
+ExprResult Sema::TypecheckAssignment(QualType LHSType, ExprResult RHS,
+                                     SourceLocation Loc, SourceLocation MinLoc,
+                                     SourceRange ExtraRange) {
+  auto RHSType = RHS.get()->getType();
+  if(LHSType->isArrayType()) {
+    auto LHSElementType = LHSType->asArrayType()->getElementType();
+    if(RHSType->isArrayType()) {
+      auto RHSElementType = RHSType->asArrayType()->getElementType();
+
+      // Check the array compabilities
+      if(!CheckArrayDimensionsCompability(LHSType->asArrayType(),
+                                          RHSType->asArrayType(),
+                                          Loc,
+                                          SourceRange(MinLoc, Loc),
+                                          ExtraRange))
+        return ExprError();
+
+      // cast an array to appropriate type.
+      auto Action = ::flang::TypecheckAssignment(Context, LHSElementType, RHSElementType);
+      if(Action == NoAction)
+        return RHS;
+      else if(Action == ImplicitCastAction)
+        return ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
+                                        LHSType, RHS.take());
+      auto Reporter = Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
+          << LHSElementType << RHSElementType
+          << SourceRange(MinLoc,
+                         RHS.get()->getLocEnd());
+      if(ExtraRange.isValid())
+        Reporter << ExtraRange;
+      return ExprError();
+    }
+    else
+      LHSType = LHSElementType; // fallthrough
+  }
+
+  auto Action = ::flang::TypecheckAssignment(Context, LHSType, RHSType);
+  if(Action == NoAction)
+    return RHS;
+  else if(Action == ImplicitCastAction)
+    return ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
+                                    LHSType, RHS.take());
+
   auto Reporter = Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
-      << LHSTypeof << RHS.get()->getType()
+      << LHSType << RHS.get()->getType()
       << SourceRange(MinLoc,
                      RHS.get()->getLocEnd());
   if(ExtraRange.isValid())
@@ -632,6 +674,25 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
 
   return IntrinsicCallExpr::Create(C, Loc, Function,
                                    Arguments, ReturnType);
+}
+
+ExprResult Sema::ActOnArrayConstructorExpr(ASTContext &C, SourceLocation Loc,
+                                           SourceLocation RParenLoc, ArrayRef<Expr*> Elements) {
+  SmallVector<Expr*, 32> Items;
+  for(auto I : Elements) {
+    if(auto ArrC = dyn_cast<ArrayConstructorExpr>(I)) {
+      for(auto J : ArrC->getItems())
+        Items.push_back(J);
+    } else
+      Items.push_back(I);
+  }
+  QualType ElementType;
+  CheckArrayConstructorItems(Items, ElementType);
+  ArraySpec *Dim = ExplicitShapeSpec::Create(C,
+                     IntegerConstantExpr::Create(C, Loc, Loc,
+                       llvm::APInt(64, Items.size())));
+  auto ArrayType = C.getArrayType(ElementType, Dim);
+  return ArrayConstructorExpr::Create(C, Loc, Items, ArrayType);
 }
 
 } // namespace flang

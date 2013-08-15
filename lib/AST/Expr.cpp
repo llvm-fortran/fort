@@ -37,14 +37,25 @@ SourceLocation ConstantExpr::getLocEnd() const {
 
 IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, SourceLocation Loc,
                                          SourceLocation MaxLoc, llvm::StringRef Data)
-  : ConstantExpr(IntegerConstantExprClass, C.IntegerTy,  Loc, MaxLoc) {
+  : ConstantExpr(IntegerConstantExprClass, C.IntegerTy, Loc, MaxLoc) {
   llvm::APInt Val(64,Data,10);
   Num.setValue(C, Val);
+}
+
+IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, SourceLocation Loc,
+                                         SourceLocation MaxLoc, APInt Value)
+  : ConstantExpr(IntegerConstantExprClass, C.IntegerTy, Loc, MaxLoc) {
+  Num.setValue(C, Value);
 }
 
 IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, SourceLocation Loc,
                                                  SourceLocation MaxLoc, llvm::StringRef Data) {
   return new (C) IntegerConstantExpr(C, Loc, MaxLoc, Data);
+}
+
+IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, SourceLocation Loc,
+                                                 SourceLocation MaxLoc, APInt Value) {
+  return new (C) IntegerConstantExpr(C, Loc, MaxLoc, Value);
 }
 
 RealConstantExpr::RealConstantExpr(ASTContext &C, SourceLocation Loc,
@@ -324,7 +335,8 @@ CallExpr *CallExpr::Create(ASTContext &C, SourceLocation Loc,
 }
 
 SourceLocation CallExpr::getLocEnd() const {
-  return getArguments().back()->getLocEnd();
+  return getArguments().empty()? getLocation() :
+                                 getArguments().back()->getLocEnd();
 }
 
 IntrinsicCallExpr::

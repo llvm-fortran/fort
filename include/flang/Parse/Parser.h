@@ -103,7 +103,8 @@ private:
   /// ConstructName - If set, this is the construct name for the construct.
   ConstructName StmtConstructName;
 
-  unsigned short ParenCount, BracketCount, BraceCount;
+  unsigned short ParenCount, ParenSlashCount,
+                 BracketCount, BraceCount;
 
   // PrevTokLocation - The location of the token we previously consumed. This
   // token is used for diagnostics where we expected to see a token following
@@ -228,6 +229,11 @@ private:
     return Tok.getKind() == tok::l_paren || Tok.getKind() == tok::r_paren;
   }
 
+  /// isTokenParenSlash - Return true if the cur token is '(/' or '/)'.
+  bool isTokenParenSlash() const {
+    return Tok.getKind() == tok::l_parenslash || Tok.getKind() == tok::slashr_paren;
+  }
+
   /// isTokenIdentifier - Return true if the cur token is a usable
   /// identifier (this can also be a keyword).
   bool isTokenIdentifier() const {
@@ -267,6 +273,8 @@ private:
   SourceLocation ConsumeAnyToken(bool ConsumeCodeCompletionTok = false) {
     if (isTokenParen())
       return ConsumeParen();
+    else if (isTokenParenSlash())
+      return ConsumeParenSlash();
     else return ConsumeToken();
   }
 
@@ -279,6 +287,19 @@ private:
       ++ParenCount;
     else if (ParenCount)
       --ParenCount;       // Don't let unbalanced )'s drive the count negative.
+    Lex();
+    return Loc;
+  }
+
+  /// ConsumeParenSlash - This consume method keeps the paren slash count up-to-date.
+  ///
+  SourceLocation ConsumeParenSlash() {
+    assert(isTokenParenSlash() && "wrong consume method");
+    auto Loc = Tok.getLocation();
+    if (Tok.getKind() == tok::l_parenslash)
+      ++ParenSlashCount;
+    else if (ParenSlashCount)
+      --ParenSlashCount;       // Don't let unbalanced /)'s drive the count negative.
     Lex();
     return Loc;
   }
@@ -476,6 +497,7 @@ private:
   ExprResult ParseFunctionCallArgumentList(SmallVectorImpl<Expr*> &Args,
                                            SourceLocation &RParenLoc);
   ExprResult ParseCallExpression(SourceRange IdRange, FunctionDecl *Function);
+  ExprResult ParseArrayConstructor();
 
   /// \brief Looks at the next token to see if it's an expression
   /// and calls ParseExpression if it is, or reports an expected expression

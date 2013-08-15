@@ -38,6 +38,7 @@ def err_expected_ident_lparen : Error<"expected identifier or '('">;
 def err_expected_ident_lbrace : Error<"expected identifier or '{'">;
 def err_expected_lbrace : Error<"expected '{'">;
 def err_expected_lparen : Error<"expected '('">;
+def err_expected_lparenslash : Error<"expected '(/'">;
 def err_expected_lparen_after : Error<"expected '(' after '%0'">;
 def err_expected_lparen_or_lbrace : Error<"expected '('or '{'">;
 def err_expected_rparen : Error<"expected ')'">;
@@ -45,6 +46,7 @@ def err_expected_single_rparen_stmt_end : Error<
   "expected ')' before the end of the statement">;
 def err_expected_rparen_stmt_end : Error<
   "expected %0 ')'s before the end of the statement">;
+def err_expected_slashrparen : Error<"expected '/)'">;
 def err_expected_lsquare : Error<"expected '['">;
 def err_expected_rsquare : Error<"expected ']'">;
 def err_expected_rbrace : Error<"expected '}'">;

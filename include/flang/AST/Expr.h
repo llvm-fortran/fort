@@ -195,9 +195,13 @@ class IntegerConstantExpr : public ConstantExpr {
   APIntStorage Num;
   IntegerConstantExpr(ASTContext &C, SourceLocation Loc,
                       SourceLocation MaxLoc, llvm::StringRef Data);
+  IntegerConstantExpr(ASTContext &C, SourceLocation Loc,
+                      SourceLocation MaxLoc, APInt Value);
 public:
   static IntegerConstantExpr *Create(ASTContext &C, SourceLocation Loc,
                                      SourceLocation MaxLoc, llvm::StringRef Data);
+  static IntegerConstantExpr *Create(ASTContext &C, SourceLocation Loc,
+                                     SourceLocation MaxLoc, APInt Value);
 
   APInt getValue() const { return Num.getValue(); }
 

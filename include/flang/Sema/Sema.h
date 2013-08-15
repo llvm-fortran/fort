@@ -476,6 +476,9 @@ public:
                                             const IntrinsicFunctionDecl *FunctionDecl,
                                             ArrayRef<Expr*> Arguments);
 
+  ExprResult ActOnArrayConstructorExpr(ASTContext &C, SourceLocation Loc,
+                                       SourceLocation RParenLoc, ArrayRef<Expr*> Elements);
+
   // Format
   StmtResult ActOnFORMAT(ASTContext &C, SourceLocation Loc,
                          FormatItemResult Items,
@@ -693,8 +696,10 @@ public:
   /// Returns true if the given character length can be applied to a declaration.
   bool CheckCharacterLengthDeclarationCompability(QualType T, VarDecl *VD);
 
+
+
   /// Performs assignment typechecking.
-  ExprResult TypecheckAssignment(QualType LHSTypeof, ExprResult RHS,
+  ExprResult TypecheckAssignment(QualType LHSType, ExprResult RHS,
                                  SourceLocation Loc = SourceLocation(),
                                  SourceLocation MinLoc = SourceLocation(),
                                  SourceRange ExtraRange = SourceRange());
@@ -710,6 +715,13 @@ public:
   /// As a bonus it also returns the Element type in ObtainedElementType.
   bool CheckArrayConstructorItems(ArrayRef<Expr*> Items,
                                   QualType &ObtainedElementType);
+
+  /// Returns true if the two array types are compatible with
+  /// one another, i.e. they have the same dimension count
+  /// and the shapes of the dimensions are identical
+  bool CheckArrayDimensionsCompability(const ArrayType *LHS,
+                                       const ArrayType *RHS, SourceLocation Loc,
+                                       SourceRange LHSRange, SourceRange RHSRange);
 
   /// Returns true if the variable can be assigned to (mutated)
   bool CheckVarIsAssignable(const VarExpr *E);

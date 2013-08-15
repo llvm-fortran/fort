@@ -496,8 +496,8 @@ bool Sema::CheckArrayConstructorItems(ArrayRef<Expr*> Items,
   size_t I;
   QualType ElementType;
   // Set the first valid type to be the element type
-  for(size_t I = 0; I < Items.size(); ++I) {
-    auto ElementType = Items[I]->getType();
+  for(I = 0; I < Items.size(); ++I) {
+    ElementType = Items[I]->getType();
     if(CheckTypeScalarOrCharacter(Items[I], ElementType, true))
       break;
     Result = false;
@@ -510,14 +510,50 @@ bool Sema::CheckArrayConstructorItems(ArrayRef<Expr*> Items,
     auto T = Items[I]->getType();
     if(!CheckTypesSameKind(ElementType, T)) {
       Diags.Report(Items[I]->getLocation(),
-                   diag::err_typecheck_array_constructor_invalid_item)
-        << Items[I]->getSourceRange();
+                   diag::err_typecheck_expected_expr_of_type)
+        << ElementType << T << Items[I]->getSourceRange();
       Result = false;
     }
   }
 
   ObtainedElementType = ElementType;
   return Result;
+}
+
+// FIXME: ARR(:) = ARR(:) or ARR(*)
+bool Sema::CheckArrayDimensionsCompability(const ArrayType *LHS,
+                                           const ArrayType *RHS,
+                                           SourceLocation Loc,
+                                           SourceRange LHSRange,
+                                           SourceRange RHSRange) {
+  if(LHS->getDimensionCount() !=
+     RHS->getDimensionCount()) {
+    Diags.Report(Loc, diag::err_typecheck_expected_array_of_dim_count)
+      << unsigned(LHS->getDimensionCount())
+      << unsigned(RHS->getDimensionCount())
+      << LHSRange << RHSRange;
+    return false;
+  }
+
+  for(size_t I = 0, Count = LHS->getDimensionCount(); I < Count; ++I) {
+    auto LHSDim = LHS->getDimensions()[I];
+    auto RHSDim = RHS->getDimensions()[I];
+    int64_t LHSBounds[2], RHSBounds[2];
+    if(LHSDim->EvaluateBounds(LHSBounds[0], LHSBounds[1], Context)) {
+      if(RHSDim->EvaluateBounds(RHSBounds[0], RHSBounds[1], Context)) {
+        auto LHSSize = LHSBounds[1] - LHSBounds[0] + 1;
+        auto RHSSize = RHSBounds[1] - RHSBounds[0] + 1;
+        if(LHSSize != RHSSize) {
+          Diags.Report(Loc, diag::err_typecheck_array_dim_shape_mismatch)
+           << int(LHSSize) << unsigned(I) << int(RHSSize)
+           << LHSRange << RHSRange;
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
 }
 
 bool Sema::CheckVarIsAssignable(const VarExpr *E) {

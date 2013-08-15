@@ -68,7 +68,7 @@ Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  
   NextTok.startToken();
 
   PrevTokLocEnd = Tok.getLocation();
-  ParenCount = BraceCount = BracketCount = 0;
+  ParenCount = ParenSlashCount = BraceCount = BracketCount = 0;
   PrevStmtWasSelectCase = false;
 }
 
@@ -113,6 +113,7 @@ void Parser::Lex() {
   /// Reset paren count
   if(Tok.isAtStartOfStatement()) {
     ParenCount = 0;
+    ParenSlashCount = 0;
     StatementTokens.clear();
   }
   if(Tok.isNot(tok::unknown) && !Tok.isStored()) {
@@ -450,6 +451,12 @@ bool Parser::ExpectAndConsume(tok::TokenKind ExpectedTok, unsigned Diag,
     case tok::r_paren:
       Diag = diag::err_expected_rparen;
       break;
+    case tok::l_parenslash:
+      Diag = diag::err_expected_lparenslash;
+      break;
+    case tok::slashr_paren:
+      Diag = diag::err_expected_slashrparen;
+      break;
     case tok::equal:
       Diag = diag::err_expected_equal;
       break;
@@ -517,6 +524,10 @@ bool Parser::SkipUntil(ArrayRef<tok::TokenKind> Toks, bool StopAtNextStatement,
       ConsumeParen();
       SkipUntil(tok::r_paren, StopAtNextStatement, false);
       break;
+    case tok::l_parenslash:
+      ConsumeParenSlash();
+      SkipUntil(tok::slashr_paren, StopAtNextStatement, false);
+      break;
 
     // Okay, we found a ']' or '}' or ')', which we think should be balanced.
     // Since the user wasn't looking for this token (if they were, it would
@@ -527,6 +538,11 @@ bool Parser::SkipUntil(ArrayRef<tok::TokenKind> Toks, bool StopAtNextStatement,
       if (ParenCount && !isFirstTokenSkipped)
         return false;  // Matches something.
       ConsumeParen();
+      break;
+    case tok::slashr_paren:
+      if (ParenSlashCount && !isFirstTokenSkipped)
+        return false;  // Matches something.
+      ConsumeParenSlash();
       break;
     default:
       ConsumeToken();

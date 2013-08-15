@@ -439,6 +439,10 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
     ExpectAndConsume(tok::r_paren, 0, "", tok::r_paren);
     break;
   }
+  case tok::l_parenslash : {
+    return ParseArrayConstructor();
+    break;
+  }
   case tok::logical_literal_constant: {
     std::string NumStr;
     CleanLiteral(Tok, NumStr);
@@ -869,6 +873,33 @@ ExprResult Parser::ParseDataReference() {
 ExprResult Parser::ParsePartReference() {
   ExprResult E;
   return E;
+}
+
+/// FIXME: todo implied-do
+ExprResult Parser::ParseArrayConstructor() {
+  auto Loc = ConsumeParenSlash();
+  SourceLocation EndLoc = Tok.getLocation();
+
+  SmallVector<Expr*, 16> ExprList;
+  if(ConsumeIfPresent(tok::slashr_paren))
+    return Actions.ActOnArrayConstructorExpr(Context, Loc, EndLoc, ExprList);
+  do {
+    auto E = ParseExpectedExpression();
+    if(E.isInvalid())
+      goto error;
+    if(E.isUsable())
+      ExprList.push_back(E.get());
+  } while(ConsumeIfPresent(tok::comma));
+
+  EndLoc = Tok.getLocation();
+  if(!ExpectAndConsume(tok::slashr_paren))
+    goto error;
+
+  return Actions.ActOnArrayConstructorExpr(Context, Loc, EndLoc, ExprList);
+error:
+  EndLoc = Tok.getLocation();
+  SkipUntil(tok::slashr_paren);
+  return Actions.ActOnArrayConstructorExpr(Context, Loc, EndLoc, ExprList);
 }
 
 } //namespace flang
