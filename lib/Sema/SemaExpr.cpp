@@ -221,8 +221,8 @@ static TypecheckAction TypecheckAssignment(ASTContext &Context,
 }
 
 ExprResult Sema::TypecheckAssignment(QualType LHSType, ExprResult RHS,
-                                     SourceLocation Loc, SourceLocation MinLoc,
-                                     SourceRange ExtraRange) {
+                                     SourceLocation Loc, SourceRange LHSRange,
+                                     SourceRange RHSRange) {
   auto RHSType = RHS.get()->getType();
   if(LHSType->isArrayType()) {
     auto LHSElementType = LHSType->asArrayType()->getElementType();
@@ -233,8 +233,8 @@ ExprResult Sema::TypecheckAssignment(QualType LHSType, ExprResult RHS,
       if(!CheckArrayDimensionsCompability(LHSType->asArrayType(),
                                           RHSType->asArrayType(),
                                           Loc,
-                                          SourceRange(MinLoc, Loc),
-                                          ExtraRange))
+                                          LHSRange,
+                                          RHSRange))
         return ExprError();
 
       // cast an array to appropriate type.
@@ -245,11 +245,11 @@ ExprResult Sema::TypecheckAssignment(QualType LHSType, ExprResult RHS,
         return ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
                                         LHSType, RHS.take());
       auto Reporter = Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
-          << LHSElementType << RHSElementType
-          << SourceRange(MinLoc,
-                         RHS.get()->getLocEnd());
-      if(ExtraRange.isValid())
-        Reporter << ExtraRange;
+          << LHSElementType << RHSElementType;
+      if(LHSRange.isValid())
+        Reporter << LHSRange;
+      if(RHSRange.isValid())
+        Reporter << RHSRange;
       return ExprError();
     }
     else
@@ -264,11 +264,11 @@ ExprResult Sema::TypecheckAssignment(QualType LHSType, ExprResult RHS,
                                     LHSType, RHS.take());
 
   auto Reporter = Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
-      << LHSType << RHS.get()->getType()
-      << SourceRange(MinLoc,
-                     RHS.get()->getLocEnd());
-  if(ExtraRange.isValid())
-    Reporter << ExtraRange;
+      << LHSType << RHS.get()->getType();
+  if(LHSRange.isValid())
+    Reporter << LHSRange;
+  if(RHSRange.isValid())
+    Reporter << RHSRange;
   return ExprError();
 }
 
@@ -560,7 +560,8 @@ bool Sema::CheckSubscriptExprDimensionCount(SourceLocation Loc,
 
 ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
                                     Expr *Target, llvm::ArrayRef<Expr*> Subscripts) {
-  assert(Subscripts.size());
+  if(Subscripts.empty())
+    return ExprError();
   CheckSubscriptExprDimensionCount(Loc, RParenLoc, Target, Subscripts);
 
   //FIXME constraint

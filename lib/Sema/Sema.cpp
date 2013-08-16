@@ -406,7 +406,9 @@ FunctionDecl *Sema::ActOnStatementFunction(ASTContext &C,
 void Sema::ActOnStatementFunctionBody(SourceLocation Loc, ExprResult Body) {
   auto Func = CurrentContextAsFunction();
   auto Type = Func->getType();
-  Body = TypecheckAssignment(Type, Body, Loc, Loc);
+  Body = TypecheckAssignment(Type, Body, Loc,
+                             getIdentifierRange(Func->getLocation(), Func->getIdentifier()),
+                             Body.get()->getSourceRange());
   CurrentContextAsFunction()->setBody(Body.get());
 }
 
@@ -779,7 +781,9 @@ StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
 
   if(VD) {
     Value = TypecheckAssignment(VD->getType(), Value,
-                                EqualLoc, IDLoc);
+                                EqualLoc,
+                                getIdentifierRange(IDLoc, IDInfo),
+                                Value.get()->getSourceRange());
     if(Value.isInvalid()) return StmtError();
     // FIXME: if value is invalid, mutate into parameter givin a zero value
     VD->MutateIntoParameter(Value.get());
@@ -1151,11 +1155,14 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
   }
   if(auto Var = dyn_cast<VarExpr>(LHS.get()))
     CheckVarIsAssignable(Var);
+  if(!RHS.isUsable())
+    return StmtError();
   if(LHS.get()->getType().isNull() ||
      RHS.get()->getType().isNull())
     return StmtError();
   RHS = TypecheckAssignment(LHS.get()->getType(), RHS,
-                            Loc, LHS.get()->getLocStart());
+                            Loc, LHS.get()->getSourceRange(),
+                            RHS.get()->getSourceRange());
   if(RHS.isInvalid()) return StmtError();
 
   auto Result = AssignmentStmt::Create(C, Loc, LHS.take(), RHS.take(), StmtLabel);

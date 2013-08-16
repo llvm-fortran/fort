@@ -520,7 +520,17 @@ bool Sema::CheckArrayConstructorItems(ArrayRef<Expr*> Items,
   return Result;
 }
 
-// FIXME: ARR(:) = ARR(:) or ARR(*)
+bool Sema::CheckArrayNoImpliedDimension(const ArrayType *T,
+                                        SourceRange Range) {
+  if(isa<ImpliedShapeSpec>(T->getDimensions().back())) {
+    Diags.Report(Range.Start, diag::err_typecheck_use_of_implied_shape_array)
+      << Range;
+    return false;
+  }
+  return true;
+}
+
+// FIXME: ARR(:) = ARR(:)
 bool Sema::CheckArrayDimensionsCompability(const ArrayType *LHS,
                                            const ArrayType *RHS,
                                            SourceLocation Loc,
@@ -534,6 +544,12 @@ bool Sema::CheckArrayDimensionsCompability(const ArrayType *LHS,
       << LHSRange << RHSRange;
     return false;
   }
+
+  bool Valid = CheckArrayNoImpliedDimension(LHS, LHSRange);
+  if(!CheckArrayNoImpliedDimension(RHS, RHSRange))
+    Valid = false;
+  if(!Valid)
+    return false;
 
   for(size_t I = 0, Count = LHS->getDimensionCount(); I < Count; ++I) {
     auto LHSDim = LHS->getDimensions()[I];

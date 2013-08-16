@@ -85,6 +85,8 @@ def err_typecheck_expected_array_of_dim_count : Error<
   " (%1 %plural{1:dimension|:dimensions}1 invalid)">;
 def err_typecheck_array_dim_shape_mismatch : Error<
   "expected an expression of array type with size %0 for the dimension %1 (size %2 invalid)">;
+def err_typecheck_use_of_implied_shape_array : Error<
+  "use of an array expression with an implied dimension specification">;
 
 
 def err_var_not_assignable : Error<

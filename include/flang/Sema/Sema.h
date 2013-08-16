@@ -701,8 +701,8 @@ public:
   /// Performs assignment typechecking.
   ExprResult TypecheckAssignment(QualType LHSType, ExprResult RHS,
                                  SourceLocation Loc = SourceLocation(),
-                                 SourceLocation MinLoc = SourceLocation(),
-                                 SourceRange ExtraRange = SourceRange());
+                                 SourceRange LHSRange = SourceRange(),
+                                 SourceRange RHSRange = SourceRange());
 
   /// Returns true if the subscript expression has the
   /// right amount of dimensions.
@@ -715,6 +715,11 @@ public:
   /// As a bonus it also returns the Element type in ObtainedElementType.
   bool CheckArrayConstructorItems(ArrayRef<Expr*> Items,
                                   QualType &ObtainedElementType);
+
+  /// Returns true if an array doesn't
+  /// have an implied shape dimension specifier.
+  bool CheckArrayNoImpliedDimension(const ArrayType *T,
+                                    SourceRange Range);
 
   /// Returns true if the two array types are compatible with
   /// one another, i.e. they have the same dimension count

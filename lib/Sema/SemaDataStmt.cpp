@@ -167,7 +167,7 @@ void DataValueAssigner::VisitVarExpr(VarExpr *E) {
       Values.advance();
       Value = Sema.TypecheckAssignment(ElementType, Value,
                                        E->getLocation(),
-                                       Value->getLocStart(),
+                                       Value->getSourceRange(),
                                        E->getSourceRange()).get();
       if(Value)
         Items.push_back(Value);
@@ -182,7 +182,7 @@ void DataValueAssigner::VisitVarExpr(VarExpr *E) {
     Values.advance();
     Value = Sema.TypecheckAssignment(Type, Value,
                                      E->getLocation(),
-                                     Value->getLocStart(),
+                                     Value->getSourceRange(),
                                      E->getSourceRange()).get();
   }
 

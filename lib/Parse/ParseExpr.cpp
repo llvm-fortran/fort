@@ -813,7 +813,8 @@ ExprResult Parser::ParseArraySubscript(ExprResult Target) {
     ExprResult E = ParseExpectedFollowupExpression(PunctuationTok);
     if(E.isInvalid())
       SkipUntil(tok::comma, tok::r_paren, true, true);
-    ExprList.push_back(E.get());
+    if(E.isUsable())
+      ExprList.push_back(E.get());
     PunctuationTok = ",";
   } while(ConsumeIfPresent(tok::comma));
 
