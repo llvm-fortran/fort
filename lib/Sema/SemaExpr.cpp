@@ -561,7 +561,7 @@ bool Sema::CheckSubscriptExprDimensionCount(SourceLocation Loc,
 ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
                                     Expr *Target, llvm::ArrayRef<Expr*> Subscripts) {
   if(Subscripts.empty())
-    return ExprError();
+    return ExprError();  
   CheckSubscriptExprDimensionCount(Loc, RParenLoc, Target, Subscripts);
 
   //FIXME constraint
@@ -569,12 +569,37 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, SourceLoc
   //NB: typecheck only for the valid expressions
   size_t ValidCount = std::min(Target->getType()->asArrayType()->getDimensionCount(),
                                Subscripts.size());
+  bool IsArrayElement = true;
   for(size_t I = 0; I < ValidCount; ++I) {
-    if(Subscripts[I])
+    if(auto Range = dyn_cast<RangeExpr>(Subscripts[I])) {
+      IsArrayElement = false;
+      if(Range->hasFirstExpr())
+        CheckIntegerExpression(Range->getFirstExpr());
+      if(Range->hasSecondExpr())
+        CheckIntegerExpression(Range->getSecondExpr());
+    }
+    else if(auto Range = dyn_cast<StridedRangeExpr>(Subscripts[I])) {
+      IsArrayElement = false;
+      if(Range->hasFirstExpr())
+        CheckIntegerExpression(Range->getFirstExpr());
+      if(Range->hasSecondExpr())
+        CheckIntegerExpression(Range->getSecondExpr());
+      CheckIntegerExpression(Range->getStride());
+    }
+    else
       CheckIntegerExpression(Subscripts[I]);
   }
 
-  return ArrayElementExpr::Create(C, Loc, Target, Subscripts);
+  if(IsArrayElement)
+    return ArrayElementExpr::Create(C, Loc, Target, Subscripts);
+  SmallVector<ArraySpec*, 8> Dims;
+  for(size_t I = 0; I < ValidCount; ++I) {
+    if(isa<RangeExpr>(Subscripts[I]) || isa<StridedRangeExpr>(Subscripts[I]))
+      Dims.push_back(DeferredShapeSpec::Create(Context));
+  }
+  auto T = C.getArrayType(Target->getType()->asArrayType()->getElementType(),
+                          Dims);
+  return ArraySectionExpr::Create(C, Loc, Target, Subscripts, T);
 }
 
 bool Sema::CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Arguments, SourceLocation Loc,

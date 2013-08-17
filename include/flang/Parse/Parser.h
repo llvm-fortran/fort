@@ -401,6 +401,7 @@ private:
   ExprResult ParseStructureComponent();
   ExprResult ParseSubstring(ExprResult Target);
   ExprResult ParseArraySubscript(ExprResult Target);
+  ExprResult ParseArraySection(const char *PunctuationTok);
   ExprResult ParseDataReference();
   ExprResult ParsePartReference();
 

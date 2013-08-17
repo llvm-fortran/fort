@@ -119,11 +119,13 @@ public:
   void VisitDefinedBinaryOperatorExpr(const DefinedBinaryOperatorExpr *E);
   void VisitSubstringExpr(const SubstringExpr *E);
   void VisitArrayElementExpr(const ArrayElementExpr *E);
+  void VisitArraySectionExpr(const ArraySectionExpr *E);
   void VisitCallExpr(const CallExpr *E);
   void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
   void VisitImpliedDoExpr(const ImpliedDoExpr *E);
   void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
   void VisitRangeExpr(const RangeExpr *E);
+  void VisitStridedRangeExpr(const StridedRangeExpr *E);
 
   // array specification
   void dumpArraySpec(const ArraySpec *S);
@@ -799,6 +801,13 @@ void ASTDumper::VisitArrayElementExpr(const ArrayElementExpr *E) {
   OS << ')';
 }
 
+void ASTDumper::VisitArraySectionExpr(const ArraySectionExpr *E) {
+  dumpExpr(E->getTarget());
+  OS << '(';
+  dumpExprList(E->getArguments());
+  OS << ')';
+}
+
 void ASTDumper::VisitCallExpr(const CallExpr *E) {
   OS << E->getFunction()->getName() << '(';
   dumpExprList(E->getArguments());
@@ -836,6 +845,12 @@ void ASTDumper::VisitRangeExpr(const RangeExpr *E) {
   dumpExprOrNull(E->getFirstExpr());
   OS << ":";
   dumpExprOrNull(E->getSecondExpr());
+}
+
+void ASTDumper::VisitStridedRangeExpr(const StridedRangeExpr *E) {
+  VisitRangeExpr(E);
+  OS << ":";
+  dumpExprOrNull(E->getStride());
 }
 
 // array specification

@@ -218,6 +218,24 @@ SourceLocation ArrayElementExpr::getLocEnd() const {
   return getArguments().back()->getLocEnd();
 }
 
+ArraySectionExpr::ArraySectionExpr(ASTContext &C, SourceLocation Loc,
+                                   Expr *E,
+                                   ArrayRef<Expr*> Subscripts,
+                                   QualType T)
+  : DesignatorExpr(ArraySectionExprClass, T, Loc, E),
+    MultiArgumentExpr(C, Subscripts) {
+}
+
+ArraySectionExpr *ArraySectionExpr::Create(ASTContext &C, SourceLocation Loc,
+                                           Expr *Target, ArrayRef<Expr*> Subscripts,
+                                           QualType T) {
+  return new(C) ArraySectionExpr(C, Loc, Target, Subscripts, T);
+}
+
+SourceLocation ArraySectionExpr::getLocEnd() const {
+  return getArguments().back()->getLocEnd();
+}
+
 VarExpr::VarExpr(SourceLocation Loc, const VarDecl *Var)
   : Expr(VarExprClass, Var->getType(), Loc),
     Variable(Var) {}
@@ -399,13 +417,14 @@ SourceLocation ArrayConstructorExpr::getLocEnd() const {
   return getItems().back()->getLocEnd();
 }
 
-RangeExpr::RangeExpr(SourceLocation Loc, Expr *First, Expr *Second)
-  : Expr(RangeExprClass, QualType(), Loc), E1(First), E2(Second) {
+RangeExpr::RangeExpr(ExprClass Class, SourceLocation Loc,
+                     Expr *First, Expr *Second)
+  : Expr(Class, QualType(), Loc), E1(First), E2(Second) {
 }
 
 RangeExpr *RangeExpr::Create(ASTContext &C, SourceLocation Loc,
                              Expr *First, Expr *Second) {
-  return new(C) RangeExpr(Loc, First, Second);
+  return new(C) RangeExpr(RangeExprClass, Loc, First, Second);
 }
 
 void RangeExpr::setFirstExpr(Expr *E) {
@@ -424,6 +443,22 @@ SourceLocation RangeExpr::getLocStart() const {
 SourceLocation RangeExpr::getLocEnd() const {
   if(hasSecondExpr()) return E2->getLocEnd();
   return getLocation();
+}
+
+StridedRangeExpr::StridedRangeExpr(SourceLocation Loc, Expr *First,
+                                   Expr *Second, Expr *stride)
+  : RangeExpr(StridedRangeExprClass, Loc, First, Second),
+    Stride(stride) {}
+
+StridedRangeExpr *StridedRangeExpr::Create(ASTContext &C, SourceLocation Loc,
+                                           Expr *First, Expr *Second,
+                                           Expr *Stride) {
+  return new(C) StridedRangeExpr(Loc, First, Second, Stride);
+}
+
+SourceLocation StridedRangeExpr::getLocEnd() const {
+  if(hasStride()) return Stride->getLocation();
+  return RangeExpr::getLocEnd();
 }
 
 //===----------------------------------------------------------------------===//

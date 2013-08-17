@@ -972,7 +972,7 @@ StmtResult Sema::ActOnEQUIVALENCE(ASTContext &C, SourceLocation Loc,
     if(auto Arr = dyn_cast<ArrayElementExpr>(I)) {
       if(CheckEquivalenceObject(Loc, Arr->getTarget()))
         HasErrors = true;
-      for(auto S : Arr->getSubscriptList()) {
+      for(auto S : Arr->getSubscripts()) {
         if(!StatementRequiresConstantExpression(Loc, S))
           HasErrors = true;
       }
@@ -1149,6 +1149,7 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                      ExprResult LHS,
                                      ExprResult RHS, Expr *StmtLabel) {
   if(!isa<VarExpr>(LHS.get()) && !isa<ArrayElementExpr>(LHS.get()) &&
+     !isa<ArraySectionExpr>(LHS.get()) &&
      !isa<SubstringExpr>(LHS.get()) && !isa<ReturnedValueExpr>(LHS.get())) {
     Diags.Report(Loc,diag::err_expr_not_assignable) << LHS.get()->getSourceRange();
     return StmtError();

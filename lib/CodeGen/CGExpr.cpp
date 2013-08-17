@@ -72,7 +72,7 @@ LValueTy LValueExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
 }
 
 LValueTy LValueExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
-  return CGF.EmitArrayElementPtr(E->getTarget(), E->getSubscriptList());
+  return CGF.EmitArrayElementPtr(E->getTarget(), E->getSubscripts());
 }
 
 LValueTy CodeGenFunction::EmitLValue(const Expr *E) {

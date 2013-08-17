@@ -31,6 +31,7 @@ def DefinedBinaryOperatorExpr : DExpr<BinaryExpr>;
 def DesignatorExpr : Expr<1>;
 def SubstringExpr : DExpr<DesignatorExpr>;
 def ArrayElementExpr : DExpr<DesignatorExpr>;
+def ArraySectionExpr : DExpr<DesignatorExpr>;
 
 // Call Expressions
 def CallExpr : Expr;
@@ -40,3 +41,4 @@ def IntrinsicCallExpr : Expr;
 def ImpliedDoExpr : Expr;
 def ArrayConstructorExpr : Expr; // (/ /)
 def RangeExpr : Expr; // a : b
+def StridedRangeExpr : DExpr<RangeExpr>;

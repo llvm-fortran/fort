@@ -302,7 +302,7 @@ llvm::Value *CodeGenFunction::EmitCallArgPtr(const Expr *E) {
   else if(isa<ReturnedValueExpr>(E))
     return GetRetVarPtr();
   else if(auto ArrEl = dyn_cast<ArrayElementExpr>(E))
-    return EmitArrayElementPtr(ArrEl->getTarget(), ArrEl->getSubscriptList());
+    return EmitArrayElementPtr(ArrEl->getTarget(), ArrEl->getSubscripts());
 
   auto Value = EmitRValue(E);
   auto Temp  = CreateTempAlloca(ConvertType(E->getType()));

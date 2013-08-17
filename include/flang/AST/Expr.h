@@ -382,15 +382,15 @@ public:
 //===----------------------------------------------------------------------===//
 /// ArrayElementExpr - Returns an element of an array.
 class ArrayElementExpr : public DesignatorExpr, public MultiArgumentExpr {
-private:
+
   ArrayElementExpr(ASTContext &C, SourceLocation Loc, Expr *E,
-                   llvm::ArrayRef<Expr*> Subs);
+                   ArrayRef<Expr*> Subs);
 public:
   static ArrayElementExpr *Create(ASTContext &C, SourceLocation Loc,
                                   Expr *Target,
-                                  llvm::ArrayRef<Expr*> Subscripts);
+                                  ArrayRef<Expr*> Subscripts);
 
-  llvm::ArrayRef<Expr*> getSubscriptList() const {
+  ArrayRef<Expr*> getSubscripts() const {
     return getArguments();
   }
 
@@ -400,6 +400,29 @@ public:
     return E->getExprClass() == Expr::ArrayElementExprClass;
   }
   static bool classof(const ArrayElementExpr *) { return true; }
+};
+
+//===----------------------------------------------------------------------===//
+/// ArraySectionExpr - Returns a section of an array.
+class ArraySectionExpr : public DesignatorExpr, public MultiArgumentExpr {
+
+  ArraySectionExpr(ASTContext &C, SourceLocation Loc, Expr *E,
+                   ArrayRef<Expr*> Subscripts, QualType T);
+public:
+  static ArraySectionExpr *Create(ASTContext &C, SourceLocation Loc,
+                                  Expr *Target, ArrayRef<Expr*> Subscripts,
+                                  QualType T);
+
+  ArrayRef<Expr*> getSubscripts() const {
+    return getArguments();
+  }
+
+  SourceLocation getLocEnd() const;
+
+  static bool classof(const Expr *E) {
+    return E->getExprClass() == Expr::ArraySectionExprClass;
+  }
+  static bool classof(const ArraySectionExpr *) { return true; }
 };
 
 //===----------------------------------------------------------------------===//
@@ -854,7 +877,8 @@ public:
 class RangeExpr : public Expr {
   Expr *E1, *E2;
 
-  RangeExpr(SourceLocation Loc, Expr *First, Expr *Second);
+protected:
+  RangeExpr(ExprClass Class, SourceLocation Loc, Expr *First, Expr *Second);
 public:
   static RangeExpr *Create(ASTContext &C, SourceLocation Loc,
                            Expr *First, Expr *Second);
@@ -881,6 +905,34 @@ public:
     return E->getExprClass() == RangeExprClass;
   }
   static bool classof(const RangeExpr *) { return true; }
+};
+
+/// StridedRangeExpr - [E1] : [E2] [ : Stride ]
+class StridedRangeExpr : public RangeExpr {
+  Expr *Stride;
+
+  StridedRangeExpr(SourceLocation Loc, Expr *First, Expr *Second,
+                   Expr *stride);
+public:
+  static StridedRangeExpr *Create(ASTContext &C, SourceLocation Loc,
+                                  Expr *First, Expr *Second,
+                                  Expr *Stride);
+
+  Expr *getStride() const {
+    return Stride;
+  }
+  bool hasStride() const {
+    return Stride != nullptr;
+  }
+
+  SourceLocation getLocEnd() const;
+
+  static bool classof(const Expr *E) {
+    return E->getExprClass() == StridedRangeExprClass;
+  }
+  static bool classof(const StridedRangeExpr *) {
+    return true;
+  }
 };
 
 } // end flang namespace

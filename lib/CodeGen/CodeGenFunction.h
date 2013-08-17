@@ -366,7 +366,7 @@ public:
   llvm::Value *EmitArrayElementPtr(const Expr *Target,
                                    const ArrayRef<Expr*> Subscripts);
   llvm::Value *EmitArrayElementPtr(const ArrayElementExpr *E) {
-    return EmitArrayElementPtr(E->getTarget(), E->getSubscriptList());
+    return EmitArrayElementPtr(E->getTarget(), E->getSubscripts());
   }
 
   llvm::Value *EmitDimSize(const ArrayDimensionValueTy &Dim);

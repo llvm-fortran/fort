@@ -800,7 +800,6 @@ done:
 }
 
 /// ParseArrauSubscript - Parse an Array Subscript Expression
-/// FIXME: add Fortran 90+ ':' support
 ExprResult Parser::ParseArraySubscript(ExprResult Target) {
   SmallVector<Expr*, 8> ExprList;
   auto Loc = ConsumeParen();
@@ -810,7 +809,7 @@ ExprResult Parser::ParseArraySubscript(ExprResult Target) {
   do {
     if(Tok.isAtStartOfStatement())
       IgnoreRParen = true;
-    ExprResult E = ParseExpectedFollowupExpression(PunctuationTok);
+    auto E = ParseArraySection(PunctuationTok);
     if(E.isInvalid())
       SkipUntil(tok::comma, tok::r_paren, true, true);
     if(E.isUsable())
@@ -824,6 +823,45 @@ ExprResult Parser::ParseArraySubscript(ExprResult Target) {
 
   return Actions.ActOnSubscriptExpr(Context, Loc, RParenLoc, Target.get(),
                                     ExprList);
+}
+
+ExprResult Parser::ParseArraySection(const char *PunctuationTok) {
+  ExprResult LB, UB, Stride;
+  bool Range = false;
+
+  auto ColonLoc = Tok.getLocation();
+  if(ConsumeIfPresent(tok::colon)) {
+    Range = true;
+    if(!IsPresent(tok::colon) && !IsPresent(tok::comma) && !IsPresent(tok::r_paren)) {
+      UB = ParseExpectedFollowupExpression(":");
+      if(UB.isInvalid())
+        return UB;
+    }
+  } else {
+    LB = ParseExpectedFollowupExpression(PunctuationTok);
+    if(LB.isInvalid())
+      return LB;
+    ColonLoc = Tok.getLocation();
+    if(ConsumeIfPresent(tok::colon)) {
+      Range = true;
+      if(!IsPresent(tok::colon) && !IsPresent(tok::comma) && !IsPresent(tok::r_paren)) {
+        UB = ParseExpectedFollowupExpression(":");
+        if(UB.isInvalid())
+          return UB;
+      }
+    }
+  }
+  if(ConsumeIfPresent(tok::colon)) {
+    Stride = ParseExpectedFollowupExpression(":");
+    if(Stride.isInvalid())
+      return Stride;
+  }
+  if(Stride.isUsable())
+    return StridedRangeExpr::Create(Context, ColonLoc, LB.get(),
+                                    UB.get(), Stride.get());
+  if(Range)
+    return RangeExpr::Create(Context, ColonLoc, LB.get(), UB.get());
+  return LB;
 }
 
 /// ParseDataReference - Parse a data reference.
