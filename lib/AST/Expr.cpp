@@ -236,6 +236,30 @@ SourceLocation ArraySectionExpr::getLocEnd() const {
   return getArguments().back()->getLocEnd();
 }
 
+SourceLocation ImplicitArrayOperationExpr::getLocStart() const {
+  return E->getLocStart();
+}
+
+SourceLocation ImplicitArrayOperationExpr::getLocEnd() const {
+  return E->getLocEnd();
+}
+
+ImplicitArrayPackExpr::ImplicitArrayPackExpr(SourceLocation Loc, Expr *E)
+  : ImplicitArrayOperationExpr(ImplicitArrayPackExprClass, Loc, E) {
+}
+
+ImplicitArrayPackExpr *ImplicitArrayPackExpr::Create(ASTContext &C, Expr *E) {
+  return new(C) ImplicitArrayPackExpr(E->getLocation(), E);
+}
+
+ImplicitTempArrayExpr::ImplicitTempArrayExpr(SourceLocation Loc, Expr *E)
+  : ImplicitArrayOperationExpr(ImplicitTempArrayExprClass, Loc, E) {
+}
+
+ImplicitTempArrayExpr *ImplicitTempArrayExpr::Create(ASTContext &C, Expr *E) {
+  return new(C) ImplicitTempArrayExpr(E->getLocation(), E);
+}
+
 VarExpr::VarExpr(SourceLocation Loc, const VarDecl *Var)
   : Expr(VarExprClass, Var->getType(), Loc),
     Variable(Var) {}

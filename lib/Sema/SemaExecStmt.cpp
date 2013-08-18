@@ -701,7 +701,7 @@ StmtResult Sema::ActOnReturnStmt(ASTContext &C, SourceLocation Loc, ExprResult E
 StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
                                SourceRange IdRange,
                                const IdentifierInfo *IDInfo,
-                               ArrayRef<Expr*> Arguments, Expr *StmtLabel) {
+                               llvm::MutableArrayRef<Expr*> Arguments, Expr *StmtLabel) {
   auto Prev = ResolveIdentifier(IDInfo);
   FunctionDecl *Function;
   if(Prev) {
@@ -723,7 +723,7 @@ StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation
     CurContext->addDecl(Function);
   }
 
-  CheckCallArgumentCount(Function, Arguments, RParenLoc, IdRange);
+  CheckCallArguments(Function, Arguments, RParenLoc, IdRange);
 
   auto Result = CallStmt::Create(C, Loc, Function, Arguments, StmtLabel);
   getCurrentBody()->Append(Result);

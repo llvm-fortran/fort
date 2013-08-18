@@ -602,8 +602,8 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, SourceLoc
   return ArraySectionExpr::Create(C, Loc, Target, Subscripts, T);
 }
 
-bool Sema::CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Arguments, SourceLocation Loc,
-                                  SourceRange FuncNameRange) {
+bool Sema::CheckCallArguments(FunctionDecl *Function, llvm::MutableArrayRef<Expr*> Arguments,
+                              SourceLocation Loc, SourceRange FuncNameRange) {
   if(Function->isExternal()) {
     if(Arguments.empty()) return true;
     if(Function->getArguments().empty()) {
@@ -645,15 +645,42 @@ bool Sema::CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Argume
     return false;
   }
 
+  // FIXME: Typecheck arguments
+
+  for(size_t I = 0; I < Arguments.size(); ++I) {
+    auto T = Arguments[I]->getType();
+    if(T->isArrayType())
+      Arguments[I] = ActOnArrayArgument(FunctionArgs[I], Arguments[I]);
+  }
+
   return true;
+}
+
+static bool IsDirectArrayExpr(const Expr *E) {
+  return isa<VarExpr>(E) || isa<ReturnedValueExpr>(E);
+}
+
+bool Sema::ArrayExprNeedsTemp(const Expr *E) {
+  if(auto Section = dyn_cast<ArraySectionExpr>(E))
+    return !IsDirectArrayExpr(Section->getTarget());
+  return !IsDirectArrayExpr(E);
+}
+
+/// FIXME: ':' array spec interface declared arguments don't need strides
+Expr *Sema::ActOnArrayArgument(VarDecl *Arg, Expr *E) {
+  if(ArrayExprNeedsTemp(E))
+    return ImplicitTempArrayExpr::Create(Context, E);
+  else if(!E->IsArrayExprContiguous())
+    E = ImplicitArrayPackExpr::Create(Context, E);
+  return E;
 }
 
 ExprResult Sema::ActOnCallExpr(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
                                SourceRange IdRange,
-                               FunctionDecl *Function, ArrayRef<Expr*> Arguments) {
+                               FunctionDecl *Function, llvm::MutableArrayRef<Expr*> Arguments) {
   assert(!Function->isSubroutine());
 
-  CheckCallArgumentCount(Function, Arguments, RParenLoc, IdRange);
+  CheckCallArguments(Function, Arguments, RParenLoc, IdRange);
   return CallExpr::Create(C, Loc, Function, Arguments);
 }
 

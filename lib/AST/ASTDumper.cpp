@@ -120,6 +120,8 @@ public:
   void VisitSubstringExpr(const SubstringExpr *E);
   void VisitArrayElementExpr(const ArrayElementExpr *E);
   void VisitArraySectionExpr(const ArraySectionExpr *E);
+  void VisitImplicitArrayPackExpr(const ImplicitArrayPackExpr *E);
+  void VisitImplicitTempArrayExpr(const ImplicitTempArrayExpr *E);
   void VisitCallExpr(const CallExpr *E);
   void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
   void VisitImpliedDoExpr(const ImpliedDoExpr *E);
@@ -806,6 +808,18 @@ void ASTDumper::VisitArraySectionExpr(const ArraySectionExpr *E) {
   OS << '(';
   dumpExprList(E->getArguments());
   OS << ')';
+}
+
+void ASTDumper::VisitImplicitArrayPackExpr(const ImplicitArrayPackExpr *E) {
+  OS << "ImplicitArrayPackExpr(";
+  dumpExpr(E->getExpression());
+  OS << ")";
+}
+
+void ASTDumper::VisitImplicitTempArrayExpr(const ImplicitTempArrayExpr *E) {
+  OS << "ImplicitTempArrayExpr(";
+  dumpExpr(E->getExpression());
+  OS << ")";
 }
 
 void ASTDumper::VisitCallExpr(const CallExpr *E) {

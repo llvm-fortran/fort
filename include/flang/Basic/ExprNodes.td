@@ -32,6 +32,9 @@ def DesignatorExpr : Expr<1>;
 def SubstringExpr : DExpr<DesignatorExpr>;
 def ArrayElementExpr : DExpr<DesignatorExpr>;
 def ArraySectionExpr : DExpr<DesignatorExpr>;
+def ImplicitArrayOperationExpr : Expr<1>;
+def ImplicitArrayPackExpr : DExpr<ImplicitArrayOperationExpr>;
+def ImplicitTempArrayExpr : DExpr<ImplicitArrayOperationExpr>;
 
 // Call Expressions
 def CallExpr : Expr;

@@ -82,6 +82,11 @@ public:
   void GatherNonEvaluatableExpressions(const ASTContext &Ctx,
                                        SmallVectorImpl<const Expr*> &Result);
 
+  /// IsArrayExprContiguous - Return true if this is a contiguous array
+  /// expression, i.e. without strides or single element sections in upper
+  /// dimensions.
+  bool IsArrayExprContiguous() const;
+
   void dump() const;
   void dump(llvm::raw_ostream &OS) const;
 
@@ -423,6 +428,62 @@ public:
     return E->getExprClass() == Expr::ArraySectionExprClass;
   }
   static bool classof(const ArraySectionExpr *) { return true; }
+};
+
+//===----------------------------------------------------------------------===//
+/// ImplicitArrayOperationExpr - base class for implicit array operations.
+class ImplicitArrayOperationExpr : public Expr {
+  Expr *E;
+protected:
+  ImplicitArrayOperationExpr(ExprClass Class, SourceLocation Loc,
+                             Expr *e)
+    : Expr(Class, e->getType(), Loc), E(e) {}
+public:
+
+  Expr *getExpression() const {
+    return E;
+  }
+
+  SourceLocation getLocStart() const;
+  SourceLocation getLocEnd() const;
+
+  static bool classof(const Expr *E) {
+    return E->getExprClass() >= firstImplicitArrayOperationExprConstant &&
+           E->getExprClass() <= lastImplicitArrayOperationExprConstant;
+  }
+  static bool classof(const ImplicitArrayOperationExpr *) { return true; }
+};
+
+//===----------------------------------------------------------------------===//
+/// ImplicitArrayPackExpr - packs a strided array into one contiguos array.
+class ImplicitArrayPackExpr : public ImplicitArrayOperationExpr {
+
+  ImplicitArrayPackExpr(SourceLocation Loc, Expr *E);
+public:
+  static ImplicitArrayPackExpr *Create(ASTContext &C, Expr *E);
+
+  static bool classof(const Expr *E) {
+    return E->getExprClass() == ImplicitArrayPackExprClass;
+  }
+  static bool classof(const ImplicitArrayPackExpr *) {
+    return true;
+  }
+};
+
+//===----------------------------------------------------------------------===//
+/// ImplicitTempArrayExpr - creates a temporary copy of an array.
+class ImplicitTempArrayExpr : public ImplicitArrayOperationExpr {
+
+  ImplicitTempArrayExpr(SourceLocation Loc, Expr *E);
+public:
+  static ImplicitTempArrayExpr *Create(ASTContext &C, Expr *E);
+
+  static bool classof(const Expr *E) {
+    return E->getExprClass() == ImplicitTempArrayExprClass;
+  }
+  static bool classof(const ImplicitTempArrayExpr *) {
+    return true;
+  }
 };
 
 //===----------------------------------------------------------------------===//

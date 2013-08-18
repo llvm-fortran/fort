@@ -425,7 +425,7 @@ public:
   StmtResult ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
                            SourceRange IdRange,
                            const IdentifierInfo *IDInfo,
-                           ArrayRef<Expr*> Arguments, Expr *StmtLabel);
+                           llvm::MutableArrayRef<Expr *> Arguments, Expr *StmtLabel);
 
   StmtResult ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,
                             ArrayRef<ExprResult> OutputItemList,
@@ -470,7 +470,7 @@ public:
 
   ExprResult ActOnCallExpr(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
                            SourceRange IdRange,
-                           FunctionDecl *Function, ArrayRef<Expr*> Arguments);
+                           FunctionDecl *Function, llvm::MutableArrayRef<Expr *> Arguments);
 
   ExprResult ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
                                             const IntrinsicFunctionDecl *FunctionDecl,
@@ -683,9 +683,15 @@ public:
   void SetFunctionType(FunctionDecl *Function, QualType Type,
                        SourceLocation DiagLoc, SourceRange DiagRange);
 
-  /// Returns true if the call expression has the right amount of arguments
-  bool CheckCallArgumentCount(FunctionDecl *Function, ArrayRef<Expr*> Arguments,
-                              SourceLocation Loc, SourceRange FuncNameRange);
+  /// Returns true if the call expression has the correct arguments.
+  bool CheckCallArguments(FunctionDecl *Function, llvm::MutableArrayRef<Expr *> Arguments,
+                          SourceLocation Loc, SourceRange FuncNameRange);
+
+  /// Returns an array that is passed to a function, with optional implcit operations.
+  Expr *ActOnArrayArgument(VarDecl *Arg, Expr *E);
+
+  /// Returns true if an array expression needs a temporary storage array.
+  bool ArrayExprNeedsTemp(const Expr *E);
 
   /// Returns true if the array shape bound is valid
   bool CheckArrayBoundValue(Expr *E);
