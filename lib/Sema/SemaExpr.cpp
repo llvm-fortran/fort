@@ -18,7 +18,6 @@
 
 namespace flang {
 
-
 /// Returns TST_integer/TST_real/TST_complex if a given type
 /// is an arithmetic type, or TST_unspecified otherwise
 static TypeSpecifierType GetArithmeticTypeSpec(QualType T) {
@@ -243,7 +242,7 @@ ExprResult Sema::TypecheckAssignment(QualType LHSType, ExprResult RHS,
         return RHS;
       else if(Action == ImplicitCastAction)
         return ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                        LHSType, RHS.take());
+                                        LHSElementType, RHS.take());
       auto Reporter = Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
           << LHSElementType << RHSElementType;
       if(LHSRange.isValid())
@@ -300,41 +299,49 @@ ExprResult Sema::ActOnComplexConstantExpr(ASTContext &C, SourceLocation Loc,
                                      C.getComplexType(ElementType));
 }
 
-ExprResult Sema::ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,
-                                UnaryExpr::Operator Op, ExprResult E) {
-  unsigned DiagType = 0;
-
-  auto EType = E.get()->getType();
-
+static TypecheckAction TypecheckUnaryExpr(UnaryExpr::Operator Op,
+                                          QualType T, unsigned &Diagnostic) {
   switch(Op) {
   // Arithmetic unary expression
   case UnaryExpr::Plus: case UnaryExpr::Minus:
-    if(GetArithmeticTypeSpec(EType) == TST_unspecified) {
-      DiagType = diag::err_typecheck_arith_unary_expr;
-      goto typecheckInvalidOperand;
+    if(!(T->isIntegerType() || T->isRealType() || T->isComplexType())) {
+      Diagnostic = diag::err_typecheck_arith_unary_expr;
+      return ErrorAction;
     }
     break;
 
   // Logical unary expression
   case UnaryExpr::Not:
-    if(!EType->isLogicalType()) {
-      DiagType = diag::err_typecheck_logical_unary_expr;
-      goto typecheckInvalidOperand;
+    if(!T->isLogicalType()) {
+      Diagnostic = diag::err_typecheck_logical_unary_expr;
+      return ErrorAction;
     }
     break;
 
   default:
     llvm_unreachable("Unknown unary expression");
   }
+  return NoAction;
+}
 
-  return UnaryExpr::Create(C, Loc, Op, E.take());
+ExprResult Sema::ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,
+                                UnaryExpr::Operator Op, ExprResult E) {
+  unsigned Diagnostic = 0;
 
-typecheckInvalidOperand:
-  Diags.Report(Loc,DiagType)
-      << EType
-      << SourceRange(Loc,
-                     E.get()->getLocEnd());
-  return ExprError();
+  auto EType = E.get()->getType();
+  if(EType->isArrayType()) {
+    CheckArrayExpr(E.get());
+    EType = EType->asArrayType()->getElementType();
+  }
+
+  auto Action = TypecheckUnaryExpr(Op, EType, Diagnostic);
+  if(Action == ErrorAction) {
+    Diags.Report(Loc, Diagnostic)
+        << EType
+        << SourceRange(Loc, E.get()->getLocEnd());
+    return ExprError();
+  }
+  return UnaryExpr::Create(C, Loc, Op, E.get());
 }
 
 // Kind selection rules:
@@ -398,6 +405,23 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
   if(LHSType.isNull() || RHSType.isNull())
     return ExprError();
   QualType ReturnType;
+  const ArrayType *ReturnArrayType = nullptr;
+
+  if(LHSType->isArrayType()) {
+    if(RHSType->isArrayType()) {
+      if(!CheckArrayDimensionsCompability(LHSType->asArrayType(), RHSType->asArrayType(), Loc,
+                                          LHS.get()->getSourceRange(),
+                                          RHS.get()->getSourceRange()))
+        return ExprError();
+      RHSType = RHSType->asArrayType()->getElementType();
+    } else CheckArrayExpr(LHS.get());
+    ReturnArrayType = LHSType->asArrayType();
+    LHSType = LHSType->asArrayType()->getElementType();
+  } else if(RHSType->isArrayType()) {
+    CheckArrayExpr(RHS.get());
+    ReturnArrayType = RHSType->asArrayType();
+    RHSType = RHSType->asArrayType()->getElementType();
+  }
 
   switch(Op) {
   // Arithmetic binary expression
@@ -515,6 +539,13 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
     llvm_unreachable("Unknown binary expression");
   }
 
+  if(ReturnArrayType) {
+    SmallVector<ArraySpec*, 8> Dims;
+    for(auto I : ReturnArrayType->getDimensions())
+      Dims.push_back(DeferredShapeSpec::Create(C));
+    ReturnType = Context.getArrayType(ReturnType, Dims);
+  }
+
   return BinaryExpr::Create(C, Loc, Op, ReturnType, LHS.take(), RHS.take());
 
 typecheckInvalidOperands:
@@ -523,10 +554,6 @@ typecheckInvalidOperands:
       << SourceRange(LHS.get()->getSourceRange())
       << SourceRange(RHS.get()->getSourceRange());
   return ExprError();
-}
-
-static bool IsIntegerExpression(ExprResult E) {
-  return E.get()->getType()->isIntegerType();
 }
 
 ExprResult Sema::ActOnSubstringExpr(ASTContext &C, SourceLocation Loc,
@@ -663,6 +690,10 @@ static bool IsDirectArrayExpr(const Expr *E) {
 bool Sema::ArrayExprNeedsTemp(const Expr *E) {
   if(auto Section = dyn_cast<ArraySectionExpr>(E))
     return !IsDirectArrayExpr(Section->getTarget());
+  if(auto Unary = dyn_cast<UnaryExpr>(E)) {
+    if(Unary->getOperator() == UnaryExpr::Plus)
+      return ArrayExprNeedsTemp(Unary->getExpression());
+  }
   return !IsDirectArrayExpr(E);
 }
 

@@ -51,8 +51,8 @@ PROGRAM arithexpressions
   i = -r ! CHECK: i = int((-r))
   c = -c
 
-  i = +.FALSE. ! expected-error {{invalid argument type 'logical' to an arithmetic unary expression}}
-  r = -'TRUE' ! expected-error {{invalid argument type 'character' to an arithmetic unary expression}}
+  i = +.FALSE. ! expected-error {{invalid operand to an arithmetic unary expression ('logical')}}
+  r = -'TRUE' ! expected-error {{invalid operand to an arithmetic unary expression ('character')}}
 
 
 ENDPROGRAM arithexpressions

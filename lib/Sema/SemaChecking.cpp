@@ -530,6 +530,10 @@ bool Sema::CheckArrayNoImpliedDimension(const ArrayType *T,
   return true;
 }
 
+bool Sema::CheckArrayExpr(const Expr *E) {
+  return CheckArrayNoImpliedDimension(E->getType()->asArrayType(), E->getSourceRange());
+}
+
 // FIXME: ARR(:) = ARR(:)
 bool Sema::CheckArrayDimensionsCompability(const ArrayType *LHS,
                                            const ArrayType *RHS,

@@ -12,7 +12,7 @@ PROGRAM arrtest
   I_ARR = R_ARR
   STR_ARR = 'ABC'
 
-  I_ARR = I_MAT ! expected-error {{expected an expression of array type with 1 dimension (2 dimensions invalid)}}
+  I_ARR = I_MAT ! expected-error {{conflicting shapes in an array expression (1 dimension and 2 dimensions)}}
   I_ARR = I_ARR2 ! expected-error {{expected an expression of array type with size 5 for the dimension 1 (size 10 invalid)}}
   R_ARR2 = I_ARR ! expected-error {{expected an expression of array type with size 10 for the dimension 1 (size 5 invalid)}}
   I_ARR = 'ABC' ! expected-error {{assigning to 'integer' from incompatible type 'character'}}

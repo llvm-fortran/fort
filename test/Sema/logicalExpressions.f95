@@ -19,7 +19,7 @@ PROGRAM logicalexpressions
   L = 3.0 .EQV. 2.0d0 ! expected-error {{invalid operands to a logical binary expression ('real' and 'double precision')}}
   L = L .NEQV. (1.0,2.0) ! expected-error {{invalid operands to a logical binary expression ('logical' and 'complex')}}
 
-  L = .NOT. 2 ! expected-error {{invalid argument type 'integer' to a logical unary expression}}
-  L = .NOT. (0,0) ! expected-error {{invalid argument type 'complex' to a logical unary expression}}
+  L = .NOT. 2 ! expected-error {{invalid operand to a logical unary expression ('integer')}}
+  L = .NOT. (0,0) ! expected-error {{invalid operand to a logical unary expression ('complex')}}
 
 END PROGRAM

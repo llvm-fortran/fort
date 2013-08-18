@@ -56,9 +56,9 @@ def err_typecheck_logical_invalid_operands : Error<
   "invalid operands to a logical binary expression (%0 and %1)">;
 
 def err_typecheck_arith_unary_expr : Error<
-  "invalid argument type %0 to an arithmetic unary expression">;
+  "invalid operand to an arithmetic unary expression (%0)">;
 def err_typecheck_logical_unary_expr : Error<
-  "invalid argument type %0 to a logical unary expression">;
+  "invalid operand to a logical unary expression (%0)">;
 
 def err_typecheck_stmt_requires_int_expr : Error<
   "statement requires an expression of integer type (%0 invalid)">;
@@ -81,8 +81,8 @@ def err_typecheck_expected_int_var : Error<
 def err_typecheck_expected_format_spec : Error<
   "expected a valid format specifier instead of an expression with type %0">;
 def err_typecheck_expected_array_of_dim_count : Error<
-  "expected an expression of array type with %0 %plural{1:dimension|:dimensions}0"
-  " (%1 %plural{1:dimension|:dimensions}1 invalid)">;
+  "conflicting shapes in an array expression (%0 %plural{1:dimension|:dimensions}0"
+  " and %1 %plural{1:dimension|:dimensions}1)">;
 def err_typecheck_array_dim_shape_mismatch : Error<
   "expected an expression of array type with size %0 for the dimension %1 (size %2 invalid)">;
 def err_typecheck_use_of_implied_shape_array : Error<

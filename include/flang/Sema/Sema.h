@@ -727,6 +727,9 @@ public:
   bool CheckArrayNoImpliedDimension(const ArrayType *T,
                                     SourceRange Range);
 
+  /// Returns true if an array expression is usable for a unary expression.
+  bool CheckArrayExpr(const Expr *E);
+
   /// Returns true if the two array types are compatible with
   /// one another, i.e. they have the same dimension count
   /// and the shapes of the dimensions are identical

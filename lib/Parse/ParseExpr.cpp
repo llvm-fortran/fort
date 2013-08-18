@@ -568,6 +568,8 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 ///      or complex-part-designator
 ///      or structure-component
 ///      or substring
+///
+/// FIXME: substring for a character array
 ExprResult Parser::ParseDesignator(bool IsLvalue) {
   auto E = ParseNameOrCall();
 

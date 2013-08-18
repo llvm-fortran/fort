@@ -309,7 +309,7 @@ SourceLocation UnresolvedIdentifierExpr::getLocEnd() const {
 UnaryExpr *UnaryExpr::Create(ASTContext &C, SourceLocation Loc, Operator Op,
                              Expr *E) {
   return new (C) UnaryExpr(Expr::UnaryExprClass,
-                           (Op != Not) ? E->getType() : C.LogicalTy,
+                           E->getType(),
                            Loc, Op, E);
 }
 
