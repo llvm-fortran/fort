@@ -5,6 +5,13 @@ SUBROUTINE foo(I_ARR)
   INTEGER I_ARR(*)
 END
 
+SUBROUTINE faa(I_ARR, N)
+  INTEGER N, I_ARR(*), I(10)
+  I = I_ARR + 2 ! expected-error {{use of an array expression with an implied dimension specification}}
+  I = 2 + I_ARR ! expected-error {{use of an array expression with an implied dimension specification}}
+  I = I_ARR(:N) * 2
+END
+
 SUBROUTINE bar(I_MAT)
   INTEGER I_MAT(4,*)
 END
