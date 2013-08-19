@@ -2,6 +2,8 @@
 
 program recovery
 
+  integer i_arr(5)
+
   do i = 1, 10
     if (i == 0) then ! expected-note {{to match this 'if'}}
   end do ! expected-error {{expected 'end if'}}
@@ -77,5 +79,9 @@ program recovery
       case (2)
     end if ! expected-error {{expected 'end select'}}
     end select ! expected-error {{use of 'end select' outside a select case construct}}
+
+    if(i == 1) then
+      where(i_arr == 0) ! expected-note {{to match this 'where'}}
+    end if ! expected-error {{expected 'end where'}}
 
 end

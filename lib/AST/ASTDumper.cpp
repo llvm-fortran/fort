@@ -86,6 +86,7 @@ public:
   void VisitSelectCaseStmt(const SelectCaseStmt *S);
   void VisitCaseStmt(const CaseStmt *S);
   void VisitDefaultCaseStmt(const DefaultCaseStmt *S);
+  void VisitWhereStmt(const WhereStmt *S);
   void VisitContinueStmt(const ContinueStmt *S);
   void VisitStopStmt(const StopStmt *S);
   void VisitReturnStmt(const ReturnStmt *S);
@@ -364,6 +365,8 @@ void ASTDumper::VisitConstructPartStmt(const ConstructPartStmt *S) {
   case ConstructPartStmt::EndIfStmtClass: OS << "end if"; break;
   case ConstructPartStmt::EndDoStmtClass: OS << "end do"; break;
   case ConstructPartStmt::EndSelectStmtClass: OS << "end select"; break;
+  case ConstructPartStmt::ElseWhereStmtClass: OS << "else where"; break;
+  case ConstructPartStmt::EndWhereStmtClass: OS << "end where"; break;
   default: break;
   }
   dumpConstructNameSuffix(S->getName());
@@ -595,6 +598,16 @@ void ASTDumper::VisitDefaultCaseStmt(const DefaultCaseStmt *S) {
   OS << "\n";
   if(S->getBody())
     dumpSubStmt(S->getBody());
+}
+
+void ASTDumper::VisitWhereStmt(const WhereStmt *S) {
+  OS << "where (";
+  dumpExprOrNull(S->getMask());
+  OS << ")\n";
+  if(S->getThenStmt())
+    dumpSubStmt(S->getThenStmt());
+  if(S->getElseStmt())
+    dumpSubStmt(S->getElseStmt());
 }
 
 void ASTDumper::VisitContinueStmt(const ContinueStmt *S) {

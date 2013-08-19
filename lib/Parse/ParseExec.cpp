@@ -26,6 +26,11 @@ namespace flang {
 
 void Parser::CheckStmtOrder(SourceLocation Loc, StmtResult SR) {
   auto S = SR.get();
+  if(SR.isUsable()) {
+    if(Actions.InsideWhereConstruct(S))
+      Actions.CheckValidWhereStmtPart(S);
+  }
+
   if(PrevStmtWasSelectCase) {
     PrevStmtWasSelectCase = false;
     if(SR.isUsable() && (isa<SelectionCase>(S) ||
@@ -155,6 +160,12 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParseReturnStmt();
   case tok::kw_CALL:
     return ParseCallStmt();
+  case tok::kw_WHERE:
+    return ParseWhereStmt();
+  case tok::kw_ELSEWHERE:
+    return ParseElseWhereStmt();
+  case tok::kw_ENDWHERE:
+    return ParseEndWhereStmt();
   case tok::kw_READ:
   case tok::kw_OPEN:
   case tok::kw_CLOSE:
@@ -606,6 +617,40 @@ Parser::StmtResult Parser::ParseAssignmentStmt() {
   if(RHS.isInvalid()) return StmtError();
   return Actions.ActOnAssignmentStmt(Context, Loc, LHS, RHS, StmtLabel);
 }
+
+/// ParseWHEREStmt - Parse the WHERE statement.
+///
+///   [R743]:
+///     where-stmt :=
+///         WHERE ( mask-expr ) where-assignment-stmt
+Parser::StmtResult Parser::ParseWhereStmt() {
+  auto Loc = ConsumeToken();
+  ExpectAndConsume(tok::l_paren);
+  auto Mask = ParseExpectedExpression();
+  if(!Mask.isInvalid())
+    ExpectAndConsume(tok::r_paren);
+  else SkipUntil(tok::r_paren);
+  if(!Tok.isAtStartOfStatement()) {
+    auto Label = StmtLabel;
+    StmtLabel = nullptr;
+    auto Body = ParseActionStmt();
+    if(Body.isInvalid())
+      return Body;
+    return Actions.ActOnWhereStmt(Context, Loc, Mask, Body, Label);
+  }
+  return Actions.ActOnWhereStmt(Context, Loc, Mask, StmtLabel);
+}
+
+StmtResult Parser::ParseElseWhereStmt() {
+  auto Loc = ConsumeToken();
+  return Actions.ActOnElseWhereStmt(Context, Loc, StmtLabel);
+}
+
+StmtResult Parser::ParseEndWhereStmt() {
+  auto Loc = ConsumeToken();
+  return Actions.ActOnEndWhereStmt(Context, Loc, StmtLabel);
+}
+
 
 /// ParsePrintStatement
 ///   [R912]:

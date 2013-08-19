@@ -1928,15 +1928,6 @@ Parser::StmtResult Parser::ParseDEALLOCATEStmt() {
   return StmtResult();
 }
 
-/// ParseWHEREStmt - Parse the WHERE statement.
-///
-///   [R743]:
-///     where-stmt :=
-///         WHERE ( mask-expr ) where-assignment-stmt
-Parser::StmtResult Parser::ParseWHEREStmt() {
-  return StmtResult();
-}
-
 /// ParseFORALLStmt - Parse the FORALL construct statement.
 ///
 ///   [R753]:

@@ -156,6 +156,8 @@ struct ConstructName {
   SourceLocation Loc;
   const IdentifierInfo *IDInfo;
 
+  ConstructName()
+    : IDInfo(nullptr) {}
   ConstructName(SourceLocation L, const IdentifierInfo *ID)
     : Loc(L), IDInfo(ID) {}
   bool isUsable() const {
@@ -172,7 +174,9 @@ public:
     EndDoStmtClass,
     ElseStmtClass,
     EndIfStmtClass,
-    EndSelectStmtClass
+    EndSelectStmtClass,
+    ElseWhereStmtClass,
+    EndWhereStmtClass
   };
   ConstructStmtClass ConstructId;
   ConstructName Name;
@@ -1025,6 +1029,32 @@ public:
   static bool classof(const DefaultCaseStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == DefaultCaseStmtClass;
+  }
+};
+
+/// WhereStmt
+class WhereStmt : public Stmt {
+  Expr *Mask;
+  Stmt *ThenArm, *ElseArm;
+
+  WhereStmt(SourceLocation Loc, Expr *mask, Expr *StmtLabel);
+public:
+  static WhereStmt *Create(ASTContext &C, SourceLocation Loc,
+                           Expr *Mask, Expr *StmtLabel);
+
+  Stmt *getThenStmt() const { return ThenArm; }
+  Stmt *getElseStmt() const { return ElseArm; }
+  bool hasElseStmt() const { return ElseArm != nullptr; }
+  void setThenStmt(Stmt *Body);
+  void setElseStmt(Stmt *Body);
+
+  Expr *getMask() const {
+    return Mask;
+  }
+
+  static bool classof(const WhereStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == WhereStmtClass;
   }
 };
 

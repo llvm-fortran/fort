@@ -159,6 +159,15 @@ void BlockStmtBuilder::LeaveIfThen(ASTContext &C) {
   StmtList.erase(StmtList.begin() + Last.BeginOffset, StmtList.end());
 }
 
+void BlockStmtBuilder::LeaveWhereThen(ASTContext &C) {
+  auto Last = ControlFlowStack.back();
+  assert(isa<WhereStmt>(Last));
+
+  auto Body = CreateBody(C, Last);
+  cast<WhereStmt>(Last.Statement)->setThenStmt(Body);
+  StmtList.erase(StmtList.begin() + Last.BeginOffset, StmtList.end());
+}
+
 void BlockStmtBuilder::Leave(ASTContext &C) {
   assert(ControlFlowStack.size());
   auto Last = ControlFlowStack.pop_back_val();
@@ -169,7 +178,13 @@ void BlockStmtBuilder::Leave(ASTContext &C) {
     if(Parent->getThenStmt())
       Parent->setElseStmt(Body);
     else Parent->setThenStmt(Body);
-  } else
+  }
+  else if(auto WhereConstruct = dyn_cast<WhereStmt>(Last.Statement)) {
+    if(WhereConstruct->getThenStmt())
+      WhereConstruct->setElseStmt(Body);
+    else WhereConstruct->setThenStmt(Body);
+  }
+  else
     cast<CFBlockStmt>(Last.Statement)->setBody(Body);
   StmtList.erase(StmtList.begin() + Last.BeginOffset, StmtList.end());
 }

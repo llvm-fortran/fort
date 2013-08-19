@@ -244,6 +244,18 @@ bool Sema::StmtRequiresLogicalExpression(SourceLocation Loc, const Expr *E) {
   return false;
 }
 
+bool Sema::StmtRequiresLogicalArrayExpression(SourceLocation Loc, const Expr *E) {
+  auto T = E->getType();
+  if(T->isArrayType()) {
+    T = T->asArrayType()->getElementType();
+    if(T->isLogicalType())
+      return true;
+  }
+  Diags.Report(Loc, diag::err_typecheck_stmt_requires_logical_array_expr)
+    << T << E->getSourceRange();
+  return false;
+}
+
 bool Sema::StmtRequiresIntegerOrLogicalOrCharacterExpression(SourceLocation Loc, const Expr *E) {
   auto Type = E->getType();
   if(Type->isIntegerType() || Type->isLogicalType() || Type->isCharacterType())

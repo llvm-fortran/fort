@@ -446,7 +446,6 @@ private:
   StmtResult ParseNULLIFYStmt();
   StmtResult ParseDEALLOCATEStmt();
 
-  StmtResult ParseWHEREStmt();
   StmtResult ParseFORALLStmt();
   StmtResult ParseEND_FORALLStmt();
 
@@ -469,6 +468,10 @@ private:
   StmtResult ParseSelectCaseStmt();
   StmtResult ParseCaseStmt();
   StmtResult ParseEndSelectStmt();
+
+  StmtResult ParseWhereStmt();
+  StmtResult ParseElseWhereStmt();
+  StmtResult ParseEndWhereStmt();
 
   StmtResult ParseContinueStmt();
   StmtResult ParseStopStmt();

@@ -252,6 +252,58 @@ StmtResult Sema::ActOnSelectCaseStmt(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
+StmtResult Sema::ActOnWhereStmt(ASTContext &C, SourceLocation Loc,
+                                ExprResult Mask, Expr *StmtLabel) {
+  if(Mask.isUsable())
+    StmtRequiresLogicalArrayExpression(Loc, Mask.get());
+
+  auto Result = WhereStmt::Create(C, Loc, Mask.get(), StmtLabel);
+  if(Mask.isUsable()) getCurrentBody()->Append(Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  getCurrentBody()->Enter(Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnWhereStmt(ASTContext &C, SourceLocation Loc,
+                                ExprResult Mask, StmtResult Body, Expr *StmtLabel) {
+  if(Mask.isUsable())
+    StmtRequiresLogicalArrayExpression(Loc, Mask.get());
+
+  auto Result = WhereStmt::Create(C, Loc, Mask.get(), StmtLabel);
+  if(!isa<AssignmentStmt>(Body.get()))
+    Diags.Report(Body.get()->getLocation(), diag::err_invalid_stmt_in_where);
+  Result->setThenStmt(Body.get());
+  if(Mask.isUsable()) getCurrentBody()->Append(Result);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+bool Sema::InsideWhereConstruct(Stmt *S) {
+  WhereStmt *CurWhere = nullptr;
+  if((isa<WhereStmt>(S) && !cast<WhereStmt>(S)->getThenStmt()))
+     CurWhere = cast<WhereStmt>(S);
+  if(!getCurrentBody()->ControlFlowStack.empty() &&
+     isa<WhereStmt>(getCurrentBody()->ControlFlowStack.back().Statement)) {
+    if(CountWhereConstructs() > 1 && getCurrentBody()->ControlFlowStack.back().Statement == CurWhere)
+      return true;
+    if(getCurrentBody()->ControlFlowStack.back().Statement != CurWhere)
+      return true;
+  }
+  return false;
+}
+
+bool Sema::CheckValidWhereStmtPart(Stmt *S) {
+  if(isa<AssignmentStmt>(S))
+    return true;
+  if(auto Part = dyn_cast<ConstructPartStmt>(S)) {
+    if(Part->getConstructStmtClass() == ConstructPartStmt::ElseWhereStmtClass ||
+       Part->getConstructStmtClass() == ConstructPartStmt::EndWhereStmtClass)
+      return true;
+  }
+  Diags.Report(S->getLocation(), diag::err_invalid_stmt_in_where_construct);
+  return false;
+}
+
 // FIXME: else if source range
 // FIXME: improve invalid_construct_name ?
 void Sema::CheckConstructNameMatch(Stmt *Part, ConstructName Name, Stmt *S) {
@@ -314,6 +366,10 @@ void Sema::ReportUnterminatedStmt(const BlockStmtBuilder::Entry &S,
   case Stmt::SelectCaseStmtClass:
     Keyword = "end select";
     BeginKeyword = "select case";
+    break;
+  case Stmt::WhereStmtClass:
+    Keyword = "end where";
+    BeginKeyword = "where";
     break;
   default:
     llvm_unreachable("Invalid stmt");
@@ -388,6 +444,32 @@ SelectCaseStmt *Sema::LeaveBlocksUntilSelectCase(SourceLocation Loc) {
   if (Result)
     LeaveUnterminatedBlocksUntil(Loc, Result);
   return Result;
+}
+
+WhereStmt *Sema::LeaveBlocksUntilWhere(SourceLocation Loc) {
+  WhereStmt *Result = nullptr;
+  auto Stack = getCurrentBody()->ControlFlowStack;
+  for(size_t I = Stack.size(); I != 0;) {
+    --I;
+    if(auto S = dyn_cast<WhereStmt>(Stack[I].Statement)) {
+      Result = S;
+      break;
+    }
+  }
+  if (Result)
+    LeaveUnterminatedBlocksUntil(Loc, Result);
+  return Result;
+}
+
+int Sema::CountWhereConstructs() {
+  int Count = 0;
+  auto Stack = getCurrentBody()->ControlFlowStack;
+  for(size_t I = Stack.size(); I != 0;) {
+    --I;
+    if(isa<WhereStmt>(Stack[I].Statement))
+      ++Count;
+  }
+  return Count;
 }
 
 /// The terminal statement of a DO-loop must not be an unconditional GO TO,
@@ -669,6 +751,32 @@ StmtResult Sema::ActOnEndSelectStmt(ASTContext &C, SourceLocation Loc,
     LeaveLastBlock();
     CheckConstructNameMatch(Result, Name, SelectConstruct);
   }
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnElseWhereStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
+  auto WhereConstruct = LeaveBlocksUntilWhere(Loc);
+  if(!WhereConstruct)
+    Diags.Report(Loc, diag::err_stmt_not_in_where) << "else where";
+
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::ElseWhereStmtClass, Loc, ConstructName(), StmtLabel);
+  getCurrentBody()->Append(Result);
+  if(WhereConstruct)
+    getCurrentBody()->LeaveWhereThen(C);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
+StmtResult Sema::ActOnEndWhereStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
+  auto WhereConstruct = LeaveBlocksUntilWhere(Loc);
+  if(!WhereConstruct)
+    Diags.Report(Loc, diag::err_stmt_not_in_where) << "end where";
+
+  auto Result = ConstructPartStmt::Create(C, ConstructPartStmt::EndWhereStmtClass, Loc, ConstructName(), StmtLabel);
+  getCurrentBody()->Append(Result);
+  if(WhereConstruct)
+    getCurrentBody()->Leave(C);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }

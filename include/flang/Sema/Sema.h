@@ -416,6 +416,16 @@ public:
   StmtResult ActOnEndSelectStmt(ASTContext &C, SourceLocation Loc,
                                 ConstructName Name, Expr *StmtLabel);
 
+  StmtResult ActOnWhereStmt(ASTContext &C, SourceLocation Loc,
+                            ExprResult Mask, Expr *StmtLabel);
+
+  StmtResult ActOnWhereStmt(ASTContext &C, SourceLocation Loc,
+                            ExprResult Mask, StmtResult Body, Expr *StmtLabel);
+
+  StmtResult ActOnElseWhereStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
+
+  StmtResult ActOnEndWhereStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
+
   StmtResult ActOnContinueStmt(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
   StmtResult ActOnStopStmt(ASTContext &C, SourceLocation Loc, ExprResult StopCode, Expr *StmtLabel);
@@ -575,6 +585,9 @@ public:
 
   /// Returns true if an expression is a logical expression
   bool StmtRequiresLogicalExpression(SourceLocation Loc, const Expr *E);
+
+  /// Returns true if an expression is a logical array expression
+  bool StmtRequiresLogicalArrayExpression(SourceLocation Loc, const Expr *E);
 
   /// Returns true if an expression is an integer, logical or a character expression.
   bool StmtRequiresIntegerOrLogicalOrCharacterExpression(SourceLocation Loc, const Expr *E);
@@ -773,6 +786,12 @@ public:
   /// Leaves block constructs until a select case construct is reached.
   SelectCaseStmt *LeaveBlocksUntilSelectCase(SourceLocation Loc);
 
+  /// Leaves block constructs until a where construct is reached.
+  WhereStmt *LeaveBlocksUntilWhere(SourceLocation Loc);
+
+  /// Returns the amount of where constructs that were entered.
+  int CountWhereConstructs();
+
   /// Checks to see if the part of the constructs has a valid construct name.
   void CheckConstructNameMatch(Stmt *Part, ConstructName Name, Stmt *S);
 
@@ -780,6 +799,12 @@ public:
   /// associated with a given name, and returns this loop. Null
   /// is returned when an error occurs.
   Stmt *CheckWithinLoopRange(const char *StmtString, SourceLocation Loc, ConstructName Name);
+
+  /// Returns true if we are inside a where construct.
+  bool InsideWhereConstruct(Stmt *S);
+
+  /// Returns true if the given statement can be part of a where construct.
+  bool CheckValidWhereStmtPart(Stmt *S);
 
 };
 

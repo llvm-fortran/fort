@@ -595,6 +595,29 @@ DefaultCaseStmt *DefaultCaseStmt::Create(ASTContext &C, SourceLocation Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// Where Statement
+//===----------------------------------------------------------------------===//
+
+WhereStmt::WhereStmt(SourceLocation Loc, Expr *mask, Expr *StmtLabel)
+  : Stmt(WhereStmtClass, Loc, StmtLabel), Mask(mask),
+    ThenArm(nullptr), ElseArm(nullptr) {}
+
+WhereStmt *WhereStmt::Create(ASTContext &C, SourceLocation Loc,
+                             Expr *Mask, Expr *StmtLabel) {
+  return new(C) WhereStmt(Loc, Mask, StmtLabel);
+}
+
+void WhereStmt::setThenStmt(Stmt *Body) {
+  assert(Body);
+  ThenArm = Body;
+}
+
+void WhereStmt::setElseStmt(Stmt *Body) {
+  assert(Body);
+  ElseArm = Body;
+}
+
+//===----------------------------------------------------------------------===//
 // Continue Statement
 //===----------------------------------------------------------------------===//
 

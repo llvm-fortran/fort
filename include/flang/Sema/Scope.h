@@ -56,6 +56,9 @@ public:
     Entry(IfStmt *S)
       : Statement(S), BeginOffset(0) {
     }
+    Entry(WhereStmt *S)
+      : Statement(S), BeginOffset(0) {
+    }
 
     bool hasExpectedDoLabel() const {
       return ExpectedEndDoLabel != nullptr;
@@ -69,6 +72,7 @@ public:
 
   void Enter(Entry S);
   void LeaveIfThen(ASTContext &C);
+  void LeaveWhereThen(ASTContext &C);
   void Leave(ASTContext &C);
   Stmt *LeaveOuterBody(ASTContext &C, SourceLocation Loc);
 

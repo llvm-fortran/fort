@@ -45,6 +45,7 @@ def SelectCaseStmt : DStmt<CFBlockStmt>;
 def SelectionCase : DStmt<CFBlockStmt, 1>;
 def CaseStmt : DStmt<SelectionCase>;
 def DefaultCaseStmt : DStmt<SelectionCase>;
+def WhereStmt : Stmt;
 def ContinueStmt : Stmt;
 def StopStmt : Stmt;
 def ReturnStmt : Stmt;

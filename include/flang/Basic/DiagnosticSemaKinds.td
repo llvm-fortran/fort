@@ -68,6 +68,8 @@ def err_typecheck_expected_logical_expr : Error<
   "expected an expression of logical type (%0 invalid)">;
 def err_typecheck_stmt_requires_logical_expr : Error<
   "statement requires an expression of logical type (%0 invalid)">;
+def err_typecheck_stmt_requires_logical_array_expr : Error<
+  "statement requires an expression of logical array type (%0 invalid)">;
 def err_typecheck_stmt_requires_int_logical_char_expr : Error<
   "statement requires an expression of integer, logical or character type (%0 invalid)">;
 def err_typecheck_expected_char_expr : Error<
@@ -147,6 +149,12 @@ def err_stmt_not_in_named_loop : Error<
   "'%0' statement not in loop statement named %1">;
 def err_stmt_not_in_select_case : Error<
   "use of '%0' outside a select case construct">;
+def err_stmt_not_in_where : Error<
+  "use of '%0' outside a where construct">;
+def err_invalid_stmt_in_where : Error<
+  "expected an assignment statement">;
+def err_invalid_stmt_in_where_construct : Error<
+  "expected an assignment statement in a where construct">;
 
 def err_use_implicit_none_stmt : Error<
   "use of 'IMPLICIT NONE' after 'IMPLICIT'">;
