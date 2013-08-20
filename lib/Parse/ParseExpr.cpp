@@ -651,6 +651,8 @@ ExprResult Parser::ParseNameOrCall() {
     return Actions.ActOnIntrinsicFunctionCallExpr(Context, IDLoc, IFunc, Arguments);
   } else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
     // FIXME: allow subroutines, but errors in sema
+    if(!IsPresent(tok::l_paren))
+      return FunctionRefExpr::Create(Context, IDLoc, Func);
     if(!Func->isSubroutine()) {
       return ParseCallExpression(SourceRange(IDLoc, IDEndLoc), Func);
     }

@@ -36,6 +36,7 @@ namespace flang {
   class Type;
   class ExtQuals;
   class QualType;
+  class FunctionType;
 }
 
 namespace llvm {
@@ -72,6 +73,7 @@ class Expr;
 class ExtQualsTypeCommonBase;
 class IdentifierInfo;
 class QualifierCollector;
+class FunctionDecl;
 
 /// Qualifiers - The collection of all-type qualifiers we support.
 class Qualifiers {
@@ -520,6 +522,9 @@ public:
   bool isArrayType() const;
   const ArrayType *asArrayType() const;
 
+  bool isFunctionType() const;
+  const FunctionType *asFunctionType() const;
+
   static bool classof(const Type *) { return true; }
 };
 
@@ -651,6 +656,47 @@ public:
     return T->getTypeClass() == Array;
   }
   static bool classof(const ArrayType *) { return true; }
+};
+
+/// FunctionType - Function types.
+class FunctionType : public Type, public llvm::FoldingSetNode {
+private:
+  QualType ResultType;
+  const FunctionDecl *Prototype;
+  FunctionType(TypeClass tc, QualType can, QualType Result,
+               const FunctionDecl *Proto)
+    : Type(tc, can), ResultType(Result), Prototype(Proto) {}
+public:
+
+  static FunctionType *Create(ASTContext &C, QualType ResultType,
+                              const FunctionDecl *Prototype = nullptr);
+
+  QualType getReturnType() const {
+    return ResultType;
+  }
+
+  const FunctionDecl *getPrototype() const {
+    return Prototype;
+  }
+
+  bool hasPrototype() const {
+    return Prototype != nullptr;
+  }
+
+  void Profile(llvm::FoldingSetNodeID &ID) const {
+    Profile(ID, ResultType, Prototype);
+  }
+  static void Profile(llvm::FoldingSetNodeID &ID, QualType Result,
+                      const FunctionDecl *Proto) {
+    ID.AddPointer(Result.getAsOpaquePtr());
+    ID.AddPointer(Proto);
+  }
+
+
+  static bool classof(const Type *T) {
+    return T->getTypeClass() == Function;
+  }
+  static bool classof(const FunctionType *) { return true; }
 };
 
 /// RecordType - Record types.
@@ -850,6 +896,14 @@ inline const ArrayType *Type::asArrayType() const {
     return AT;
   }
   return 0;
+}
+
+inline bool Type::isFunctionType() const {
+  return isa<FunctionType>(CanonicalType);
+}
+
+inline const FunctionType *Type::asFunctionType() const {
+  return dyn_cast<FunctionType>(CanonicalType);
 }
 
 inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB,

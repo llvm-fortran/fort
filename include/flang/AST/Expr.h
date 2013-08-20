@@ -629,6 +629,25 @@ public:
   }
 };
 
+/// FunctionRefExpr - a reference to a function
+class FunctionRefExpr : public Expr {
+  const FunctionDecl *Function;
+  FunctionRefExpr(SourceLocation Loc, const FunctionDecl *Func,
+                  QualType T);
+public:
+  static FunctionRefExpr *Create(ASTContext &C, SourceLocation Loc,
+                                 const FunctionDecl *Function);
+
+  const FunctionDecl *getFunctionDecl() const { return Function; }
+
+  SourceLocation getLocEnd() const;
+
+  static bool classof(const Expr *E) {
+    return E->getExprClass() == FunctionRefExprClass;
+  }
+  static bool classof(const FunctionRefExpr *) { return true; }
+};
+
 /// VarExpr -
 class VarExpr : public Expr {
   const VarDecl *Variable;

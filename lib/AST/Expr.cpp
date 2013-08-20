@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// FIXME: get LocEnd for decl references, constants (use lexer)
+
 #include "flang/AST/Expr.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
@@ -258,6 +260,20 @@ ImplicitTempArrayExpr::ImplicitTempArrayExpr(SourceLocation Loc, Expr *E)
 
 ImplicitTempArrayExpr *ImplicitTempArrayExpr::Create(ASTContext &C, Expr *E) {
   return new(C) ImplicitTempArrayExpr(E->getLocation(), E);
+}
+
+FunctionRefExpr::FunctionRefExpr(SourceLocation Loc, const FunctionDecl *Func,
+                QualType T)
+  : Expr(FunctionRefExprClass, T, Loc), Function(Function) {}
+
+FunctionRefExpr *FunctionRefExpr::Create(ASTContext &C, SourceLocation Loc,
+                                         const FunctionDecl *Function) {
+  return new(C) FunctionRefExpr(Loc, Function, C.getFunctionType(Function));
+}
+
+SourceLocation FunctionRefExpr::getLocEnd() const {
+  return SourceLocation::getFromPointer(getLocation().getPointer() +
+                                         Function->getIdentifier()->getLength());
 }
 
 VarExpr::VarExpr(SourceLocation Loc, const VarDecl *Var)

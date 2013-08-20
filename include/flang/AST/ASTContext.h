@@ -46,6 +46,7 @@ class ASTContext : public llvm::RefCountedBase<ASTContext> {
   mutable llvm::FoldingSet<PointerType> PointerTypes;
   mutable llvm::FoldingSet<ArrayType>   ArrayTypes;
   mutable llvm::FoldingSet<RecordType>  RecordTypes;
+  mutable llvm::FoldingSet<FunctionType> FunctionTypes;
 
   /// \brief The allocator used to create AST objects.
   ///
@@ -191,9 +192,17 @@ public:
   /// the specified type.
   PointerType *getPointerType(const Type *Ty, unsigned NumDims);
 
-  /// getArrayType - Return the unique reference to the type for an array of the
+  /// getArrayType - Return a non-unique reference to the type for an array of the
   /// specified element type.
   QualType getArrayType(QualType EltTy, ArrayRef<ArraySpec*> Dims);
+
+  /// getFunctionType - Return the unique reference to the type for an array of
+  /// the specified function protototype.
+  QualType getFunctionType(QualType ResultType, const FunctionDecl *Prototype);
+
+  QualType getFunctionType(const FunctionDecl *Prototype) {
+    return getFunctionType(Prototype->getType(), Prototype);
+  }
 
   /// getRecordType - Return the uniqued reference to the type for a structure
   /// of the specified type.

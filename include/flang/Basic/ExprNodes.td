@@ -18,6 +18,7 @@ def BOZConstantExpr : DExpr<ConstantExpr>;
 def LogicalConstantExpr : DExpr<ConstantExpr>;
 def RepeatedConstantExpr : Expr;
 
+def FunctionRefExpr : Expr;
 def VarExpr : Expr;
 def UnresolvedIdentifierExpr : Expr;
 def ReturnedValueExpr : Expr;

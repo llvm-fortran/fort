@@ -189,6 +189,20 @@ QualType ASTContext::getArrayType(QualType EltTy,
   return QualType(New, 0);
 }
 
+QualType ASTContext::getFunctionType(QualType ResultType, const FunctionDecl *Prototype) {
+  llvm::FoldingSetNodeID ID;
+  FunctionType::Profile(ID, ResultType, Prototype);
+
+  void *InsertPos = 0;
+  FunctionType *Result = FunctionTypes.FindNodeOrInsertPos(ID, InsertPos);
+  if(!Result) {
+    Result = FunctionType::Create(*this, ResultType, Prototype);
+    Types.push_back(Result);
+    FunctionTypes.InsertNode(Result, InsertPos);
+  }
+  return QualType(Result, 0);
+}
+
 /// getTypeDeclTypeSlow - Return the unique reference to the type for the
 /// specified type declaration.
 QualType ASTContext::getTypeDeclTypeSlow(const TypeDecl *Decl) const {

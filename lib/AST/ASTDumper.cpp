@@ -53,6 +53,7 @@ public:
   void dumpType(QualType T);
   void VisitBuiltinType(const BuiltinType *T, const ExtQuals *E);
   void VisitArrayType(const ArrayType *T, const ExtQuals *E);
+  void VisitFunctionType(const FunctionType *T, const ExtQuals *E);
 
   // statements
   void dumpStmt(const Stmt *S);
@@ -329,6 +330,13 @@ void ASTDumper::VisitArrayType(const ArrayType *T, const ExtQuals *E) {
     Dims[I]->dump(OS);
   }
 
+  OS << ")";
+}
+
+void ASTDumper::VisitFunctionType(const FunctionType *T, const ExtQuals *E) {
+  OS << "procedure (";
+  if(T->hasPrototype())
+    OS << T->getPrototype()->getName();
   OS << ")";
 }
 

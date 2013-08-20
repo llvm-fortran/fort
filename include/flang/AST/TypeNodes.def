@@ -25,6 +25,7 @@ BUILTIN_TYPE(Logical)
 TYPE(Record, Type)
 TYPE(Pointer, Type)
 TYPE(Array, Type)
+TYPE(Function, Type)
 
 #ifdef LAST_TYPE
   LAST_TYPE(Array)

@@ -848,10 +848,10 @@ StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
   SourceLocation TypeLoc;
   if (auto Prev = LookupIdentifier(IDInfo)) {
     auto VD = dyn_cast<VarDecl>(Prev);
-    if(VD && VD->isUnusedSymbol()) {
-        Type = VD->getType();
-        TypeLoc = VD->getLocation();
-        CurContext->removeDecl(VD);
+    if(VD && (VD->isUnusedSymbol() || VD->isArgument()) ) {
+      Type = VD->getType();
+      TypeLoc = VD->getLocation();
+      CurContext->removeDecl(VD);
     } else {
       Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
       Diags.Report(Prev->getLocation(), diag::note_previous_definition);

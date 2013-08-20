@@ -63,6 +63,11 @@ bool ArrayType::EvaluateSize(uint64_t &Result, const ASTContext &Ctx) const {
   return true;
 }
 
+FunctionType *FunctionType::Create(ASTContext &C, QualType ResultType,
+                                   const FunctionDecl *Prototype) {
+  return new(C, TypeAlignment) FunctionType(Function, QualType(), ResultType, Prototype);
+}
+
 static const char * TypeKindStrings[] = {
   #define INTEGER_KIND(NAME, VALUE) #VALUE ,
   #define FLOATING_POINT_KIND(NAME, VALUE) #VALUE ,
