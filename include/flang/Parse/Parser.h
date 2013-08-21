@@ -55,6 +55,28 @@ public:
   virtual void print(llvm::raw_ostream &OS) const;
 };
 
+/// StatementParsingContext - Represents the current parsing context.
+class StatementParsingContext {
+public:
+  enum Order {
+    TranslationUnitStatements,
+    SpecificationStatements,
+    ExecutableConstructs
+  };
+private:
+  StatementParsingContext *Prev;
+  Parser &TheParser;
+  Order StatementOrder;
+public:
+
+  StatementParsingContext(Parser &P, Order StmtOrder);
+  ~StatementParsingContext();
+
+  Order getStatementOrder() const {
+    return StatementOrder;
+  }
+};
+
 /// Parser - This implements a parser for the Fortran family of languages. After
 /// parsing units of the grammar, productions are invoked to handle whatever has
 /// been read.
@@ -66,7 +88,6 @@ public:
     Error                   //< There was an error parsing
   };
 private:
-
 
   Lexer TheLexer;
   LangOptions Features;
@@ -139,6 +160,12 @@ private:
   /// was select case and a case or an end select statement is expected.
   bool PrevStmtWasSelectCase;
 
+protected:
+  /// StatementContext - the current context for statement parsing.
+  StatementParsingContext *StatementContext;
+
+  friend class StatementParsingContext;
+private:
   /// StatementTokens - the tokens for the current statement.
   /// We need to remember them in case we want to reparse the statement
   /// (fixed-form problems).
@@ -202,6 +229,10 @@ public:
   const Token &getCurToken() const { return Tok; }
   const Lexer &getLexer() const { return TheLexer; }
   Lexer &getLexer() { return TheLexer; }
+
+  StatementParsingContext *getStatementContext() {
+    return StatementContext;
+  }
 
   bool ParseProgramUnits();
 
@@ -361,6 +392,8 @@ private:
 
   /// Certain fixed-form are ambigous, and might need to be reparsed.
   StmtResult ReparseAmbiguousStatement();
+
+  StmtResult ReparseAmbiguousStatementSwitchToExecutablePart();
 
   // High-level parsing methods.
   bool ParseInclude();

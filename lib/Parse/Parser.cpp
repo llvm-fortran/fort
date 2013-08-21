@@ -56,6 +56,15 @@ void PrettyStackTraceParserEntry::print(llvm::raw_ostream &OS) const {
 //                            Fortran Parsing
 //===----------------------------------------------------------------------===//
 
+StatementParsingContext::StatementParsingContext(Parser &P, Order StmtOrder)
+  : TheParser(P), Prev(P.StatementContext), StatementOrder(StmtOrder) {
+  P.StatementContext = this;
+}
+
+StatementParsingContext::~StatementParsingContext() {
+  TheParser.StatementContext = Prev;
+}
+
 Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  &D,
                Sema &actions)
   : TheLexer(SM, Opts, D, *this), Features(Opts), CrashInfo(*this), SrcMgr(SM),
@@ -70,6 +79,8 @@ Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  
   PrevTokLocEnd = Tok.getLocation();
   ParenCount = ParenSlashCount = BraceCount = BracketCount = 0;
   PrevStmtWasSelectCase = false;
+
+  StatementContext = nullptr;
 }
 
 bool Parser::EnterIncludeFile(const std::string &Filename) {
@@ -323,6 +334,47 @@ Parser::MatchFixedFormIdentifier(Token &T, IdentifierLexingContext Context) {
       /// We need to look for these keywords in the start
       /// of a statement because they can be merged
       /// with other identifiers.
+      if(StatementContext->getStatementOrder() != StatementParsingContext::ExecutableConstructs) {
+        switch(ID) {
+        // INTEGERvar
+        case tok::kw_INTEGER:
+        case tok::kw_REAL:
+        case tok::kw_COMPLEX:
+        case tok::kw_DOUBLEPRECISION:
+        case tok::kw_DOUBLECOMPLEX:
+        case tok::kw_LOGICAL:
+        case tok::kw_CHARACTER:
+        // IMPLICITREAL
+        case tok::kw_IMPLICIT:
+        // DIMENSIONI(10)
+        case tok::kw_DIMENSION:
+        // EXTERNALfoo
+        case tok::kw_EXTERNAL:
+        // INTRINSICfoo
+        case tok::kw_INTRINSIC:
+        // COMMONi
+        case tok::kw_COMMON:
+        // DATAa/1/
+        case tok::kw_DATA:
+        // SAVEi
+        case tok::kw_SAVE:
+        // PROGRAMname
+        case tok::kw_PROGRAM:
+        // ENDPROGRAMname
+        case tok::kw_ENDPROGRAM:
+        // SUBROUTINEfoo
+        case tok::kw_SUBROUTINE:
+        case tok::kw_ENDSUBROUTINE:
+        // FUNCTIONfoo
+        case tok::kw_FUNCTION:
+        case tok::kw_ENDFUNCTION:
+          return RememberIdentAction;
+          break;
+        default:
+          break;
+        }
+      }
+
       switch(ID) {
       // ASSIGN10TOI
       case tok::kw_ASSIGN:
@@ -334,9 +386,6 @@ Parser::MatchFixedFormIdentifier(Token &T, IdentifierLexingContext Context) {
       case tok::kw_ELSE:
       // ENDIFconstructname
       case tok::kw_ENDIF:
-      // CASEDEFAULTconstructname
-      // FIXME: add
-      //case tok::kw_CASEDEFAULT:
       // ENDSELECTconstructname
       case tok::kw_ENDSELECT:
       // GOTOI
@@ -356,37 +405,10 @@ Parser::MatchFixedFormIdentifier(Token &T, IdentifierLexingContext Context) {
       case tok::kw_PRINT:
       // READfmt
       case tok::kw_READ:
-      // INTEGERvar
-      case tok::kw_INTEGER:
-      case tok::kw_REAL:
-      case tok::kw_COMPLEX:
-      case tok::kw_DOUBLEPRECISION:
-      case tok::kw_DOUBLECOMPLEX:
-      case tok::kw_LOGICAL:
-      case tok::kw_CHARACTER:
-      // IMPLICITREAL
-      case tok::kw_IMPLICIT:
-      // DIMENSIONI(10)
-      case tok::kw_DIMENSION:
-      // EXTERNALfoo
-      case tok::kw_EXTERNAL:
-      // INTRINSICfoo
-      case tok::kw_INTRINSIC:
-      // COMMONi
-      case tok::kw_COMMON:
-      // DATAa/1/
-      case tok::kw_DATA:
-      // SAVEi
-      case tok::kw_SAVE:
-      // PROGRAMname
-      case tok::kw_PROGRAM:
-      // ENDPROGRAMname
+
+      case tok::kw_END:
       case tok::kw_ENDPROGRAM:
-      // SUBROUTINEfoo
-      case tok::kw_SUBROUTINE:
       case tok::kw_ENDSUBROUTINE:
-      // FUNCTIONfoo
-      case tok::kw_FUNCTION:
       case tok::kw_ENDFUNCTION:
         return RememberIdentAction;
         break;
@@ -410,6 +432,11 @@ Parser::StmtResult Parser::ReparseAmbiguousStatement() {
   Tok.startToken();
   Lex();
   return ParseAmbiguousAssignmentStmt();
+}
+
+StmtResult Parser::ReparseAmbiguousStatementSwitchToExecutablePart() {
+  StatementParsingContext StmtContext(*this, StatementParsingContext::ExecutableConstructs);
+  return ReparseAmbiguousStatement();
 }
 
 /// \brief Returns true if the check flag is set,
@@ -706,6 +733,7 @@ void Parser::ParseTrailingConstructName() {
 bool Parser::ParseProgramUnits() {
   TranslationUnitScope TuScope;
   Actions.ActOnTranslationUnit(TuScope);
+  StatementParsingContext TuContext(*this, StatementParsingContext::TranslationUnitStatements);
 
   // Prime the lexer.
   Lex();
@@ -828,11 +856,16 @@ bool Parser::ParseExecutableSubprogramBody(tok::TokenKind EndKw) {
   // Apply specification statements.
   Actions.ActOnSpecificationPart();
 
-  // FIXME: Check for the specific keywords and not just absence of END or
-  //        ENDPROGRAM.
-  ParseStatementLabel();
-  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw))
-    ParseExecutionPart();
+  {
+    StatementParsingContext StmtContext(*this, StatementParsingContext::ExecutableConstructs);
+
+    // FIXME: Check for the specific keywords and not just absence of END or
+    //        ENDPROGRAM.
+    ParseStatementLabel();
+    if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw))
+      ParseExecutionPart();
+  }
+  return false;
 }
 
 /// ParseSpecificationPart - Parse the specification part.
@@ -1125,6 +1158,7 @@ StmtResult Parser::ParseImplicitPart() {
 ///           [ execution-part-construct ] ...
 bool Parser::ParseExecutionPart() {
   bool HadError = false;
+
   while (true) {
     StmtResult SR = ParseExecutableConstruct();
     if (SR.isInvalid()) {
@@ -1549,6 +1583,8 @@ bool Parser::ParseSpecificationStmt() {
     goto notImplemented;
   case tok::kw_SAVE:
     Result = ParseSAVEStmt();
+    if(Result.isUsable() && isa<AssignmentStmt>(Result.get()))
+      return true; /// NB: Fixed-form ambiguity
     break;
   case tok::kw_TARGET:
     Result = ParseTARGETStmt();

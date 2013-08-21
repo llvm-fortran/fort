@@ -348,20 +348,32 @@ Parser::StmtResult Parser::ParseSAVEStmt() {
   if(Tok.isAtStartOfStatement())
     return Actions.ActOnSAVE(Context, Loc, StmtLabel);
 
-  ConsumeIfPresent(tok::coloncolon);
+  bool IsSaveStmt = ConsumeIfPresent(tok::coloncolon);
   SmallVector<Stmt *,8> StmtList;
   bool ListParsedOk = true;
-  do {
-    auto IDLoc = Tok.getLocation();
-    auto II = Tok.getIdentifierInfo();
-    if(!ExpectAndConsume(tok::identifier)){
-      ListParsedOk = false;
-      break;
+
+  auto IDLoc = Tok.getLocation();
+  auto II = Tok.getIdentifierInfo();
+  if(!ExpectAndConsume(tok::identifier))
+    ListParsedOk = false;
+  if(!IsSaveStmt && Features.FixedForm && (IsPresent(tok::equal) || IsPresent(tok::l_paren)))
+    return ReparseAmbiguousStatementSwitchToExecutablePart();
+  auto Stmt = Actions.ActOnSAVE(Context, Loc, IDLoc, II, nullptr);
+  if(Stmt.isUsable())
+    StmtList.push_back(Stmt.get());
+  if(ListParsedOk) {
+    while(ConsumeIfPresent(tok::comma)) {
+      IDLoc = Tok.getLocation();
+      II = Tok.getIdentifierInfo();
+      if(!ExpectAndConsume(tok::identifier)){
+        ListParsedOk = false;
+        break;
+      }
+      auto Stmt = Actions.ActOnSAVE(Context, Loc, IDLoc, II, nullptr);
+      if(Stmt.isUsable())
+        StmtList.push_back(Stmt.get());
     }
-    auto Stmt = Actions.ActOnSAVE(Context, Loc, IDLoc, II, nullptr);
-    if(Stmt.isUsable())
-      StmtList.push_back(Stmt.get());
-  } while(ConsumeIfPresent(tok::comma));
+  }
 
   if(ListParsedOk) ExpectStatementEnd();
   else SkipUntilNextStatement();
