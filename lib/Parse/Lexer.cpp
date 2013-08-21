@@ -402,6 +402,21 @@ char Lexer::LineOfText::PeekNextChar() const {
   return Atom.data()[CurPtr + 1];
 }
 
+char Lexer::LineOfText::PeekNextChar(int Offset) const {
+  auto CurrentAtom = CurAtom;
+  auto Ptr = CurPtr;
+  while(Ptr + Offset >= Atoms[CurrentAtom].size() && Offset > 0) {
+    Offset -= (Atoms[CurrentAtom].size() - Ptr);
+    Ptr = 0;
+    ++CurrentAtom;
+    if(CurrentAtom >= Atoms.size())
+      return '\0';
+  }
+  StringRef Atom = Atoms[CurrentAtom];
+  assert(!Atom.empty() && "Atom has no contents!");
+  return Atom.data()[Ptr + Offset];
+}
+
 char Lexer::LineOfText::PeekPrevChar() const {
   if (Atoms.empty()) return '\0';
   StringRef Atom = Atoms[CurAtom];
@@ -1045,9 +1060,11 @@ void Lexer::LexNumericConstant(Token &Result) {
         PrevChar = '\0';
     }
     else if(C == 'E' || C == 'e' || C == 'D' || C == 'd') {
-      getNextChar();
-      IsReal = true;
-      IsExp = true;
+      if(!isLetter(peekNextChar(2))) {
+        getNextChar();
+        IsReal = true;
+        IsExp = true;
+      }
     } else PrevChar = '\0';
   }
 

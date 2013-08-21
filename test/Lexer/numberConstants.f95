@@ -20,6 +20,12 @@ PROGRAM constants
   if(1.LT.2) then
   end if
 
+  if(1.eq.2) then
+  end if
+
+  if(1.ne.2) then
+  end if
+
   X = 1e ! expected-error {{exponent has no digits}}
   Y = -2D- ! expected-error {{exponent has no digits}}
 END PROGRAM constants

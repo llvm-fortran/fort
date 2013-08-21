@@ -157,6 +157,7 @@ class Lexer {
 
     char GetNextChar();
     char PeekNextChar() const;
+    char PeekNextChar(int Offset) const;
     char PeekPrevChar() const;
     char GetCurrentChar() const;
 
@@ -189,6 +190,8 @@ class Lexer {
 
   /// peekNextChar - Peek at the next character, but don't advance the buffer.
   char peekNextChar() const { return Text.PeekNextChar(); }
+
+  char peekNextChar(int Offset) const { return Text.PeekNextChar(Offset); }
 
   /// peekPrevChar - Peek at the previous character.
   char peekPrevChar() const { return Text.PeekPrevChar(); }
