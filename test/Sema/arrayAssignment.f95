@@ -13,8 +13,8 @@ PROGRAM arrtest
   STR_ARR = 'ABC'
 
   I_ARR = I_MAT ! expected-error {{conflicting shapes in an array expression (1 dimension and 2 dimensions)}}
-  I_ARR = I_ARR2 ! expected-error {{expected an expression of array type with size 5 for the dimension 1 (size 10 invalid)}}
-  R_ARR2 = I_ARR ! expected-error {{expected an expression of array type with size 10 for the dimension 1 (size 5 invalid)}}
+  I_ARR = I_ARR2 ! expected-error {{conflicting size for dimension 1 in an array expression (5 and 10)}}
+  R_ARR2 = I_ARR ! expected-error {{conflicting size for dimension 1 in an array expression (10 and 5)}}
   I_ARR = 'ABC' ! expected-error {{assigning to 'integer' from incompatible type 'character'}}
   R_ARR = STR_ARR ! expected-error {{assigning to 'real' from incompatible type 'character (Len=10)'}}
 

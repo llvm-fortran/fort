@@ -316,15 +316,7 @@ void ASTDumper::VisitBuiltinType(const BuiltinType *T, const ExtQuals *E) {
 
 void ASTDumper::VisitArrayType(const ArrayType *T, const ExtQuals *E) {
   dumpType(T->getElementType());
-  OS << ", DIMENSION(";
-
-  auto Dims = T->getDimensions();
-  for (size_t I = 0; I < Dims.size(); ++I) {
-    if (I) OS << ", ";
-    Dims[I]->dump(OS);
-  }
-
-  OS << ")";
+  OS << " array";
 }
 
 void ASTDumper::VisitFunctionType(const FunctionType *T, const ExtQuals *E) {

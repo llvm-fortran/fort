@@ -364,4 +364,50 @@ bool Sema::CheckIntrinsicCharacterFunc(intrinsic::FunctionKind Function,
   return false;
 }
 
+bool Sema::CheckIntrinsicArrayFunc(intrinsic::FunctionKind Function,
+                                   ArrayRef<Expr*> Args,
+                                   QualType &ReturnType) {
+  auto FirstArg = Args[0];
+  auto SecondArg = Args.size() > 1? Args[1] : nullptr;
+  auto ThirdArg = Args.size() > 2? Args[2] : nullptr;
+  size_t ArrayDimCount = 0;
+
+  switch(Function) {
+  case MAXLOC:
+  case MINLOC:
+    // FIXME: Optional DIM (when array has more than one dim)
+    // FIXME: Third argument mask
+
+    if(!CheckIntegerOrRealArrayArgument(FirstArg, "array")) {
+      ArrayDimCount = FirstArg->getType()->asArrayType()->getDimensionCount();
+      ReturnType = GetSingleDimArrayType(Context.IntegerTy, ArrayDimCount);
+    } else ReturnType = Context.IntegerTy;
+    if(SecondArg) {
+
+      if(SecondArg->getType()->isIntegerType()) {
+        if(ArrayDimCount == 1) {
+          ReturnType = Context.IntegerTy;
+        } else {
+          // Result: array with a dimension
+          assert(false && "FIXME");
+        }
+      }
+
+      else if(IsLogicalArray(SecondArg))
+        CheckArrayArgumentsDimensionCompability(FirstArg, SecondArg,
+                                                "array", "mask");
+      else {
+        if(ArrayDimCount == 1) {
+          ReturnType = Context.IntegerTy;
+        }
+        CheckIntegerArgumentOrLogicalArrayArgument(SecondArg, "dim", "mask");
+      }
+    }
+
+    break;
+  }
+
+  return false;
+}
+
 } // end namespace flang

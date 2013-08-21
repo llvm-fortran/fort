@@ -372,6 +372,10 @@ static const BuiltinType *getBuiltinType(const Expr *E) {
   return dyn_cast<BuiltinType>(E->getType().getTypePtr());
 }
 
+static const BuiltinType *getBuiltinType(QualType T) {
+  return dyn_cast<BuiltinType>(T.getTypePtr());
+}
+
 /// Returns true if a type is a double precision real type (Kind is 8).
 static bool IsTypeDoublePrecisionReal(QualType T) {
   auto Ext = T.getExtQualsPtrOrNull();
@@ -477,6 +481,20 @@ bool Sema::CheckIntegerOrRealArgument(const Expr *E) {
   return false;
 }
 
+bool Sema::CheckIntegerOrRealArrayArgument(const Expr *E, StringRef ArgName) {
+  auto T = E->getType()->asArrayType();
+  if(T) {
+    auto Element = getBuiltinType(T->getElementType());
+    if(Element && Element->isIntegerOrRealType())
+      return false;
+  }
+
+  Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible_named_arg)
+    << E->getType() << ArgName << "'integer array' or 'real array'"
+    << E->getSourceRange();
+  return true;
+}
+
 bool Sema::CheckIntegerOrRealOrComplexArgument(const Expr *E) {
   auto Type = getBuiltinType(E);
   if(!Type || !Type->isIntegerOrRealOrComplexType()) {
@@ -497,6 +515,37 @@ bool Sema::CheckRealOrComplexArgument(const Expr *E) {
     return true;
   }
   return false;
+}
+
+bool Sema::IsLogicalArray(const Expr *E) {
+  auto T = E->getType()->asArrayType();
+  if(T) {
+    auto Element = getBuiltinType(T->getElementType());
+    if(Element && Element->isLogicalType())
+      return true;
+  }
+  return false;
+}
+
+bool Sema::CheckLogicalArrayArgument(const Expr *E, StringRef ArgName) {
+  if(IsLogicalArray(E)) return false;
+
+  Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible_named_arg)
+    << E->getType() << ArgName << "'logical array'"
+    << E->getSourceRange();
+  return true;
+}
+
+bool Sema::CheckIntegerArgumentOrLogicalArrayArgument(const Expr *E, StringRef ArgName1,
+                                                      StringRef ArgName2) {
+  if(E->getType()->isIntegerType() || IsLogicalArray(E))
+    return false;
+
+  Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible_named_args)
+    << E->getType() << ArgName1 << "'integer'"
+    << ArgName2 << "'logical array'"
+    << E->getSourceRange();
+  return true;
 }
 
 // FIXME: Items can be implied do and other array constructors..
@@ -547,22 +596,24 @@ bool Sema::CheckArrayExpr(const Expr *E) {
 }
 
 // FIXME: ARR(:) = ARR(:)
-bool Sema::CheckArrayDimensionsCompability(const ArrayType *LHS,
-                                           const ArrayType *RHS,
-                                           SourceLocation Loc,
-                                           SourceRange LHSRange,
-                                           SourceRange RHSRange) {
+
+template<typename T>
+static bool CheckArrayCompability(Sema &S, T& Handler,
+                                  const ArrayType *LHS,
+                                  const ArrayType *RHS,
+                                  SourceLocation Loc,
+                                  SourceRange LHSRange,
+                                  SourceRange RHSRange) {
   if(LHS->getDimensionCount() !=
      RHS->getDimensionCount()) {
-    Diags.Report(Loc, diag::err_typecheck_expected_array_of_dim_count)
-      << unsigned(LHS->getDimensionCount())
-      << unsigned(RHS->getDimensionCount())
-      << LHSRange << RHSRange;
+    Handler.DimensionCountMismatch(Loc, LHS->getDimensionCount(),
+                                   RHS->getDimensionCount(),
+                                   LHSRange, RHSRange);
     return false;
   }
 
-  bool Valid = CheckArrayNoImpliedDimension(LHS, LHSRange);
-  if(!CheckArrayNoImpliedDimension(RHS, RHSRange))
+  bool Valid = S.CheckArrayNoImpliedDimension(LHS, LHSRange);
+  if(!S.CheckArrayNoImpliedDimension(RHS, RHSRange))
     Valid = false;
   if(!Valid)
     return false;
@@ -571,14 +622,13 @@ bool Sema::CheckArrayDimensionsCompability(const ArrayType *LHS,
     auto LHSDim = LHS->getDimensions()[I];
     auto RHSDim = RHS->getDimensions()[I];
     int64_t LHSBounds[2], RHSBounds[2];
-    if(LHSDim->EvaluateBounds(LHSBounds[0], LHSBounds[1], Context)) {
-      if(RHSDim->EvaluateBounds(RHSBounds[0], RHSBounds[1], Context)) {
+    if(LHSDim->EvaluateBounds(LHSBounds[0], LHSBounds[1], S.getContext())) {
+      if(RHSDim->EvaluateBounds(RHSBounds[0], RHSBounds[1], S.getContext())) {
         auto LHSSize = LHSBounds[1] - LHSBounds[0] + 1;
         auto RHSSize = RHSBounds[1] - RHSBounds[0] + 1;
         if(LHSSize != RHSSize) {
-          Diags.Report(Loc, diag::err_typecheck_array_dim_shape_mismatch)
-           << int(LHSSize) << unsigned(I+1) << int(RHSSize)
-           << LHSRange << RHSRange;
+          Handler.DimensionSizeMismatch(Loc, LHSSize, I+1, RHSSize,
+                                        LHSRange, RHSRange);
           return false;
         }
       }
@@ -586,6 +636,75 @@ bool Sema::CheckArrayDimensionsCompability(const ArrayType *LHS,
   }
 
   return true;
+}
+
+bool Sema::CheckArrayDimensionsCompability(const ArrayType *LHS,
+                                           const ArrayType *RHS,
+                                           SourceLocation Loc,
+                                           SourceRange LHSRange,
+                                           SourceRange RHSRange) {
+  struct Handler {
+    DiagnosticsEngine &Diags;
+
+    Handler(DiagnosticsEngine &D) : Diags(D) {}
+
+    void DimensionCountMismatch(SourceLocation Loc, int LHSDims,
+                                int RHSDims, SourceRange LHSRange,
+                                SourceRange RHSRange) {
+      Diags.Report(Loc, diag::err_typecheck_expected_array_of_dim_count)
+        << LHSDims << RHSDims
+        << LHSRange << RHSRange;
+    }
+
+    void DimensionSizeMismatch(SourceLocation Loc, int64_t LHSSize,
+                               int Dim, int64_t RHSSize, SourceRange LHSRange,
+                               SourceRange RHSRange) {
+      Diags.Report(Loc, diag::err_typecheck_array_dim_shape_mismatch)
+       << Dim << int(LHSSize) << int(RHSSize)
+       << LHSRange << RHSRange;
+    }
+  };
+
+  Handler Reporter(Diags);
+  return CheckArrayCompability(*this, Reporter, LHS, RHS, Loc, LHSRange, RHSRange);
+}
+
+bool Sema::CheckArrayArgumentsDimensionCompability(const Expr *E1, const Expr *E2,
+                                                   StringRef ArgName1, StringRef ArgName2) {
+  auto AT1 = E1->getType()->asArrayType();
+  auto AT2 = E2->getType()->asArrayType();
+  if(!AT1 || !AT2) return true;
+
+  struct Handler {
+    DiagnosticsEngine &Diags;
+    StringRef A1, A2;
+
+    Handler(DiagnosticsEngine &D,
+            StringRef Name1, StringRef Name2)
+      : Diags(D), A1(Name1), A2(Name2) {}
+
+    void DimensionCountMismatch(SourceLocation Loc, int LHSDims,
+                                int RHSDims, SourceRange LHSRange,
+                                SourceRange RHSRange) {
+      Diags.Report(Loc, diag::err_typecheck_args_conflict_array_dim_count)
+        << LHSDims << RHSDims
+        << A1 << A2
+        << LHSRange << RHSRange;
+    }
+
+    void DimensionSizeMismatch(SourceLocation Loc, int64_t LHSSize,
+                               int Dim, int64_t RHSSize, SourceRange LHSRange,
+                               SourceRange RHSRange) {
+      Diags.Report(Loc, diag::err_typecheck_args_conflict_array_dim_size)
+       << Dim << int(LHSSize)  << int(RHSSize)
+       << A1 << A2
+       << LHSRange << RHSRange;
+    }
+  };
+
+  Handler Reporter(Diags, ArgName1, ArgName2);
+  return CheckArrayCompability(*this, Reporter, AT1, AT2, E2->getLocation(),
+                               E1->getSourceRange(), E2->getSourceRange());
 }
 
 bool Sema::CheckVarIsAssignable(const VarExpr *E) {

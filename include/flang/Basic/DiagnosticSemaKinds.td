@@ -41,6 +41,10 @@ def err_typecheck_assign_incompatible : Error<
   "assigning to %0 from incompatible type %1">;
 def err_typecheck_passing_incompatible : Error<
   "passing %0 to parameter of incompatible type %1">;
+def err_typecheck_passing_incompatible_named_arg : Error<
+  "passing %0 to parameter '%1' of incompatible type %2">;
+def err_typecheck_passing_incompatible_named_args : Error<
+  "passing %0 to parameter '%1' of incompatible type %2 (or parameter '%3' of type %4)">;
 
 def err_typecheck_arith_invalid_operands : Error<
   "invalid operands to an arithmetic binary expression (%0 and %1)">;
@@ -82,11 +86,19 @@ def err_typecheck_expected_int_var : Error<
   "expected an integer variable instead of a variable with type %0">;
 def err_typecheck_expected_format_spec : Error<
   "expected a valid format specifier instead of an expression with type %0">;
+
 def err_typecheck_expected_array_of_dim_count : Error<
   "conflicting shapes in an array expression (%0 %plural{1:dimension|:dimensions}0"
   " and %1 %plural{1:dimension|:dimensions}1)">;
 def err_typecheck_array_dim_shape_mismatch : Error<
-  "expected an expression of array type with size %0 for the dimension %1 (size %2 invalid)">;
+  "conflicting size for dimension %0 in an array expression (%1 and %2)">;
+
+def err_typecheck_args_conflict_array_dim_count : Error<
+  "conflicting shapes in arguments '%2' and '%3' (%0 %plural{1:dimension|:dimensions}0"
+  " and %1 %plural{1:dimension|:dimensions}1)">;
+def err_typecheck_args_conflict_array_dim_size: Error<
+  "conflicting size for dimension %0 in arguments '%3' and '%4' (%1 and %2)">;
+
 def err_typecheck_use_of_implied_shape_array : Error<
   "use of an array expression with an implied dimension specification">;
 

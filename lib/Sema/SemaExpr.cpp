@@ -749,6 +749,10 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
     CheckIntrinsicCharacterFunc(Function, Arguments, ReturnType);
     break;
 
+  case GROUP_ARRAY:
+    CheckIntrinsicArrayFunc(Function, Arguments, ReturnType);
+    break;
+
   default:
     llvm_unreachable("invalid intrinsic function");
   }

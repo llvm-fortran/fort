@@ -1303,4 +1303,10 @@ void Sema::ActOnEndDerivedTypeDecl() {
   PopDeclContext();
 }
 
+QualType Sema::GetSingleDimArrayType(QualType ElTy, int Size) {
+  auto Dim = ExplicitShapeSpec::Create(Context, IntegerConstantExpr::Create(
+                                         Context, SourceLocation(), SourceLocation(), llvm::APInt(64, Size)));
+  return Context.getArrayType(ElTy, Dim);
+}
+
 } //namespace flang

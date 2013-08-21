@@ -658,6 +658,12 @@ public:
                                    ArrayRef<Expr*> Args,
                                    QualType &ReturnType);
 
+  /// Returns false if the call to a function from the array group
+  /// is valid.
+  bool CheckIntrinsicArrayFunc(intrinsic::FunctionKind Function,
+                               ArrayRef<Expr*> Args,
+                               QualType &ReturnType);
+
   /// Returns false if the argument's type is integer.
   bool CheckIntegerArgument(const Expr *E);
 
@@ -682,6 +688,9 @@ public:
   /// Returns false if the argument has an integer or a real type.
   bool CheckIntegerOrRealArgument(const Expr *E);
 
+  /// Returns false if the argument has an integer or a real array type.
+  bool CheckIntegerOrRealArrayArgument(const Expr *E, StringRef ArgName);
+
   /// Returns false if the argument has an integer or a real or
   /// a complex argument.
   bool CheckIntegerOrRealOrComplexArgument(const Expr *E);
@@ -689,6 +698,20 @@ public:
   /// Returns false if the argument has a real or
   /// a complex argument.
   bool CheckRealOrComplexArgument(const Expr *E);
+
+  /// Returns true if the given expression is a logical array.
+  bool IsLogicalArray(const Expr *E);
+
+  /// Returns false if the argument has a logical array type.
+  bool CheckLogicalArrayArgument(const Expr *E, StringRef ArgName);
+
+  /// Returns false if the argument is an integer or a logical array.
+  bool CheckIntegerArgumentOrLogicalArrayArgument(const Expr *E, StringRef ArgName1,
+                                                  StringRef ArgName2);
+
+  /// Returns false if the two array arguments are compatible with each other
+  bool CheckArrayArgumentsDimensionCompability(const Expr *E1, const Expr *E2,
+                                               StringRef ArgName1, StringRef ArgName2);
 
   bool IsValidFunctionType(QualType Type);
 
@@ -805,6 +828,9 @@ public:
 
   /// Returns true if the given statement can be part of a where construct.
   bool CheckValidWhereStmtPart(Stmt *S);
+
+  /// Returns a vector of elements with a given size.
+  QualType GetSingleDimArrayType(QualType ElTy, int Size);
 
 };
 
