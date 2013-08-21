@@ -260,6 +260,11 @@ void FunctionDecl::setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList) 
   }
 }
 
+void FunctionDecl::setResult(VarDecl *VD) {
+  assert(!Result);
+  Result = VD;
+}
+
 //===----------------------------------------------------------------------===//
 // RecordDecl Implementation
 //===----------------------------------------------------------------------===//
@@ -331,6 +336,13 @@ VarDecl *VarDecl::CreateArgument(ASTContext &C, DeclContext *DC,
   return Result;
 }
 
+VarDecl *VarDecl::CreateFunctionResult(ASTContext &C, DeclContext *DC,
+                                       SourceLocation IDLoc, const IdentifierInfo *ID) {
+  auto Result = new (C) VarDecl(Var, DC, IDLoc, ID, QualType());
+  Result->SubDeclKind = FunctionResult;
+  return Result;
+}
+
 void VarDecl::MutateIntoParameter(Expr *Value) {
   assert(!isParameter());
   assert(!Init);
@@ -341,16 +353,6 @@ void VarDecl::MutateIntoParameter(Expr *Value) {
 void VarDecl::MarkUsedAsVariable (SourceLocation Loc) {
   if(SubDeclKind == UnusedSymbol)
     SubDeclKind = LocalVariable;
-}
-
-//===----------------------------------------------------------------------===//
-// ReturnVarDecl Implementation
-//===----------------------------------------------------------------------===//
-
-ReturnVarDecl *ReturnVarDecl::Create(ASTContext &C, DeclContext *DC,
-                                     SourceLocation IDLoc,
-                                     const IdentifierInfo *ID) {
-  return new(C) ReturnVarDecl(ReturnVar, DC, IDLoc, ID);
 }
 
 //===----------------------------------------------------------------------===//

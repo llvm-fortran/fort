@@ -69,10 +69,6 @@ public:
   bool VisitVarExpr(const VarExpr *E) {
     return true;
   }
-
-  bool VisitReturnedValueExpr(const ReturnedValueExpr *E) {
-    return true;
-  }
 };
 
 bool Expr::IsArrayExprContiguous() const {

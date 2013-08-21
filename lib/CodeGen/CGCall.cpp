@@ -299,8 +299,6 @@ llvm::Value *CodeGenFunction::EmitCallArgPtr(const Expr *E) {
     if(!VD->isParameter())
       return GetVarPtr(VD);
   }
-  else if(isa<ReturnedValueExpr>(E))
-    return GetRetVarPtr();
   else if(auto ArrEl = dyn_cast<ArrayElementExpr>(E))
     return EmitArrayElementPtr(ArrEl->getTarget(), ArrEl->getSubscripts());
 

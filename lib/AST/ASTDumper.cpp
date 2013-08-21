@@ -47,7 +47,6 @@ public:
   void VisitMainProgramDecl(const MainProgramDecl *D);
   void VisitFunctionDecl(const FunctionDecl *D);
   void VisitVarDecl(const VarDecl *D);
-  void VisitReturnVarDecl(const ReturnVarDecl *D);
 
   // types
   void dumpType(QualType T);
@@ -113,7 +112,6 @@ public:
   void VisitRepeatedConstantExpr(const RepeatedConstantExpr *E);
   void VisitVarExpr(const VarExpr *E);
   void VisitUnresolvedIdentifierExpr(const UnresolvedIdentifierExpr *E);
-  void VisitReturnedValueExpr(const ReturnedValueExpr *E);
   void VisitUnaryExpr(const UnaryExpr *E);
   void VisitDefinedUnaryOperatorExpr(const DefinedUnaryOperatorExpr *E);
   void VisitImplicitCastExpr(const ImplicitCastExpr *E);
@@ -216,10 +214,6 @@ void ASTDumper::VisitVarDecl(const VarDecl *D) {
     OS << ' ';
   }
   OS << D->getName() << "\n";
-}
-
-void ASTDumper::VisitReturnVarDecl(const ReturnVarDecl *D) {
-  OS << "return var\n";
 }
 
 // types
@@ -724,10 +718,6 @@ void ASTDumper::VisitVarExpr(const VarExpr *E) {
 
 void ASTDumper::VisitUnresolvedIdentifierExpr(const UnresolvedIdentifierExpr *E) {
   OS << E->getIdentifier()->getName();
-}
-
-void ASTDumper::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
-  OS << E->getFuncDecl()->getName();
 }
 
 void ASTDumper::VisitUnaryExpr(const UnaryExpr *E) {

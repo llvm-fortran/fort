@@ -159,7 +159,8 @@ void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func,
 
 void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
   if(D->isParameter() ||
-     D->isArgument()) return;
+     D->isArgument()  ||
+     D->isFunctionResult()) return;
 
   auto Type = D->getType();
   llvm::Value *Ptr;
@@ -171,6 +172,8 @@ void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
 }
 
 llvm::Value *CodeGenFunction::GetVarPtr(const VarDecl *D) {
+  if(D->isFunctionResult())
+    return ReturnValuePtr;
   return LocalVariables[D];
 }
 

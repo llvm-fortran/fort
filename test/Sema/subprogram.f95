@@ -20,6 +20,7 @@ FUNCTION FUNC2() ! expected-error {{redefinition of 'func2'}}
 END
 
 SUBROUTINE SUBB ! expected-note {{previous definition is here}}
+  ! FIXME:
   INTEGER SUBB ! expected-error {{redefinition of 'subb'}}
   REAL FUNC2
   LOGICAL L

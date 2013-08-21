@@ -302,6 +302,8 @@ void Sema::SetFunctionType(FunctionDecl *Function, QualType Type,
     return;
   }
   Function->setType(Type);
+  if(Function->hasResult())
+    Function->getResult()->setType(Type);
 }
 
 FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, SubProgramScope &Scope,
@@ -320,17 +322,23 @@ FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, SubProgramScope &Scope,
   QualType ReturnType;
   if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
     ReturnType = ActOnTypeName(C, ReturnTypeDecl);
+
   auto Func = FunctionDecl::Create(C, IsSubRoutine? FunctionDecl::Subroutine :
                                                     FunctionDecl::NormalFunction,
                                    ParentDC, NameInfo, ReturnType);
-  if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
-    SetFunctionType(Func, ReturnType, IDLoc, SourceRange());//FIXME: proper loc and range
   if(Declare)
     ParentDC->addDecl(Func);
   PushDeclContext(Func);
   PushExecutableProgramUnit(Scope);
-  auto RetVar = ReturnVarDecl::Create(C, CurContext, IDLoc, IDInfo);
-  CurContext->addDecl(RetVar);
+
+  if(!IsSubRoutine) {
+    auto RetVar = VarDecl::CreateFunctionResult(C, CurContext, IDLoc, IDInfo);
+    CurContext->addDecl(RetVar);
+    Func->setResult(RetVar);
+  }
+
+  if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
+    SetFunctionType(Func, ReturnType, IDLoc, SourceRange());//FIXME: proper loc and range
   return Func;
 }
 
@@ -504,9 +512,10 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDL
       if(VD->isArgument() && VD->getType().isNull()) {
         VD->setType(T);
         return VD;
-      }
-    } else if(isa<ReturnVarDecl>(Prev))
-      FD = CurrentContextAsFunction();
+      } else if(VD->isFunctionResult())
+         FD = CurrentContextAsFunction();
+    }
+
     if(FD && (FD->isNormalFunction() || FD->isExternal())) {
       if(FD->getType().isNull()) {
         SetFunctionType(FD, T, IDLoc, SourceRange()); //Fixme: proper loc and range
@@ -1165,7 +1174,7 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                      ExprResult RHS, Expr *StmtLabel) {
   if(!isa<VarExpr>(LHS.get()) && !isa<ArrayElementExpr>(LHS.get()) &&
      !isa<ArraySectionExpr>(LHS.get()) &&
-     !isa<SubstringExpr>(LHS.get()) && !isa<ReturnedValueExpr>(LHS.get())) {
+     !isa<SubstringExpr>(LHS.get())) {
     Diags.Report(Loc,diag::err_expr_not_assignable) << LHS.get()->getSourceRange();
     return StmtError();
   }

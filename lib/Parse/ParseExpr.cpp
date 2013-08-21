@@ -656,10 +656,6 @@ ExprResult Parser::ParseNameOrCall() {
     if(!Func->isSubroutine()) {
       return ParseCallExpression(SourceRange(IDLoc, IDEndLoc), Func);
     }
-  } else if(isa<ReturnVarDecl>(Declaration)) {
-    auto Func = Actions.CurrentContextAsFunction();
-    if(Func->isNormalFunction())
-      return ReturnedValueExpr::Create(Context, IDLoc, Func);
   }
 
   Diag.Report(IDLoc, diag::err_expected_var);

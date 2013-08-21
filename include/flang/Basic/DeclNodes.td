@@ -37,5 +37,4 @@ def Named : Decl<1>;
       def Submodule : DDecl<Declarator>, DeclContext;
       def Field : DDecl<Declarator>;
       def Var : DDecl<Declarator>;
-      def ReturnVar : DDecl<Declarator>;
 def FileScopeAsm : Decl;

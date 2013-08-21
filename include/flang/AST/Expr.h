@@ -665,25 +665,6 @@ public:
   static bool classof(const VarExpr *) { return true; }
 };
 
-/// ReturnedValueExpr - used to assign to a return value
-/// in functions.
-class ReturnedValueExpr : public Expr {
-  FunctionDecl *Func;
-  ReturnedValueExpr(SourceLocation Loc, FunctionDecl *F);
-public:
-  static ReturnedValueExpr *Create(ASTContext &C, SourceLocation Loc,
-                                   FunctionDecl *Func);
-
-  FunctionDecl *getFuncDecl() const { return Func; }
-
-  SourceLocation getLocEnd() const;
-
-  static bool classof(const Expr *E) {
-    return E->getExprClass() == ReturnedValueExprClass;
-  }
-  static bool classof(const ReturnedValueExpr *) { return true; }
-};
-
 /// UnresolvedIdentifierExpr - this is an probably a variable reference
 /// to a variable that is declared later on in the source code.
 ///

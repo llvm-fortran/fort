@@ -21,7 +21,6 @@ def RepeatedConstantExpr : Expr;
 def FunctionRefExpr : Expr;
 def VarExpr : Expr;
 def UnresolvedIdentifierExpr : Expr;
-def ReturnedValueExpr : Expr;
 def UnaryExpr : Expr;
 def DefinedUnaryOperatorExpr : DExpr<UnaryExpr>;
 def ImplicitCastExpr : Expr;

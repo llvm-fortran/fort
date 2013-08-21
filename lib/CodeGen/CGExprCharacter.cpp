@@ -52,7 +52,6 @@ public:
   CharacterValueTy EmitExpr(const Expr *E);
   CharacterValueTy VisitCharacterConstantExpr(const CharacterConstantExpr *E);
   CharacterValueTy VisitVarExpr(const VarExpr *E);
-  CharacterValueTy VisitReturnedValueExpr(const ReturnedValueExpr *E);
   CharacterValueTy VisitBinaryExprConcat(const BinaryExpr *E);
   CharacterValueTy VisitSubstringExpr(const SubstringExpr *E);
   CharacterValueTy VisitCallExpr(const CallExpr *E);
@@ -83,11 +82,9 @@ CharacterValueTy CharacterExprEmitter::VisitVarExpr(const VarExpr *E) {
     return CGF.GetCharacterArg(VD);
   else if(VD->isParameter())
     return EmitExpr(VD->getInit());
+  else if(VD->isFunctionResult())
+    return CGF.ExtractCharacterValue(CGF.GetRetVarPtr());
   return CGF.GetCharacterValueFromPtr(CGF.GetVarPtr(VD), VD->getType());
-}
-
-CharacterValueTy CharacterExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
-  return CGF.ExtractCharacterValue(CGF.GetRetVarPtr());
 }
 
 // FIXME could be optimized by folding consecutive concats to one destination

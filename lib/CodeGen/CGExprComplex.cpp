@@ -36,7 +36,6 @@ public:
   ComplexValueTy EmitExpr(const Expr *E);
   ComplexValueTy VisitComplexConstantExpr(const ComplexConstantExpr *E);
   ComplexValueTy VisitVarExpr(const VarExpr *E);
-  ComplexValueTy VisitReturnedValueExpr(const ReturnedValueExpr *E);
   ComplexValueTy VisitUnaryExprPlus(const UnaryExpr *E);
   ComplexValueTy VisitUnaryExprMinus(const UnaryExpr *E);
   ComplexValueTy VisitBinaryExpr(const BinaryExpr *E);
@@ -81,11 +80,6 @@ ComplexValueTy ComplexExprEmitter::VisitVarExpr(const VarExpr *E) {
   if(VD->isParameter())
     return EmitExpr(VD->getInit());
   auto Ptr = CGF.GetVarPtr(VD);
-  return CGF.EmitComplexLoad(Ptr);
-}
-
-ComplexValueTy ComplexExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
-  auto Ptr = CGF.GetRetVarPtr();
   return CGF.EmitComplexLoad(Ptr);
 }
 

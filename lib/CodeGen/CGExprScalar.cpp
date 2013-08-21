@@ -43,7 +43,6 @@ public:
   llvm::Value *VisitRealConstantExpr(const RealConstantExpr *E);
   llvm::Value *VisitLogicalConstantExpr(const LogicalConstantExpr *E);
   llvm::Value *VisitVarExpr(const VarExpr *E);
-  llvm::Value *VisitReturnedValueExpr(const ReturnedValueExpr *E);
   llvm::Value *VisitUnaryExprPlus(const UnaryExpr *E);
   llvm::Value *VisitUnaryExprMinus(const UnaryExpr *E);
   llvm::Value *VisitUnaryExprNot(const UnaryExpr *E);
@@ -103,11 +102,6 @@ llvm::Value *ScalarExprEmitter::VisitVarExpr(const VarExpr *E) {
     return EmitExpr(VD->getInit());
   auto Ptr = CGF.GetVarPtr(VD);
   return Builder.CreateLoad(Ptr,VD->getName());
-}
-
-llvm::Value *ScalarExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
-  auto Ptr = CGF.GetRetVarPtr();
-  return Builder.CreateLoad(Ptr,E->getFuncDecl()->getName());
 }
 
 llvm::Value *ScalarExprEmitter::VisitUnaryExprPlus(const UnaryExpr *E) {

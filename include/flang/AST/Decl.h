@@ -693,13 +693,14 @@ public:
 private:
   unsigned ArgumentCount;
   VarDecl **Arguments;
+  VarDecl *Result;
   llvm::PointerUnion<Stmt*,Expr*> Body;
 
   FunctionDecl(Kind DK, FunctionKind FK, DeclContext *DC,
                const DeclarationNameInfo &NameInfo, QualType T)
     : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
       DeclContext(DK), ArgumentCount(0), Arguments(nullptr),
-      Body((Stmt*)nullptr) {
+      Body((Stmt*)nullptr), Result(nullptr) {
       SubDeclKind = FK;
     }
 public:
@@ -717,6 +718,15 @@ public:
     return ArrayRef<VarDecl*>(Arguments, ArgumentCount);
   }
   void setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList);
+
+  /// Returns the variable that will be returned by this function
+  VarDecl *getResult() const {
+    return Result;
+  }
+  bool hasResult() const {
+    return Result != nullptr;
+  }
+  void setResult(VarDecl *VD);
 
   void setBody(Stmt *S);
   void setBody(Expr *E);
@@ -840,7 +850,8 @@ public:
     UnusedSymbol = 0,
     LocalVariable,
     FunctionArgument,
-    ParameterVariable
+    ParameterVariable,
+    FunctionResult
   };
 private:
   /// \brief The initializer for this variable.
@@ -859,6 +870,8 @@ public:
                          QualType T);
   static VarDecl *CreateArgument(ASTContext &C, DeclContext *DC,
                                  SourceLocation IDLoc, const IdentifierInfo *ID);
+  static VarDecl *CreateFunctionResult(ASTContext &C, DeclContext *DC,
+                                       SourceLocation IDLoc, const IdentifierInfo *ID);
 
   void Profile(llvm::FoldingSetNodeID &ID) {
     Profile(ID, getIdentifier());
@@ -881,6 +894,7 @@ public:
   inline bool isLocalVariable() const { return SubDeclKind == LocalVariable; }
   inline bool isParameter() const { return SubDeclKind == ParameterVariable; }
   inline bool isArgument() const { return SubDeclKind == FunctionArgument; }
+  inline bool isFunctionResult() const { return SubDeclKind == FunctionResult; }
 
   void MutateIntoParameter(Expr *Value);
   void MarkUsedAsVariable (SourceLocation Loc);
@@ -889,32 +903,6 @@ public:
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
   static bool classof(const VarDecl *D) { return true; }
   static bool classofKind(Kind K) { return K == Var; }
-};
-
-/// ReturnVarDecl - An instance of this class is created to represent a
-/// return value variable.
-class ReturnVarDecl : public DeclaratorDecl {
-private:
-  ReturnVarDecl(Kind DK, DeclContext *DC, SourceLocation IDLoc,
-                const IdentifierInfo *ID)
-    : DeclaratorDecl(DK, DC, IDLoc, ID, QualType()) {
-  }
-public:
-  static ReturnVarDecl *Create(ASTContext &C, DeclContext *DC,
-                               SourceLocation IDLoc,
-                               const IdentifierInfo *ID);
-
-  void Profile(llvm::FoldingSetNodeID &ID) {
-    Profile(ID, getIdentifier());
-  }
-  static void Profile(llvm::FoldingSetNodeID &ID, const IdentifierInfo *Info) {
-    ID.AddPointer(Info);
-  }
-
-  // Implement isa/cast/dyncast/etc.
-  static bool classof(const Decl *D) { return classofKind(D->getKind()); }
-  static bool classof(const ReturnVarDecl *D) { return true; }
-  static bool classofKind(Kind K) { return K == ReturnVar; }
 };
 
 class FileScopeAsmDecl : public Decl {

@@ -684,7 +684,7 @@ bool Sema::CheckCallArguments(FunctionDecl *Function, llvm::MutableArrayRef<Expr
 }
 
 static bool IsDirectArrayExpr(const Expr *E) {
-  return isa<VarExpr>(E) || isa<ReturnedValueExpr>(E);
+  return isa<VarExpr>(E);
 }
 
 bool Sema::ArrayExprNeedsTemp(const Expr *E) {

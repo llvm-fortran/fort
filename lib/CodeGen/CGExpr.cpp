@@ -54,7 +54,6 @@ public:
   LValueExprEmitter(CodeGenFunction &cgf);
 
   LValueTy VisitVarExpr(const VarExpr *E);
-  LValueTy VisitReturnedValueExpr(const ReturnedValueExpr *E);
   LValueTy VisitArrayElementExpr(const ArrayElementExpr *E);
 };
 
@@ -65,10 +64,6 @@ LValueExprEmitter::LValueExprEmitter(CodeGenFunction &cgf)
 
 LValueTy LValueExprEmitter::VisitVarExpr(const VarExpr *E) {
   return LValueTy(CGF.GetVarPtr(E->getVarDecl()));
-}
-
-LValueTy LValueExprEmitter::VisitReturnedValueExpr(const ReturnedValueExpr *E) {
-  return LValueTy(CGF.GetRetVarPtr());
 }
 
 LValueTy LValueExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
