@@ -154,7 +154,8 @@ public:
 
   FunctionDecl *ActOnSubProgram(ASTContext &C, SubProgramScope &Scope,
                                 bool IsSubRoutine, SourceLocation IDLoc,
-                                const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl);
+                                const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl,
+                                int Attr);
   void ActOnRESULT(ASTContext &C, SourceLocation IDLoc,
                    const IdentifierInfo *IDInfo);
   VarDecl *ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,

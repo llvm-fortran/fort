@@ -238,7 +238,7 @@ void MainProgramDecl::setBody(Stmt *S) {
 FunctionDecl *FunctionDecl::Create(ASTContext &C, FunctionKind FK,
                                    DeclContext *DC,
                                    const DeclarationNameInfo &NameInfo,
-                                   QualType ReturnType, Attributes Attr) {
+                                   QualType ReturnType, int Attr) {
   return new(C) FunctionDecl(Function, FK, DC, NameInfo, ReturnType, Attr);
 }
 

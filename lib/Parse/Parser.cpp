@@ -368,6 +368,7 @@ Parser::MatchFixedFormIdentifier(Token &T, IdentifierLexingContext Context) {
         // FUNCTIONfoo
         case tok::kw_FUNCTION:
         case tok::kw_ENDFUNCTION:
+        case tok::kw_RECURSIVE:
           return RememberIdentAction;
           break;
         default:
@@ -777,6 +778,9 @@ bool Parser::ParseProgramUnit() {
   case tok::kw_DOUBLECOMPLEX:
     ParseTypedExternalSubprogram();
     break;
+  case tok::kw_RECURSIVE:
+    ParseRecursiveExternalSubprogram();
+    break;
   case tok::kw_FUNCTION:
   case tok::kw_SUBROUTINE:
     ParseExternalSubprogram();
@@ -981,7 +985,7 @@ bool Parser::ParseSpecificationPart() {
 ///           end-function-stmt
 bool Parser::ParseExternalSubprogram() {
   DeclSpec ReturnType;
-  return ParseExternalSubprogram(ReturnType);
+  return ParseExternalSubprogram(ReturnType, FunctionDecl::NoAttributes);
 }
 
 bool Parser::ParseTypedExternalSubprogram() {
@@ -993,10 +997,24 @@ bool Parser::ParseTypedExternalSubprogram() {
       << "FUNCTION";
     return true;
   }
-  return ParseExternalSubprogram(ReturnType);
+  return ParseExternalSubprogram(ReturnType, FunctionDecl::NoAttributes);
 }
 
-bool Parser::ParseExternalSubprogram(DeclSpec &ReturnType) {
+bool Parser::ParseRecursiveExternalSubprogram() {
+  SetNextTokenShouldBeKeyword();
+  ConsumeToken();
+  if(Tok.is(tok::kw_SUBROUTINE) ||
+     Tok.is(tok::kw_FUNCTION)) {
+    DeclSpec ReturnType;
+    return ParseExternalSubprogram(ReturnType, FunctionDecl::Recursive);
+  }
+  // FIXME: RECURSIVE <Type> FUNCTION
+  Diag.Report(getExpectedLoc(), diag::err_expected_after_recursive);
+  SkipUntilNextStatement();
+  return true;
+}
+
+bool Parser::ParseExternalSubprogram(DeclSpec &ReturnType, int Attr) {
   bool IsSubroutine = Tok.is(tok::kw_SUBROUTINE);
   Lex();
 
@@ -1014,7 +1032,7 @@ bool Parser::ParseExternalSubprogram(DeclSpec &ReturnType) {
   Lex();
 
   SubProgramScope Scope;
-  Actions.ActOnSubProgram(Context, Scope, IsSubroutine, IDLoc, II, ReturnType);
+  Actions.ActOnSubProgram(Context, Scope, IsSubroutine, IDLoc, II, ReturnType, Attr);
   SmallVector<VarDecl* ,8> ArgumentList;
 
   if(EatIfPresentInSameStmt(tok::l_paren)) {

@@ -1,5 +1,18 @@
 ! RUN: %flang -fsyntax-only -verify < %s
 
+RECURSIVE SUBROUTINE FOO()
+  CALL FOO
+END
+
+RECURSIVE FUNCTION FACTORIAL(X)
+  INTEGER FACTORIAL, X
+  IF(X <= 1) THEN
+    FACTORIAL = 1
+  ELSE
+    FACTORIAL = FACTORIAL(X-1)*X
+  END IF
+END
+
 SUBROUTINE SUB()
   CALL SUB ! expected-error {{calling a non-recursive subroutine 'sub'}}
 END

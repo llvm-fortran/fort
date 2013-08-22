@@ -400,8 +400,9 @@ private:
   bool ParseProgramUnit();
   bool ParseMainProgram();
   bool ParseExternalSubprogram();
-  bool ParseExternalSubprogram(DeclSpec &ReturnType);
+  bool ParseExternalSubprogram(DeclSpec &ReturnType, int Attr);
   bool ParseTypedExternalSubprogram();
+  bool ParseRecursiveExternalSubprogram();
   bool ParseExecutableSubprogramBody(tok::TokenKind EndKw);
   bool ParseModule();
   bool ParseBlockData();

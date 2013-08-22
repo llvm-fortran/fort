@@ -288,7 +288,8 @@ void Sema::SetFunctionType(FunctionDecl *Function, QualType Type,
 
 FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, SubProgramScope &Scope,
                                     bool IsSubRoutine, SourceLocation IDLoc,
-                                    const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl) {
+                                    const IdentifierInfo *IDInfo, DeclSpec &ReturnTypeDecl,
+                                    int Attr) {
   bool Declare = true;
   if (auto Prev = LookupIdentifier(IDInfo)) {
     Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
@@ -305,7 +306,7 @@ FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, SubProgramScope &Scope,
 
   auto Func = FunctionDecl::Create(C, IsSubRoutine? FunctionDecl::Subroutine :
                                                     FunctionDecl::NormalFunction,
-                                   ParentDC, NameInfo, ReturnType);
+                                   ParentDC, NameInfo, ReturnType, Attr);
   if(Declare)
     ParentDC->addDecl(Func);
   PushDeclContext(Func);

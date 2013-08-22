@@ -709,7 +709,7 @@ private:
 
   FunctionDecl(Kind DK, FunctionKind FK, DeclContext *DC,
                const DeclarationNameInfo &NameInfo, QualType T,
-               Attributes Attr)
+               int Attr)
     : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
       DeclContext(DK), ArgumentCount(0), Arguments(nullptr),
       Body((Stmt*)nullptr), Result(nullptr) {
@@ -721,7 +721,7 @@ public:
                               DeclContext *DC,
                               const DeclarationNameInfo &NameInfo,
                               QualType ReturnType,
-                              Attributes Attr = NoAttributes);
+                              int Attr = NoAttributes);
 
   bool isNormalFunction() const { return SubDeclKind == NormalFunction; }
   bool isStatementFunction() const { return SubDeclKind == StatementFunction; }
