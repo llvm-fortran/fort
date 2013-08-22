@@ -1038,7 +1038,11 @@ bool Lexer::LexIntegerLiteralConstant() {
 
 /// LexNumericConstant - Lex an integer or floating point constant.
 void Lexer::LexNumericConstant(Token &Result) {
-  const char *NumBegin = getCurrentPtr();
+  bool IsReal = false;
+  bool IsDoublePrecision = false;
+  bool IsExp = false;
+
+  const char *NumBegin = TokStart;
   bool BeginsWithDot = (*NumBegin == '.');
   if (!LexIntegerLiteralConstant() && BeginsWithDot) {
     Diags.ReportError(SourceLocation::getFromPointer(NumBegin),
@@ -1047,37 +1051,44 @@ void Lexer::LexNumericConstant(Token &Result) {
     return;
   }
 
-  bool IsReal = false;
-  bool IsDoublePrecision = false;
-  bool IsExp = false;
-  char PrevChar = getCurrentChar();
-  if (PrevChar == '.') {
-    char C = peekNextChar();
-    if(isDecimalNumberBody(C)) {
-      getNextChar();
-      IsReal = true;
-      if (LexIntegerLiteralConstant())
-        PrevChar = '\0';
-    }
-    else if(C == 'E' || C == 'e' || C == 'D' || C == 'd') {
-      if(!isLetter(peekNextChar(2))) {
+  char C;
+  if(!BeginsWithDot) {
+
+    char PrevChar = getCurrentChar();
+    if (PrevChar == '.') {
+      char C = peekNextChar();
+      if(isDecimalNumberBody(C)) {
         getNextChar();
         IsReal = true;
-        IsExp = true;
+        if (LexIntegerLiteralConstant())
+          PrevChar = '\0';
       }
-    } else PrevChar = '\0';
-  }
-
-  // Could be part of a defined operator. Form numeric constant from what we now
-  // have.
-  char C = getCurrentChar();
-  if (!IsExp && PrevChar == '.' && isLetter(C)) {
-    C = getCurrentChar();
-    if (isLetter(C)) {
-      if (!BeginsWithDot)
-        IsReal = false;
-      goto make_literal;
+      else if(C == 'E' || C == 'e' || C == 'D' || C == 'd') {
+        if(!isLetter(peekNextChar(2))) {
+          getNextChar();
+          IsReal = true;
+          IsExp = true;
+        }
+      } else if(!isLetter(C)) {
+       getNextChar();
+       IsReal = true;
+      }
     }
+
+    // Could be part of a defined operator. Form numeric constant from what we now
+    // have.
+    C = getCurrentChar();
+    if (!IsExp && PrevChar == '.' && isLetter(C)) {
+      C = getCurrentChar();
+      if (isLetter(C)) {
+        if (!BeginsWithDot)
+          IsReal = false;
+        goto make_literal;
+      }
+    }
+  } else {
+    IsReal = true;
+    C = getCurrentChar();
   }
 
   if (C == 'E' || C == 'e' || C == 'D' || C == 'd') {
@@ -1098,7 +1109,7 @@ void Lexer::LexNumericConstant(Token &Result) {
   if (C == '_')
     do {
       C = getNextChar();
-    } while (isIdentifierBody(C) || isDecimalNumberBody(C));
+  } while (isIdentifierBody(C) || isDecimalNumberBody(C));
 
   // Update the location of token.
  make_literal:

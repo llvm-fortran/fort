@@ -1,4 +1,5 @@
 ! RUN: %flang -fsyntax-only -verify < %s
+! RUN: %flang -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
 PROGRAM constants
   REAL X
   DOUBLE PRECISION Y
@@ -24,6 +25,9 @@ PROGRAM constants
   end if
 
   if(1.ne.2) then
+  end if
+
+  if(1. / 2. >= .5) then ! CHECK: (1/2)>=0.5
   end if
 
   X = 1e ! expected-error {{exponent has no digits}}
