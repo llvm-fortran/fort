@@ -813,7 +813,12 @@ StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation
   auto Prev = ResolveIdentifier(IDInfo);
   FunctionDecl *Function;
   if(Prev) {
-    Function = dyn_cast<FunctionDecl>(Prev);
+    if(isa<SelfDecl>(Prev) && isa<FunctionDecl>(CurContext)) {
+      Function = cast<FunctionDecl>(CurContext);
+      if(!CheckRecursiveFunction(IdRange.Start))
+        return StmtError();
+    } else
+      Function = dyn_cast<FunctionDecl>(Prev);
     if(!Function) {
       Diags.Report(Loc, diag::err_call_requires_subroutine)
         << /* intrinsicfunction|variable= */ (isa<IntrinsicFunctionDecl>(Prev)? 1: 0)

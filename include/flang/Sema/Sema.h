@@ -831,6 +831,9 @@ public:
   /// Returns true if the given statement can be part of a where construct.
   bool CheckValidWhereStmtPart(Stmt *S);
 
+  /// Returns true if the current function/subroutine is recursive.
+  bool CheckRecursiveFunction(SourceLocation Loc);
+
   /// Returns a vector of elements with a given size.
   QualType GetSingleDimArrayType(QualType ElTy, int Size);
 

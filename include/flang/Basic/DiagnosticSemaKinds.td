@@ -243,6 +243,12 @@ def err_call_requires_subroutine: Error<
   "statement requires a subroutine reference ("
   "%select{variable|intrinsic function|function}0 %1 invalid)">;
 
+def err_call_non_recursive : Error<
+  "calling a non-recursive %select{function|subroutine}0 %1">;
+
+def err_invalid_subroutine_use : Error<
+  "invalid use of subroutine %0">;
+
 def err_spec_not_applicable_undeclared_ident : Error<
   "'%0' statement can't be applied because the identifier %1 "
   "isn't declared in the current context">;

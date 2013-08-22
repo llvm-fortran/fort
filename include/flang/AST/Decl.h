@@ -124,6 +124,11 @@ protected:
   /// the kind of a sub declaration this is
   unsigned SubDeclKind : 4;
 
+  unsigned CustomBoolAttr1 : 1;
+  unsigned CustomBoolAttr2 : 1;
+  unsigned CustomBoolAttr3 : 1;
+  unsigned CustomBoolAttr4 : 1;
+
   Decl(Kind DK, DeclContext *DC, SourceLocation L)
     : NextDeclInContext(0), DeclCtx(DC), Loc(L), DeclKind(DK),
       InvalidDecl(false), HasAttrs(false), Implicit(false),
@@ -690,6 +695,12 @@ public:
     Subroutine,
     External
   };
+
+  enum Attributes {
+    NoAttributes = 0,
+    Recursive = 1
+  };
+
 private:
   unsigned ArgumentCount;
   VarDecl **Arguments;
@@ -697,22 +708,27 @@ private:
   llvm::PointerUnion<Stmt*,Expr*> Body;
 
   FunctionDecl(Kind DK, FunctionKind FK, DeclContext *DC,
-               const DeclarationNameInfo &NameInfo, QualType T)
+               const DeclarationNameInfo &NameInfo, QualType T,
+               Attributes Attr)
     : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
       DeclContext(DK), ArgumentCount(0), Arguments(nullptr),
       Body((Stmt*)nullptr), Result(nullptr) {
+      CustomBoolAttr1 = (Attr & Recursive) != 0;
       SubDeclKind = FK;
     }
 public:
   static FunctionDecl *Create(ASTContext &C, FunctionKind FK,
                               DeclContext *DC,
                               const DeclarationNameInfo &NameInfo,
-                              QualType ReturnType);
+                              QualType ReturnType,
+                              Attributes Attr = NoAttributes);
 
   bool isNormalFunction() const { return SubDeclKind == NormalFunction; }
   bool isStatementFunction() const { return SubDeclKind == StatementFunction; }
   bool isSubroutine() const { return SubDeclKind == Subroutine; }
   bool isExternal() const { return SubDeclKind == External; }
+
+  bool isRecursive() const { return CustomBoolAttr1 != 0; }
 
   ArrayRef<VarDecl*> getArguments() const {
     return ArrayRef<VarDecl*>(Arguments, ArgumentCount);
@@ -743,6 +759,30 @@ public:
   static FunctionDecl *castFromDeclContext(const DeclContext *DC) {
     return static_cast<FunctionDecl *>(const_cast<DeclContext*>(DC));
   }
+};
+
+/// SelfDecl - References a given declaration
+/// in the context of the given declaration.
+class SelfDecl : public DeclaratorDecl {
+  DeclaratorDecl *SelfD;
+
+  SelfDecl(DeclContext *DC, DeclaratorDecl *D)
+    : DeclaratorDecl(Self, DC, D->getLocation(),
+                     D->getIdentifier(),
+                     D->getType()),
+      SelfD(D) {}
+
+public:
+  static SelfDecl *Create(ASTContext &C, DeclContext *DC,
+                          DeclaratorDecl *Self);
+
+  DeclaratorDecl *getSelf() const {
+    return SelfD;
+  }
+
+  static bool classof(const Decl *D) { return classofKind(D->getKind()); }
+  static bool classof(const SelfDecl *D) { return true; }
+  static bool classofKind(Kind K) { return K == Self; }
 };
 
 /// Represents an intrinsic function declaration.

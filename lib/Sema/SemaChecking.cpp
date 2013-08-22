@@ -720,4 +720,15 @@ bool Sema::CheckVarIsAssignable(const VarExpr *E) {
   return true;
 }
 
+bool Sema::CheckRecursiveFunction(SourceLocation Loc) {
+  auto Function = cast<FunctionDecl>(CurContext);
+  if(!Function->isRecursive()) {
+    Diags.Report(Loc, diag::err_call_non_recursive)
+      << (Function->isSubroutine()? 1: 0)
+      << Function->getIdentifier();
+    return false;
+  }
+  return true;
+}
+
 } // end namespace flang

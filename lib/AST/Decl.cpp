@@ -238,8 +238,8 @@ void MainProgramDecl::setBody(Stmt *S) {
 FunctionDecl *FunctionDecl::Create(ASTContext &C, FunctionKind FK,
                                    DeclContext *DC,
                                    const DeclarationNameInfo &NameInfo,
-                                   QualType ReturnType) {
-  return new(C) FunctionDecl(Function, FK, DC, NameInfo, ReturnType);
+                                   QualType ReturnType, Attributes Attr) {
+  return new(C) FunctionDecl(Function, FK, DC, NameInfo, ReturnType, Attr);
 }
 
 void FunctionDecl::setBody(Stmt *S) {
@@ -262,6 +262,15 @@ void FunctionDecl::setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList) 
 
 void FunctionDecl::setResult(VarDecl *VD) {
   Result = VD;
+}
+
+//===----------------------------------------------------------------------===//
+// SelfDecl Implementation
+//===----------------------------------------------------------------------===//
+
+SelfDecl *SelfDecl::Create(ASTContext &C, DeclContext *DC,
+                           DeclaratorDecl *Self) {
+  return new(C) SelfDecl(DC, Self);
 }
 
 //===----------------------------------------------------------------------===//

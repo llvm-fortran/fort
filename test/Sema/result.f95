@@ -18,6 +18,16 @@ FUNCTION RES() RESULT(RESULT)
   RESULT = RESULT
 END
 
+FUNCTION FUNC5() RESULT (X)
+  ! CHECK: logical function
+  LOGICAL X
+  X = .false.
+END
+
+FUNCTION FUNC6() RESULT (X) ! expected-note {{previous definition is here}}
+  LOGICAL FUNC6 ! expected-error {{redefinition of 'func6'}}
+END
+
 FUNCTION FUNC2() RESULT(FUNC2) ! expected-error {{use of name 'func2' for the result variable (function uses the same name)}}
 END
 

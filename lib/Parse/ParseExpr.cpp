@@ -640,8 +640,15 @@ ExprResult Parser::ParseNameOrCall() {
       Declaration = Actions.ActOnPossibleImplicitFunctionDecl(Context, IDLoc, IDInfo, Declaration);
   }
 
-  if(VarDecl *VD = dyn_cast<VarDecl>(Declaration))
+  if(VarDecl *VD = dyn_cast<VarDecl>(Declaration)) {
+    // FIXME: function returing array
+    if(IsPresent(tok::l_paren) &&
+       VD->isFunctionResult() && isa<FunctionDecl>(Actions.CurContext)) {
+      // FIXME: accessing function results from inner recursive functions
+      return ParseRecursiveCallExpression(SourceRange(IDLoc, IDEndLoc));
+    }
     return VarExpr::Create(Context, IDLoc, VD);
+  }
   else if(IntrinsicFunctionDecl *IFunc = dyn_cast<IntrinsicFunctionDecl>(Declaration)) {
     SmallVector<Expr*, 8> Arguments;
     SourceLocation RParenLoc = Tok.getLocation();
@@ -656,10 +663,26 @@ ExprResult Parser::ParseNameOrCall() {
     if(!Func->isSubroutine()) {
       return ParseCallExpression(SourceRange(IDLoc, IDEndLoc), Func);
     }
-  }
+  } else if(isa<SelfDecl>(Declaration) && isa<FunctionDecl>(Actions.CurContext))
+    return ParseRecursiveCallExpression(SourceRange(IDLoc, IDEndLoc));
 
   Diag.Report(IDLoc, diag::err_expected_var);
   return ExprError();
+}
+
+ExprResult Parser::ParseRecursiveCallExpression(SourceRange IdRange) {
+  auto Func = Actions.CurrentContextAsFunction();
+  if(Func->isSubroutine()) {
+    Diag.Report(IdRange.Start, diag::err_invalid_subroutine_use)
+     << Func->getIdentifier() << IdRange;
+    return ExprError();
+  }
+  if(!Actions.CheckRecursiveFunction(IdRange.Start))
+    return ExprError();
+
+  if(!IsPresent(tok::l_paren))
+    return FunctionRefExpr::Create(Context, IdRange.Start, Func);
+  return ParseCallExpression(IdRange, Func);
 }
 
 /// ParseCallExpression - Parse a call expression

@@ -315,6 +315,9 @@ FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, SubProgramScope &Scope,
     auto RetVar = VarDecl::CreateFunctionResult(C, CurContext, IDLoc, IDInfo);
     CurContext->addDecl(RetVar);
     Func->setResult(RetVar);
+  } else {
+    auto Self = SelfDecl::Create(C, CurContext, Func);
+    CurContext->addDecl(Self);
   }
 
   if(ReturnTypeDecl.getTypeSpecType() != TST_unspecified)
@@ -325,14 +328,15 @@ FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, SubProgramScope &Scope,
 void Sema::ActOnRESULT(ASTContext &C, SourceLocation IDLoc,
                        const IdentifierInfo *IDInfo) {
   auto Func = CurrentContextAsFunction();
-  if(Func->hasResult())
-    CurContext->removeDecl(Func->getResult());
   if (IDInfo == Func->getIdentifier()) {
     Diags.Report(IDLoc, diag::err_same_result_name)
       << IDInfo
       << getIdentifierRange(IDLoc, IDInfo)
       << getIdentifierRange(Func->getLocation(), Func->getIdentifier());
+    return;
   }
+  if(Func->hasResult())
+    CurContext->removeDecl(Func->getResult());
   if (auto Prev = LookupIdentifier(IDInfo)) {
     Diags.Report(IDLoc, diag::err_redefinition)
       << IDInfo << getIdentifierRange(IDLoc, IDInfo);
@@ -344,6 +348,9 @@ void Sema::ActOnRESULT(ASTContext &C, SourceLocation IDLoc,
   CurContext->addDecl(RetVar);
   RetVar->setType(Func->getType());
   Func->setResult(RetVar);
+
+  auto Self = SelfDecl::Create(C, CurContext, Func);
+  CurContext->addDecl(Self);
 }
 
 VarDecl *Sema::ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
@@ -652,11 +659,19 @@ Decl *Sema::LookupIdentifier(const IdentifierInfo *IDInfo) {
 }
 
 Decl *Sema::ResolveIdentifier(const IdentifierInfo *IDInfo) {
-  for(auto Context = CurContext; Context; Context = Context->getParent()) {
-    auto Result = Context->lookup(IDInfo);
+  auto Context = CurContext;
+  auto Result = Context->lookup(IDInfo);
+  if(Result.first < Result.second) {
+    assert(Result.first + 1 >= Result.second);
+    return *Result.first;
+  }
+
+  for(; Context; Context = Context->getParent()) {
+    Result = Context->lookup(IDInfo);
     if(Result.first < Result.second) {
       assert(Result.first + 1 >= Result.second);
-      return *Result.first;
+      if(!isa<SelfDecl>(*Result.first))
+        return *Result.first;
     }
   }
   return nullptr;
