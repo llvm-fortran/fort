@@ -261,7 +261,6 @@ void FunctionDecl::setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList) 
 }
 
 void FunctionDecl::setResult(VarDecl *VD) {
-  assert(!Result);
   Result = VD;
 }
 

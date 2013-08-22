@@ -1058,6 +1058,13 @@ bool Parser::ParseExternalSubprogram(DeclSpec &ReturnType) {
 
   Actions.ActOnSubProgramArgumentList(Context, ArgumentList);
 
+  if(!IsSubroutine) {
+    if(IsPresent(tok::kw_RESULT)) {
+      if(ParseRESULT())
+        SkipUntilNextStatement();
+    }
+  }
+
   auto EndKw = IsSubroutine? tok::kw_ENDSUBROUTINE :
                              tok::kw_ENDFUNCTION;
   ParseExecutableSubprogramBody(EndKw);
@@ -1068,6 +1075,20 @@ bool Parser::ParseExternalSubprogram(DeclSpec &ReturnType) {
   StmtLabel = nullptr;
   Actions.ActOnEndSubProgram(Context, EndLoc);
 
+  return false;
+}
+
+bool Parser::ParseRESULT() {
+  ConsumeToken();
+  if(!ExpectAndConsume(tok::l_paren))
+    return true;
+  auto IDLoc = Tok.getLocation();
+  auto ID = Tok.getIdentifierInfo();
+  if(!ExpectAndConsume(tok::identifier))
+    return true;
+  Actions.ActOnRESULT(Context, IDLoc, ID);
+  if(!ExpectAndConsume(tok::r_paren))
+    return true;
   return false;
 }
 

@@ -406,6 +406,8 @@ private:
   bool ParseModule();
   bool ParseBlockData();
 
+  bool ParseRESULT();
+
   StmtResult ParseStatementFunction();
 
   bool ParseSpecificationPart();

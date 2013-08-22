@@ -322,6 +322,30 @@ FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, SubProgramScope &Scope,
   return Func;
 }
 
+void Sema::ActOnRESULT(ASTContext &C, SourceLocation IDLoc,
+                       const IdentifierInfo *IDInfo) {
+  auto Func = CurrentContextAsFunction();
+  if(Func->hasResult())
+    CurContext->removeDecl(Func->getResult());
+  if (IDInfo == Func->getIdentifier()) {
+    Diags.Report(IDLoc, diag::err_same_result_name)
+      << IDInfo
+      << getIdentifierRange(IDLoc, IDInfo)
+      << getIdentifierRange(Func->getLocation(), Func->getIdentifier());
+  }
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    Diags.Report(IDLoc, diag::err_redefinition)
+      << IDInfo << getIdentifierRange(IDLoc, IDInfo);
+    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+    return;
+  }
+
+  auto RetVar = VarDecl::CreateFunctionResult(C, CurContext, IDLoc, IDInfo);
+  CurContext->addDecl(RetVar);
+  RetVar->setType(Func->getType());
+  Func->setResult(RetVar);
+}
+
 VarDecl *Sema::ActOnSubProgramArgument(ASTContext &C, SourceLocation IDLoc,
                                        const IdentifierInfo *IDInfo) {
   if (auto Prev = LookupIdentifier(IDInfo)) {

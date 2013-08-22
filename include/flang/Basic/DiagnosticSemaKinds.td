@@ -145,6 +145,9 @@ def err_use_of_invalid_construct_name : Error<"use of construct name for an unna
 def err_expected_construct_name : Error<"expected construct name %0">;
 def err_expected_subprogram_name : Error<"expected %select{program|function|subroutine}1 name %0">;
 
+def err_same_result_name : Error<
+  "use of name %0 for the result variable (function uses the same name)">;
+
 
 def err_expected_stmt_label_end_do : Error<
   "expected a do termination statement with a statement label '%0'">;
