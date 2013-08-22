@@ -82,17 +82,6 @@ ProgramStmt *ProgramStmt::Create(ASTContext &C, const IdentifierInfo *ProgName,
 }
 
 //===----------------------------------------------------------------------===//
-// EndProgram Statement
-//===----------------------------------------------------------------------===//
-
-EndProgramStmt *EndProgramStmt::Create(ASTContext &C,
-                                       const IdentifierInfo *ProgName,
-                                       SourceLocation Loc, SourceLocation NameLoc,
-                                       Expr *StmtLabel) {
-  return new (C) EndProgramStmt(ProgName, Loc, NameLoc, StmtLabel);
-}
-
-//===----------------------------------------------------------------------===//
 // Use Statement
 //===----------------------------------------------------------------------===//
 

@@ -4,6 +4,9 @@ SUBROUTINE FOO(X,Y)
   REAL X,Y
 END
 
+SUBROUTINE oof()
+END SUBROUTINE foo ! expected-error {{expected subroutine name 'oof'}}
+
 SUBROUTINE BAR(ARG, ARG) ! expected-error {{redefinition of 'arg'}}
   REAL ARG
 END ! expected-note@-2 {{previous definition is here}}

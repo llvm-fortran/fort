@@ -149,8 +149,8 @@ public:
   /// program unit actions
   MainProgramDecl *ActOnMainProgram(ASTContext &C, MainProgramScope &Scope,
                                     const IdentifierInfo *IDInfo, SourceLocation NameLoc);
-  void ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo,
-                           SourceLocation NameLoc);
+
+  void ActOnEndMainProgram(SourceLocation Loc);
 
   FunctionDecl *ActOnSubProgram(ASTContext &C, SubProgramScope &Scope,
                                 bool IsSubRoutine, SourceLocation IDLoc,
@@ -246,6 +246,12 @@ public:
   StmtResult ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,
                           SourceLocation Loc, SourceLocation NameLoc, Expr *StmtLabel);
 
+  // END PROGRAM / SUBROUTINE / FUNCTION statement:
+  StmtResult ActOnEND(ASTContext &C, SourceLocation Loc,
+                      ConstructPartStmt::ConstructStmtClass Kind,
+                      SourceLocation IDLoc, const IdentifierInfo *IDInfo,
+                      Expr *StmtLabel);
+
   // USE statement:
   StmtResult ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
                       const IdentifierInfo *ModName, Expr *StmtLabel);
@@ -284,12 +290,6 @@ public:
   StmtResult ActOnASYNCHRONOUS(ASTContext &C, SourceLocation Loc,
                                ArrayRef<const IdentifierInfo*> ObjNames,
                                Expr *StmtLabel);
-
-  // END PROGRAM statement:
-  StmtResult ActOnENDPROGRAM(ASTContext &C,
-                             const IdentifierInfo *ProgName,
-                             SourceLocation Loc, SourceLocation NameLoc,
-                             Expr *StmtLabel);
 
   // EXTERNAL statement:
   StmtResult ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,

@@ -171,6 +171,10 @@ struct ConstructName {
 class ConstructPartStmt : public Stmt {
 public:
   enum ConstructStmtClass {
+    EndStmtClass,
+    EndProgramStmtClass,
+    EndFunctionStmtClass,
+    EndSubroutineStmtClass,
     EndDoStmtClass,
     ElseStmtClass,
     EndIfStmtClass,
@@ -304,33 +308,6 @@ public:
   static bool classof(const ProgramStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ProgramStmtClass;
-  }
-};
-
-/// EndProgramStmt - The last statement of the 'main' program.
-///
-class EndProgramStmt : public Stmt {
-  const IdentifierInfo *ProgName;
-  SourceLocation NameLoc;
-
-  EndProgramStmt(const IdentifierInfo *progName, SourceLocation Loc,
-                 SourceLocation NameL, Expr *SLT)
-    : Stmt(EndProgramStmtClass, Loc, SLT), ProgName(progName), NameLoc(NameL) {}
-  EndProgramStmt(const EndProgramStmt &); // Do not implement!
-public:
-  static EndProgramStmt *Create(ASTContext &C, const IdentifierInfo *ProgName,
-                                SourceLocation L, SourceLocation NameL,
-                                Expr *StmtLabel);
-
-  /// getProgramName - Get the name of the program. This may be null.
-  const IdentifierInfo *getProgramName() const { return ProgName; }
-
-  /// getNameLocation - Get the location of the program name.
-  SourceLocation getNameLocation() const { return NameLoc; }
-
-  static bool classof(const EndProgramStmt*) { return true; }
-  static bool classof(const Stmt *S) {
-    return S->getStmtClass() == EndProgramStmtClass;
   }
 };
 

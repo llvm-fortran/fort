@@ -64,7 +64,6 @@ public:
   void VisitDeclStmt(const DeclStmt *S);
   void VisitCompoundStmt(const CompoundStmt *S);
   void VisitProgramStmt(const ProgramStmt *S);
-  void VisitEndProgramStmt(const EndProgramStmt *S);
   void VisitParameterStmt(const ParameterStmt *S);
   void VisitImplicitStmt(const ImplicitStmt *S);
   void VisitDimensionStmt(const DimensionStmt *S);
@@ -355,6 +354,10 @@ void ASTDumper::dumpConstructNameSuffix(ConstructName Name) {
 
 void ASTDumper::VisitConstructPartStmt(const ConstructPartStmt *S) {
   switch(S->getConstructStmtClass()) {
+  case ConstructPartStmt::EndStmtClass: OS << "end"; break;
+  case ConstructPartStmt::EndProgramStmtClass: OS << "end program"; break;
+  case ConstructPartStmt::EndFunctionStmtClass: OS << "end function"; break;
+  case ConstructPartStmt::EndSubroutineStmtClass: OS << "end subroutine"; break;
   case ConstructPartStmt::ElseStmtClass: OS << "else"; break;
   case ConstructPartStmt::EndIfStmtClass: OS << "end if"; break;
   case ConstructPartStmt::EndDoStmtClass: OS << "end do"; break;
@@ -383,13 +386,6 @@ void ASTDumper::VisitCompoundStmt(const CompoundStmt *S) {
 void ASTDumper::VisitProgramStmt(const ProgramStmt *S) {
   const IdentifierInfo *Name = S->getProgramName();
   OS << "program";
-  if (Name) OS << ":  '" << Name->getName() << "'";
-  OS << "\n";
-}
-
-void ASTDumper::VisitEndProgramStmt(const EndProgramStmt *S) {
-  const IdentifierInfo *Name = S->getProgramName();
-  OS << "end program";
   if (Name) OS << ":  '" << Name->getName() << "'";
   OS << "\n";
 }

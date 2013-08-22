@@ -72,6 +72,7 @@ def err_expected_case_or_end_select : Error<
 def err_expected_end_statement_at_end_of_stmt : Error<
   "expected line break or ';' at end of statement">;
 
+
 def err_expected_letter : Error<
   "expected a letter">;
 def err_expected_int_literal_constant : Error<

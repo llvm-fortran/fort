@@ -440,6 +440,7 @@ private:
 
   // Stmt-level parsing methods.
   StmtResult ParsePROGRAMStmt();
+  StmtResult ParseENDStmt(tok::TokenKind EndKw);
   StmtResult ParseUSEStmt();
   StmtResult ParseIMPORTStmt();
   StmtResult ParseIMPLICITStmt();
@@ -449,7 +450,6 @@ private:
   FormatItemResult ParseFORMATItems(bool IsOuter = false);
   FormatItemResult ParseFORMATItem();
   StmtResult ParseENTRYStmt();
-  StmtResult ParseEND_PROGRAMStmt();
 
   // Specification statement's contents.
   StmtResult ParseACCESSStmt();

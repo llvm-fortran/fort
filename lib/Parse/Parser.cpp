@@ -826,24 +826,63 @@ bool Parser::ParseMainProgram() {
   Actions.ActOnMainProgram(Context, Scope, IDInfo, NameLoc);
 
   ParseExecutableSubprogramBody(tok::kw_ENDPROGRAM);
+  auto EndLoc = Tok.getLocation();
+  auto EndProgStmt = ParseENDStmt(tok::kw_ENDPROGRAM);
+  if(EndProgStmt.isUsable())
+    EndLoc = EndProgStmt.get()->getLocation();
 
-  ParseStatementLabel();
-  StmtResult EndProgStmt = ParseEND_PROGRAMStmt();
-  Actions.getCurrentBody()->Append(EndProgStmt.take());
-
-  IDInfo = 0;
-  NameLoc = SourceLocation();
-  auto Loc = SourceLocation();
-  if (EndProgStmt.isUsable()) {
-    EndProgramStmt *EPS = EndProgStmt.takeAs<EndProgramStmt>();
-    Loc = EPS->getLocation();
-    IDInfo = EPS->getProgramName();
-    NameLoc = EPS->getNameLocation();
-  }
-
-  Actions.ActOnEndMainProgram(Loc, IDInfo, NameLoc);
+  Actions.ActOnEndMainProgram(EndLoc);
 
   return EndProgStmt.isInvalid();
+}
+
+/// ParseENDStmt - Parse the END PROGRAM/FUNCTION/SUBROUTINE statement.
+///
+///   [R1103]:
+///     end-program-stmt :=
+///         END [ PROGRAM/FUNCTION/SUBROUTINE [ program-name ] ]
+Parser::StmtResult Parser::ParseENDStmt(tok::TokenKind EndKw) {
+  ParseStatementLabel();
+  if(Tok.isNot(tok::kw_END) && Tok.isNot(EndKw)) {
+    const char *Expected = "";
+    const char *Given = "";
+    switch(EndKw) {
+    case tok::kw_ENDPROGRAM:
+      Expected = "end program"; Given = "program"; break;
+    case tok::kw_ENDFUNCTION:
+      Expected = "end function"; Given = "function"; break;
+    case tok::kw_ENDSUBROUTINE:
+      Expected = "end subroutine"; Given = "subroutine"; break;
+    }
+    Diag.Report(Tok.getLocation(), diag::err_expected_kw)
+      << Expected;
+    Diag.Report(cast<NamedDecl>(Actions.CurContext)->getLocation(), diag::note_matching)
+      << Given;
+    SkipUntilNextStatement();
+    return StmtError();
+  }
+
+  ConstructPartStmt::ConstructStmtClass Kind;
+  switch(Tok.getKind()) {
+  case tok::kw_ENDPROGRAM:
+    Kind = ConstructPartStmt::EndProgramStmtClass; break;
+  case tok::kw_ENDFUNCTION:
+    Kind = ConstructPartStmt::EndFunctionStmtClass; break;
+  case tok::kw_ENDSUBROUTINE:
+    Kind = ConstructPartStmt::EndSubroutineStmtClass; break;
+  default:
+    Kind = ConstructPartStmt::EndStmtClass; break;
+  }
+  auto Loc = ConsumeToken();
+  const IdentifierInfo *IDInfo  = nullptr;
+  auto IDLoc = Loc;
+  if(IsPresent(tok::identifier)) {
+    IDInfo = Tok.getIdentifierInfo();
+    IDLoc = ConsumeToken();
+  }
+  ExpectStatementEnd();
+
+  return Actions.ActOnEND(Context, Loc, Kind, IDLoc, IDInfo, StmtLabel);
 }
 
 bool Parser::ParseExecutableSubprogramBody(tok::TokenKind EndKw) {
@@ -1019,16 +1058,13 @@ bool Parser::ParseExternalSubprogram(DeclSpec &ReturnType) {
 
   Actions.ActOnSubProgramArgumentList(Context, ArgumentList);
 
-  ParseExecutableSubprogramBody(IsSubroutine? tok::kw_ENDSUBROUTINE :
-                                              tok::kw_ENDFUNCTION);
-
-  if(!Tok.isAtStartOfStatement())
-    LexToEndOfStatement();
-  ParseStatementLabel();
+  auto EndKw = IsSubroutine? tok::kw_ENDSUBROUTINE :
+                             tok::kw_ENDFUNCTION;
+  ParseExecutableSubprogramBody(EndKw);
   auto EndLoc = Tok.getLocation();
-  if(Tok.is(tok::kw_END) || Tok.is(tok::kw_ENDSUBROUTINE) ||
-     Tok.is(tok::kw_ENDFUNCTION))
-    Lex();//End..
+  auto EndStmt = ParseENDStmt(EndKw);
+  if(EndStmt.isUsable())
+    EndLoc = EndStmt.get()->getLocation();
   StmtLabel = nullptr;
   Actions.ActOnEndSubProgram(Context, EndLoc);
 

@@ -748,29 +748,4 @@ void Parser::ParseIOList(SmallVectorImpl<ExprResult> &List) {
   }
 }
 
-/// ParseEND_PROGRAMStmt - Parse the END PROGRAM statement.
-///
-///   [R1103]:
-///     end-program-stmt :=
-///         END [ PROGRAM [ program-name ] ]
-Parser::StmtResult Parser::ParseEND_PROGRAMStmt() {
-  SourceLocation Loc = Tok.getLocation();
-  if (Tok.isNot(tok::kw_END) && Tok.isNot(tok::kw_ENDPROGRAM)) {
-    Diag.Report(Tok.getLocation(),diag::err_expected_stmt)
-      << "END PROGRAM";
-    return StmtError();
-  }
-  Lex();
-
-  const IdentifierInfo *IDInfo = 0;
-  SourceLocation NameLoc;
-  if (Tok.is(tok::identifier) && !Tok.isAtStartOfStatement()) {
-    IDInfo = Tok.getIdentifierInfo();
-    NameLoc = Tok.getLocation();
-    Lex(); // Eat the ending token.
-  }
-
-  return Actions.ActOnENDPROGRAM(Context, IDInfo, Loc, NameLoc, StmtLabel);
-}
-
 } //namespace flang

@@ -261,29 +261,9 @@ MainProgramDecl *Sema::ActOnMainProgram(ASTContext &C, MainProgramScope &Scope,
   return Program;
 }
 
-void Sema::ActOnEndMainProgram(SourceLocation Loc, const IdentifierInfo *IDInfo, SourceLocation NameLoc) {
+void Sema::ActOnEndMainProgram(SourceLocation Loc) {
   assert(CurContext && "DeclContext imbalance!");
 
-  DeclarationName DN(IDInfo);
-  DeclarationNameInfo EndNameInfo(DN, NameLoc);
-
-  StringRef ProgName = cast<MainProgramDecl>(CurContext)->getName();
-  if (ProgName.empty()) {
-    PopExecutableProgramUnit(Loc);
-    PopDeclContext();
-    return;
-  }
-
-  const IdentifierInfo *ID = EndNameInfo.getName().getAsIdentifierInfo();
-  if (ID) {
-    if (ProgName != ID->getName()) {
-      Diags.Report(NameLoc, diag::err_expect_stmt_name)
-        << cast<MainProgramDecl>(CurContext)->getDeclName().getAsIdentifierInfo()
-        << "END PROGRAM";
-    }
-  }
-
- exit:
   PopExecutableProgramUnit(Loc);
   PopDeclContext();
 }
@@ -703,6 +683,38 @@ StmtResult Sema::ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,
   return Result;
 }
 
+StmtResult Sema::ActOnEND(ASTContext &C, SourceLocation Loc,
+                          ConstructPartStmt::ConstructStmtClass Kind,
+                          SourceLocation IDLoc, const IdentifierInfo *IDInfo,
+                          Expr *StmtLabel) {
+  const IdentifierInfo *SubprogramName;
+  int SubprogramKind;
+  if(auto MainProgram = dyn_cast<MainProgramDecl>(CurContext)) {
+    SubprogramName = MainProgram->getIdentifier();
+    SubprogramKind = 0; // program
+  }
+  else {
+    SubprogramName = cast<FunctionDecl>(CurContext)->getIdentifier();
+    SubprogramKind = cast<FunctionDecl>(CurContext)->isSubroutine()? 2 : 1;
+  }
+
+  if(IDInfo) {
+    if (SubprogramName != IDInfo) {
+      Diags.Report(IDLoc, diag::err_expected_subprogram_name)
+        << SubprogramName << SubprogramKind
+        << getIdentifierRange(IDLoc, IDInfo);
+    } else if(!SubprogramName) {
+
+    }
+  }
+
+  auto Result = ConstructPartStmt::Create(C, Kind, Loc,
+                                          ConstructName(IDLoc, IDInfo), StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  getCurrentBody()->Append(Result);
+  return Result;
+}
+
 StmtResult Sema::ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
                           const IdentifierInfo *ModName, Expr *StmtLabel) {
   auto Result = UseStmt::Create(C, MN, ModName, StmtLabel);
@@ -837,15 +849,6 @@ StmtResult Sema::ActOnDIMENSION(ASTContext &C, SourceLocation Loc,
                                 ArrayRef<ArraySpec*> Dims,
                                 Expr *StmtLabel) {
   auto Result = DimensionStmt::Create(C, IDLoc, IDInfo, Dims, StmtLabel);
-  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  return Result;
-}
-
-StmtResult Sema::ActOnENDPROGRAM(ASTContext &C,
-                                 const IdentifierInfo *ProgName,
-                                 SourceLocation Loc, SourceLocation NameLoc,
-                                 Expr *StmtLabel) {
-  auto Result = EndProgramStmt::Create(C, ProgName, Loc, NameLoc, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }

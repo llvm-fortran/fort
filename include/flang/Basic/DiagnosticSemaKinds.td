@@ -143,6 +143,7 @@ def warn_unused_stmt_label : Warning<"unused statement label '%0'">,
 def err_redefinition_of_construct_name : Error<"redefinition of named construct %0">;
 def err_use_of_invalid_construct_name : Error<"use of construct name for an unnamed construct">;
 def err_expected_construct_name : Error<"expected construct name %0">;
+def err_expected_subprogram_name : Error<"expected %select{program|function|subroutine}1 name %0">;
 
 
 def err_expected_stmt_label_end_do : Error<
