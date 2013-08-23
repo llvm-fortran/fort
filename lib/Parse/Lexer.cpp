@@ -1002,7 +1002,7 @@ void Lexer::LexFixedFormIdentifier(Token &Result) {
 }
 
 void Lexer::LexFixedFormIdentifier(const fixedForm::KeywordMatcher &Matcher,
-                                   Token &First, Token &Second) {
+                                   Token &Tok) {
   LineOfText::State LastMatchedIdState;
   bool MatchedId = false;
   bool NeedsCleaning = false;
@@ -1024,35 +1024,11 @@ void Lexer::LexFixedFormIdentifier(const fixedForm::KeywordMatcher &Matcher,
     }
   }
 
-  if(!MatchedId) {
-    FormTokenWithChars(First, tok::identifier);
-    if(NeedsCleaning)
-      First.setFlag(Token::NeedsCleaning);
-    Second.setKind(tok::unknown);
-    return;
-  }
+  if(MatchedId) Text.SetState(LastMatchedIdState);
 
-  Text.SetState(LastMatchedIdState);
-  FormTokenWithChars(First, tok::identifier);
+  FormTokenWithChars(Tok, tok::identifier);
   if(NeedsCleaning)
-    First.setFlag(Token::NeedsCleaning);
-
-  NeedsCleaning = false;
-  TokStart = getCurrentPtr();
-  while(!Text.empty() && !Text.AtEndOfLine()) {
-    auto C = getCurrentChar();
-    if(!isIdentifierBody(C)) {
-      if(isHorizontalWhitespace(C))
-        NeedsCleaning = true;
-      else break;
-    }
-
-    getNextChar();
-  }
-
-  FormTokenWithChars(Second, tok::identifier);
-  if(NeedsCleaning)
-    Second.setFlag(Token::NeedsCleaning);
+    Tok.setFlag(Token::NeedsCleaning);
 }
 
 /// LexFormatDescriptor - Lex the remainder of a format descriptor.
@@ -1612,10 +1588,12 @@ LexIdentifier:
   FormTokenWithChars(Result, Kind);
 }
 
-void Lexer::LexFixedFormSplitIdentifier(const fixedForm::KeywordMatcher &Matcher,
-                                        Token &First, Token &Second) {
-  First.startToken();
-  Second.startToken();
+void Lexer::LexFixedFormIdentifierMatchLongestKeyword(const fixedForm::KeywordMatcher &Matcher,
+                                                      Token &Tok) {
+  LastTokenWasSemicolon = false;
+  LastTokenWasStatementLabel = false;
+  setBuffer(CurBuf, Tok.getLocation().getPointer());
+  Tok.startToken();
 
   // Check to see if there is still more of the line to lex.
   if (Text.empty() || Text.AtEndOfLine()) {
@@ -1625,7 +1603,7 @@ void Lexer::LexFixedFormSplitIdentifier(const fixedForm::KeywordMatcher &Matcher
 
   TokStart = getCurrentPtr();
 
-  LexFixedFormIdentifier(Matcher, First, Second);
+  LexFixedFormIdentifier(Matcher, Tok);
 }
 
 void Lexer::LexFORMATToken(Token &Result) {

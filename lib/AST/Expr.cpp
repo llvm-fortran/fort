@@ -272,8 +272,7 @@ FunctionRefExpr *FunctionRefExpr::Create(ASTContext &C, SourceLocation Loc,
 }
 
 SourceLocation FunctionRefExpr::getLocEnd() const {
-  return SourceLocation::getFromPointer(getLocation().getPointer() +
-                                         Function->getIdentifier()->getLength());
+  return getLocation();//FIXME
 }
 
 VarExpr::VarExpr(SourceLocation Loc, const VarDecl *Var)

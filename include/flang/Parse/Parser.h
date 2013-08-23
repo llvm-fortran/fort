@@ -20,6 +20,7 @@
 #include "flang/Basic/IdentifierTable.h"
 #include "flang/Basic/LangOptions.h"
 #include "flang/Basic/TokenKinds.h"
+#include "flang/Parse/FixedForm.h"
 #include "flang/Parse/Lexer.h"
 #include "flang/Sema/DeclSpec.h"
 #include "flang/Sema/Ownership.h"
@@ -126,6 +127,8 @@ private:
 
   unsigned short ParenCount, ParenSlashCount,
                  BracketCount, BraceCount;
+
+  fixedForm::CommonAmbiguities FixedFormAmbiguities;
 
   // PrevTokLocation - The location of the token we previously consumed. This
   // token is used for diagnostics where we expected to see a token following
@@ -407,7 +410,7 @@ private:
   bool ParseMainProgram();
   bool ParseExternalSubprogram();
   bool ParseExternalSubprogram(DeclSpec &ReturnType, int Attr);
-  bool ParseTypedExternalSubprogram();
+  bool ParseTypedExternalSubprogram(int Attr);
   bool ParseRecursiveExternalSubprogram();
   bool ParseExecutableSubprogramBody(tok::TokenKind EndKw);
   bool ParseModule();

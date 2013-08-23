@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Parse/Parser.h"
+#include "flang/Parse/FixedForm.h"
 #include "flang/Parse/ParseDiagnostic.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
@@ -200,9 +201,10 @@ Parser::StmtResult Parser::ParseAssignStmt() {
         << "ASSIGN";
     return StmtError();
   }
-  SetNextTokenShouldBeKeyword(tok::kw_TO);
   ConsumeToken();
-  if(!ExpectAndConsume(tok::kw_TO, diag::err_expected_kw, "TO"))
+  if(Features.FixedForm)
+    RelexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_TO)));
+  if(!ExpectAndConsume(tok::kw_TO, diag::err_expected_kw, "to"))
     return StmtError();
 
   auto IDInfo = Tok.getIdentifierInfo();
@@ -365,8 +367,9 @@ Parser::StmtResult Parser::ParseElseIfStmt() {
     if(!SkipUntil(tok::r_paren, true, true))
       goto error;
   }
-  SetNextTokenShouldBeKeyword(tok::kw_THEN);
   if (!ExpectAndConsume(tok::r_paren)) goto error;
+  if(Features.FixedForm)
+    RelexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_THEN)));
   if (!ExpectAndConsume(tok::kw_THEN, diag::err_expected_kw, "THEN")) goto error;
   ParseTrailingConstructName();
   return Actions.ActOnElseIfStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);

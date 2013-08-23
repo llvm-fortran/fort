@@ -9,7 +9,7 @@ PROGRAM gototest
     ASSIGN 10 TO DEST
 
     ASSIGN TO DEST ! expected-error {{expected statement label after 'ASSIGN'}}
-    ASSIGN 10 DEST ! expected-error {{expected 'TO'}}
+    ASSIGN 10 DEST ! expected-error {{expected 'to'}}
     ASSIGN 10 TO 2 ! expected-error {{expected identifier}}
 
     GO TO DEST

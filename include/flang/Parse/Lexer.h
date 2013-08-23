@@ -272,7 +272,7 @@ class Lexer {
   void LexFixedFormIdentifier(Token &Result);
 
   void LexFixedFormIdentifier(const fixedForm::KeywordMatcher &Matcher,
-                              Token &First, Token &Second);
+                              Token &Tok);
 
   /// LexFORMATDescriptor - Lex a format desriptor.
   void LexFORMATDescriptor(Token &Result);
@@ -383,14 +383,14 @@ public:
     LexTokenInternal(Result, IsPeekAhead);
   }
 
-  /// LexFixedFormSplitIdentifier - Lexes the next identifier token as if it were
+  /// LexFixedFormIdentifierMatchLongestKeyword -
+  /// The lexer moves back to the location
+  /// of the given token, and lexes the next identifier token as if it were
   /// two distinct identifiers. If the matcher matches a certain keyword,
-  /// then the longest keyword match will be returned in the first token,
-  /// and the second token will return the remaining portion of the identifier.
-  /// If no keywords are matched, the first token returns the whole
-  /// identifier, and the second token is set to tok::unknown.
-  void LexFixedFormSplitIdentifier(const fixedForm::KeywordMatcher &Matcher,
-                                   Token &First, Token &Second);
+  /// then the longest keyword match will be returned in the resulting token,
+  /// otherwise the token returns the whole identifier.
+  void LexFixedFormIdentifierMatchLongestKeyword(const fixedForm::KeywordMatcher &Matcher,
+                                                 Token &Tok);
 
   /// LexFORMATToken - Return the next token in the file, with respect to the
   /// FORMAT token rules.

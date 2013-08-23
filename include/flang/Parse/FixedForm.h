@@ -42,12 +42,64 @@ public:
 
   KeywordMatcher() {}
   KeywordMatcher(ArrayRef<KeywordFilter> Filters);
+  void operator=(ArrayRef<KeywordFilter> Filters);
 
   void Register(tok::TokenKind Keyword);
   bool Matches(StringRef Identifier) const;
 };
 
+/// \brief A set of executable statement and construct
+/// keywords that are ambiguous. (e.g. DO)
+class AmbiguousExecutableStatements : public KeywordFilter {
+public:
+  AmbiguousExecutableStatements();
+};
 
+/// \brief A set of all the end statement keywords
+/// that are ambiguous.
+class AmbiguousEndStatements : public KeywordFilter {
+public:
+  AmbiguousEndStatements();
+};
+
+/// \brief A set of all the type statement keywords
+/// that are ambiguous.
+class AmbiguousTypeStatements : public KeywordFilter {
+public:
+  AmbiguousTypeStatements();
+};
+
+/// \brief A set of all specification statement keywords
+/// that are ambiguous.
+/// NB: doesn't include type keywords.
+class AmbiguousSpecificationStatements : public KeywordFilter {
+public:
+  AmbiguousSpecificationStatements();
+};
+
+/// \brief A set of all the top level declaration statement
+/// keywords that are ambiguous.
+class AmbiguousTopLevelDeclarationStatements : public KeywordFilter {
+public:
+  AmbiguousTopLevelDeclarationStatements();
+};
+
+/// CommonAmbiguities - contains the matchers for the common ambiguous
+/// identifiers.
+class CommonAmbiguities {
+  KeywordMatcher MatcherForKeywordsAfterRECURSIVE;
+
+public:
+  CommonAmbiguities();
+
+  /// \brief Returns the matcher for the keywords that come after
+  /// RECURSIVE keyword.
+  /// NB: This matcher must be used only for when RECURSIVE is used
+  /// before the function's type.
+  const KeywordMatcher &getMatcherForKeywordsAfterRECURSIVE() const {
+    return MatcherForKeywordsAfterRECURSIVE;
+  }
+};
 
 } // end namespace fixedForm
 
