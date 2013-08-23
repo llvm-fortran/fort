@@ -183,15 +183,25 @@ Parser::StmtResult Parser::ParseActionStmt() {
     Diag.Report(ConsumeToken(), diag::err_unsupported_stmt);
     return StmtError();
 
-
-  case tok::eof:
   case tok::kw_END:
     // TODO: All of the end-* stmts.
   case tok::kw_ENDFUNCTION:
   case tok::kw_ENDPROGRAM:
   case tok::kw_ENDSUBPROGRAM:
   case tok::kw_ENDSUBROUTINE:
+    if(Features.FixedForm) {
+      auto StmtPoint = LocFirstStmtToken;
+      auto RetPoint = ConsumeToken();
+      ConsumeIfPresent(tok::identifier);
+      if(IsPresent(tok::l_paren) || IsPresent(tok::equal))
+         return ReparseAmbiguousAssignmentStatement(StmtPoint);
+      StartStatementReparse(RetPoint);
+      LookForExecutableStmtKeyword(StmtLabel? false : true);
+    }
     // Handle in parent.
+    return StmtResult();
+
+  case tok::eof:
     return StmtResult();
   }
 

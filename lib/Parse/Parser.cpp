@@ -760,12 +760,8 @@ bool Parser::ParseExecutableSubprogramBody(tok::TokenKind EndKw) {
   // Apply specification statements.
   Actions.ActOnSpecificationPart();
 
-
-  // FIXME: Check for the specific keywords and not just absence of END or
-  //        ENDPROGRAM.
   ParseStatementLabel();
-  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw))
-    ParseExecutionPart();
+  ParseExecutionPart();
   return false;
 }
 
