@@ -57,18 +57,9 @@ void PrettyStackTraceParserEntry::print(llvm::raw_ostream &OS) const {
 //                            Fortran Parsing
 //===----------------------------------------------------------------------===//
 
-StatementParsingContext::StatementParsingContext(Parser &P, Order StmtOrder)
-  : TheParser(P), Prev(P.StatementContext), StatementOrder(StmtOrder) {
-  P.StatementContext = this;
-}
-
-StatementParsingContext::~StatementParsingContext() {
-  TheParser.StatementContext = Prev;
-}
-
 Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  &D,
                Sema &actions)
-  : TheLexer(SM, Opts, D, *this), Features(Opts), CrashInfo(*this), SrcMgr(SM),
+  : TheLexer(SM, Opts, D), Features(Opts), CrashInfo(*this), SrcMgr(SM),
     CurBuffer(0), Context(actions.Context), Diag(D), Actions(actions),
     Identifiers(Opts), DontResolveIdentifiers(false),
     DontResolveIdentifiersInSubExpressions(false),
@@ -80,8 +71,6 @@ Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  
   PrevTokLocEnd = Tok.getLocation();
   ParenCount = ParenSlashCount = BraceCount = BracketCount = 0;
   PrevStmtWasSelectCase = false;
-
-  StatementContext = nullptr;
 }
 
 bool Parser::EnterIncludeFile(const std::string &Filename) {
@@ -133,21 +122,6 @@ void Parser::Lex() {
   if(Tok.isAtStartOfStatement()) {
     ParenCount = 0;
     ParenSlashCount = 0;
-    StatementTokens.clear();
-  }
-  if(Tok.isNot(tok::unknown) && !Tok.isStored()) {
-    bool Store = true;
-    if(StatementTokens.size() &&
-       Tok.getLocation().getPointer() < (StatementTokens.back().getLocation().getPointer() + StatementTokens.back().getLength()))
-      Store = false;
-    if(Store) {
-      auto T = Tok;
-      T.setLength(Tok.getExtraLength());
-      T.setFlag(Token::Stored);
-      if(T.getIdentifierInfo())
-        T.setKind(tok::identifier);
-      StatementTokens.push_back(T);
-    }
   }
 
   PrevTokLocation = Tok.getLocation();
@@ -172,6 +146,9 @@ void Parser::Lex() {
     TheLexer.Lex(Tok);
     ClassifyToken(Tok);
   }
+
+  if(Tok.isAtStartOfStatement())
+    LocFirstStmtToken = Tok.getLocation();
 
   if (Tok.is(tok::eof)){
     if(!LeaveIncludeFile()){
@@ -276,8 +253,6 @@ void Parser::Lex() {
 
   TheLexer.Lex(NextTok);
   ClassifyToken(NextTok);
-
-
 }
 
 void Parser::ClassifyToken(Token &T) {
@@ -589,7 +564,6 @@ void Parser::ParseConstructNameLabel() {
       auto ID = Tok.getIdentifierInfo();
       auto Loc = ConsumeToken();
       StmtConstructName = ConstructName(Loc, ID);
-      SetNextTokenShouldBeKeyword();
       ConsumeToken(); // eat the ':'
       return;
     }
@@ -621,7 +595,6 @@ void Parser::ParseTrailingConstructName() {
 bool Parser::ParseProgramUnits() {
   TranslationUnitScope TuScope;
   Actions.ActOnTranslationUnit(TuScope);
-  StatementParsingContext TuContext(*this, StatementParsingContext::TranslationUnitStatements);
 
   // Prime the lexer.
   Lex();
@@ -647,6 +620,7 @@ bool Parser::ParseProgramUnit() {
     return true;
 
   ParseStatementLabel();
+  LookForTopLevelStmtKeyword();
   if (IsNextToken(tok::equal))
     return ParseMainProgram();
 
@@ -786,15 +760,12 @@ bool Parser::ParseExecutableSubprogramBody(tok::TokenKind EndKw) {
   // Apply specification statements.
   Actions.ActOnSpecificationPart();
 
-  {
-    StatementParsingContext StmtContext(*this, StatementParsingContext::ExecutableConstructs);
 
-    // FIXME: Check for the specific keywords and not just absence of END or
-    //        ENDPROGRAM.
-    ParseStatementLabel();
-    if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw))
-      ParseExecutionPart();
-  }
+  // FIXME: Check for the specific keywords and not just absence of END or
+  //        ENDPROGRAM.
+  ParseStatementLabel();
+  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw))
+    ParseExecutionPart();
   return false;
 }
 
@@ -808,6 +779,7 @@ bool Parser::ParseExecutableSubprogramBody(tok::TokenKind EndKw) {
 ///          [declaration-construct] ...
 bool Parser::ParseSpecificationPart() {
   bool HasErrors = false;
+  LookForSpecificationStmtKeyword();
   while (Tok.is(tok::kw_USE)) {
     StmtResult S = ParseUSEStmt();
     if (S.isUsable()) {
@@ -820,6 +792,7 @@ bool Parser::ParseSpecificationPart() {
     }
 
     ParseStatementLabel();
+    LookForSpecificationStmtKeyword();
   }
 
   while (Tok.is(tok::kw_IMPORT)) {
@@ -834,6 +807,7 @@ bool Parser::ParseSpecificationPart() {
     }
 
     ParseStatementLabel();
+    LookForSpecificationStmtKeyword();
   }
 
   if (ParseImplicitPartList())
@@ -883,7 +857,7 @@ bool Parser::ParseTypedExternalSubprogram(int Attr) {
     goto err;
   if(!(Attr & FunctionDecl::Recursive)) {
     if(Features.FixedForm)
-      RelexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_RECURSIVE,
+      ReLexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_RECURSIVE,
                                                                                   tok::kw_FUNCTION)));
     if(Tok.is(tok::kw_RECURSIVE)) {
       ConsumeToken();
@@ -894,7 +868,7 @@ bool Parser::ParseTypedExternalSubprogram(int Attr) {
   if(Tok.isAtStartOfStatement())
     goto err;
   if(Features.FixedForm)
-    RelexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_FUNCTION)));
+    ReLexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_FUNCTION)));
   if(Tok.is(tok::kw_FUNCTION))
     return ParseExternalSubprogram(ReturnType, Attr);
 err:
@@ -909,7 +883,7 @@ bool Parser::ParseRecursiveExternalSubprogram() {
     goto err;
 
   if(Features.FixedForm)
-    RelexAmbiguousIdentifier(FixedFormAmbiguities.getMatcherForKeywordsAfterRECURSIVE());
+    ReLexAmbiguousIdentifier(FixedFormAmbiguities.getMatcherForKeywordsAfterRECURSIVE());
   if(Tok.is(tok::kw_SUBROUTINE) ||
      Tok.is(tok::kw_FUNCTION)) {
     DeclSpec ReturnType;
@@ -1127,6 +1101,7 @@ StmtResult Parser::ParseImplicitPart() {
   //    or format-stmt
   //    or entry-stmt [obs]
   ParseStatementLabel();
+  LookForSpecificationStmtKeyword();
   StmtResult Result;
   switch (Tok.getKind()) {
   default: break;
@@ -1186,6 +1161,7 @@ bool Parser::ParseDeclarationConstructList() {
 ///      or stmt-function-stmt
 bool Parser::ParseDeclarationConstruct() {
   ParseStatementLabel();
+  LookForSpecificationStmtKeyword();
 
   SmallVector<DeclResult, 4> Decls;  
 

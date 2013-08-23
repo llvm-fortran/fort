@@ -357,7 +357,7 @@ Parser::StmtResult Parser::ParseSAVEStmt() {
   if(!ExpectAndConsume(tok::identifier))
     ListParsedOk = false;
   if(!IsSaveStmt && Features.FixedForm && (IsPresent(tok::equal) || IsPresent(tok::l_paren)))
-    return ReparseAmbiguousStatementSwitchToExecutablePart();
+    return ReparseAmbiguousAssignmentStatement();
   auto Stmt = Actions.ActOnSAVE(Context, Loc, IDLoc, II, nullptr);
   if(Stmt.isUsable())
     StmtList.push_back(Stmt.get());

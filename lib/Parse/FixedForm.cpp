@@ -37,7 +37,7 @@ bool KeywordMatcher::Matches(StringRef Identifier) const {
   std::string Name(Identifier);
   for (size_t I = 0, E = Name.size(); I != E; ++I)
     Name[I] = ::tolower(Name[I]);
-  return Keywords.find(Name) != Keywords.end();
+ return Keywords.find(Name) != Keywords.end();
 }
 
 static const tok::TokenKind AmbiguousExecKeywords[] = {
@@ -45,10 +45,13 @@ static const tok::TokenKind AmbiguousExecKeywords[] = {
   tok::kw_ASSIGN,
   // DOI=1,10
   tok::kw_DO,
+  tok::kw_DOWHILE,
   // ENDDOconstructname
   tok::kw_ENDDO,
   // ELSEconstructname
   tok::kw_ELSE,
+  // ELSEIF
+  tok::kw_ELSEIF,
   // ENDIFconstructname
   tok::kw_ENDIF,
   // ENDSELECTconstructname
@@ -142,138 +145,90 @@ CommonAmbiguities::CommonAmbiguities() {
     };
     MatcherForKeywordsAfterRECURSIVE = llvm::makeArrayRef(Filters);
   }
+  {
+    const KeywordFilter Filters[] = {
+      AmbiguousExecutableStatements(),
+      KeywordFilter(tok::kw_THEN)
+    };
+    MatcherForKeywordsAfterIF = llvm::makeArrayRef(Filters);
+  }
+  {
+    const KeywordFilter Filters[] = {
+      AmbiguousTopLevelDeclarationStatements(),
+      AmbiguousTypeStatements(),
+      AmbiguousSpecificationStatements(),
+      AmbiguousExecutableStatements(),
+      AmbiguousEndStatements()
+    };
+    MatcherForTopLevel = llvm::makeArrayRef(Filters);
+  }
+  {
+    const KeywordFilter Filters[] = {
+      AmbiguousTypeStatements(),
+      AmbiguousSpecificationStatements(),
+      AmbiguousExecutableStatements(),
+      AmbiguousEndStatements()
+    };
+    MatcherForSpecStmts = llvm::makeArrayRef(Filters);
+  }
+  {
+    const KeywordFilter Filters[] = {
+      AmbiguousExecutableStatements(),
+      AmbiguousEndStatements()
+    };
+    MatcherForExecStmts = llvm::makeArrayRef(Filters);
+  }
 }
 
 } // end namespace fixedForm
 
-void Parser::RelexAmbiguousIdentifier(const fixedForm::KeywordMatcher &Matcher) {
+void Parser::ReLexAmbiguousIdentifier(const fixedForm::KeywordMatcher &Matcher) {
   assert(Features.FixedForm);
-  assert(!Tok.isAtStartOfStatement());
   if(Matcher.Matches(Tok.getIdentifierInfo()->getName()))
     return;
+  NextTok.setKind(tok::unknown);
   TheLexer.LexFixedFormIdentifierMatchLongestKeyword(Matcher, Tok);
   ClassifyToken(Tok);
 }
 
-Parser::MatchFixedFormIdentAction
-Parser::MatchFixedFormIdentifier(Token &T, IdentifierLexingContext Context) {
-  // Set the identifier info for this token.
-  llvm::SmallVector<llvm::StringRef, 2> Spelling;
-  TheLexer.getSpelling(T, Spelling);
-  std::string NameStr = T.CleanLiteral(Spelling);
-
-  if(Context.Kind == IdentifierLexingContext::StatementStart) {
-    auto KW = Identifiers.lookupKeyword(NameStr);
-    if(KW) {
-      auto ID = KW->getTokenID();
-
-      /// We need to look for these keywords in the start
-      /// of a statement because they can be merged
-      /// with other identifiers.
-      if(StatementContext->getStatementOrder() != StatementParsingContext::ExecutableConstructs) {
-        switch(ID) {
-        // INTEGERvar
-        case tok::kw_INTEGER:
-        case tok::kw_REAL:
-        case tok::kw_COMPLEX:
-        case tok::kw_DOUBLEPRECISION:
-        case tok::kw_DOUBLECOMPLEX:
-        case tok::kw_LOGICAL:
-        case tok::kw_CHARACTER:
-        // IMPLICITREAL
-        case tok::kw_IMPLICIT:
-        // DIMENSIONI(10)
-        case tok::kw_DIMENSION:
-        // EXTERNALfoo
-        case tok::kw_EXTERNAL:
-        // INTRINSICfoo
-        case tok::kw_INTRINSIC:
-        // COMMONi
-        case tok::kw_COMMON:
-        // DATAa/1/
-        case tok::kw_DATA:
-        // SAVEi
-        case tok::kw_SAVE:
-        // PROGRAMname
-        case tok::kw_PROGRAM:
-        // ENDPROGRAMname
-        case tok::kw_ENDPROGRAM:
-        // SUBROUTINEfoo
-        case tok::kw_SUBROUTINE:
-        case tok::kw_ENDSUBROUTINE:
-        // FUNCTIONfoo
-        case tok::kw_FUNCTION:
-        case tok::kw_ENDFUNCTION:
-        case tok::kw_RECURSIVE:
-          return RememberIdentAction;
-          break;
-        default:
-          break;
-        }
-      }
-
-      switch(ID) {
-      // ASSIGN10TOI
-      case tok::kw_ASSIGN:
-      // DOI=1,10
-      case tok::kw_DO:
-      // ENDDOconstructname
-      case tok::kw_ENDDO:
-      // ELSEconstructname
-      case tok::kw_ELSE:
-      // ENDIFconstructname
-      case tok::kw_ENDIF:
-      // ENDSELECTconstructname
-      case tok::kw_ENDSELECT:
-      // GOTOI
-      case tok::kw_GOTO:
-      // CALLfoo
-      case tok::kw_CALL:
-      // STOP1
-      case tok::kw_STOP:
-      // ENTRYwhat
-      case tok::kw_ENTRY:
-      // RETURN1
-      case tok::kw_RETURN:
-      // CYCLE/EXITconstructname
-      case tok::kw_CYCLE:
-      case tok::kw_EXIT:
-      // PRINTfmt
-      case tok::kw_PRINT:
-      // READfmt
-      case tok::kw_READ:
-
-      case tok::kw_END:
-      case tok::kw_ENDPROGRAM:
-      case tok::kw_ENDSUBROUTINE:
-      case tok::kw_ENDFUNCTION:
-        return RememberIdentAction;
-        break;
-      default:
-        break;
-      }
-      return ResetIdentAction;
-    }
+bool Parser::ExpectAndConsumeFixedFormAmbiguous(tok::TokenKind ExpectedTok, unsigned Diag,
+                                                const char *DiagMsg) {
+  if(Features.FixedForm) {
+    if(Tok.isAtStartOfStatement())
+      return ExpectAndConsume(ExpectedTok, Diag, DiagMsg);
+    ReLexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(ExpectedTok)));
   }
-  else if(Context.Kind == IdentifierLexingContext::MergedKeyword) {
-    auto KW = Identifiers.lookupKeyword(NameStr);
-    if(KW && KW->getTokenID() == Context.Keyword)
-      return RememberIdentAction;
-  }
-  return NoIdentAction;
+  return ExpectAndConsume(ExpectedTok, Diag, DiagMsg);
 }
 
-Parser::StmtResult Parser::ReparseAmbiguousStatement() {
-  StatementTokens.push_back(Tok);
-  TheLexer.ReparseStatement(StatementTokens);
+void Parser::StartStatementReparse(SourceLocation Where) {
+  TheLexer.ReLexStatement(Where.isValid()? Where : LocFirstStmtToken);
   Tok.startToken();
+  NextTok.setKind(tok::unknown);
   Lex();
-  return ParseAmbiguousAssignmentStmt();
 }
 
-StmtResult Parser::ReparseAmbiguousStatementSwitchToExecutablePart() {
-  StatementParsingContext StmtContext(*this, StatementParsingContext::ExecutableConstructs);
-  return ReparseAmbiguousStatement();
+void Parser::LookForTopLevelStmtKeyword() {
+  bool AtStartOfStatement = StmtLabel? false : true;
+  if(Features.FixedForm) {
+    if(!AtStartOfStatement && Tok.isAtStartOfStatement()) return;
+    ReLexAmbiguousIdentifier(FixedFormAmbiguities.getMatcherForTopLevelKeywords());
+  }
+}
+
+void Parser::LookForSpecificationStmtKeyword() {
+  bool AtStartOfStatement = StmtLabel? false : true;
+  if(Features.FixedForm) {
+    if(!AtStartOfStatement && Tok.isAtStartOfStatement()) return;
+    ReLexAmbiguousIdentifier(FixedFormAmbiguities.getMatcherForSpecificationStmtKeywords());
+  }
+}
+
+void Parser::LookForExecutableStmtKeyword(bool AtStartOfStatement) {
+  if(Features.FixedForm) {
+    if(!AtStartOfStatement && Tok.isAtStartOfStatement()) return;
+    ReLexAmbiguousIdentifier(FixedFormAmbiguities.getMatcherForExecutableStmtKeywords());
+  }
 }
 
 } // end namespace flang

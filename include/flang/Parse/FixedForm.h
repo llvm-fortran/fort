@@ -39,7 +39,6 @@ public:
 class KeywordMatcher {
   llvm::StringSet<llvm::BumpPtrAllocator> Keywords;
 public:
-
   KeywordMatcher() {}
   KeywordMatcher(ArrayRef<KeywordFilter> Filters);
   void operator=(ArrayRef<KeywordFilter> Filters);
@@ -88,7 +87,9 @@ public:
 /// identifiers.
 class CommonAmbiguities {
   KeywordMatcher MatcherForKeywordsAfterRECURSIVE;
-
+  KeywordMatcher MatcherForKeywordsAfterIF;
+  KeywordMatcher MatcherForTopLevel;
+  KeywordMatcher MatcherForSpecStmts, MatcherForExecStmts;
 public:
   CommonAmbiguities();
 
@@ -99,6 +100,25 @@ public:
   const KeywordMatcher &getMatcherForKeywordsAfterRECURSIVE() const {
     return MatcherForKeywordsAfterRECURSIVE;
   }
+
+  /// \brief Returns the matcher for the keywords that come after
+  /// the condition in the IF statement (THEN or action statement keywords).
+  const KeywordMatcher &getMatcherForKeywordsAfterIF() const {
+    return MatcherForKeywordsAfterIF;
+  }
+
+  const KeywordMatcher &getMatcherForTopLevelKeywords() const {
+    return MatcherForTopLevel;
+  }
+
+  const KeywordMatcher &getMatcherForSpecificationStmtKeywords() const {
+    return MatcherForSpecStmts;
+  }
+
+  const KeywordMatcher &getMatcherForExecutableStmtKeywords() const {
+    return MatcherForExecStmts;
+  }
+
 };
 
 } // end namespace fixedForm

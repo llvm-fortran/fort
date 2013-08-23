@@ -42,34 +42,6 @@ class KeywordMatcher;
 
 }
 
-/// IdentifierLexingContext - This represents
-/// the context in which identifiers are lexed.
-/// This is needed for fixed form lexing, to
-/// separate squashed identifiers from each other.
-class IdentifierLexingContext {
-public:
-  enum ContextKind {
-    /// Default - the default kind in which
-    /// identifiers are lexed until the next
-    /// non identifier character.
-    Default,
-
-    /// StatementStart - The identifier is lexed
-    /// until the longest keyword can be matched
-    StatementStart,
-
-    /// MergedKeyword - The identifier is lexed
-    /// with the respect to the keyword
-    /// merge rules.
-    MergedKeyword
-  };
-  ContextKind Kind;
-  tok::TokenKind Keyword;
-
-  IdentifierLexingContext()
-    : Kind(Default) {}
-};
-
 class Lexer {
   /// LineOfText - This represents a line of text in the program where
   /// continuation contexts are concatenated.
@@ -124,7 +96,8 @@ class Lexer {
     explicit LineOfText(DiagnosticsEngine &D, const LangOptions &L)
       : Diags(D), LanguageOptions(L), BufPtr(0), CurAtom(0), CurPtr(0) {}
 
-    void SetBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr);
+    void SetBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr,
+                   bool AtLineStart = true);
 
     bool empty() const { return Atoms.empty(); }
 
@@ -149,7 +122,7 @@ class Lexer {
     void SetState(const State &S);
 
     /// GetNextLine - Get the next line of the program to lex.
-    void GetNextLine();
+    void GetNextLine(bool AtLineStart = true);
 
     /// Reset the internal state to make ready for a new line of text.
     void Reset() {
@@ -187,9 +160,6 @@ class Lexer {
 
   /// Text - The text of the program.
   LineOfText Text;
-
-  /// TheParser - The parser is required to lex identifiers in fixed form sources.
-  Parser &TheParser;
 
   /// getNextChar - Get the next character from the buffer.
   char getNextChar() { return Text.GetNextChar(); }
@@ -231,24 +201,6 @@ class Lexer {
   /// LastTokenWasSemicolon - True if the last token we returned was a
   /// semicolon.
   bool LastTokenWasSemicolon;
-
-  /// LastTokenWasStatementLabel - True if the last token we returned was
-  /// a statement label.
-  bool LastTokenWasStatementLabel;
-
-  /// UseSpecificIdContext - when lexing the next token, use the CurIdContext
-  /// as it was set by the parser.
-  bool UseSpecificIdContext;
-
-  /// CurIdContext - the current context for lexing of identifiers.
-  IdentifierLexingContext CurIdContext;
-
-  /// StatementTokens
-  ArrayRef<Token> StatementTokens;
-
-  /// StatementTokensOffset - if this >= 0, the lexed tokens
-  /// are taken from the StatementTokens.
-  int StatementTokensOffset;
 
   /// \brief Tracks all of the comment handlers that the client registered
   /// with this preprocessor.
@@ -328,8 +280,7 @@ public:
 
   /// Lexer constructor - Create a new lexer object. This lexer assumes that the
   /// text range will outlive it, so it doesn't take ownership of it.
-  Lexer(llvm::SourceMgr &SM, const LangOptions &Features, DiagnosticsEngine &D,
-        Parser &P);
+  Lexer(llvm::SourceMgr &SM, const LangOptions &Features, DiagnosticsEngine &D);
 
   Lexer(const Lexer &TheLexer, SourceLocation StartingPoint);
 
@@ -342,7 +293,8 @@ public:
   /// getBufferPtr - Get a pointer to the next line to be lexed.
   const char* getBufferPtr() const { return Text.GetBufferPtr(); }
 
-  void setBuffer(const llvm::MemoryBuffer *buf, const char *ptr = 0);
+  void setBuffer(const llvm::MemoryBuffer *buf, const char *ptr = 0,
+                 bool AtLineStart = true);
 
   /// \brief Add the specified comment handler to the preprocessor.
   void addCommentHandler(CommentHandler *Handler);
@@ -355,26 +307,14 @@ public:
   // FIXME: CurKind isn't set.
   bool isa(tok::TokenKind Kind) const { return CurKind == Kind; }
 
-  /// SetIdContext - the next token will be lexed with the specified
-  /// id context.
-  void SetIdContext(IdentifierLexingContext C);
-
-  /// ReparseStatement - reparses a statement
-  void ReparseStatement(ArrayRef<Token> Tokens);
+  /// ReLexStatement - preparses the lexer for lexing the
+  /// current statement from the start.
+  void ReLexStatement(SourceLocation StmtStart);
 
   /// Lex - Return the next token in the file. If this is the end of file, it
   /// return the tok::eof token. Return true if an error occurred and
   /// compilation should terminate, false if normal.
   void Lex(Token &Result, bool IsPeekAhead = false) {
-    if(StatementTokensOffset >= 0) {
-      if(StatementTokensOffset < StatementTokens.size()) {
-        Result = StatementTokens[StatementTokensOffset];
-        if(!IsPeekAhead) StatementTokensOffset++;
-        return;
-      }
-      StatementTokensOffset = -1;
-    }
-
     // Start a new token.
     Result.startToken();
 

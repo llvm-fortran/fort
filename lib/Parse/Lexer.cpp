@@ -30,30 +30,26 @@ static bool isWhitespace(unsigned char c);
 static bool isHorizontalWhitespace(unsigned char c);
 static bool isVerticalWhitespace(unsigned char c);
 
-Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine &D,
-             Parser &P)
+Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine &D)
   : Text(D, features), Diags(D), SrcMgr(SM), Features(features), TokStart(0),
-    LastTokenWasSemicolon(false), LastTokenWasStatementLabel(false),
-    UseSpecificIdContext(false), TheParser(P) {
+    LastTokenWasSemicolon(false) {
   InitCharacterInfo();
-  StatementTokensOffset = -1;
 }
 
 Lexer::Lexer(const Lexer &TheLexer, SourceLocation StartingPoint)
   : Text(TheLexer.Diags, TheLexer.Features), Diags(TheLexer.Diags),
     SrcMgr(TheLexer.SrcMgr), Features(TheLexer.Features), TokStart(0),
-    LastTokenWasSemicolon(false), LastTokenWasStatementLabel(false),
-    UseSpecificIdContext(false), TheParser(TheLexer.TheParser) {
-  StatementTokensOffset = -1;
+    LastTokenWasSemicolon(false) {
 
   assert(StartingPoint.isValid());
   assert(StartingPoint.getPointer() >= TheLexer.CurBuf->getBufferStart() &&
          StartingPoint.getPointer() < TheLexer.CurBuf->getBufferEnd());
-  setBuffer(TheLexer.CurBuf, StartingPoint.getPointer());
+  setBuffer(TheLexer.CurBuf, StartingPoint.getPointer(), false);
 }
 
-void Lexer::setBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr) {
-  Text.SetBuffer(Buf, Ptr);
+void Lexer::setBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr,
+                      bool AtLineStart) {
+  Text.SetBuffer(Buf, Ptr, AtLineStart);
   CurBuf = Buf;
   TokStart = 0;
 }
@@ -77,11 +73,11 @@ void Lexer::removeCommentHandler(CommentHandler *Handler) {
 }
 
 void Lexer::LineOfText::
-SetBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr) {
+SetBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr, bool AtLineStart) {
   BufPtr = (Ptr ? Ptr : Buf->getBufferStart());
   CurAtom = CurPtr = 0;
   Atoms.clear();
-  GetNextLine();
+  GetNextLine(AtLineStart);
 }
 
 Lexer::LineOfText::State Lexer::LineOfText::GetState() {
@@ -275,7 +271,7 @@ GetCharacterLiteral(unsigned &I, const char *&LineBegin, bool &PadAtoms) {
 const char *Lexer::LineOfText::Padding = " ";
 
 /// GetNextLine - Get the next line of the program to lex.
-void Lexer::LineOfText::GetNextLine() {
+void Lexer::LineOfText::GetNextLine(bool AtLineStart) {
   // Save a pointer to the beginning of the line.
   const char *LineBegin = BufPtr;
 
@@ -287,7 +283,8 @@ void Lexer::LineOfText::GetNextLine() {
 
   const char *AmpersandPos = 0;
   if(LanguageOptions.FixedForm) {
-    SkipFixedFormBlankLinesAndComments(I, LineBegin);
+    if(AtLineStart)
+      SkipFixedFormBlankLinesAndComments(I, LineBegin);
 
     // Fixed form
     while (I != 72 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
@@ -319,7 +316,8 @@ void Lexer::LineOfText::GetNextLine() {
     return;
   } else {
     // Skip blank lines and lines with only comments.
-    BeginsWithAmp = SkipBlankLinesAndComments(I, LineBegin);
+    if(AtLineStart)
+      BeginsWithAmp = SkipBlankLinesAndComments(I, LineBegin);
     // Free form
     while (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
       if (*BufPtr == '\'' || *BufPtr == '"') {
@@ -938,65 +936,18 @@ void Lexer::LexIdentifier(Token &Result) {
 }
 
 /// LexFixedFormIdentifier - Lex a fixed form identifier token.
-/// Pick the longest match out of all possible matches
 void Lexer::LexFixedFormIdentifier(Token &Result) {
-  /// Early out for the common case to improve perfomance
-  if(CurIdContext.Kind == IdentifierLexingContext::Default) {
-    bool NeedsCleaning = false;
-    unsigned char C = getCurrentChar();
-    while (!Text.empty() && !Text.AtEndOfLine()) {
-      if(!isIdentifierBody(C)){
-        if(!isHorizontalWhitespace(C))
-          break;
-        NeedsCleaning = true;
-      }
-      C = getNextChar();
-    }
-    FormTokenWithChars(Result, tok::identifier);
-    if(NeedsCleaning)
-      Result.setFlag(Token::NeedsCleaning);
-    return;
-  }
-
-  // Match [_A-Za-z0-9]*, we have already matched [A-Za-z$]
-  unsigned char C = getCurrentChar();
-
-  LineOfText::State LastMatchedIdState;
-  bool MatchedId = false;
-
   bool NeedsCleaning = false;
-  while(!Text.empty() && !Text.AtEndOfLine()) {
-    C = getNextChar();
-    FormTokenWithChars(Result, tok::identifier);
-    if(NeedsCleaning)
-      Result.setFlag(Token::NeedsCleaning);
-    auto Action = TheParser.MatchFixedFormIdentifier(Result, CurIdContext);
-    if(Action == Parser::RememberIdentAction) {
-      LastMatchedIdState = Text.GetState();
-      MatchedId = true;
-    } else if(Action == Parser::ResetIdentAction)
-      MatchedId = false;
-    if(!isIdentifierBody(C)) {
-      if(isHorizontalWhitespace(C)) {
-        NeedsCleaning = true;
-        continue;
-      }
-      break;
+  unsigned char C = getCurrentChar();
+  while (!Text.empty() && !Text.AtEndOfLine()) {
+    if(!isIdentifierBody(C)){
+      if(!isHorizontalWhitespace(C))
+        break;
+      NeedsCleaning = true;
     }
+    C = getNextChar();
   }
-
-  unsigned ExtraLength = 0;
-
-  if(MatchedId) {
-    ExtraLength = getCurrentPtr() - TokStart;
-    Text.SetState(LastMatchedIdState);
-  }
-
-  // We let the parser determine what type of identifier this is: identifier,
-  // keyword, or built-in function.
   FormTokenWithChars(Result, tok::identifier);
-  if(ExtraLength)
-    Result.setExtraLength(ExtraLength);
   if(NeedsCleaning)
     Result.setFlag(Token::NeedsCleaning);
 }
@@ -1008,8 +959,9 @@ void Lexer::LexFixedFormIdentifier(const fixedForm::KeywordMatcher &Matcher,
   bool NeedsCleaning = false;
 
   llvm::SmallVector<char, 64> Token;
+  auto C = getCurrentChar();
   while(!Text.empty() && !Text.AtEndOfLine()) {
-    auto C = getCurrentChar();
+    C = getCurrentChar();
     if(!isIdentifierBody(C)) {
       if(isHorizontalWhitespace(C))
         NeedsCleaning = true;
@@ -1017,6 +969,7 @@ void Lexer::LexFixedFormIdentifier(const fixedForm::KeywordMatcher &Matcher,
     } else Token.push_back(C);
 
     getNextChar();
+
     if(Matcher.Matches(StringRef(Token.data(),
                                  Token.size()))) {
       LastMatchedIdState = Text.GetState();
@@ -1025,7 +978,6 @@ void Lexer::LexFixedFormIdentifier(const fixedForm::KeywordMatcher &Matcher,
   }
 
   if(MatchedId) Text.SetState(LastMatchedIdState);
-
   FormTokenWithChars(Tok, tok::identifier);
   if(NeedsCleaning)
     Tok.setFlag(Token::NeedsCleaning);
@@ -1213,16 +1165,9 @@ void Lexer::LexComment(Token &Result) {
   }
 }
 
-/// SetIdContext - the next token will be lexed with the specified
-/// id context.
-void Lexer::SetIdContext(IdentifierLexingContext C) {
-  UseSpecificIdContext = true;
-  CurIdContext = C;
-}
-
-void Lexer::ReparseStatement(ArrayRef<Token> Tokens) {
-  StatementTokens = Tokens;
-  StatementTokensOffset = 0;
+void Lexer::ReLexStatement(SourceLocation StmtStart) {
+  LastTokenWasSemicolon = true;
+  setBuffer(CurBuf, StmtStart.getPointer(), false);
 }
 
 /// LexTokenInternal - This implements a simple Fortran family lexer. It is an
@@ -1250,15 +1195,6 @@ void Lexer::LexTokenInternal(Token &Result, bool IsPeekAhead) {
     LastTokenWasSemicolon = false;
     Result.setFlag(Token::StartOfStatement);
   }
-
-  // Set the identifier lexing context
-  if(!UseSpecificIdContext) {
-    if(Result.isAtStartOfStatement() || LastTokenWasStatementLabel)
-      CurIdContext.Kind = IdentifierLexingContext::StatementStart;
-    else
-      CurIdContext.Kind = IdentifierLexingContext::Default;
-  } else UseSpecificIdContext = false;
-  LastTokenWasStatementLabel = false;
 
   // Small amounts of horizontal whitespace is very common between tokens.
   char Char = getCurrentChar();
@@ -1317,7 +1253,6 @@ void Lexer::LexTokenInternal(Token &Result, bool IsPeekAhead) {
   case '5': case '6': case '7': case '8': case '9':
     // [TODO]: Kinds on literals.
     if (Result.isAtStartOfStatement()) {
-      LastTokenWasStatementLabel = true;
       return LexStatementLabel(Result);
     }
     return LexNumericConstant(Result);
@@ -1591,8 +1526,7 @@ LexIdentifier:
 void Lexer::LexFixedFormIdentifierMatchLongestKeyword(const fixedForm::KeywordMatcher &Matcher,
                                                       Token &Tok) {
   LastTokenWasSemicolon = false;
-  LastTokenWasStatementLabel = false;
-  setBuffer(CurBuf, Tok.getLocation().getPointer());
+  setBuffer(CurBuf, Tok.getLocation().getPointer(), false);
   Tok.startToken();
 
   // Check to see if there is still more of the line to lex.

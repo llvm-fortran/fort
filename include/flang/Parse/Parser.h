@@ -56,28 +56,6 @@ public:
   virtual void print(llvm::raw_ostream &OS) const;
 };
 
-/// StatementParsingContext - Represents the current parsing context.
-class StatementParsingContext {
-public:
-  enum Order {
-    TranslationUnitStatements,
-    SpecificationStatements,
-    ExecutableConstructs
-  };
-private:
-  StatementParsingContext *Prev;
-  Parser &TheParser;
-  Order StatementOrder;
-public:
-
-  StatementParsingContext(Parser &P, Order StmtOrder);
-  ~StatementParsingContext();
-
-  Order getStatementOrder() const {
-    return StatementOrder;
-  }
-};
-
 /// Parser - This implements a parser for the Fortran family of languages. After
 /// parsing units of the grammar, productions are invoked to handle whatever has
 /// been read.
@@ -111,6 +89,9 @@ private:
   /// Actions - These are the callbacks we invoke as we parse various constructs
   /// in the file. 
   Sema &Actions;
+
+  /// FirstLoc - The location of the first token in the given statement.
+  SourceLocation LocFirstStmtToken;
 
   /// Tok - The current token we are parsing. All parsing methods assume that
   /// this is valid.
@@ -163,16 +144,7 @@ private:
   /// was select case and a case or an end select statement is expected.
   bool PrevStmtWasSelectCase;
 
-protected:
-  /// StatementContext - the current context for statement parsing.
-  StatementParsingContext *StatementContext;
-
-  friend class StatementParsingContext;
 private:
-  /// StatementTokens - the tokens for the current statement.
-  /// We need to remember them in case we want to reparse the statement
-  /// (fixed-form problems).
-  SmallVector<Token, 32> StatementTokens;
 
   /// getIdentifierInfo - Return information about the specified identifier
   /// token.
@@ -200,17 +172,6 @@ private:
   void ClassifyToken(Token &T);
 public:
 
-  enum MatchFixedFormIdentAction {
-    NoIdentAction,
-    RememberIdentAction,
-    ResetIdentAction
-  };
-
-  /// MatchFixedFormIdentifier - Returns true if the identifier token
-  /// T matches an appropriate identifier given the current context.
-  MatchFixedFormIdentAction MatchFixedFormIdentifier(Token &T,
-                                                     IdentifierLexingContext Context);
-
   typedef OpaquePtr<DeclGroupRef> DeclGroupPtrTy;
 
   typedef flang::ExprResult ExprResult;
@@ -232,10 +193,6 @@ public:
   const Token &getCurToken() const { return Tok; }
   const Lexer &getLexer() const { return TheLexer; }
   Lexer &getLexer() { return TheLexer; }
-
-  StatementParsingContext *getStatementContext() {
-    return StatementContext;
-  }
 
   bool ParseProgramUnits();
 
@@ -281,20 +238,6 @@ private:
         )
       return true;
     return false;
-  }
-
-  /// SetNextTokenShouldBeKeyword - notifies the lexer that the next token
-  /// should be a keyword. This is required for fixed-form lexing.
-  ///
-  /// kw is an optional hint (Not used ATM).
-  void SetNextTokenShouldBeKeyword(tok::TokenKind Keyword = tok::unknown) {
-    IdentifierLexingContext C;
-    if(Keyword != tok::unknown) {
-      C.Kind = IdentifierLexingContext::MergedKeyword;
-      C.Keyword = Keyword;
-    }
-    else C.Kind = IdentifierLexingContext::StatementStart;
-    TheLexer.SetIdContext(C);
   }
 
   /// ConsumeToken - Consume the current token and lex the next one. This
@@ -363,6 +306,9 @@ private:
                         tok::TokenKind SkipToTok = tok::unknown,
                         bool InSameStatement = true);
 
+  bool ExpectAndConsumeFixedFormAmbiguous(tok::TokenKind ExpectedTok, unsigned Diag = 0,
+                                          const char *DiagMsg = "");
+
   /// ExpectStatementEnd - The parser expects that the next token is in the
   /// next statement.
   bool ExpectStatementEnd();
@@ -397,12 +343,12 @@ private:
   /// Returns true.
   bool SkipUntilNextStatement();
 
-  /// Certain fixed-form are ambigous, and might need to be reparsed.
-  StmtResult ReparseAmbiguousStatement();
+  /// Certain fixed-form are ambigous, and might need to be reparsed
+  void StartStatementReparse(SourceLocation Where = SourceLocation());
 
-  StmtResult ReparseAmbiguousStatementSwitchToExecutablePart();
+  StmtResult ReparseAmbiguousAssignmentStatement(SourceLocation Where = SourceLocation());
 
-  void RelexAmbiguousIdentifier(const fixedForm::KeywordMatcher &Matcher);
+  void ReLexAmbiguousIdentifier(const fixedForm::KeywordMatcher &Matcher);
 
   // High-level parsing methods.
   bool ParseInclude();
@@ -451,6 +397,7 @@ private:
   ExprResult ParsePartReference();
 
   // Stmt-level parsing methods.
+  void LookForTopLevelStmtKeyword();
   StmtResult ParsePROGRAMStmt();
   StmtResult ParseENDStmt(tok::TokenKind EndKw);
   StmtResult ParseUSEStmt();
@@ -464,6 +411,7 @@ private:
   StmtResult ParseENTRYStmt();
 
   // Specification statement's contents.
+  void LookForSpecificationStmtKeyword();
   StmtResult ParseACCESSStmt();
   StmtResult ParseALLOCATABLEStmt();
   StmtResult ParseASYNCHRONOUSStmt();
@@ -495,6 +443,7 @@ private:
   StmtResult ParseEND_FORALLStmt();
 
   // Executable statements
+  void LookForExecutableStmtKeyword(bool AtStartOfStatement = true);
   StmtResult ParseAssignStmt();
   StmtResult ParseGotoStmt();
 
@@ -506,6 +455,7 @@ private:
 
   StmtResult ParseDoStmt();
   StmtResult ParseDoWhileStmt(bool isDo);
+  StmtResult ReparseAmbiguousDoWhileStatement();
   StmtResult ParseEndDoStmt();
   StmtResult ParseCycleStmt();
   StmtResult ParseExitStmt();

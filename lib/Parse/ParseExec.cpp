@@ -62,6 +62,8 @@ void Parser::CheckStmtOrder(SourceLocation Loc, StmtResult SR) {
 StmtResult Parser::ParseExecutableConstruct() {
   ParseStatementLabel();
   ParseConstructNameLabel();
+  LookForExecutableStmtKeyword(StmtLabel || StmtConstructName.isUsable()?
+                               false : true);
 
   auto Loc = Tok.getLocation();
   StmtResult SR = ParseActionStmt();
@@ -134,6 +136,10 @@ Parser::StmtResult Parser::ParseActionStmt() {
   case tok::kw_DO:
     return ParseDoStmt();
   case tok::kw_DOWHILE:
+    if(Features.FixedForm) {
+      if(!IsNextToken(tok::l_paren))
+        return ReparseAmbiguousDoWhileStatement();
+    }
     return ParseDoWhileStmt(false);
   case tok::kw_ENDDO:
     return ParseEndDoStmt();
@@ -192,6 +198,21 @@ Parser::StmtResult Parser::ParseActionStmt() {
   return SR;
 }
 
+/// DoWhile's fixedForm ambiguity is special as it can be reparsed
+/// as DO statement or as an assignment statement.
+Parser::StmtResult Parser::ReparseAmbiguousDoWhileStatement() {
+  StartStatementReparse();
+  ParseStatementLabel();
+  ParseConstructNameLabel();
+  ReLexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_DO)));
+  return ParseActionStmt();
+}
+
+Parser::StmtResult Parser::ReparseAmbiguousAssignmentStatement(SourceLocation Where) {
+  StartStatementReparse(Where);
+  return ParseAmbiguousAssignmentStmt();
+}
+
 Parser::StmtResult Parser::ParseAssignStmt() {
   SourceLocation Loc = ConsumeToken();
 
@@ -202,9 +223,7 @@ Parser::StmtResult Parser::ParseAssignStmt() {
     return StmtError();
   }
   ConsumeToken();
-  if(Features.FixedForm)
-    RelexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_TO)));
-  if(!ExpectAndConsume(tok::kw_TO, diag::err_expected_kw, "to"))
+  if(!ExpectAndConsumeFixedFormAmbiguous(tok::kw_TO, diag::err_expected_kw, "to"))
     return StmtError();
 
   auto IDInfo = Tok.getIdentifierInfo();
@@ -332,9 +351,11 @@ Parser::StmtResult Parser::ParseIfStmt() {
     if(!SkipUntil(tok::r_paren, true, true))
       goto error;
   }
-  SetNextTokenShouldBeKeyword();
   if (!ExpectAndConsume(tok::r_paren)) goto error;
-  if (!ConsumeIfPresent(tok::kw_THEN)){
+
+  if(Features.FixedForm && !Tok.isAtStartOfStatement())
+    ReLexAmbiguousIdentifier(FixedFormAmbiguities.getMatcherForKeywordsAfterIF());
+  if (!ConsumeIfPresent(tok::kw_THEN)) {
     // if-stmt
     if(Tok.isAtStartOfStatement()) {
       Diag.Report(getExpectedLoc(), diag::err_expected_executable_stmt);
@@ -368,9 +389,8 @@ Parser::StmtResult Parser::ParseElseIfStmt() {
       goto error;
   }
   if (!ExpectAndConsume(tok::r_paren)) goto error;
-  if(Features.FixedForm)
-    RelexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_THEN)));
-  if (!ExpectAndConsume(tok::kw_THEN, diag::err_expected_kw, "THEN")) goto error;
+  if (!ExpectAndConsumeFixedFormAmbiguous(tok::kw_THEN, diag::err_expected_kw, "THEN"))
+    goto error;
   ParseTrailingConstructName();
   return Actions.ActOnElseIfStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
 error:
@@ -392,6 +412,7 @@ Parser::StmtResult Parser::ParseEndIfStmt() {
 
 Parser::StmtResult Parser::ParseDoStmt() {
   auto Loc = ConsumeToken();
+  auto CurStmtLoc = LocFirstStmtToken;
 
   ExprResult TerminalStmt;
   VarExpr *DoVar = nullptr;
@@ -403,7 +424,7 @@ Parser::StmtResult Parser::ParseDoStmt() {
     if(TerminalStmt.isInvalid()) return StmtError();
   }
   bool isDo = ConsumeIfPresent(tok::comma);
-  if(IsPresent(tok::kw_WHILE))
+  if(isDo && IsPresent(tok::kw_WHILE))
     return ParseDoWhileStmt(isDo);
 
   // the do var
@@ -414,13 +435,13 @@ Parser::StmtResult Parser::ParseDoStmt() {
 
   EqLoc = getMaxLocationOfCurrentToken();
   if(Features.FixedForm && !isDo && IsPresent(tok::l_paren))
-    return ReparseAmbiguousStatement();
+    return ReparseAmbiguousAssignmentStatement();
   if(!ExpectAndConsume(tok::equal))
     goto error;
   E1 = ParseExpectedFollowupExpression("=");
   if(E1.isInvalid()) goto error;
   if(Features.FixedForm && !isDo && Tok.isAtStartOfStatement())
-    return ReparseAmbiguousStatement();
+    return ReparseAmbiguousAssignmentStatement(CurStmtLoc);
   if(!ExpectAndConsume(tok::comma)) goto error;
   E2 = ParseExpectedFollowupExpression(",");
   if(E2.isInvalid()) goto error;
@@ -445,8 +466,6 @@ error:
 
 Parser::StmtResult Parser::ParseDoWhileStmt(bool isDo) {
   auto Loc = ConsumeToken();
-  if(Features.FixedForm && !isDo && IsPresent(tok::equal))
-    return ReparseAmbiguousStatement();
   auto Condition = ParseExpectedConditionExpression("WHILE");
   return Actions.ActOnDoWhileStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
 }
@@ -610,7 +629,7 @@ Parser::StmtResult Parser::ParseAssignmentStmt() {
   if(LHS.isInvalid()) return StmtError();
 
   SourceLocation Loc = Tok.getLocation();
-  if(!EatIfPresentInSameStmt(tok::equal)) {
+  if(!ConsumeIfPresent(tok::equal)) {
     Diag.Report(getExpectedLoc(),diag::err_expected_equal);
     return StmtError();
   }
