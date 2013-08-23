@@ -282,6 +282,9 @@ public:
   /// text range will outlive it, so it doesn't take ownership of it.
   Lexer(llvm::SourceMgr &SM, const LangOptions &Features, DiagnosticsEngine &D);
 
+  Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine &D,
+        SourceLocation StartingPoint);
+
   Lexer(const Lexer &TheLexer, SourceLocation StartingPoint);
 
   DiagnosticsEngine &getDiagnostics() const { return Diags; }
@@ -289,6 +292,8 @@ public:
   const llvm::SourceMgr &getSourceManager() const { return SrcMgr; }
 
   SourceLocation getLoc() const;
+
+  SourceLocation getLocEnd() const;
 
   /// getBufferPtr - Get a pointer to the next line to be lexed.
   const char* getBufferPtr() const { return Text.GetBufferPtr(); }

@@ -14,6 +14,7 @@
 
 #include "flang/Sema/Sema.h"
 #include "flang/Sema/DeclSpec.h"
+#include "flang/Parse/Lexer.h"
 #include "flang/Parse/ParseDiagnostic.h"
 #include "flang/Sema/SemaDiagnostic.h"
 #include "flang/Sema/SemaInternal.h"
@@ -37,9 +38,12 @@ Sema::Sema(ASTContext &ctxt, DiagnosticsEngine &D)
 
 Sema::~Sema() {}
 
-// FIXME:
 SourceRange Sema::getTokenRange(SourceLocation Loc) {
-  return SourceRange(Loc, Loc);
+  Lexer L(Context.getSourceManager(), Context.getLangOpts(),
+          Diags, Loc);
+  Token T;
+  L.Lex(T);
+  return SourceRange(Loc, L.getLocEnd());
 }
 
 // getContainingDC - Determines the context to return to after temporarily

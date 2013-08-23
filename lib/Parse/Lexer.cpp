@@ -36,6 +36,15 @@ Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine
   InitCharacterInfo();
 }
 
+Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine &D,
+      SourceLocation StartingPoint)
+  : Text(D, features), Diags(D), SrcMgr(SM), Features(features), TokStart(0),
+    LastTokenWasSemicolon(false) {
+  assert(StartingPoint.isValid());
+  setBuffer(SM.getMemoryBuffer(SM.FindBufferContainingLoc(StartingPoint)),
+            StartingPoint.getPointer(), false);
+}
+
 Lexer::Lexer(const Lexer &TheLexer, SourceLocation StartingPoint)
   : Text(TheLexer.Diags, TheLexer.Features), Diags(TheLexer.Diags),
     SrcMgr(TheLexer.SrcMgr), Features(TheLexer.Features), TokStart(0),
@@ -56,6 +65,10 @@ void Lexer::setBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr,
 
 SourceLocation Lexer::getLoc() const {
   return SourceLocation::getFromPointer(TokStart);
+}
+
+SourceLocation Lexer::getLocEnd() const {
+  return SourceLocation::getFromPointer(getCurrentPtr());
 }
 
 void Lexer::addCommentHandler(CommentHandler *Handler) {
