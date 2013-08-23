@@ -6,6 +6,7 @@ add_flang_library(flangParse
   ParseExpr.cpp
   ParseFormat.cpp
   Parser.cpp
+  FixedForm.cpp
 )
 
 add_dependencies(flangParse

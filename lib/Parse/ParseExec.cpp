@@ -577,8 +577,7 @@ Parser::StmtResult Parser::ParseCallStmt() {
   SourceLocation RParenLoc = getExpectedLoc();
 
   auto ID = Tok.getIdentifierInfo();
-  auto FuncIdRange = SourceRange(Tok.getLocation(),
-                                 getMaxLocationOfCurrentToken());
+  auto IDLoc = Tok.getLocation();
   if(!ExpectAndConsume(tok::identifier))
     return StmtError();
 
@@ -588,7 +587,7 @@ Parser::StmtResult Parser::ParseCallStmt() {
       SkipUntilNextStatement();
   }
 
-  return Actions.ActOnCallStmt(Context, Loc, RParenLoc, FuncIdRange, ID, Arguments, StmtLabel);
+  return Actions.ActOnCallStmt(Context, Loc, RParenLoc, IDLoc, ID, Arguments, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseAmbiguousAssignmentStmt() {

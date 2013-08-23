@@ -630,7 +630,7 @@ ExprResult Sema::ActOnSubscriptExpr(ASTContext &C, SourceLocation Loc, SourceLoc
 }
 
 bool Sema::CheckCallArguments(FunctionDecl *Function, llvm::MutableArrayRef<Expr*> Arguments,
-                              SourceLocation Loc, SourceRange FuncNameRange) {
+                              SourceLocation Loc, SourceLocation IDLoc) {
   if(Function->isExternal()) {
     if(Arguments.empty()) return true;
     if(Function->getArguments().empty()) {
@@ -658,7 +658,7 @@ bool Sema::CheckCallArguments(FunctionDecl *Function, llvm::MutableArrayRef<Expr
       Diags.Report(Loc, diag::err_typecheck_call_too_few_args)
           << FuncType << unsigned(FunctionArgs.size())
           << unsigned(Arguments.size())
-          << FuncNameRange;
+          << getTokenRange(IDLoc);
     } else {
       auto LocStart = Arguments[FunctionArgs.size()]?
                         Arguments[FunctionArgs.size()]->getLocStart() : Loc;
@@ -667,7 +667,7 @@ bool Sema::CheckCallArguments(FunctionDecl *Function, llvm::MutableArrayRef<Expr
       Diags.Report(LocStart, diag::err_typecheck_call_too_many_args)
           << FuncType << unsigned(FunctionArgs.size())
           << unsigned(Arguments.size())
-          << FuncNameRange << SourceRange(LocStart, LocEnd);
+          << getTokenRange(IDLoc) << SourceRange(LocStart, LocEnd);
     }
     return false;
   }
@@ -707,11 +707,11 @@ Expr *Sema::ActOnArrayArgument(VarDecl *Arg, Expr *E) {
 }
 
 ExprResult Sema::ActOnCallExpr(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
-                               SourceRange IdRange,
+                               SourceLocation IDLoc,
                                FunctionDecl *Function, llvm::MutableArrayRef<Expr*> Arguments) {
   assert(!Function->isSubroutine());
 
-  CheckCallArguments(Function, Arguments, RParenLoc, IdRange);
+  CheckCallArguments(Function, Arguments, RParenLoc, IDLoc);
   return CallExpr::Create(C, Loc, Function, Arguments);
 }
 

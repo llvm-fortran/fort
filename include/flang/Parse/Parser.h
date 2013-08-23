@@ -251,6 +251,10 @@ private:
     return PrevTokLocEnd;
   }
 
+  /// getTokenRange - returns the range of the token at
+  /// the given location.
+  SourceRange getTokenRange(SourceLocation Loc) const;
+
   //===--------------------------------------------------------------------===//
   // Low-Level token peeking and consumption methods.
   //
@@ -395,6 +399,8 @@ private:
 
   StmtResult ReparseAmbiguousStatementSwitchToExecutablePart();
 
+  void RelexAmbiguousIdentifier(const fixedForm::KeywordMatcher &Matcher);
+
   // High-level parsing methods.
   bool ParseInclude();
   bool ParseProgramUnit();
@@ -536,8 +542,8 @@ private:
   ExprResult ParseExpression();
   ExprResult ParseFunctionCallArgumentList(SmallVectorImpl<Expr*> &Args,
                                            SourceLocation &RParenLoc);
-  ExprResult ParseRecursiveCallExpression(SourceRange IdRange);
-  ExprResult ParseCallExpression(SourceRange IdRange, FunctionDecl *Function);
+  ExprResult ParseRecursiveCallExpression(SourceLocation IDLoc);
+  ExprResult ParseCallExpression(SourceLocation IDLoc, FunctionDecl *Function);
   ExprResult ParseArrayConstructor();
 
   /// \brief Looks at the next token to see if it's an expression

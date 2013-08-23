@@ -37,9 +37,9 @@ Sema::Sema(ASTContext &ctxt, DiagnosticsEngine &D)
 
 Sema::~Sema() {}
 
-// FIXME
-SourceRange Sema::getIdentifierRange(SourceLocation Loc, const IdentifierInfo *IDInfo) {
-  return SourceRange(Loc, SourceLocation::getFromPointer(Loc.getPointer()+IDInfo->getLength()));
+// FIXME:
+SourceRange Sema::getTokenRange(SourceLocation Loc) {
+  return SourceRange(Loc, Loc);
 }
 
 // getContainingDC - Determines the context to return to after temporarily
@@ -332,15 +332,15 @@ void Sema::ActOnRESULT(ASTContext &C, SourceLocation IDLoc,
   if (IDInfo == Func->getIdentifier()) {
     Diags.Report(IDLoc, diag::err_same_result_name)
       << IDInfo
-      << getIdentifierRange(IDLoc, IDInfo)
-      << getIdentifierRange(Func->getLocation(), Func->getIdentifier());
+      << getTokenRange(IDLoc)
+      << getTokenRange(Func->getLocation());
     return;
   }
   if(Func->hasResult())
     CurContext->removeDecl(Func->getResult());
   if (auto Prev = LookupIdentifier(IDInfo)) {
     Diags.Report(IDLoc, diag::err_redefinition)
-      << IDInfo << getIdentifierRange(IDLoc, IDInfo);
+      << IDInfo << getTokenRange(IDLoc);
     Diags.Report(Prev->getLocation(), diag::note_previous_definition);
     return;
   }
@@ -442,7 +442,7 @@ void Sema::ActOnStatementFunctionBody(SourceLocation Loc, ExprResult Body) {
   auto Func = CurrentContextAsFunction();
   auto Type = Func->getType();
   Body = TypecheckAssignment(Type, Body, Loc,
-                             getIdentifierRange(Func->getLocation(), Func->getIdentifier()),
+                             getTokenRange(Func->getLocation()),
                              Body.get()->getSourceRange());
   CurrentContextAsFunction()->setBody(Body.get());
 }
@@ -742,7 +742,7 @@ StmtResult Sema::ActOnEND(ASTContext &C, SourceLocation Loc,
     if (SubprogramName != IDInfo) {
       Diags.Report(IDLoc, diag::err_expected_subprogram_name)
         << SubprogramName << SubprogramKind
-        << getIdentifierRange(IDLoc, IDInfo);
+        << getTokenRange(IDLoc);
     } else if(!SubprogramName) {
 
     }
@@ -858,7 +858,7 @@ StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
   if(VD) {
     Value = TypecheckAssignment(VD->getType(), Value,
                                 EqualLoc,
-                                getIdentifierRange(IDLoc, IDInfo),
+                                getTokenRange(IDLoc),
                                 Value.get()->getSourceRange());
     if(Value.isInvalid()) return StmtError();
     // FIXME: if value is invalid, mutate into parameter givin a zero value
@@ -975,7 +975,7 @@ bool Sema::CheckEquivalenceObject(SourceLocation Loc, Expr *E) {
         << E->getSourceRange();
       Diags.Report(VD->getLocation(), diag::note_previous_definition_kind)
           << VD->getIdentifier() << (VD->isArgument()? 0 : 1)
-          << getIdentifierRange(VD->getLocation(), VD->getIdentifier());
+          << getTokenRange(VD->getLocation());
       return true;
     }
     if(VD->isUnusedSymbol())

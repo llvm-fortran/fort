@@ -807,7 +807,7 @@ StmtResult Sema::ActOnReturnStmt(ASTContext &C, SourceLocation Loc, ExprResult E
 }
 
 StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
-                               SourceRange IdRange,
+                               SourceLocation IDLoc,
                                const IdentifierInfo *IDInfo,
                                llvm::MutableArrayRef<Expr*> Arguments, Expr *StmtLabel) {
   auto Prev = ResolveIdentifier(IDInfo);
@@ -815,28 +815,28 @@ StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation
   if(Prev) {
     if(isa<SelfDecl>(Prev) && isa<FunctionDecl>(CurContext)) {
       Function = cast<FunctionDecl>(CurContext);
-      if(!CheckRecursiveFunction(IdRange.Start))
+      if(!CheckRecursiveFunction(IDLoc))
         return StmtError();
     } else
       Function = dyn_cast<FunctionDecl>(Prev);
     if(!Function) {
       Diags.Report(Loc, diag::err_call_requires_subroutine)
         << /* intrinsicfunction|variable= */ (isa<IntrinsicFunctionDecl>(Prev)? 1: 0)
-        << IDInfo << IdRange;
+        << IDInfo << getTokenRange(IDLoc);
       return StmtError();
     } else if(Function->isNormalFunction() || Function->isStatementFunction()) {
       Diags.Report(Loc, diag::err_call_requires_subroutine)
-        << /* function= */ 2 << IDInfo << IdRange;
+        << /* function= */ 2 << IDInfo << getTokenRange(IDLoc);
       return StmtError();
     }
   } else {
     // an implicit function declaration.
     Function = FunctionDecl::Create(Context, FunctionDecl::External, CurContext,
-                                    DeclarationNameInfo(IDInfo, IdRange.Start), QualType());
+                                    DeclarationNameInfo(IDInfo, IDLoc), QualType());
     CurContext->addDecl(Function);
   }
 
-  CheckCallArguments(Function, Arguments, RParenLoc, IdRange);
+  CheckCallArguments(Function, Arguments, RParenLoc, IDLoc);
 
   auto Result = CallStmt::Create(C, Loc, Function, Arguments, StmtLabel);
   getCurrentBody()->Append(Result);

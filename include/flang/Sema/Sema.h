@@ -119,7 +119,7 @@ public:
     return CurExecutableStmts;
   }
 
-  SourceRange getIdentifierRange(SourceLocation Loc, const IdentifierInfo *IDInfo);
+  SourceRange getTokenRange(SourceLocation Loc);
 
   inline ExprResult ExprError() const { return ExprResult(true); }
   inline StmtResult StmtError() const { return StmtResult(true); }
@@ -436,7 +436,7 @@ public:
   StmtResult ActOnReturnStmt(ASTContext &C, SourceLocation Loc, ExprResult E, Expr *StmtLabel);
 
   StmtResult ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
-                           SourceRange IdRange,
+                           SourceLocation IDLoc,
                            const IdentifierInfo *IDInfo,
                            llvm::MutableArrayRef<Expr *> Arguments, Expr *StmtLabel);
 
@@ -482,7 +482,7 @@ public:
                                 Expr* Target, llvm::ArrayRef<Expr*> Subscripts);
 
   ExprResult ActOnCallExpr(ASTContext &C, SourceLocation Loc, SourceLocation RParenLoc,
-                           SourceRange IdRange,
+                           SourceLocation IDLoc,
                            FunctionDecl *Function, llvm::MutableArrayRef<Expr *> Arguments);
 
   ExprResult ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Loc,
@@ -724,7 +724,7 @@ public:
 
   /// Returns true if the call expression has the correct arguments.
   bool CheckCallArguments(FunctionDecl *Function, llvm::MutableArrayRef<Expr *> Arguments,
-                          SourceLocation Loc, SourceRange FuncNameRange);
+                          SourceLocation Loc, SourceLocation IDLoc);
 
   /// Returns an array that is passed to a function, with optional implcit operations.
   Expr *ActOnArrayArgument(VarDecl *Arg, Expr *E);

@@ -612,7 +612,6 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
 ExprResult Parser::ParseNameOrCall() {
   auto IDInfo = Tok.getIdentifierInfo();
   assert(IDInfo && "Token isn't an identifier");
-  auto IDEndLoc = getMaxLocationOfCurrentToken();
   auto IDLoc = ConsumeToken();
 
   if(DontResolveIdentifiers) {
@@ -645,7 +644,7 @@ ExprResult Parser::ParseNameOrCall() {
     if(IsPresent(tok::l_paren) &&
        VD->isFunctionResult() && isa<FunctionDecl>(Actions.CurContext)) {
       // FIXME: accessing function results from inner recursive functions
-      return ParseRecursiveCallExpression(SourceRange(IDLoc, IDEndLoc));
+      return ParseRecursiveCallExpression(IDLoc);
     }
     return VarExpr::Create(Context, IDLoc, VD);
   }
@@ -661,39 +660,39 @@ ExprResult Parser::ParseNameOrCall() {
     if(!IsPresent(tok::l_paren))
       return FunctionRefExpr::Create(Context, IDLoc, Func);
     if(!Func->isSubroutine()) {
-      return ParseCallExpression(SourceRange(IDLoc, IDEndLoc), Func);
+      return ParseCallExpression(IDLoc, Func);
     }
   } else if(isa<SelfDecl>(Declaration) && isa<FunctionDecl>(Actions.CurContext))
-    return ParseRecursiveCallExpression(SourceRange(IDLoc, IDEndLoc));
+    return ParseRecursiveCallExpression(IDLoc);
 
   Diag.Report(IDLoc, diag::err_expected_var);
   return ExprError();
 }
 
-ExprResult Parser::ParseRecursiveCallExpression(SourceRange IdRange) {
+ExprResult Parser::ParseRecursiveCallExpression(SourceLocation IDLoc) {
   auto Func = Actions.CurrentContextAsFunction();
   if(Func->isSubroutine()) {
-    Diag.Report(IdRange.Start, diag::err_invalid_subroutine_use)
-     << Func->getIdentifier() << IdRange;
+    Diag.Report(IDLoc, diag::err_invalid_subroutine_use)
+     << Func->getIdentifier() << getTokenRange(IDLoc);
     return ExprError();
   }
-  if(!Actions.CheckRecursiveFunction(IdRange.Start))
+  if(!Actions.CheckRecursiveFunction(IDLoc))
     return ExprError();
 
   if(!IsPresent(tok::l_paren))
-    return FunctionRefExpr::Create(Context, IdRange.Start, Func);
-  return ParseCallExpression(IdRange, Func);
+    return FunctionRefExpr::Create(Context, IDLoc, Func);
+  return ParseCallExpression(IDLoc, Func);
 }
 
 /// ParseCallExpression - Parse a call expression
-ExprResult Parser::ParseCallExpression(SourceRange IdRange, FunctionDecl *Function) {
+ExprResult Parser::ParseCallExpression(SourceLocation IDLoc, FunctionDecl *Function) {
   SmallVector<Expr*, 8> Arguments;
   auto Loc = Tok.getLocation();
   SourceLocation RParenLoc = Loc;
   auto Result = ParseFunctionCallArgumentList(Arguments, RParenLoc);
   if(Result.isInvalid())
     return ExprError();
-  return Actions.ActOnCallExpr(Context, Loc, RParenLoc, IdRange, Function, Arguments);
+  return Actions.ActOnCallExpr(Context, Loc, RParenLoc, IDLoc, Function, Arguments);
 }
 
 /// ParseFunctionCallArgumentList - Parses an argument list to a call expression.

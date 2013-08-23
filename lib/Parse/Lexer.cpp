@@ -14,6 +14,7 @@
 #include "flang/Parse/Lexer.h"
 #include "flang/Parse/LexDiagnostic.h"
 #include "flang/Parse/Parser.h"
+#include "flang/Parse/FixedForm.h"
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
@@ -36,6 +37,19 @@ Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine
     UseSpecificIdContext(false), TheParser(P) {
   InitCharacterInfo();
   StatementTokensOffset = -1;
+}
+
+Lexer::Lexer(const Lexer &TheLexer, SourceLocation StartingPoint)
+  : Text(TheLexer.Diags, TheLexer.Features), Diags(TheLexer.Diags),
+    SrcMgr(TheLexer.SrcMgr), Features(TheLexer.Features), TokStart(0),
+    LastTokenWasSemicolon(false), LastTokenWasStatementLabel(false),
+    UseSpecificIdContext(false), TheParser(TheLexer.TheParser) {
+  StatementTokensOffset = -1;
+
+  assert(StartingPoint.isValid());
+  assert(StartingPoint.getPointer() >= TheLexer.CurBuf->getBufferStart() &&
+         StartingPoint.getPointer() < TheLexer.CurBuf->getBufferEnd());
+  setBuffer(TheLexer.CurBuf, StartingPoint.getPointer());
 }
 
 void Lexer::setBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr) {
@@ -987,6 +1001,60 @@ void Lexer::LexFixedFormIdentifier(Token &Result) {
     Result.setFlag(Token::NeedsCleaning);
 }
 
+void Lexer::LexFixedFormIdentifier(const fixedForm::KeywordMatcher &Matcher,
+                                   Token &First, Token &Second) {
+  LineOfText::State LastMatchedIdState;
+  bool MatchedId = false;
+  bool NeedsCleaning = false;
+
+  llvm::SmallVector<char, 64> Token;
+  while(!Text.empty() && !Text.AtEndOfLine()) {
+    auto C = getCurrentChar();
+    if(!isIdentifierBody(C)) {
+      if(isHorizontalWhitespace(C))
+        NeedsCleaning = true;
+      else break;
+    } else Token.push_back(C);
+
+    getNextChar();
+    if(Matcher.Matches(StringRef(Token.data(),
+                                 Token.size()))) {
+      LastMatchedIdState = Text.GetState();
+      MatchedId = true;
+    }
+  }
+
+  if(!MatchedId) {
+    FormTokenWithChars(First, tok::identifier);
+    if(NeedsCleaning)
+      First.setFlag(Token::NeedsCleaning);
+    Second.setKind(tok::unknown);
+    return;
+  }
+
+  Text.SetState(LastMatchedIdState);
+  FormTokenWithChars(First, tok::identifier);
+  if(NeedsCleaning)
+    First.setFlag(Token::NeedsCleaning);
+
+  NeedsCleaning = false;
+  TokStart = getCurrentPtr();
+  while(!Text.empty() && !Text.AtEndOfLine()) {
+    auto C = getCurrentChar();
+    if(!isIdentifierBody(C)) {
+      if(isHorizontalWhitespace(C))
+        NeedsCleaning = true;
+      else break;
+    }
+
+    getNextChar();
+  }
+
+  FormTokenWithChars(Second, tok::identifier);
+  if(NeedsCleaning)
+    Second.setFlag(Token::NeedsCleaning);
+}
+
 /// LexFormatDescriptor - Lex the remainder of a format descriptor.
 void Lexer::LexFORMATDescriptor(Token &Result) {
   // Match [_A-Za-z0-9]*, we have already matched [A-Za-z$]
@@ -1542,6 +1610,22 @@ LexIdentifier:
   // Update the location of token as well as LexPtr.
   Char = getNextChar();
   FormTokenWithChars(Result, Kind);
+}
+
+void Lexer::LexFixedFormSplitIdentifier(const fixedForm::KeywordMatcher &Matcher,
+                                        Token &First, Token &Second) {
+  First.startToken();
+  Second.startToken();
+
+  // Check to see if there is still more of the line to lex.
+  if (Text.empty() || Text.AtEndOfLine()) {
+    Text.Reset();
+    Text.GetNextLine();
+  }
+
+  TokStart = getCurrentPtr();
+
+  LexFixedFormIdentifier(Matcher, First, Second);
 }
 
 void Lexer::LexFORMATToken(Token &Result) {

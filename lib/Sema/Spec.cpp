@@ -79,22 +79,22 @@ VarDecl *Sema::GetVariableForSpecification(SourceLocation StmtLoc,
                                            const IdentifierInfo *IDInfo,
                                            SourceLocation IDLoc,
                                            bool CanBeArgument) {
-  auto IdRange = getIdentifierRange(IDLoc, IDInfo);
   auto Declaration = LookupIdentifier(IDInfo);
   if(Declaration) {
     auto VD = dyn_cast<VarDecl>(Declaration);
     if(VD && !(VD->isParameter() || (!CanBeArgument && VD->isArgument())))
       return VD;
     Diags.Report(StmtLoc, CanBeArgument? diag::err_spec_requires_local_var_arg : diag::err_spec_requires_local_var)
-      << IDInfo << IdRange;
+      << IDInfo << getTokenRange(IDLoc);
     if(VD) {
       Diags.Report(Declaration->getLocation(), diag::note_previous_definition_kind)
-          << IDInfo << (VD->isArgument()? 0 : 1) << getIdentifierRange(Declaration->getLocation(), VD->getIdentifier());
+          << IDInfo << (VD->isArgument()? 0 : 1)
+          << getTokenRange(Declaration->getLocation());
     } else
       Diags.Report(Declaration->getLocation(), diag::note_previous_definition);
   } else {
     Diags.Report(IDLoc, diag::err_undeclared_var_use)
-     << IDInfo << IdRange;
+     << IDInfo << getTokenRange(IDLoc);
   }
 
   return nullptr;
@@ -108,7 +108,7 @@ bool Sema::ApplySpecification(SourceLocation StmtLoc, const DimensionStmt *S) {
   if(isa<ArrayType>(VD->getType())) {
     Diags.Report(StmtLoc,
                  diag::err_spec_dimension_already_array)
-      << S->getVariableName() << getIdentifierRange(S->getLocation(), S->getVariableName());
+      << S->getVariableName() << getTokenRange(S->getLocation());
     return true;
   }
   else {
@@ -150,7 +150,7 @@ bool Sema::ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S, VarDecl
     if(Quals.hasAttributeSpec(Qualifiers::AS_save)) {
       if(S->getIdentifier()) {
         Diags.Report(StmtLoc, diag::err_spec_qual_reapplication)
-          << "save" << VD->getIdentifier() << getIdentifierRange(S->getLocation(), S->getIdentifier());
+          << "save" << VD->getIdentifier() << getTokenRange(S->getLocation());
       } else {
         Diags.Report(StmtLoc, diag::err_spec_qual_reapplication)
           << "save" << VD->getIdentifier();

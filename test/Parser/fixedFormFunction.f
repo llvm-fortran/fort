@@ -6,9 +6,11 @@
         RETURN
       END
 
-* FIXME!!!
-*     LOGICAL(2)FUNCTIONBAR()
-* C FIXME HECK: bar = logical(.true.,Kind=2)
-*       BAR = .true.
-*       RETURN
-*     END
+      IN T EGE R(Kind=8) F U N CTIONB A R 2()
+      END
+
+      LOGICAL(2)FUNCTIONBAR()
+C CHECK: bar = logical(true,Kind=2)
+        BAR = .true.
+        RETURN
+      END
