@@ -907,6 +907,9 @@ public:
   Expr *getInitialParameter() const { return Init; }
   Expr *getTerminalParameter() const { return Terminate; }
   Expr *getIncrementationParameter() const { return Increment; }
+  bool hasIncrementationParameter() const {
+    return Increment != nullptr;
+  }
 
   SourceLocation getLocEnd() const;
 

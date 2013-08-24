@@ -109,6 +109,7 @@ public:
   void VisitVarExpr(VarExpr *E);
   void VisitArrayElementExpr(ArrayElementExpr *E);
   void VisitSubstringExpr(SubstringExpr *E);
+  void VisitImpliedDoExpr(ImpliedDoExpr *E);
 
   void EmitAssignment(Expr *LHS);
 
@@ -209,6 +210,18 @@ void DataValueAssigner::VisitArrayElementExpr(ArrayElementExpr *E) {
 
 void DataValueAssigner::VisitSubstringExpr(SubstringExpr *E) {
   EmitAssignment(E);
+}
+
+void DataValueAssigner::VisitImpliedDoExpr(ImpliedDoExpr *E) {
+  auto Start = Sema.EvalAndCheckIntExpr(E->getInitialParameter(), 1);
+  auto End = Sema.EvalAndCheckIntExpr(E->getTerminalParameter(), 1);
+  int64_t Inc = 1;
+  if(E->hasIncrementationParameter())
+    Inc = Sema.EvalAndCheckIntExpr(E->getIncrementationParameter(), 1);
+  for(; Start <= End; Start+=Inc) {
+    for(auto I : E->getBody())
+      Visit(I);
+  }
 }
 
 /// FIXME add checking for implied do
