@@ -96,6 +96,18 @@ bool Sema::CheckConstantExpression(const Expr *E) {
   return true;
 }
 
+bool Sema::CheckIntegerOrRealConstantExpression(const Expr *E) {
+  auto T = E->getType();
+  if(!(T->isIntegerType() || T->isRealType()) ||
+     !E->isEvaluatable(Context)) {
+    Diags.Report(E->getLocation(),
+                 diag::err_expected_integer_or_real_constant_expr)
+      << E->getSourceRange();
+    return false;
+  }
+  return false;
+}
+
 class ArgumentDependentExprChecker : public ExprVisitor<ArgumentDependentExprChecker> {
 public:
   ASTContext &Context;

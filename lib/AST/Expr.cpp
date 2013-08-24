@@ -75,17 +75,15 @@ RealConstantExpr *RealConstantExpr::Create(ASTContext &C, SourceLocation Loc,
 }
 
 ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, SourceLocation Loc, SourceLocation MaxLoc,
-                                         const APFloat &Re, const APFloat &Im, QualType Type)
-  : ConstantExpr(ComplexConstantExprClass, Type, Loc, MaxLoc) {
-  this->Re.setValue(C, Re);
-  this->Im.setValue(C, Im);
-}
+                                         Expr *Real, Expr *Imaginary, QualType Type)
+  : ConstantExpr(ComplexConstantExprClass, Type, Loc, MaxLoc),
+    Re(Real), Im(Imaginary) { }
 
 ComplexConstantExpr *ComplexConstantExpr::Create(ASTContext &C, SourceLocation Loc,
                                                  SourceLocation MaxLoc,
-                                                 const APFloat &Re, const APFloat &Im,
+                                                 Expr *Real, Expr *Imaginary,
                                                  QualType Type) {
-  return new (C) ComplexConstantExpr(C, Loc, MaxLoc, Re, Im, Type);
+  return new (C) ComplexConstantExpr(C, Loc, MaxLoc, Real, Imaginary, Type);
 }
 
 CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, SourceLocation Loc,

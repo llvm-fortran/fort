@@ -674,13 +674,11 @@ void ASTDumper::VisitRealConstantExpr(const RealConstantExpr *E)  {
 }
 
 void ASTDumper::VisitComplexConstantExpr(const ComplexConstantExpr *E)  {
-  llvm::SmallVector<char,32> ReStr;
-  E->getRealValue().toString(ReStr);
-  ReStr.push_back('\0');
-  llvm::SmallVector<char,32> ImStr;
-  E->getImaginaryValue().toString(ImStr);
-  ImStr.push_back('\0');
-  OS << '(' << ReStr.begin() << ',' << ImStr.begin() << ')';
+  OS << '(';
+  dumpExpr(E->getRealPart());
+  OS << ',';
+  dumpExpr(E->getImPart());
+  OS << ')';
 }
 
 void ASTDumper::VisitCharacterConstantExpr(const CharacterConstantExpr *E)  {

@@ -57,8 +57,8 @@ ComplexValueTy ComplexExprEmitter::EmitExpr(const Expr *E) {
 }
 
 ComplexValueTy ComplexExprEmitter::VisitComplexConstantExpr(const ComplexConstantExpr *E) {
-  return ComplexValueTy(llvm::ConstantFP::get(VMContext, E->getRealValue()),
-                        llvm::ConstantFP::get(VMContext, E->getImaginaryValue()));
+  return ComplexValueTy(CGF.EmitScalarExpr(E->getRealPart()),
+                        CGF.EmitScalarExpr(E->getImPart()));
 }
 
 ComplexValueTy CodeGenFunction::EmitComplexLoad(llvm::Value *Ptr, bool IsVolatile) {

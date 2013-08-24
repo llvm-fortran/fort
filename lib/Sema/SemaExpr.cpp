@@ -54,31 +54,6 @@ static bool IsTypeDoublePrecisionComplex(QualType T) {
            Ext && Ext->getKindSelector() == BuiltinType::Real8? true : false;
 }
 
-static llvm::APFloat GetRealConstant(ASTContext &C, DiagnosticsEngine &Diags,
-                                     Expr *E, const llvm::fltSemantics &FPType) {
-  if(auto Real = dyn_cast<RealConstantExpr>(E)) {
-    bool IsExact;
-    auto Value = Real->getValue();
-    Value.convert(FPType,
-                  llvm::APFloat::rmNearestTiesToEven,
-                  &IsExact);
-    return Value;
-  } else if(auto Int = dyn_cast<IntegerConstantExpr>(E)) {
-    llvm::APFloat result(FPType);
-    result.convertFromAPInt(Int->getValue(), true, llvm::APFloat::rmNearestTiesToEven);
-    return result;
-  } else if(auto Unary = dyn_cast<UnaryExpr>(E)) {
-    auto Value = GetRealConstant(C, Diags, Unary->getExpression(),FPType);
-    if(Unary->getOperator() == UnaryExpr::Minus)
-      Value.changeSign();
-    return Value;
-  } else {
-    Diags.Report(E->getLocation(), diag::err_expected_integer_or_real_constant_expr)
-     << E->getSourceRange();
-    return llvm::APFloat(FPType,"0");
-  }
-}
-
 /// Returns true if two arithmetic type qualifiers have the same kind
 static bool ExtQualsSameKind(const ASTContext &C,
                              const ExtQuals *A, const ExtQuals *B,
@@ -275,27 +250,37 @@ ExprResult Sema::TypecheckAssignment(QualType LHSType, ExprResult RHS,
 ExprResult Sema::ActOnComplexConstantExpr(ASTContext &C, SourceLocation Loc,
                                           SourceLocation MaxLoc,
                                           ExprResult RealPart, ExprResult ImPart) {
-  QualType T1 = RealPart.get()->getType();
-  QualType T2 = ImPart.get()->getType();
-  QualType ElementType = T1;
+  QualType RealType = RealPart.get()->getType();
+  QualType ImType = ImPart.get()->getType();
+  QualType ElementType;
 
-  if(T1->isRealType() || T2->isRealType()) {
-    if(T1->isRealType() && T2->isRealType()) {
-      auto ReKind = llvm::APFloat::semanticsPrecision(C.getFPTypeSemantics(T1));
-      auto ImKind = llvm::APFloat::semanticsPrecision(C.getFPTypeSemantics(T2));
-      if(ReKind < ImKind)
-        ElementType = T2;
-    }
-    else if(T2->isRealType()) ElementType = T2;
-  } else ElementType = C.RealTy;
+  CheckIntegerOrRealConstantExpression(RealPart.get());
+  CheckIntegerOrRealConstantExpression(ImPart.get());
 
-  const llvm::fltSemantics& ElementSemantics = C.getFPTypeSemantics(ElementType);
-
-  APFloat Re = GetRealConstant(C, Diags, RealPart.take(), ElementSemantics),
-          Im = GetRealConstant(C, Diags, ImPart.take(), ElementSemantics);
+  if(RealType->isRealType() && ImType->isRealType()) {
+    auto ReWidth = C.getTypeKindBitWidth(C.getRealTypeKind(RealType.getExtQualsPtrOrNull()));
+    auto ImWidth = C.getTypeKindBitWidth(C.getRealTypeKind(ImType.getExtQualsPtrOrNull()));
+    if(ReWidth > ImWidth) {
+      ElementType = RealType;
+      ImPart = ImplicitCast(C, ElementType, ImPart);
+    } else if(ImWidth > ReWidth) {
+      ElementType = ImType;
+      RealPart = ImplicitCast(C, ElementType, RealPart);
+    } else ElementType = RealType;
+  } else if(RealType->isRealType()) {
+    ElementType = RealType;
+    ImPart = ImplicitCast(C, ElementType, ImPart);
+  } else if(ImType->isRealType()){
+    ElementType = ImType;
+    RealPart = ImplicitCast(C, ElementType, RealPart);
+  } else {
+    ElementType = C.RealTy;
+    RealPart = ImplicitCast(C, ElementType, RealPart);
+    ImPart = ImplicitCast(C, ElementType, ImPart);
+  }
 
   return ComplexConstantExpr::Create(C, Loc,
-                                     MaxLoc, Re, Im,
+                                     MaxLoc, RealPart.get(), ImPart.get(),
                                      C.getComplexType(ElementType));
 }
 

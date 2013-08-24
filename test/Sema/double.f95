@@ -19,10 +19,10 @@ PROGRAM doubletest
   dbl = r ! CHECK: dbl = real(r,Kind=8)
   dc = c  ! CHECK: dc = cmplx(c,Kind=8)
 
-  dc = (1,2) ! CHECK: dc = cmplx((1,2),Kind=8)
+  dc = (1,2) ! CHECK: dc = cmplx((real(1),real(2)),Kind=8)
   ! create a double precision complex when a part has double precision
-  dc = (1D1,2) ! CHECK: dc = (10,2)
-  dc = (0,20D-1) ! CHECK: dc = (0,2)
+  dc = (1D1,2) ! CHECK: dc = (10,real(2,Kind=8))
+  dc = (0,20D-1) ! CHECK: dc = (real(0,Kind=8),2)
   dc = (1d1, 25d-1) ! CHECK: dc = (10,2.5)
 
   dc = c + dc + r ! CHECK: dc = ((cmplx(c,Kind=8)+dc)+cmplx(r,Kind=8))

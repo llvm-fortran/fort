@@ -31,7 +31,7 @@ PROGRAM intrinfuntest
 
   i = INT(2.0) ! CHECK: i = int(2)
   i = int(2.0D1) ! CHECK: i = int(20)
-  i = INT((1,2)) ! CHECK: i = int((1,2))
+  i = INT((1,2)) ! CHECK: i = int((real(1),real(2)))
   i = ifix(1.0) ! CHECK: i = ifix(1)
   i = IDINT(4.25D1) ! CHECK: i = idint(42.5)
   r = INT(22) ! CHECK: r = real(int(22))

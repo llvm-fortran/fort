@@ -237,17 +237,17 @@ public:
 
 class ComplexConstantExpr : public ConstantExpr {
 private:
-  APFloatStorage Re, Im;
+  Expr *Re, *Im;
   ComplexConstantExpr(ASTContext &C, SourceLocation Loc, SourceLocation MaxLoc,
-                      const APFloat &Re, const APFloat &Im, QualType Type);
+                      Expr *Real, Expr *Imaginary, QualType Type);
 public:
   static ComplexConstantExpr *Create(ASTContext &C, SourceLocation Loc,
                                      SourceLocation MaxLoc,
-                                     const APFloat &Re, const APFloat &Im,
+                                     Expr *Real, Expr *Imaginary,
                                      QualType Type);
 
-  APFloat getRealValue() const { return Re.getValue(); }
-  APFloat getImaginaryValue() const { return Im.getValue(); }
+  const Expr *getRealPart() const { return Re; }
+  const Expr *getImPart() const { return Im; }
 
   static bool classof(const Expr *E) {
     return E->getExprClass() == Expr::ComplexConstantExprClass;
