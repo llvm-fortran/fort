@@ -20,7 +20,7 @@
 #ifndef KEYWORD
 #define KEYWORD(X,Y) TOK(kw_ ## X)
 #endif
-#ifndef FORMAT_SPEC(X, Y)
+#ifndef FORMAT_SPEC
 #define FORMAT_SPEC(X, Y) TOK(fs_ ## X)
 #endif
 

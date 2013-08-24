@@ -467,7 +467,7 @@ class ArrayType;
 ///
 /// Types are immutable once created.
 class Type : public ExtQualsTypeCommonBase {
-protected:
+public:
   /// TypeClass - The intrinsic Fortran type specifications. REAL is the default
   /// if "IMPLICIT NONE" isn't specified.
   enum TypeClass {
