@@ -410,6 +410,41 @@ bool Sema::CheckIntrinsicArrayFunc(intrinsic::FunctionKind Function,
   return false;
 }
 
+bool Sema::CheckIntrinsicNumericInquiryFunc(intrinsic::FunctionKind Function,
+                                            ArrayRef<Expr*> Args,
+                                            QualType &ReturnType) {
+  auto Arg = Args[0];
+  ReturnType = Context.IntegerTy;
+
+  switch(Function) {
+  case RADIX:
+  case DIGITS:
+    CheckIntegerOrRealArgument(Arg);
+    break;
+  case MINEXPONENT:
+  case MAXEXPONENT:
+    CheckRealArgument(Arg);
+    break;
+  case PRECISION:
+    CheckRealOrComplexArgument(Arg);
+    break;
+  case RANGE:
+    CheckIntegerOrRealOrComplexArgument(Arg);
+    break;
+  case intrinsic::HUGE:
+  case TINY:
+    if(!CheckIntegerOrRealArgument(Arg))
+      ReturnType = Arg->getType();
+    break;
+  case EPSILON:
+    if(!CheckRealArgument(Arg))
+      ReturnType = Arg->getType();
+    break;
+  }
+
+  return false;
+}
+
 bool Sema::CheckIntrinsicSystemFunc(intrinsic::FunctionKind Function,
                                     ArrayRef<Expr*> Args,
                                     QualType &ReturnType) {

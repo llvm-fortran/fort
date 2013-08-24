@@ -667,6 +667,12 @@ public:
                                ArrayRef<Expr*> Args,
                                QualType &ReturnType);
 
+  /// Returns false if the call to a function from the numeric inquiry group
+  /// is valid.
+  bool CheckIntrinsicNumericInquiryFunc(intrinsic::FunctionKind Function,
+                                        ArrayRef<Expr*> Args,
+                                        QualType &ReturnType);
+
   /// Returns false if the call to a function from the system group
   /// is valid.
   bool CheckIntrinsicSystemFunc(intrinsic::FunctionKind Function,
