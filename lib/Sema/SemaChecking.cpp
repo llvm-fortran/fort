@@ -440,6 +440,19 @@ bool Sema::CheckStrictlyRealArgument(const Expr *E) {
   return false;
 }
 
+bool Sema::CheckStrictlyRealArrayArgument(const Expr *E, StringRef ArgName) {
+  auto T = E->getType()->asArrayType();
+  if(T) {
+    if(IsTypeSinglePrecisionReal(T->getElementType()))
+      return false;
+  }
+
+  Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible_named_arg)
+    << E->getType() << ArgName << "'real array'"
+    << E->getSourceRange();
+  return true;
+}
+
 bool Sema::CheckDoublePrecisionRealArgument(const Expr *E) {
   if(!IsTypeDoublePrecisionReal(E->getType())) {
     Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
@@ -667,6 +680,40 @@ bool Sema::CheckArrayDimensionsCompability(const ArrayType *LHS,
 
   Handler Reporter(Diags);
   return CheckArrayCompability(*this, Reporter, LHS, RHS, Loc, LHSRange, RHSRange);
+}
+
+bool Sema::CheckArrayArgumentDimensionCompability(const Expr *E, const ArrayType *AT,
+                                                  StringRef ArgName) {
+  auto AT1 = E->getType()->asArrayType();
+
+  struct Handler {
+    DiagnosticsEngine &Diags;
+    StringRef ArgName;
+
+    Handler(DiagnosticsEngine &D,
+            StringRef Name1)
+      : Diags(D), ArgName(Name1) {}
+
+    void DimensionCountMismatch(SourceLocation Loc, int LHSDims,
+                                int RHSDims, SourceRange LHSRange,
+                                SourceRange RHSRange) {
+      Diags.Report(Loc, diag::err_typecheck_arg_conflict_array_dim_count)
+        << LHSDims << RHSDims
+        << ArgName << LHSRange;
+    }
+
+    void DimensionSizeMismatch(SourceLocation Loc, int64_t LHSSize,
+                               int Dim, int64_t RHSSize, SourceRange LHSRange,
+                               SourceRange RHSRange) {
+      Diags.Report(Loc, diag::err_typecheck_arg_conflict_array_dim_size)
+       << Dim << int(LHSSize)  << int(RHSSize)
+       << ArgName << LHSRange;
+    }
+  };
+
+  Handler Reporter(Diags, ArgName);
+  return CheckArrayCompability(*this, Reporter, AT1, AT, E->getLocation(),
+                               E->getSourceRange(), SourceRange());
 }
 
 bool Sema::CheckArrayArgumentsDimensionCompability(const Expr *E1, const Expr *E2,

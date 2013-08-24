@@ -941,14 +941,20 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
     return StmtError();
   }
 
+  QualType Type = C.IntegerTy;
   if (auto Prev = LookupIdentifier(IDInfo)) {
-    Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
-    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
-    return StmtError();
+    auto VD = dyn_cast<VarDecl>(Prev);
+    if(VD && VD->isUnusedSymbol()) {
+      Type = VD->getType();
+    } else {
+      Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
+      Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+      return StmtError();
+    }
   }
 
   auto Decl = IntrinsicFunctionDecl::Create(C, CurContext, IDLoc, IDInfo,
-                                            C.IntegerTy, FuncResult.Function);
+                                            Type, FuncResult.Function);
   CurContext->addDecl(Decl);
 
   auto Result = IntrinsicStmt::Create(C, IDLoc, IDInfo, StmtLabel);

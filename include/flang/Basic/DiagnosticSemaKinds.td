@@ -93,6 +93,12 @@ def err_typecheck_expected_array_of_dim_count : Error<
 def err_typecheck_array_dim_shape_mismatch : Error<
   "conflicting size for dimension %0 in an array expression (%1 and %2)">;
 
+def err_typecheck_arg_conflict_array_dim_count : Error<
+  "passing array with %1 %plural{1:dimension|:dimensions}1 to argument '%2'"
+  "of incompatible shape with %0 %plural{1:dimension|:dimensions}0">;
+def err_typecheck_arg_conflict_array_dim_size: Error<
+  "passing array with dimension %0 of size %1 to argument '%3' of incompatible size %2">;
+
 def err_typecheck_args_conflict_array_dim_count : Error<
   "conflicting shapes in arguments '%2' and '%3' (%0 %plural{1:dimension|:dimensions}0"
   " and %1 %plural{1:dimension|:dimensions}1)">;

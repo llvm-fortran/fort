@@ -667,6 +667,13 @@ public:
                                ArrayRef<Expr*> Args,
                                QualType &ReturnType);
 
+  /// Returns false if the call to a function from the system group
+  /// is valid.
+  bool CheckIntrinsicSystemFunc(intrinsic::FunctionKind Function,
+                                ArrayRef<Expr*> Args,
+                                QualType &ReturnType);
+
+
   /// Returns false if the argument's type is integer.
   bool CheckIntegerArgument(const Expr *E);
 
@@ -678,6 +685,9 @@ public:
 
   /// Returns false if the argument's type is real but isn't double precision.
   bool CheckStrictlyRealArgument(const Expr *E);
+
+  /// Returns false if the argument's type is real array.
+  bool CheckStrictlyRealArrayArgument(const Expr *E, StringRef ArgName);
 
   /// Returns false if the argument's type is real and is double precision.
   bool CheckDoublePrecisionRealArgument(const Expr *E);
@@ -711,6 +721,10 @@ public:
   /// Returns false if the argument is an integer or a logical array.
   bool CheckIntegerArgumentOrLogicalArrayArgument(const Expr *E, StringRef ArgName1,
                                                   StringRef ArgName2);
+
+  /// Returns false if the array argument is compatible with a given array type.
+  bool CheckArrayArgumentDimensionCompability(const Expr *E, const ArrayType *AT,
+                                              StringRef ArgName);
 
   /// Returns false if the two array arguments are compatible with each other
   bool CheckArrayArgumentsDimensionCompability(const Expr *E1, const Expr *E2,

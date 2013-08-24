@@ -410,4 +410,22 @@ bool Sema::CheckIntrinsicArrayFunc(intrinsic::FunctionKind Function,
   return false;
 }
 
+bool Sema::CheckIntrinsicSystemFunc(intrinsic::FunctionKind Function,
+                                    ArrayRef<Expr*> Args,
+                                    QualType &ReturnType) {
+  auto FirstArg = Args[0];
+
+  switch(Function) {
+  case ETIME:
+    if(!CheckStrictlyRealArrayArgument(FirstArg, "tarray"))
+      CheckArrayArgumentDimensionCompability(FirstArg,
+                                             GetSingleDimArrayType(Context.RealTy, 2)->asArrayType(),
+                                             "tarray");
+    ReturnType = Context.RealTy;
+    break;
+  }
+
+  return false;
+}
+
 } // end namespace flang
