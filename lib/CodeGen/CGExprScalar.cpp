@@ -310,7 +310,7 @@ llvm::Value *CodeGenFunction::EmitScalarToScalarConversion(llvm::Value *Value,
 
   if(ValueType->isIntegerTy()) {
     if(Target->isIntegerType()) {
-      return Value; // FIXME: Kinds
+      return Builder.CreateSExtOrTrunc(Value, ConvertType(Target));
     } else {
       assert(Target->isRealType());
       return Builder.CreateSIToFP(Value, ConvertType(Target));

@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <limits>
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
 #include "flang/AST/ASTContext.h"
@@ -91,6 +92,10 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
     else
       return EmitIntrinsicCallCharacter(Func, EmitCharacterExpr(Args[0]),
                                         EmitCharacterExpr(Args[1]));
+
+  case GROUP_NUMERIC_INQUIRY:
+    return EmitIntrinsicNumericInquiry(Func, Args[0], E->getType());
+
   default:
     llvm_unreachable("invalid intrinsic");
     break;
@@ -320,6 +325,121 @@ RValueTy CodeGenFunction::EmitIntrinsicCallComplexMath(intrinsic::FunctionKind F
   if(Func == intrinsic::ABS)
     return Result;
   return ExtractComplexValue(Result);
+}
+
+llvm::Value *CodeGenFunction::EmitIntrinsicNumericInquiry(intrinsic::FunctionKind Func,
+                                                          const Expr *E, QualType Result) {
+  using namespace intrinsic;
+  using namespace std;
+
+  auto RetT = ConvertType(Result);
+  auto T = E->getType();
+  auto TKind = getContext().getArithmeticTypeKind(T.getExtQualsPtrOrNull(), T);
+  int IntResult;
+
+#define HANDLE_INT(Result, func) \
+    switch(TKind) {  \
+    case BuiltinType::Int1: \
+      Result = numeric_limits<int8_t>::func; break; \
+    case BuiltinType::Int2: \
+      Result = numeric_limits<int16_t>::func; break; \
+    case BuiltinType::Int4: \
+      Result = numeric_limits<int32_t>::func; break; \
+    case BuiltinType::Int8: \
+      Result = numeric_limits<int64_t>::func; break; \
+    default: \
+      llvm_unreachable("invalid type kind"); \
+      break; \
+    }
+
+#define HANDLE_REAL(Result, func) \
+    switch(TKind) {  \
+    case BuiltinType::Real4: \
+      Result = numeric_limits<float>::func; break; \
+    case BuiltinType::Real8: \
+      Result = numeric_limits<double>::func; break; \
+    default: \
+      llvm_unreachable("invalid type kind"); \
+      break; \
+    }
+
+  // FIXME: the float numeric limit is being implicitly converted into a double here..
+#define HANDLE_REAL_RET_REAL(func) \
+    switch(TKind) {  \
+    case BuiltinType::Real4: \
+      return llvm::ConstantFP::get(RetT, numeric_limits<float>::func()); \
+      break; \
+    case BuiltinType::Real8: \
+      return llvm::ConstantFP::get(RetT, numeric_limits<double>::func()); \
+      break; \
+    default: \
+      llvm_unreachable("invalid type kind"); \
+      break; \
+    }
+
+  if(T->isIntegerType()) {
+    switch(Func) {
+    case RADIX:
+      HANDLE_INT(IntResult, radix);
+      break;
+    case DIGITS:
+      HANDLE_INT(IntResult, digits);
+      break;
+    case RANGE:
+      HANDLE_INT(IntResult, digits10);
+      break;
+    case HUGE: {
+      int64_t i64;
+      HANDLE_INT(i64, max());
+      return llvm::ConstantInt::get(RetT, i64, true);
+      break;
+    }
+    case TINY: {
+      int64_t i64;
+      HANDLE_INT(i64, min());
+      return llvm::ConstantInt::get(RetT, i64, true);
+      break;
+    }
+    default:
+      llvm_unreachable("Invalid integer inquiry intrinsic");
+    }
+  } else {
+    switch(Func) {
+    case RADIX:
+      HANDLE_REAL(IntResult, radix);
+      break;
+    case DIGITS:
+      HANDLE_REAL(IntResult, digits);
+      break;
+    case MINEXPONENT:
+      HANDLE_REAL(IntResult, min_exponent);
+      break;
+    case MAXEXPONENT:
+      HANDLE_REAL(IntResult, max_exponent);
+      break;
+    case PRECISION:
+      HANDLE_REAL(IntResult, digits10);
+      break;
+    case RANGE:
+      HANDLE_REAL(IntResult, min_exponent10);
+      IntResult = abs(IntResult);
+      break;
+    case HUGE:
+      HANDLE_REAL_RET_REAL(max);
+      break;
+    case TINY:
+      HANDLE_REAL_RET_REAL(min);
+      break;
+    case EPSILON:
+      HANDLE_REAL_RET_REAL(epsilon);
+      break;
+    }
+  }
+
+#undef HANDLE_INT
+#undef HANDLE_REAL
+
+  return llvm::ConstantInt::get(RetT, IntResult, true);
 }
 
 }

@@ -309,6 +309,9 @@ public:
   RValueTy EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
                                         ComplexValueTy Value);
 
+  llvm::Value *EmitIntrinsicNumericInquiry(intrinsic::FunctionKind Func,
+                                           const Expr *E, QualType Result);
+
 
   // calls
   RValueTy EmitCall(const CallExpr *E);
