@@ -66,6 +66,12 @@ PROGRAM selecttest
   END SELECT
 
   SELECT CASE(.true.)
+  CASE (.true.:.false.) ! expected-error {{use of logical range in a case statement}}
+    I = 0
+  CASE (.true.:) ! expected-error {{use of logical range in a case statement}}
+  END SELECT
+
+  SELECT CASE(.true.)
   CASE ((1.0,2.0)) ! expected-error {{expected an expression of logical type ('complex' invalid)}}
   END SELECT
 

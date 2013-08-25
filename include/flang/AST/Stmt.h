@@ -984,6 +984,9 @@ public:
   CaseStmt *getNextCase() const {
     return Next;
   }
+  bool isLastCase() const {
+    return Next == nullptr;
+  }
   void setNextCase(CaseStmt *S);
   ArrayRef<Expr*> getValues() const {
     return getArguments();

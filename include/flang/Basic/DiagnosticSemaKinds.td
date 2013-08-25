@@ -108,7 +108,6 @@ def err_typecheck_args_conflict_array_dim_size: Error<
 def err_typecheck_use_of_implied_shape_array : Error<
   "use of an array expression with an implied dimension specification">;
 
-
 def err_var_not_assignable : Error<
   "assignment to a do variable %0">;
 def note_var_prev_do_use : Note<
@@ -177,6 +176,9 @@ def err_invalid_stmt_in_where : Error<
   "expected an assignment statement">;
 def err_invalid_stmt_in_where_construct : Error<
   "expected an assignment statement in a where construct">;
+def err_use_of_logical_range : Error<
+  "use of logical range in a case statement">;
+
 
 def err_use_implicit_none_stmt : Error<
   "use of 'IMPLICIT NONE' after 'IMPLICIT'">;

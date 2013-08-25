@@ -698,6 +698,11 @@ StmtResult Sema::ActOnCaseStmt(ASTContext &C, SourceLocation Loc,
     auto ExpectedType = SelectConstruct->getOperand()->getType();
     for(auto &I : Values) {
       if(auto Range = dyn_cast<RangeExpr>(I)) {
+        if(ExpectedType->isLogicalType()) {
+          Diags.Report(Range->getLocation(), diag::err_use_of_logical_range)
+            << Range->getSourceRange();
+          continue;
+        }
         if(Range->hasFirstExpr()) {
           if(CheckConstantExpression(Range->getFirstExpr()))
             Range->setFirstExpr(TypecheckExprIntegerOrLogicalOrSameCharacter(

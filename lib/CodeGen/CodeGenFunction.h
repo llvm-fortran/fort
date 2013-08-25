@@ -225,6 +225,7 @@ public:
   void EmitDoWhileStmt(const DoWhileStmt *S);
   void EmitCycleStmt(const CycleStmt *S);
   void EmitExitStmt(const ExitStmt *S);
+  void EmitSelectCaseStmt(const SelectCaseStmt *S);
   void EmitStopStmt(const StopStmt *S);
   void EmitReturnStmt(const ReturnStmt *S);
   void EmitCallStmt(const CallStmt *S);

@@ -69,6 +69,9 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
     void VisitExitStmt(const ExitStmt *S) {
       CG->EmitExitStmt(S);
     }
+    void VisitSelectCaseStmt(const SelectCaseStmt *S) {
+      CG->EmitSelectCaseStmt(S);
+    }
     void VisitStopStmt(const StopStmt *S) {
       CG->EmitStopStmt(S);
     }
@@ -358,6 +361,115 @@ void CodeGenFunction::EmitCycleStmt(const CycleStmt *S) {
 void CodeGenFunction::EmitExitStmt(const ExitStmt *S) {
   EmitBranch(CurLoopScope->getScope(S->getLoop())->BreakTarget);
   EmitBlock(createBasicBlock("after-exit"));
+}
+
+struct IntegerCaseStmtEmitter {
+  static llvm::Value *EmitRelationalExpr(CodeGenFunction &CGF, BinaryExpr::Operator Op,
+                                        llvm::Value *LHS, llvm::Value *RHS) {
+    return CGF.EmitScalarRelationalExpr(Op, LHS, RHS);
+  }
+  static llvm::Value *EmitExpr(CodeGenFunction &CGF, const Expr *E) {
+    return CGF.EmitScalarExpr(E);
+  }
+};
+
+struct LogicalCaseStmtEmitter : IntegerCaseStmtEmitter {
+  static llvm::Value *EmitRelationalExpr(CodeGenFunction &CGF, BinaryExpr::Operator Op,
+                                        llvm::Value *LHS, llvm::Value *RHS) {
+    // NB: there are no ranges for logical values.
+    return CGF.EmitScalarRelationalExpr(BinaryExpr::Eqv, LHS, RHS);
+  }
+};
+
+struct CharCaseStmtEmitter {
+  static llvm::Value *EmitRelationalExpr(CodeGenFunction &CGF, BinaryExpr::Operator Op,
+                                         CharacterValueTy LHS, CharacterValueTy RHS) {
+    return CGF.EmitCharacterRelationalExpr(Op, LHS, RHS);
+  }
+  static CharacterValueTy EmitExpr(CodeGenFunction &CGF, const Expr *E) {
+    return CGF.EmitCharacterExpr(E);
+  }
+};
+
+template<typename F, typename T>
+static
+void EmitCaseStmt(CodeGenFunction &CGF,
+                  CGBuilderTy &Builder,
+                  T Operand, const CaseStmt *S,
+                  llvm::BasicBlock *MatchBlock,
+                  llvm::BasicBlock *NextCaseBlock) {
+  auto Values = S->getValues();
+  for(size_t I = 0, End = Values.size(); I < End; ++I) {
+    auto E = Values[I];
+    bool IsLast = (I+1) >= End;
+    auto FalseBlock = IsLast? NextCaseBlock : CGF.createBasicBlock("case-test-next-value");
+
+    llvm::Value *Condition;
+    if(auto Range = dyn_cast<RangeExpr>(E)) {
+      if(Range->hasFirstExpr())
+        Condition = F::EmitRelationalExpr(CGF, BinaryExpr::LessThanEqual,
+                                          F::EmitExpr(CGF, Range->getFirstExpr()), Operand);
+      if(Range->hasSecondExpr()) {
+        auto C = F::EmitRelationalExpr(CGF, BinaryExpr::LessThanEqual,
+                                       Operand, F::EmitExpr(CGF, Range->getSecondExpr()));
+        if(Range->hasFirstExpr())
+          Condition = Builder.CreateAnd(Condition, C);
+        else Condition = C;
+      }
+    } else
+      Condition = F::EmitRelationalExpr(CGF, BinaryExpr::Equal,
+                                        Operand, F::EmitExpr(CGF, E));
+
+    Builder.CreateCondBr(Condition, MatchBlock, FalseBlock);
+    if(!IsLast) CGF.EmitBlock(FalseBlock);
+  }
+}
+
+template<typename F, typename T>
+static void EmitCases(CodeGenFunction &CGF,
+                      CGBuilderTy &Builder,
+                      T Operand, const SelectCaseStmt *S,
+                      llvm::BasicBlock *DefaultBlock,
+                      llvm::BasicBlock *ContinueBlock) {
+  for(auto Case = S->getFirstCase(); Case; Case = Case->getNextCase()) {
+    auto MatchBlock = CGF.createBasicBlock("case-match");
+    auto NextCaseBlock = Case->isLastCase()? DefaultBlock : CGF.createBasicBlock("case");
+    EmitCaseStmt<F>(CGF, Builder, Operand,
+                    Case, MatchBlock, NextCaseBlock);
+    CGF.EmitBlock(MatchBlock);
+    CGF.EmitStmt(Case->getBody());
+    CGF.EmitBranch(ContinueBlock);
+    if(!Case->isLastCase())
+      CGF.EmitBlock(NextCaseBlock);
+  }
+}
+
+void CodeGenFunction::EmitSelectCaseStmt(const SelectCaseStmt *S) {
+  // FIXME: many integer selects can be emitted into a switch.
+
+  auto E = S->getOperand();
+
+  auto ContinueBlock = createBasicBlock("after-select-case");
+  auto DefaultBlock  = S->hasDefaultCase()? createBasicBlock("case-default") :
+                                            ContinueBlock;
+
+  if(E->getType()->isIntegerType()) {
+    auto Val = EmitScalarExpr(E);
+    EmitCases<IntegerCaseStmtEmitter>(*this, Builder, Val, S, DefaultBlock, ContinueBlock);
+  } else if(E->getType()->isLogicalType()) {
+    auto Val = EmitScalarExpr(E);
+    EmitCases<LogicalCaseStmtEmitter>(*this, Builder, Val, S, DefaultBlock, ContinueBlock);
+  } else {
+    auto Val = EmitCharacterExpr(E);
+    EmitCases<CharCaseStmtEmitter>(*this, Builder, Val, S, DefaultBlock, ContinueBlock);
+  }
+
+  if(S->hasDefaultCase()) {
+    EmitBlock(DefaultBlock);
+    EmitStmt(S->getDefaultCase()->getBody());
+    EmitBranch(ContinueBlock);
+  }
+  EmitBlock(ContinueBlock);
 }
 
 void CodeGenFunction::EmitStopStmt(const StopStmt *S) {
