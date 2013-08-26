@@ -217,6 +217,9 @@ public:
   bool isCharacter() const {
     return getType() == Character;
   }
+  bool isNothing() const {
+    return getType() == None;
+  }
 
   llvm::Value *asScalar() const {
     return V1;
