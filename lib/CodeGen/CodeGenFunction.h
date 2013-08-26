@@ -373,6 +373,7 @@ public:
     return EmitArrayElementPtr(E->getTarget(), E->getSubscripts());
   }
 
+
   llvm::Value *EmitDimSize(const ArrayDimensionValueTy &Dim);
   llvm::Value *EmitDimSubscript(llvm::Value *Subscript,
                                 const ArrayDimensionValueTy &Dim);
@@ -380,6 +381,8 @@ public:
   llvm::Value *EmitNthDimSubscript(llvm::Value *Subscript,
                                    const ArrayDimensionValueTy &Dim,
                                    llvm::Value *DimSizeProduct);
+
+  ArraySection EmitDimSection(const ArrayDimensionValueTy &Dim);
 
   void GetArrayDimensionsInfo(QualType T, SmallVectorImpl<ArrayDimensionValueTy> &Dims);
 

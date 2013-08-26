@@ -57,11 +57,14 @@ public:
   llvm::Value *LowerBound;
   llvm::Value *UpperBound;
   llvm::Value *Stride;
+  llvm::Value *Offset;
 
   ArrayDimensionValueTy() {}
   ArrayDimensionValueTy(llvm::Value *LB, llvm::Value *UB = nullptr,
-                        llvm::Value *Str = nullptr)
-    : LowerBound(LB), UpperBound(UB), Stride(Str) {}
+                        llvm::Value *stride = nullptr,
+                        llvm::Value *offset = nullptr)
+    : LowerBound(LB), UpperBound(UB), Stride(stride),
+      Offset(offset) {}
 
   bool hasLowerBound() const {
     return LowerBound != nullptr;
@@ -71,6 +74,94 @@ public:
   }
   bool hasStride() const {
     return Stride != nullptr;
+  }
+  bool hasOffset() const {
+    return Offset != nullptr;
+  }
+};
+
+/// \brief Represents a ranged section of an array.
+class ArrayRangeSection {
+public:
+  llvm::Value *Offset;
+  llvm::Value *Size;
+  llvm::Value *Stride;
+
+  ArrayRangeSection() {}
+  ArrayRangeSection(llvm::Value *offset,
+                    llvm::Value *size,
+                    llvm::Value *stride = nullptr)
+    : Offset(offset), Size(size), Stride(stride) {}
+
+  bool hasStride() const {
+    return Stride != nullptr;
+  }
+};
+
+/// \brief Rerpresents a single-element section of an array.
+class ArrayElementSection {
+public:
+  llvm::Value *Index;
+
+  ArrayElementSection() {}
+  ArrayElementSection(llvm::Value *index)
+    : Index(index) {}
+};
+
+/// \brief Represents a vector section of an array.
+class ArrayVectorSection {
+public:
+  llvm::Value *Ptr;
+  llvm::Value *Size;
+
+  ArrayVectorSection() {}
+  ArrayVectorSection(llvm::Value *P, llvm::Value *Len)
+    : Ptr(P), Size(Len) {}
+};
+
+class ArraySection {
+  enum Kind {
+    Range, Element, Vector
+  };
+  Kind Type;
+  llvm::Value *V1, *V2, *V3;
+  llvm::Value *DimSize;
+public:
+
+  ArraySection(const ArrayRangeSection &S, llvm::Value *DimensionSize)
+    : Type(Range), V1(S.Offset), V2(S.Size), V3(S.Stride),
+      DimSize(DimensionSize) {}
+  ArraySection(const ArrayElementSection &S, llvm::Value *DimensionSize)
+    : Type(Element), V1(S.Index),
+      DimSize(DimensionSize) {}
+  ArraySection(const ArrayVectorSection &S, llvm::Value *DimensionSize)
+    : Type(Vector), V1(S.Ptr), V2(S.Size),
+      DimSize(DimensionSize) {}
+
+  bool isRangeSection() const {
+    return Type == Range;
+  }
+  bool isElementSection() const {
+    return Type == Element;
+  }
+  bool isVectorSection() const {
+    return Type == Vector;
+  }
+
+  ArrayRangeSection getRangeSection() const {
+    assert(isRangeSection());
+    return ArrayRangeSection(V1, V2, V3);
+  }
+  ArrayElementSection getElementSection() const {
+    assert(isElementSection());
+    return ArrayElementSection(V1);
+  }
+  ArrayVectorSection getVectorSection() const {
+    assert(isVectorSection());
+    return ArrayVectorSection(V1, V2);
+  }
+  llvm::Value *getDimensionSize() const {
+    return DimSize;
   }
 };
 

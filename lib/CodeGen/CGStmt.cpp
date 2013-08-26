@@ -489,8 +489,10 @@ void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
   auto RHS = S->getRHS();
   auto RHSType = RHS->getType();
 
-  if(RHSType->isArrayType())
+  if(S->getLHS()->getType()->isArrayType()) {
     EmitArrayAssignment(S->getLHS(), S->getRHS());
+    return;
+  }
   auto Destination = EmitLValue(S->getLHS());
 
   if(RHSType->isIntegerType() || RHSType->isRealType()) {
