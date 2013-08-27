@@ -93,6 +93,9 @@ public:
                     llvm::Value *stride = nullptr)
     : Offset(offset), Size(size), Stride(stride) {}
 
+  bool hasOffset() const {
+    return Offset != nullptr;
+  }
   bool hasStride() const {
     return Stride != nullptr;
   }

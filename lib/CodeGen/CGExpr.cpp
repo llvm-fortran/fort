@@ -44,6 +44,64 @@ RValueTy CodeGenFunction::EmitRValue(const Expr *E) {
     return EmitScalarExpr(E);
 }
 
+RValueTy CodeGenFunction::EmitLoad(llvm::Value *Ptr, QualType T, bool IsVolatile) {
+  if(T->isComplexType())
+    return EmitComplexLoad(Ptr, IsVolatile);
+  else
+    return Builder.CreateLoad(Ptr, IsVolatile);
+}
+
+void CodeGenFunction::EmitStore(RValueTy Val, llvm::Value *Ptr, QualType T, bool IsVolatile) {
+  if(Val.isScalar()) {
+    if(Val.asScalar()->getType() == CGM.Int1Ty)
+      Val = ConvertLogicalValueToLogicalMemoryValue(Val.asScalar(),
+                                                    T->isArrayType()? T->asArrayType()->getElementType() : T);
+    Builder.CreateStore(Val.asScalar(), Ptr, IsVolatile);
+    return;
+  } else if(Val.isComplex()) {
+    EmitComplexStore(Val.asComplex(), Ptr, IsVolatile);
+    return;
+  }
+}
+
+RValueTy CodeGenFunction::EmitBinaryExpr(BinaryExpr::Operator Op, RValueTy LHS, RValueTy RHS) {
+  if(LHS.isScalar())
+    return EmitScalarBinaryExpr(Op, LHS.asScalar(), RHS.asScalar());
+  else if(LHS.isComplex()) {
+    if(Op == BinaryExpr::Plus || Op == BinaryExpr::Minus || Op == BinaryExpr::Multiply ||
+       Op == BinaryExpr::Divide || Op == BinaryExpr::Power)
+     return EmitComplexBinaryExpr(Op, LHS.asComplex(), RHS.asComplex());
+    return EmitComplexRelationalExpr(Op, LHS.asComplex(), RHS.asComplex());
+  } else // FIXME: character concat
+    return EmitCharacterRelationalExpr(Op, LHS.asCharacter(), RHS.asCharacter());
+}
+
+RValueTy CodeGenFunction::EmitUnaryExpr(UnaryExpr::Operator Op, RValueTy Val) {
+  switch(Op) {
+  case UnaryExpr::Plus:
+    return Val;
+  case UnaryExpr::Minus:
+    if(Val.isScalar())
+      return EmitScalarUnaryMinus(Val.asScalar());
+    return EmitComplexUnaryMinus(Val.asComplex());
+  case UnaryExpr::Not:
+    return EmitScalarUnaryNot(Val.asScalar());
+  }
+  return RValueTy();
+}
+
+RValueTy CodeGenFunction::EmitImplicitConversion(RValueTy Val, QualType T) {
+  if(Val.isScalar()) {
+    if(T->isComplexType())
+      return EmitScalarToComplexConversion(Val.asScalar(), T);
+    return EmitScalarToScalarConversion(Val.asScalar(), T);
+  }
+  assert(Val.isComplex());
+  if(T->isComplexType())
+    return EmitComplexToComplexConversion(Val.asComplex(), T);
+  return EmitComplexToScalarConversion(Val.asComplex(), T);
+}
+
 class LValueExprEmitter
   : public ConstExprVisitor<LValueExprEmitter, LValueTy> {
   CodeGenFunction &CGF;

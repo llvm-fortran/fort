@@ -14,7 +14,6 @@
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
 #include "CGArray.h"
-#include "CGValueOperations.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/ExprVisitor.h"
 #include "llvm/ADT/SmallString.h"
@@ -106,8 +105,7 @@ llvm::Value *CodeGenFunction::EmitNthDimSubscript(llvm::Value *Subscript,
 }
 
 ArraySection CodeGenFunction::EmitDimSection(const ArrayDimensionValueTy &Dim) {
-  auto Offset = Dim.hasOffset()? Dim.Offset :
-                  llvm::ConstantInt::get(ConvertType(getContext().IntegerTy), 0);
+  auto Offset = Dim.hasOffset()? Dim.Offset : nullptr;
   auto Size = EmitDimSize(Dim);
   return ArraySection(ArrayRangeSection(Offset, Size,
                         Dim.hasStride()? Dim.Stride : nullptr),
@@ -165,17 +163,13 @@ void ArrayValueExprEmitter::VisitVarExpr(const VarExpr *E) {
 class ArraySectionsEmmitter
   : public ConstExprVisitor<ArraySectionsEmmitter, void> {
   CodeGenFunction &CGF;
-  CGBuilderTy &Builder;
-  llvm::LLVMContext &VMContext;
-
   SmallVector<ArraySection, 8> Sections;
   llvm::Value *Ptr;
 public:
-
   ArraySectionsEmmitter(CodeGenFunction &cgf);
 
   void EmitExpr(const Expr *E);
-  void VisitVarExpr(const VarExpr *E);
+  void VisitExpr(const Expr *E);
 
   ArrayRef<ArraySection> getSections() const {
     return Sections;
@@ -186,35 +180,22 @@ public:
 };
 
 ArraySectionsEmmitter::ArraySectionsEmmitter(CodeGenFunction &cgf)
-  : CGF(cgf), Builder(cgf.getBuilder()),
-    VMContext(cgf.getLLVMContext()) {
-}
+  : CGF(cgf) {}
 
 void ArraySectionsEmmitter::EmitExpr(const Expr *E) {
   Visit(E);
 }
 
-void ArraySectionsEmmitter::VisitVarExpr(const VarExpr *E) {
-  auto VD = E->getVarDecl();
-  if(CGF.IsInlinedArgument(VD))
-    return EmitExpr(CGF.GetInlinedArgumentValue(VD));
-  if(VD->isParameter()) {
-    return; //FIXME?
-  }
-  SmallVector<ArrayDimensionValueTy, 8> Dims;
-  if(VD->isArgument()) {
-    CGF.GetArrayDimensionsInfo(VD->getType(), Dims);
-    Ptr = CGF.GetVarPtr(VD);
-  } else {
-    CGF.GetArrayDimensionsInfo(VD->getType(), Dims);
-    Ptr = Builder.CreateConstInBoundsGEP2_32(CGF.GetVarPtr(VD), 0, 0);
-  }
-  for(auto I : Dims)
+void ArraySectionsEmmitter::VisitExpr(const Expr *E) {
+  ArrayValueExprEmitter EV(CGF);
+  EV.EmitExpr(E);
+  Ptr = EV.getResultPtr();
+  for(auto I : EV.getResultInfo())
     Sections.push_back(CGF.EmitDimSection(I));
 }
 
 //
-// Array sections emmitter for array operations.
+// Scalar values and array sections emmitter for an array operations.
 //
 
 ArrayValueTy ArrayOperation::getArrayValue(const Expr *E) {
@@ -225,6 +206,9 @@ ArrayValueTy ArrayOperation::getArrayValue(const Expr *E) {
 }
 
 void ArrayOperation::EmitArraySections(CodeGenFunction &CGF, const Expr *E) {
+  if(Arrays.find(E) != Arrays.end())
+    return;
+
   ArraySectionsEmmitter EV(CGF);
   EV.EmitExpr(E);
 
@@ -237,12 +221,24 @@ void ArrayOperation::EmitArraySections(CodeGenFunction &CGF, const Expr *E) {
     Sections.push_back(S);
 }
 
-class ArraySectionsGatherer : public ConstExprVisitor<ArraySectionsGatherer> {
+RValueTy ArrayOperation::getScalarValue(const Expr *E) {
+  return Scalars[E];
+}
+
+void ArrayOperation::EmitScalarValue(CodeGenFunction &CGF, const Expr *E) {
+  if(Scalars.find(E) != Scalars.end())
+    return;
+
+  Scalars[E] = CGF.EmitRValue(E);
+}
+
+class ScalarEmmitterAndSectionGatherer : public ConstExprVisitor<ScalarEmmitterAndSectionGatherer> {
   CodeGenFunction &CGF;
   ArrayOperation &ArrayOp;
+  const Expr *LastArrayEmmitted;
 public:
 
-  ArraySectionsGatherer(CodeGenFunction &cgf, ArrayOperation &ArrOp)
+  ScalarEmmitterAndSectionGatherer(CodeGenFunction &cgf, ArrayOperation &ArrOp)
     : CGF(cgf), ArrayOp(ArrOp) {}
 
   void Emit(const Expr *E);
@@ -250,33 +246,45 @@ public:
   void VisitImplicitCastExpr(const ImplicitCastExpr *E);
   void VisitUnaryExpr(const UnaryExpr *E);
   void VisitBinaryExpr(const BinaryExpr *E);
+
+  const Expr *getLastEmmittedArray() const {
+    return LastArrayEmmitted;
+  }
 };
 
-void ArraySectionsGatherer::Emit(const Expr *E) {
+void ScalarEmmitterAndSectionGatherer::Emit(const Expr *E) {
   if(E->getType()->isArrayType())
     Visit(E);
+  else ArrayOp.EmitScalarValue(CGF, E);
 }
 
-void ArraySectionsGatherer::VisitVarExpr(const VarExpr *E) {
+void ScalarEmmitterAndSectionGatherer::VisitVarExpr(const VarExpr *E) {
   ArrayOp.EmitArraySections(CGF, E);
+  LastArrayEmmitted = E;
 }
 
-void ArraySectionsGatherer::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
+void ScalarEmmitterAndSectionGatherer::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
   Emit(E->getExpression());
 }
 
-void ArraySectionsGatherer::VisitUnaryExpr(const UnaryExpr *E) {
+void ScalarEmmitterAndSectionGatherer::VisitUnaryExpr(const UnaryExpr *E) {
   Emit(E->getExpression());
 }
 
-void ArraySectionsGatherer::VisitBinaryExpr(const BinaryExpr *E) {
+void ScalarEmmitterAndSectionGatherer::VisitBinaryExpr(const BinaryExpr *E) {
   Emit(E->getLHS());
   Emit(E->getRHS());
 }
 
-void ArrayOperation::EmitAllArraySections(CodeGenFunction &CGF, const Expr *E) {
-  ArraySectionsGatherer EV(CGF, *this);
+void ArrayOperation::EmitAllScalarValuesAndArraySections(CodeGenFunction &CGF, const Expr *E) {
+  ScalarEmmitterAndSectionGatherer EV(CGF, *this);
   EV.Emit(E);
+}
+
+ArrayValueTy ArrayOperation::EmitLHSArray(CodeGenFunction &CGF, const Expr *E) {
+  ScalarEmmitterAndSectionGatherer EV(CGF, *this);
+  EV.Emit(E);
+  return getArrayValue(EV.getLastEmmittedArray());
 }
 
 //
@@ -291,9 +299,10 @@ ArrayLoopEmmitter::ArrayLoopEmmitter(CodeGenFunction &cgf,
 llvm::Value *ArrayLoopEmmitter::EmitSectionIndex(const ArrayRangeSection &Range,
                                                  int Dimension) {
   // compute dimension index -> index = base + loop_index * stride
-  return Builder.CreateAdd(Range.Offset,
-                           !Range.hasStride()? Elements[Dimension] :
-                             Builder.CreateMul(Elements[Dimension], Range.Stride));
+  auto StridedIndex = !Range.hasStride()? Elements[Dimension] :
+                        Builder.CreateMul(Elements[Dimension], Range.Stride);
+  return Range.hasOffset()? Builder.CreateAdd(Range.Offset, StridedIndex) :
+                            StridedIndex;
 }
 
 llvm::Value *ArrayLoopEmmitter::EmitSectionIndex(const ArraySection &Section,
@@ -373,13 +382,12 @@ llvm::Value *ArrayLoopEmmitter::EmitElementPointer(ArrayValueTy Array) {
 }
 
 //
-// Element expression emmitter for array operations
+// Multidimensional loop body emmitter for array operations.
 //
 
 /// ArrayOperationEmmitter - Emits the array expression for the current
 /// iteration of the multidimensional array loop.
-template<typename T>
-class ArrayOperationEmmitter : public ConstExprVisitor<ArrayOperationEmmitter<T>, T> {
+class ArrayOperationEmmitter : public ConstExprVisitor<ArrayOperationEmmitter, RValueTy> {
   CodeGenFunction   &CGF;
   CGBuilderTy       &Builder;
   ArrayOperation    &Operation;
@@ -391,23 +399,45 @@ public:
     : CGF(cgf), Builder(cgf.getBuilder()), Operation(Op),
       Looper(Loop) {}
 
-  T VisitVarExpr(const VarExpr *E);
+  RValueTy Emit(const Expr *E);
+  RValueTy VisitVarExpr(const VarExpr *E);
+  RValueTy VisitImplicitCastExpr(const ImplicitCastExpr *E);
+  RValueTy VisitUnaryExpr(const UnaryExpr *E);
+  RValueTy VisitBinaryExpr(const BinaryExpr *E);
+
+  static QualType ElementType(const Expr *E) {
+    return cast<ArrayType>(E->getType().getTypePtr())->getElementType();
+  }
 };
 
-template<typename T>
-T ArrayOperationEmmitter<T>::VisitVarExpr(const VarExpr *E) {
+RValueTy ArrayOperationEmmitter::Emit(const Expr *E) {
   if(E->getType()->isArrayType())
-    return ValueOperations<T>::EmitLoad(CGF, Looper.EmitElementPointer(Operation.getArrayValue(E)));
-  return T(); // FIXME
+    return ConstExprVisitor::Visit(E);
+  return Operation.getScalarValue(E);
 }
 
-template<typename T>
+RValueTy ArrayOperationEmmitter::VisitVarExpr(const VarExpr *E) {
+  return CGF.EmitLoad(Looper.EmitElementPointer(Operation.getArrayValue(E)), ElementType(E));
+}
+
+RValueTy ArrayOperationEmmitter::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
+  return CGF.EmitImplicitConversion(Emit(E->getExpression()), E->getType());
+}
+
+RValueTy ArrayOperationEmmitter::VisitUnaryExpr(const UnaryExpr *E) {
+  return CGF.EmitUnaryExpr(E->getOperator(), Emit(E->getExpression()));
+}
+
+RValueTy ArrayOperationEmmitter::VisitBinaryExpr(const BinaryExpr *E) {
+  return CGF.EmitBinaryExpr(E->getOperator(), Emit(E->getLHS()), Emit(E->getRHS()));
+}
+
 static void EmitArrayAssignment(CodeGenFunction &CGF, ArrayOperation &Op,
                                 ArrayLoopEmmitter &Looper, ArrayValueTy LHS,
                                 const Expr *RHS) {
-  ArrayOperationEmmitter<T> EV(CGF, Op, Looper);
-  auto Val = EV.Visit(RHS);
-  ValueOperations<T>::EmitStore(CGF, Val, Looper.EmitElementPointer(LHS));
+  ArrayOperationEmmitter EV(CGF, Op, Looper);
+  auto Val = EV.Emit(RHS);
+  CGF.EmitStore(Val, Looper.EmitElementPointer(LHS), RHS->getType());
 }
 
 //
@@ -455,8 +485,6 @@ void CodeGenFunction::EmitArrayConstructorToKnownSizeAssignment(const ArrayType 
 
 void CodeGenFunction::EmitArrayAssignment(const Expr *LHS, const Expr *RHS) {  
   auto LHSType = cast<ArrayType>(LHS->getType().getTypePtr());
-  auto RHSType = RHS->getType();
-
 
   if(auto AC = dyn_cast<ArrayConstructorExpr>(RHS)) {
     uint64_t LHSSize;
@@ -470,29 +498,13 @@ void CodeGenFunction::EmitArrayAssignment(const Expr *LHS, const Expr *RHS) {
     }
   }
 
-  auto ElementType = LHSType->getElementType();
-  RValueTy ScalarRHS;
-  if(!RHSType->isArrayType())
-    ScalarRHS = EmitRValue(RHS);
-
   ArrayOperation OP;
-  OP.EmitArraySections(*this, LHS);
-  OP.EmitAllArraySections(*this, RHS);
-  auto LHSArray = OP.getArrayValue(LHS);
-
+  auto LHSArray = OP.EmitLHSArray(*this, LHS);
+  OP.EmitAllScalarValuesAndArraySections(*this, RHS);
   ArrayLoopEmmitter Looper(*this, LHSArray.Sections);
   Looper.EmitArrayIterationBegin();
-  if(ScalarRHS.isNothing()) {
-    // Array = array
-    if(ElementType->isComplexType())
-      CodeGen::EmitArrayAssignment<ComplexValueTy>(*this, OP, Looper, LHSArray, RHS);
-    else
-      CodeGen::EmitArrayAssignment<llvm::Value*>(*this, OP, Looper, LHSArray, RHS);
-  } else {
-    // Array = scalar
-    auto Dest = Looper.EmitElementPointer(LHSArray);
-    EmitAssignment(Dest, ScalarRHS);
-  }
+  // Array = array / scalar
+  CodeGen::EmitArrayAssignment(*this, OP, Looper, LHSArray, RHS);
   Looper.EmitArrayIterationEnd();
 }
 

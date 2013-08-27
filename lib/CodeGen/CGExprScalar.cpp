@@ -74,7 +74,7 @@ llvm::Value *ScalarExprEmitter::EmitLogicalConditionExpr(const Expr *E) {
 llvm::Value *ScalarExprEmitter::EmitLogicalValueExpr(const Expr *E) {
   auto Value = Visit(E);
   if(Value->getType() == CGF.getModule().Int1Ty)
-    return Builder.CreateZExtOrTrunc(Value, CGF.ConvertType(E->getType()));
+    return CGF.ConvertLogicalValueToLogicalMemoryValue(Value, E->getType());
   return Value;
 }
 
@@ -118,10 +118,13 @@ llvm::Value *ScalarExprEmitter::VisitUnaryExprMinus(const UnaryExpr *E) {
   return CGF.EmitScalarUnaryMinus(EmitExpr(E->getExpression()));
 }
 
-llvm::Value *ScalarExprEmitter::VisitUnaryExprNot(const UnaryExpr *E) {
-  auto Val = EmitExpr(E->getExpression());
+llvm::Value *CodeGenFunction::EmitScalarUnaryNot(llvm::Value *Val) {
   return Builder.CreateXor(Val,
                            llvm::ConstantInt::get(Val->getType(), 1));
+}
+
+llvm::Value *ScalarExprEmitter::VisitUnaryExprNot(const UnaryExpr *E) {
+  return CGF.EmitScalarUnaryNot(EmitExpr(E->getExpression()));
 }
 
 llvm::Value *ScalarExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
@@ -367,6 +370,11 @@ llvm::Value *CodeGenFunction::EmitLogicalConditionExpr(const Expr *E) {
 llvm::Value *CodeGenFunction::EmitLogicalValueExpr(const Expr *E) {
   ScalarExprEmitter EV(*this);
   return EV.EmitLogicalValueExpr(E);
+}
+
+llvm::Value *CodeGenFunction::ConvertLogicalValueToLogicalMemoryValue(llvm::Value *Val,
+                                                                      QualType T) {
+  return Builder.CreateZExtOrTrunc(Val, ConvertType(T));
 }
 
 llvm::Value *CodeGenFunction::GetConstantOne(QualType T) {

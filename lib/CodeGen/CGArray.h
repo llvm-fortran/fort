@@ -35,19 +35,37 @@ class ArrayOperation {
     llvm::Value *Ptr;
   };
   llvm::SmallDenseMap<const Expr*, StoredArrayValue, 8> Arrays;
+  llvm::SmallDenseMap<const Expr*, RValueTy, 8> Scalars;
 
   SmallVector<ArraySection, 32> Sections;
+
+protected:
+
+  /// \brief Emits a scalar value used for the given scalar expression.
+  void EmitScalarValue(CodeGenFunction &CGF, const Expr *E);
+
+  /// \brief Emits the array sections used for the given expression.
+  void EmitArraySections(CodeGenFunction &CGF, const Expr *E);
+
+  friend class ScalarEmmitterAndSectionGatherer;
 public:
 
   /// \brief Returns the array value used for the given expression.
   ArrayValueTy getArrayValue(const Expr *E);
 
-  /// \brief Emits the array sections used for the given expression.
-  void EmitArraySections(CodeGenFunction &CGF, const Expr *E);
+  /// \brief Returns the value used for the given scalar expression.
+  RValueTy getScalarValue(const Expr *E);
 
-  /// \brief Walks the entire array expression AST and emits array sections
-  /// for all relevant array expressions.
-  void EmitAllArraySections(CodeGenFunction &CGF, const Expr *E);
+  /// \brief Emits the array section used on the left side of an assignment
+  /// in a multidimensional loop.
+  ArrayValueTy EmitLHSArray(CodeGenFunction &CGF, const Expr *E);
+
+  /// EmitAllScalarValuesAndArraySections - walks the given expression,
+  /// and prepares the array operation for a multidimensional loop by emitting
+  /// scalar expressions, so that they are only executed once in an array operation,
+  /// and also by emmitting the array sections which are used to access the array
+  /// elements inside the operation's loop.
+  void EmitAllScalarValuesAndArraySections(CodeGenFunction &CGF, const Expr *E);
 };
 
 /// ArrayLoopEmmitter - Emits the multidimensional loop which

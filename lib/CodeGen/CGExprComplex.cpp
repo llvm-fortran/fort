@@ -88,7 +88,10 @@ ComplexValueTy ComplexExprEmitter::VisitUnaryExprPlus(const UnaryExpr *E) {
 }
 
 ComplexValueTy ComplexExprEmitter::VisitUnaryExprMinus(const UnaryExpr *E) {
-  auto Val = EmitExpr(E->getExpression());
+  return CGF.EmitComplexUnaryMinus(EmitExpr(E->getExpression()));
+}
+
+ComplexValueTy CodeGenFunction::EmitComplexUnaryMinus(ComplexValueTy Val) {
   return ComplexValueTy(Builder.CreateFNeg(Val.Re),
                         Builder.CreateFNeg(Val.Im));
 }

@@ -236,10 +236,18 @@ public:
   RValueTy EmitRValue(const Expr *E);
   LValueTy EmitLValue(const Expr *E);
 
+  /// Generic value operations for scalar/complex/character values.
+  RValueTy EmitLoad (llvm::Value *Ptr, QualType T, bool IsVolatile = false);
+  void     EmitStore(RValueTy Val, llvm::Value *Ptr, QualType T, bool IsVolatile = false);
+  RValueTy EmitBinaryExpr(BinaryExpr::Operator Op, RValueTy LHS, RValueTy RHS);
+  RValueTy EmitUnaryExpr(UnaryExpr::Operator Op, RValueTy Val);
+  RValueTy EmitImplicitConversion(RValueTy Val, QualType T);
+
   // scalar expressions.
   llvm::Value *EmitSizeIntExpr(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
   llvm::Value *EmitScalarUnaryMinus(llvm::Value *Val);
+  llvm::Value *EmitScalarUnaryNot(llvm::Value *Val);
   llvm::Value *EmitScalarBinaryExpr(BinaryExpr::Operator Op,
                                     llvm::Value *LHS,
                                     llvm::Value *RHS);
@@ -248,6 +256,7 @@ public:
   llvm::Value *EmitScalarToScalarConversion(llvm::Value *Value, QualType Target);
   llvm::Value *EmitLogicalConditionExpr(const Expr *E);
   llvm::Value *EmitLogicalValueExpr(const Expr *E);
+  llvm::Value *ConvertLogicalValueToLogicalMemoryValue(llvm::Value *Val, QualType T);
   llvm::Value *EmitIntegerConstantExpr(const IntegerConstantExpr *E);
   llvm::Value *EmitScalarRelationalExpr(BinaryExpr::Operator Op, llvm::Value *LHS,
                                         llvm::Value *RHS);
@@ -268,6 +277,7 @@ public:
   ComplexValueTy EmitComplexLoad(llvm::Value *Ptr, bool IsVolatile = false);
   void EmitComplexStore(ComplexValueTy Value, llvm::Value *Ptr,
                         bool IsVolatile = false);
+  ComplexValueTy EmitComplexUnaryMinus(ComplexValueTy Val);
   ComplexValueTy EmitComplexBinaryExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
                                        ComplexValueTy RHS);
   ComplexValueTy EmitComplexPowi(ComplexValueTy LHS, llvm::Value *RHS);

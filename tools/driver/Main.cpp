@@ -132,6 +132,11 @@ extern "C" void jit_write_integer(void *,const void *Ptr, int32_t Size) {
   llvm::outs() << *reinterpret_cast<const int32_t*>(Ptr);
 }
 
+extern "C" void jit_write_logical(void *,const void *Ptr, int32_t Size) {
+  if(Size != 4) return;
+  llvm::outs() << ((*reinterpret_cast<const int32_t*>(Ptr)) != 0? "true" : "false");
+}
+
 extern "C" void jit_write_end(void *) {
   llvm::outs() << "\n";
 }
@@ -167,6 +172,9 @@ static int Execute(llvm::Module *Module, const char * const *envp) {
   }
   if(auto F = Module->getFunction("libflang_write_integer")) {
     EE->addGlobalMapping(F, (void*) &jit_write_integer);
+  }
+  if(auto F = Module->getFunction("libflang_write_logical")) {
+    EE->addGlobalMapping(F, (void*) &jit_write_logical);
   }
   if(auto F = Module->getFunction("libflang_assignment_char1")) {
     EE->addGlobalMapping(F, (void*) &jit_assignment_char1);
