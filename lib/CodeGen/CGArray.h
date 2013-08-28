@@ -29,6 +29,7 @@ public:
 };
 
 /// ArrayOperation - Represents an array expression / statement.
+/// Stores the array sections and scalars used in the array operation.
 class ArrayOperation {
   struct StoredArrayValue {
     size_t SectionsOffset;
@@ -58,7 +59,7 @@ public:
 
   /// \brief Emits the array section used on the left side of an assignment
   /// in a multidimensional loop.
-  ArrayValueTy EmitLHSArray(CodeGenFunction &CGF, const Expr *E);
+  ArrayValueTy EmitArrayExpr(CodeGenFunction &CGF, const Expr *E);
 
   /// EmitAllScalarValuesAndArraySections - walks the given expression,
   /// and prepares the array operation for a multidimensional loop by emitting
@@ -115,6 +116,31 @@ public:
   /// EmitArrayIterationEnd - Emits the end of a
   /// multidimensional loop which iterates over the given array section.
   void EmitArrayIterationEnd();
+};
+
+/// ArrayOperationEmmitter - Emits the array expression for the current
+/// iteration of the multidimensional array loop.
+class ArrayOperationEmmitter : public ConstExprVisitor<ArrayOperationEmmitter, RValueTy> {
+  CodeGenFunction   &CGF;
+  CGBuilderTy       &Builder;
+  ArrayOperation    &Operation;
+  ArrayLoopEmmitter &Looper;
+public:
+
+  ArrayOperationEmmitter(CodeGenFunction &cgf, ArrayOperation &Op,
+                         ArrayLoopEmmitter &Loop);
+
+  RValueTy Emit(const Expr *E);
+  RValueTy VisitVarExpr(const VarExpr *E);
+  RValueTy VisitImplicitCastExpr(const ImplicitCastExpr *E);
+  RValueTy VisitUnaryExpr(const UnaryExpr *E);
+  RValueTy VisitBinaryExpr(const BinaryExpr *E);
+
+  static QualType ElementType(const Expr *E) {
+    return cast<ArrayType>(E->getType().getTypePtr())->getElementType();
+  }
+
+  LValueTy EmitLValue(const Expr *E);
 };
 
 }

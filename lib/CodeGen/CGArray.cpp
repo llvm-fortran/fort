@@ -16,6 +16,7 @@
 #include "CGArray.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/ExprVisitor.h"
+#include "flang/AST/StmtVisitor.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
@@ -281,7 +282,7 @@ void ArrayOperation::EmitAllScalarValuesAndArraySections(CodeGenFunction &CGF, c
   EV.Emit(E);
 }
 
-ArrayValueTy ArrayOperation::EmitLHSArray(CodeGenFunction &CGF, const Expr *E) {
+ArrayValueTy ArrayOperation::EmitArrayExpr(CodeGenFunction &CGF, const Expr *E) {
   ScalarEmmitterAndSectionGatherer EV(CGF, *this);
   EV.Emit(E);
   return getArrayValue(EV.getLastEmmittedArray());
@@ -385,30 +386,11 @@ llvm::Value *ArrayLoopEmmitter::EmitElementPointer(ArrayValueTy Array) {
 // Multidimensional loop body emmitter for array operations.
 //
 
-/// ArrayOperationEmmitter - Emits the array expression for the current
-/// iteration of the multidimensional array loop.
-class ArrayOperationEmmitter : public ConstExprVisitor<ArrayOperationEmmitter, RValueTy> {
-  CodeGenFunction   &CGF;
-  CGBuilderTy       &Builder;
-  ArrayOperation    &Operation;
-  ArrayLoopEmmitter &Looper;
-public:
-
-  ArrayOperationEmmitter(CodeGenFunction &cgf, ArrayOperation &Op,
-                         ArrayLoopEmmitter &Loop)
-    : CGF(cgf), Builder(cgf.getBuilder()), Operation(Op),
-      Looper(Loop) {}
-
-  RValueTy Emit(const Expr *E);
-  RValueTy VisitVarExpr(const VarExpr *E);
-  RValueTy VisitImplicitCastExpr(const ImplicitCastExpr *E);
-  RValueTy VisitUnaryExpr(const UnaryExpr *E);
-  RValueTy VisitBinaryExpr(const BinaryExpr *E);
-
-  static QualType ElementType(const Expr *E) {
-    return cast<ArrayType>(E->getType().getTypePtr())->getElementType();
-  }
-};
+ArrayOperationEmmitter::
+ArrayOperationEmmitter(CodeGenFunction &cgf, ArrayOperation &Op,
+                       ArrayLoopEmmitter &Loop)
+  : CGF(cgf), Builder(cgf.getBuilder()), Operation(Op),
+    Looper(Loop) {}
 
 RValueTy ArrayOperationEmmitter::Emit(const Expr *E) {
   if(E->getType()->isArrayType())
@@ -432,12 +414,25 @@ RValueTy ArrayOperationEmmitter::VisitBinaryExpr(const BinaryExpr *E) {
   return CGF.EmitBinaryExpr(E->getOperator(), Emit(E->getLHS()), Emit(E->getRHS()));
 }
 
+LValueTy ArrayOperationEmmitter::EmitLValue(const Expr *E) {
+  return Looper.EmitElementPointer(Operation.getArrayValue(E));
+}
+
 static void EmitArrayAssignment(CodeGenFunction &CGF, ArrayOperation &Op,
-                                ArrayLoopEmmitter &Looper, ArrayValueTy LHS,
+                                ArrayLoopEmmitter &Looper, const Expr *LHS,
                                 const Expr *RHS) {
   ArrayOperationEmmitter EV(CGF, Op, Looper);
   auto Val = EV.Emit(RHS);
-  CGF.EmitStore(Val, Looper.EmitElementPointer(LHS), RHS->getType());
+  CGF.EmitStore(Val, EV.EmitLValue(LHS), RHS->getType());
+}
+
+static llvm::Value *EmitArrayConditional(CodeGenFunction &CGF, ArrayOperation &Op,
+                                         ArrayLoopEmmitter &Looper, const Expr *Condition) {
+  ArrayOperationEmmitter EV(CGF, Op, Looper);
+  auto Val = EV.Emit(Condition).asScalar();
+  if(Val->getType() != CGF.getModule().Int1Ty)
+    return CGF.ConvertLogicalValueToInt1(Val);
+  return Val;
 }
 
 //
@@ -499,12 +494,87 @@ void CodeGenFunction::EmitArrayAssignment(const Expr *LHS, const Expr *RHS) {
   }
 
   ArrayOperation OP;
-  auto LHSArray = OP.EmitLHSArray(*this, LHS);
+  auto LHSArray = OP.EmitArrayExpr(*this, LHS);
   OP.EmitAllScalarValuesAndArraySections(*this, RHS);
   ArrayLoopEmmitter Looper(*this, LHSArray.Sections);
   Looper.EmitArrayIterationBegin();
   // Array = array / scalar
-  CodeGen::EmitArrayAssignment(*this, OP, Looper, LHSArray, RHS);
+  CodeGen::EmitArrayAssignment(*this, OP, Looper, LHS, RHS);
+  Looper.EmitArrayIterationEnd();
+}
+
+//
+// Masked array assignment emmitter
+//
+
+class WhereBodyPreOperationEmmitter : public ConstStmtVisitor<WhereBodyPreOperationEmmitter> {
+  CodeGenFunction &CGF;
+  ArrayOperation  &Operation;
+public:
+
+  WhereBodyPreOperationEmmitter(CodeGenFunction &cgf, ArrayOperation &Op)
+    : CGF(cgf), Operation(Op) {}
+
+  void VisitBlockStmt(const BlockStmt *S) {
+    for(auto I : S->getStatements())
+      Visit(I);
+  }
+  void VisitAssignmentStmt(const AssignmentStmt *S) {
+    Operation.EmitAllScalarValuesAndArraySections(CGF, S->getLHS());
+    Operation.EmitAllScalarValuesAndArraySections(CGF, S->getRHS());
+  }
+  void VisitConstructPartStmt(const ConstructPartStmt*) {}
+  void VisitStmt(const Stmt*) {
+    llvm_unreachable("invalid where statement!");
+  }
+};
+
+class WhereBodyEmmitter : public ConstStmtVisitor<WhereBodyEmmitter> {
+  CodeGenFunction &CGF;
+  ArrayOperation  &Operation;
+  ArrayLoopEmmitter &Looper;
+public:
+
+  WhereBodyEmmitter(CodeGenFunction &cgf, ArrayOperation &Op,
+                    ArrayLoopEmmitter &Loop)
+    : CGF(cgf), Operation(Op), Looper(Loop) {}
+
+  void VisitBlockStmt(const BlockStmt *S) {
+    for(auto I : S->getStatements())
+      Visit(I);
+  }
+  void VisitAssignmentStmt(const AssignmentStmt *S) {
+    EmitArrayAssignment(CGF, Operation, Looper, S->getLHS(), S->getRHS());
+  }
+};
+
+void CodeGenFunction::EmitWhereStmt(const WhereStmt *S) {
+  // FIXME: evaluate the mask array before the loop (only if required?)
+  // FIXME: evaluation of else scalars and sections must strictly follow the then body?
+
+  ArrayOperation OP;
+  auto MaskArray = OP.EmitArrayExpr(*this, S->getMask());
+  WhereBodyPreOperationEmmitter BodyPreEmmitter(*this, OP);
+  BodyPreEmmitter.Visit(S->getThenStmt());
+  if(S->getElseStmt())
+    BodyPreEmmitter.Visit(S->getElseStmt());
+
+  ArrayLoopEmmitter Looper(*this, MaskArray.Sections);
+  Looper.EmitArrayIterationBegin();
+  auto ThenBB = createBasicBlock("where-true");
+  auto EndBB  = createBasicBlock("where-end");
+  auto ElseBB = S->hasElseStmt()? createBasicBlock("where-else") : EndBB;
+  Builder.CreateCondBr(EmitArrayConditional(*this, OP, Looper, S->getMask()), ThenBB, ElseBB);
+  WhereBodyEmmitter BodyEmmitter(*this, OP, Looper);
+  EmitBlock(ThenBB);
+  BodyEmmitter.Visit(S->getThenStmt());
+  EmitBranch(EndBB);
+  if(S->hasElseStmt()) {
+    EmitBlock(ElseBB);
+    BodyEmmitter.Visit(S->getElseStmt());
+    EmitBranch(EndBB);
+  }
+  EmitBlock(EndBB);
   Looper.EmitArrayIterationEnd();
 }
 

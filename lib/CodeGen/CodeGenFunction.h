@@ -226,6 +226,7 @@ public:
   void EmitCycleStmt(const CycleStmt *S);
   void EmitExitStmt(const ExitStmt *S);
   void EmitSelectCaseStmt(const SelectCaseStmt *S);
+  void EmitWhereStmt(const WhereStmt *S);
   void EmitStopStmt(const StopStmt *S);
   void EmitReturnStmt(const ReturnStmt *S);
   void EmitCallStmt(const CallStmt *S);
@@ -238,7 +239,7 @@ public:
 
   /// Generic value operations for scalar/complex/character values.
   RValueTy EmitLoad (llvm::Value *Ptr, QualType T, bool IsVolatile = false);
-  void     EmitStore(RValueTy Val, llvm::Value *Ptr, QualType T, bool IsVolatile = false);
+  void     EmitStore(RValueTy Val, LValueTy Dest, QualType T, bool IsVolatile = false);
   RValueTy EmitBinaryExpr(BinaryExpr::Operator Op, RValueTy LHS, RValueTy RHS);
   RValueTy EmitUnaryExpr(UnaryExpr::Operator Op, RValueTy Val);
   RValueTy EmitImplicitConversion(RValueTy Val, QualType T);
@@ -256,6 +257,7 @@ public:
   llvm::Value *EmitScalarToScalarConversion(llvm::Value *Value, QualType Target);
   llvm::Value *EmitLogicalConditionExpr(const Expr *E);
   llvm::Value *EmitLogicalValueExpr(const Expr *E);
+  llvm::Value *ConvertLogicalValueToInt1(llvm::Value *Val) ;
   llvm::Value *ConvertLogicalValueToLogicalMemoryValue(llvm::Value *Val, QualType T);
   llvm::Value *EmitIntegerConstantExpr(const IntegerConstantExpr *E);
   llvm::Value *EmitScalarRelationalExpr(BinaryExpr::Operator Op, llvm::Value *LHS,

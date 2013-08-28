@@ -51,7 +51,8 @@ RValueTy CodeGenFunction::EmitLoad(llvm::Value *Ptr, QualType T, bool IsVolatile
     return Builder.CreateLoad(Ptr, IsVolatile);
 }
 
-void CodeGenFunction::EmitStore(RValueTy Val, llvm::Value *Ptr, QualType T, bool IsVolatile) {
+void CodeGenFunction::EmitStore(RValueTy Val, LValueTy Dest, QualType T, bool IsVolatile) {
+  auto Ptr = Dest.getPointer();
   if(Val.isScalar()) {
     if(Val.asScalar()->getType() == CGM.Int1Ty)
       Val = ConvertLogicalValueToLogicalMemoryValue(Val.asScalar(),

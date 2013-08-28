@@ -72,6 +72,9 @@ void CodeGenFunction::EmitStmt(const Stmt *S) {
     void VisitSelectCaseStmt(const SelectCaseStmt *S) {
       CG->EmitSelectCaseStmt(S);
     }
+    void VisitWhereStmt(const WhereStmt *S) {
+      CG->EmitWhereStmt(S); 
+    }
     void VisitStopStmt(const StopStmt *S) {
       CG->EmitStopStmt(S);
     }
