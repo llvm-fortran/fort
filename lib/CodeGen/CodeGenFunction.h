@@ -94,6 +94,9 @@ class CodeGenFunction {
   llvm::Value *ReturnValuePtr;
   llvm::Instruction *AllocaInsertPt;
 
+  bool HasSavedVariables;
+  llvm::SmallVector<const Stmt*, 16> DataStmtsForSavedVariables;
+
   llvm::DenseMap<const Stmt*, llvm::BasicBlock*> GotoTargets;
   llvm::SmallVector<const Stmt*, 8> AssignedGotoTargets;
   llvm::Value *AssignedGotoVarPtr;
@@ -195,6 +198,9 @@ public:
                             const CGFunctionInfo *Info);
 
   void EmitVarDecl(const VarDecl *D);
+  void EmitDataStmts(const Stmt *S, bool Saved = false);
+  void EmitFirstInvocationBlock(const Stmt *S);
+
 
   llvm::Value *CreateArrayAlloca(QualType T,
                                  const llvm::Twine &Name = "",
@@ -231,6 +237,7 @@ public:
   void EmitReturnStmt(const ReturnStmt *S);
   void EmitCallStmt(const CallStmt *S);
   void EmitAssignmentStmt(const AssignmentStmt *S);
+  bool IsAssignmentStmtAssignmentToSaved(const AssignmentStmt *S);
   void EmitAssignment(const Expr *LHS, const Expr *RHS);
   void EmitAssignment(LValueTy LHS, RValueTy RHS);
 

@@ -24,78 +24,110 @@
 namespace flang {
 namespace CodeGen {
 
+class DataStmtEmmitter : public ConstStmtVisitor<DataStmtEmmitter> {
+  bool InData, Saved;
+  CodeGenFunction &CGF;
+public:
+  DataStmtEmmitter(CodeGenFunction &cgf, bool SavedOnly)
+    : CGF(cgf), InData(false), Saved(SavedOnly) {}
+
+  void VisitCompoundStmt(const CompoundStmt *S) {
+    for(auto I : S->getBody())
+      Visit(I);
+  }
+  void VisitDataStmt(const DataStmt *S) {
+    assert(!InData);
+    InData = true;
+    Visit(S->getBody());
+    InData = false;
+  }
+  void VisitBlockStmt(const BlockStmt *S) {
+    for(auto I : S->getStatements())
+      Visit(I);
+  }
+  void VisitAssignmentStmt(const AssignmentStmt *S) {
+    if(!InData || CGF.IsAssignmentStmtAssignmentToSaved(S) != Saved)
+      return;
+    CGF.EmitAssignmentStmt(S);
+  }
+};
+
+void CodeGenFunction::EmitDataStmts(const Stmt *S, bool Saved) {
+  DataStmtEmmitter SV(*this, Saved);
+  if(S->getStmtLabel())
+    EmitStmtLabel(S);
+  SV.Visit(S);
+}
+
+class StmtEmmitter : public ConstStmtVisitor<StmtEmmitter> {
+  CodeGenFunction &CGF;
+public:
+
+  StmtEmmitter(CodeGenFunction &cgf) : CGF(cgf) {}
+
+  void VisitCompoundStmt(const CompoundStmt *S) {
+    for(auto I : S->getBody())
+      CGF.EmitStmt(I);
+  }
+  void VisitBlockStmt(const BlockStmt *S) {
+    for(auto I : S->getStatements())
+      CGF.EmitStmt(I);
+  }
+  void VisitGotoStmt(const GotoStmt *S) {
+    CGF.EmitGotoStmt(S);
+  }
+  void VisitAssignStmt(const AssignStmt *S) {
+    CGF.EmitAssignStmt(S);
+  }
+  void VisitAssignedGotoStmt(const AssignedGotoStmt *S) {
+    CGF.EmitAssignedGotoStmt(S);
+  }
+  void VisitComputedGotoStmt(const ComputedGotoStmt *S) {
+    CGF.EmitComputedGotoStmt(S);
+  }
+  void VisitIfStmt(const IfStmt *S) {
+    CGF.EmitIfStmt(S);
+  }
+  void VisitDoStmt(const DoStmt *S) {
+    CGF.EmitDoStmt(S);
+  }
+  void VisitDoWhileStmt(const DoWhileStmt *S) {
+    CGF.EmitDoWhileStmt(S);
+  }
+  void VisitCycleStmt(const CycleStmt *S) {
+    CGF.EmitCycleStmt(S);
+  }
+  void VisitExitStmt(const ExitStmt *S) {
+    CGF.EmitExitStmt(S);
+  }
+  void VisitSelectCaseStmt(const SelectCaseStmt *S) {
+    CGF.EmitSelectCaseStmt(S);
+  }
+  void VisitWhereStmt(const WhereStmt *S) {
+    CGF.EmitWhereStmt(S);
+  }
+  void VisitStopStmt(const StopStmt *S) {
+    CGF.EmitStopStmt(S);
+  }
+  void VisitReturnStmt(const ReturnStmt *S) {
+    CGF.EmitReturnStmt(S);
+  }
+  void VisitCallStmt(const CallStmt *S) {
+    CGF.EmitCallStmt(S);
+  }
+  void VisitAssignmentStmt(const AssignmentStmt *S) {
+    CGF.EmitAssignmentStmt(S);
+  }
+  void VisitWriteStmt(const WriteStmt *S) {
+    CGF.getModule().getIORuntime().EmitWriteStmt(CGF, S);
+  }
+  void VisitPrintStmt(const PrintStmt *S) {
+    CGF.getModule().getIORuntime().EmitPrintStmt(CGF, S);
+  }
+};
+
 void CodeGenFunction::EmitStmt(const Stmt *S) {
-  class Visitor : public ConstStmtVisitor<Visitor> {
-  public:
-    CodeGenFunction *CG;
-
-    Visitor(CodeGenFunction *P) : CG(P) {}
-
-    void VisitCompoundStmt(const CompoundStmt *S) {
-      for(auto I : S->getBody())
-        CG->EmitStmt(I);
-    }
-    void VisitDataStmt(const DataStmt *S) {
-      CG->EmitStmt(S->getBody());
-    }
-    void VisitBlockStmt(const BlockStmt *S) {
-      for(auto I : S->getStatements())
-        CG->EmitStmt(I);
-    }
-    void VisitGotoStmt(const GotoStmt *S) {
-      CG->EmitGotoStmt(S);
-    }
-    void VisitAssignStmt(const AssignStmt *S) {
-      CG->EmitAssignStmt(S);
-    }
-    void VisitAssignedGotoStmt(const AssignedGotoStmt *S) {
-      CG->EmitAssignedGotoStmt(S);
-    }
-    void VisitComputedGotoStmt(const ComputedGotoStmt *S) {
-      CG->EmitComputedGotoStmt(S);
-    }
-    void VisitIfStmt(const IfStmt *S) {
-      CG->EmitIfStmt(S);
-    }
-    void VisitDoStmt(const DoStmt *S) {
-      CG->EmitDoStmt(S);
-    }
-    void VisitDoWhileStmt(const DoWhileStmt *S) {
-      CG->EmitDoWhileStmt(S);
-    }
-    void VisitCycleStmt(const CycleStmt *S) {
-      CG->EmitCycleStmt(S);
-    }
-    void VisitExitStmt(const ExitStmt *S) {
-      CG->EmitExitStmt(S);
-    }
-    void VisitSelectCaseStmt(const SelectCaseStmt *S) {
-      CG->EmitSelectCaseStmt(S);
-    }
-    void VisitWhereStmt(const WhereStmt *S) {
-      CG->EmitWhereStmt(S); 
-    }
-    void VisitStopStmt(const StopStmt *S) {
-      CG->EmitStopStmt(S);
-    }
-    void VisitReturnStmt(const ReturnStmt *S) {
-      CG->EmitReturnStmt(S);
-    }
-    void VisitCallStmt(const CallStmt *S) {
-      CG->EmitCallStmt(S);
-    }
-    void VisitAssignmentStmt(const AssignmentStmt *S) {
-      CG->EmitAssignmentStmt(S);
-    }
-    void VisitWriteStmt(const WriteStmt *S) {
-      CG->getModule().getIORuntime().EmitWriteStmt(*CG, S);
-    }
-    void VisitPrintStmt(const PrintStmt *S) {
-      CG->getModule().getIORuntime().EmitPrintStmt(*CG, S);
-    }
-  };
-  Visitor SV(this);
-
+  StmtEmmitter SV(*this);
   if(S->getStmtLabel())
     EmitStmtLabel(S);
   SV.Visit(S);
@@ -246,9 +278,9 @@ public:
             const Stmt *S,
             llvm::BasicBlock *ContinueBB,
             llvm::BasicBlock *BreakBB)
-    : CGF(cgf), Previous(cgf->CurLoopScope), Loop(S),
+    : CGF(cgf), Previous(CGF->CurLoopScope), Loop(S),
       ContinueTarget(ContinueBB), BreakTarget(BreakBB) {
-      cgf->CurLoopScope = this;
+      CGF->CurLoopScope = this;
     }
   ~LoopScope() {
     CGF->CurLoopScope = Previous;
@@ -486,6 +518,17 @@ void CodeGenFunction::EmitReturnStmt(const ReturnStmt *S) {
 void CodeGenFunction::EmitCallStmt(const CallStmt *S) {
   CallArgList ArgList;
   EmitCall(S->getFunction(), ArgList, S->getArguments(), true);
+}
+
+bool CodeGenFunction::IsAssignmentStmtAssignmentToSaved(const AssignmentStmt *S) {
+  auto LHS = S->getLHS();
+  DesignatorExpr *Designator;
+  while(Designator = dyn_cast<DesignatorExpr>(LHS))
+    LHS = Designator->getTarget();
+  auto Var = dyn_cast<VarExpr>(LHS);
+  if(!Var) return false;
+  auto Ext = Var->getVarDecl()->getType().getExtQualsPtrOrNull();
+  return Ext && Ext->getQualifiers().hasAttributeSpec(Qualifiers::AS_save);
 }
 
 void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {

@@ -164,6 +164,12 @@ public:
 
   void EmitFunctionDecl(const FunctionDecl *Function);
 
+  llvm::GlobalVariable *EmitGlobalVariable(StringRef FuncName, const VarDecl *Var,
+                                           llvm::Constant *Initializer = nullptr);
+
+  llvm::GlobalVariable *EmitGlobalVariable(StringRef FuncName, StringRef VarName,
+                                           llvm::Type *Type, llvm::Constant *Initializer);
+
   llvm::Value *GetCFunction(StringRef Name,
                             ArrayRef<llvm::Type*> ArgTypes,
                             llvm::Type *ReturnType = nullptr);

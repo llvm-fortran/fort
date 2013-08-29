@@ -34,6 +34,7 @@ CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn)
     ReturnValuePtr(nullptr), AllocaInsertPt(nullptr),
     AssignedGotoVarPtr(nullptr), AssignedGotoDispatchBlock(nullptr),
     CurLoopScope(nullptr), CurInlinedStmtFunc(nullptr) {
+  HasSavedVariables = false;
 }
 
 CodeGenFunction::~CodeGenFunction() {
@@ -129,8 +130,25 @@ void CodeGenFunction::EmitFunctionBody(const DeclContext *DC, const Stmt *S) {
   auto BodyBB = createBasicBlock("body");
   AllocaInsertPt = Builder.CreateBr(BodyBB);
   EmitBlock(BodyBB);
-  if(S)
+  if(HasSavedVariables)
+    EmitFirstInvocationBlock(S);
+  if(S) {
+    EmitDataStmts(S);
     EmitStmt(S);
+  }
+}
+
+void CodeGenFunction::EmitFirstInvocationBlock(const Stmt *S) {
+  auto GlobalFirstInvocationFlag = CGM.EmitGlobalVariable(CurFn->getName(), "FIRST_INVOCATION",
+                                                          CGM.Int1Ty, Builder.getTrue());
+  auto FirstInvocationBB = createBasicBlock("first-invocation");
+  auto EndBB = createBasicBlock("first-invocation-end");
+  Builder.CreateCondBr(Builder.CreateLoad(GlobalFirstInvocationFlag), FirstInvocationBB,
+                       EndBB);
+  EmitBlock(FirstInvocationBB);
+  if(S) EmitDataStmts(S, true);
+  Builder.CreateStore(Builder.getFalse(), GlobalFirstInvocationFlag);
+  EmitBlock(EndBB);
 }
 
 void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func,
@@ -162,12 +180,19 @@ void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
      D->isArgument()  ||
      D->isFunctionResult()) return;
 
-  auto Type = D->getType();
   llvm::Value *Ptr;
-  if(Type->isArrayType())
-    Ptr = CreateArrayAlloca(Type, D->getName());
-  else Ptr = Builder.CreateAlloca(ConvertTypeForMem(Type),
-                                  nullptr, D->getName());
+  auto Type = D->getType();
+  auto Quals = Type.getExtQualsPtrOrNull();
+  if(Quals && Quals->getQualifiers().hasAttributeSpec(Qualifiers::AS_save) &&
+     !IsMainProgram) {
+    Ptr = CGM.EmitGlobalVariable(CurFn->getName(), D);
+    HasSavedVariables = true;
+  } else {
+    if(Type->isArrayType())
+      Ptr = CreateArrayAlloca(Type, D->getName());
+    else Ptr = Builder.CreateAlloca(ConvertTypeForMem(Type),
+                                    nullptr, D->getName());
+  }
   LocalVariables.insert(std::make_pair(D, Ptr));
 }
 

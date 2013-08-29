@@ -34,6 +34,15 @@ llvm::Type *CodeGenTypes::ConvertArrayType(const ArrayType *T) {
   return llvm::PointerType::get(ConvertTypeForMem(T->getElementType()), 0);
 }
 
+llvm::Type *CodeGenTypes::ConvertArrayTypeForMem(const ArrayType *T,
+                                                 const ExtQuals *Ext) {
+  uint64_t ArraySize;
+  if(T->EvaluateSize(ArraySize, Context))
+    return GetFixedSizeArrayType(T, ArraySize);
+  llvm_unreachable("invalid memory array type");
+  return nullptr;
+}
+
 llvm::Value *CodeGenFunction::CreateArrayAlloca(QualType T,
                                                 const llvm::Twine &Name,
                                                 bool IsTemp) {

@@ -94,6 +94,10 @@ public:
   llvm::Type *ConvertBuiltInType(const BuiltinType *T, const ExtQuals *Ext);
   llvm::Type *ConvertBuiltInType(BuiltinType::TypeSpec Spec,
                                  BuiltinType::TypeKind Kind);
+
+  llvm::Type *ConvertArrayTypeForMem(const ArrayType *T,
+                                     const ExtQuals *Ext);
+
   llvm::Type *ConvertArrayType(const ArrayType *T);
 
   llvm::Type *GetFixedSizeArrayType(const ArrayType *T,

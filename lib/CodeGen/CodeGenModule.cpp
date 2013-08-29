@@ -171,7 +171,21 @@ void CodeGenModule::EmitFunctionDecl(const FunctionDecl *Function) {
   CGF.EmitFunctionEpilogue(Function, FuncInfo.getInfo());
 }
 
+llvm::GlobalVariable *CodeGenModule::EmitGlobalVariable(StringRef FuncName, const VarDecl *Var,
+                                                        llvm::Constant *Initializer) {
+  auto T = getTypes().ConvertTypeForMem(Var->getType());
+  return new llvm::GlobalVariable(TheModule, T,
+                                  false, llvm::GlobalValue::InternalLinkage,
+                                  llvm::Constant::getNullValue(T),
+                                  llvm::Twine(FuncName) + Var->getName() + "_");
+}
 
+llvm::GlobalVariable *CodeGenModule::EmitGlobalVariable(StringRef FuncName, StringRef VarName,
+                                               llvm::Type *Type, llvm::Constant *Initializer) {
+  return new llvm::GlobalVariable(TheModule, Type,
+                                  false, llvm::GlobalValue::InternalLinkage, Initializer,
+                                  llvm::Twine(FuncName) + VarName + "_");
+}
 
 }
 } // end namespace flang
