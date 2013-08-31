@@ -42,6 +42,8 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     return ConvertBuiltInType(BTy, Ext);
   else if(const ArrayType *ATy = dyn_cast<ArrayType>(TPtr))
     return ConvertArrayType(ATy);
+  else if(const FunctionType *FTy = dyn_cast<FunctionType>(TPtr))
+    return ConvertFunctionType(FTy);
 
   return nullptr;
 }
@@ -138,6 +140,10 @@ llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {
 
   llvm_unreachable("invalid type");
   return nullptr;
+}
+
+llvm::Type *CodeGenTypes::ConvertFunctionType(const FunctionType *T) {
+  return llvm::PointerType::get(GetFunctionType(T->getPrototype())->getFunctionType(), 0);
 }
 
 const CGFunctionInfo *CodeGenTypes::GetFunctionType(const FunctionDecl *FD) {

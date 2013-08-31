@@ -201,7 +201,7 @@ public:
   QualType getFunctionType(QualType ResultType, const FunctionDecl *Prototype);
 
   QualType getFunctionType(const FunctionDecl *Prototype) {
-    return getFunctionType(Prototype->getType(), Prototype);
+    return getFunctionType(QualType(), Prototype);
   }
 
   /// getRecordType - Return the uniqued reference to the type for a structure

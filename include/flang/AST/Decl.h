@@ -693,7 +693,8 @@ public:
     NormalFunction,
     StatementFunction,
     Subroutine,
-    External
+    External,
+    ExternalArgument
   };
 
   enum Attributes {
@@ -726,7 +727,12 @@ public:
   bool isNormalFunction() const { return SubDeclKind == NormalFunction; }
   bool isStatementFunction() const { return SubDeclKind == StatementFunction; }
   bool isSubroutine() const { return SubDeclKind == Subroutine; }
-  bool isExternal() const { return SubDeclKind == External; }
+  bool isExternal() const {
+    return SubDeclKind == External || SubDeclKind == ExternalArgument;
+  }
+  bool isExternalArgument() const {
+    return SubDeclKind == ExternalArgument;
+  }
 
   bool isRecursive() const { return CustomBoolAttr1 != 0; }
 

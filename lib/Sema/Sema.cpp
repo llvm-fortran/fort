@@ -902,12 +902,15 @@ StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
                                Expr *StmtLabel) {
   QualType Type;
   SourceLocation TypeLoc;
+  VarDecl *ArgumentExternal = nullptr;
   if (auto Prev = LookupIdentifier(IDInfo)) {
     auto VD = dyn_cast<VarDecl>(Prev);
     if(VD && (VD->isUnusedSymbol() || VD->isArgument()) ) {
       Type = VD->getType();
       TypeLoc = VD->getLocation();
       CurContext->removeDecl(VD);
+      if(VD->isArgument())
+        ArgumentExternal = VD;
     } else {
       Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
       Diags.Report(Prev->getLocation(), diag::note_previous_definition);
@@ -916,11 +919,14 @@ StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
   }
 
   DeclarationNameInfo DeclName(IDInfo,IDLoc);
-  auto Decl = FunctionDecl::Create(C, FunctionDecl::External, CurContext,
-                                   DeclName, Type);
+  auto Decl = FunctionDecl::Create(C, ArgumentExternal? FunctionDecl::ExternalArgument :
+                                                        FunctionDecl::External,
+                                   CurContext, DeclName, Type);
   if(!Type.isNull())
     SetFunctionType(Decl, Type, TypeLoc, SourceRange()); //FIXME: proper loc, and range
   CurContext->addDecl(Decl);
+  if(ArgumentExternal)
+    ArgumentExternal->setType(C.getFunctionType(Decl));
 
   auto Result = ExternalStmt::Create(C, IDLoc, IDInfo, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);

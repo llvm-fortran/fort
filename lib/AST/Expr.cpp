@@ -262,7 +262,7 @@ ImplicitTempArrayExpr *ImplicitTempArrayExpr::Create(ASTContext &C, Expr *E) {
 
 FunctionRefExpr::FunctionRefExpr(SourceLocation Loc, const FunctionDecl *Func,
                 QualType T)
-  : Expr(FunctionRefExprClass, T, Loc), Function(Function) {}
+  : Expr(FunctionRefExprClass, T, Loc), Function(Func) {}
 
 FunctionRefExpr *FunctionRefExpr::Create(ASTContext &C, SourceLocation Loc,
                                          const FunctionDecl *Function) {

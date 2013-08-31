@@ -181,7 +181,7 @@ llvm::GlobalVariable *CodeGenModule::EmitGlobalVariable(StringRef FuncName, cons
 }
 
 llvm::GlobalVariable *CodeGenModule::EmitGlobalVariable(StringRef FuncName, StringRef VarName,
-                                               llvm::Type *Type, llvm::Constant *Initializer) {
+                                                        llvm::Type *Type, llvm::Constant *Initializer) {
   return new llvm::GlobalVariable(TheModule, Type,
                                   false, llvm::GlobalValue::InternalLinkage, Initializer,
                                   llvm::Twine(FuncName) + VarName + "_");

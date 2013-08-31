@@ -214,6 +214,17 @@ CGFunctionInfo::ArgInfo CodeGenFunction::GetArgInfo(const VarDecl *Arg) const {
   return CGFunctionInfo::ArgInfo();
 }
 
+const VarDecl *CodeGenFunction::GetExternalFunctionArgument(const FunctionDecl *Func) {
+  for(auto Arg : ArgsList) {
+    if(auto FType = Arg->getType()->asFunctionType()) {
+      if(FType->getPrototype() == Func)
+        return Arg;
+    }
+  }
+  llvm_unreachable("invalid external function argument");
+  return nullptr;
+}
+
 llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID,
                                                    ArrayRef<llvm::Type*> ArgTypes) const {
   return llvm::Intrinsic::getDeclaration(&CGM.getModule(),

@@ -115,11 +115,21 @@ RValueTy CodeGenFunction::EmitCall(const FunctionDecl *Function,
                                    CallArgList &ArgList,
                                    ArrayRef<Expr*> Arguments,
                                    bool ReturnsNothing) {
+  llvm::Value *Callee;
+  const CGFunctionInfo *FuncInfo;
   if(Function->isStatementFunction())
     // statement functions are inlined.
     return EmitStatementFunctionCall(Function, Arguments);
-  CGFunction CGFunc = CGM.GetFunction(Function);
-  return EmitCall(CGFunc.getFunction(), CGFunc.getInfo(),
+  else if(Function->isExternalArgument()) {
+    // function pointer
+    Callee = GetVarPtr(GetExternalFunctionArgument(Function));
+    FuncInfo = CGM.getTypes().GetFunctionType(Function);
+  } else {
+    auto CGFunc = CGM.GetFunction(Function);
+    Callee = CGFunc.getFunction();
+    FuncInfo = CGFunc.getInfo();
+  }
+  return EmitCall(Callee, FuncInfo,
                   ArgList, Arguments, ReturnsNothing);
 }
 

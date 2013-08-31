@@ -103,6 +103,8 @@ public:
   llvm::Type *GetFixedSizeArrayType(const ArrayType *T,
                                     uint64_t Size);
 
+  llvm::Type *ConvertFunctionType(const FunctionType *T);
+
   llvm::Type *ConvertReturnType(QualType T,
                                 CGFunctionInfo::RetInfo &ReturnInfo);
 

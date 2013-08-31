@@ -180,6 +180,7 @@ public:
 
   llvm::Value *GetVarPtr(const VarDecl *D);
   llvm::Value *GetRetVarPtr();
+  const VarDecl *GetExternalFunctionArgument(const FunctionDecl *Func);
 
   /// \brief Returns the argument info for the given arg.
   CGFunctionInfo::ArgInfo GetArgInfo(const VarDecl *Arg) const;
@@ -277,6 +278,7 @@ public:
     return GetConstantZero(ConvertType(T));
   }
   llvm::Value *GetConstantOne(QualType T);
+  llvm::Value *EmitFunctionPointer(const FunctionDecl *F);
 
   // complex expressions.
   ComplexValueTy ExtractComplexValue(llvm::Value *Agg);
