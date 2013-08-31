@@ -18,10 +18,10 @@ PROGRAM test
   i_mat = r_mat
 
   i_mat = i_mat + i_mat2
-  ! FIXME: implicit casts
-  !i_mat2 = i_mat * (2 - 4) + r_mat
+  i_mat2 = i_mat * (2 - 4) + r_mat
 
   c_mat = c_mat * c_mat2
+  i_mat = c_mat + i_mat2
 
   l_mat = i_mat <= i_mat2
 

@@ -382,6 +382,18 @@ static void Fortran90ArithmeticBinaryTypingRules(ASTContext &C,
   }
 }
 
+/// \brief Adjust the return type of an implicit cast expression,
+/// so that it returns a proper array type when an array expression
+/// is being given to it.
+static void AdjustArrayImplicitCast(ASTContext &C, Expr *E) {
+  if(auto Cast = dyn_cast<ImplicitCastExpr>(E)) {
+    if(auto ATy = Cast->getExpression()->getType()->asArrayType()) {
+      if(!Cast->getType()->isArrayType())
+        Cast->setType(C.getArrayType(Cast->getType(), ATy->getDimensions()));
+    }
+  }
+}
+
 ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
                                  BinaryExpr::Operator Op,
                                  ExprResult LHS, ExprResult RHS) {
@@ -531,6 +543,9 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
     for(auto I : ReturnArrayType->getDimensions())
       Dims.push_back(DeferredShapeSpec::Create(C));
     ReturnType = Context.getArrayType(ReturnType, Dims);
+
+    AdjustArrayImplicitCast(C, LHS.get());
+    AdjustArrayImplicitCast(C, RHS.get());
   }
 
   return BinaryExpr::Create(C, Loc, Op, ReturnType, LHS.take(), RHS.take());
