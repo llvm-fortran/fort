@@ -360,6 +360,11 @@ public:
 
   QualType getCanonicalType() const;
 
+  /// \brief If this QualType instance is an array type,
+  /// return the element type of this array type,
+  /// otherwise return this QualType instance.
+  QualType getSelfOrArrayElementType() const;
+
   /// \brief Determine whether this particular QualType instance has any
   /// "non-fast" qualifiers, e.g., those that are stored in an ExtQualType
   /// instance.
@@ -853,6 +858,11 @@ inline QualType QualType::getCanonicalType() const {
   return canon.withFastQualifiers(getLocalFastQualifiers());
 }
 
+inline QualType QualType::getSelfOrArrayElementType() const {
+  if(auto ATy = getTypePtr()->asArrayType())
+    return ATy->getElementType();
+  return *this;
+}
 
 inline bool Type::isBuiltinType() const {
   return isa<BuiltinType>(CanonicalType);

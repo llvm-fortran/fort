@@ -217,7 +217,9 @@ ExprResult Sema::TypecheckAssignment(QualType LHSType, ExprResult RHS,
         return RHS;
       else if(Action == ImplicitCastAction)
         return ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                        LHSElementType, RHS.take());
+                                        Context.getArrayType(LHSElementType,
+                                                             RHSType->asArrayType()->getDimensions()),
+                                        RHS.take());
       auto Reporter = Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
           << LHSElementType << RHSElementType;
       if(LHSRange.isValid())

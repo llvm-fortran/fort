@@ -727,7 +727,7 @@ void ASTDumper::VisitDefinedUnaryOperatorExpr(const DefinedUnaryOperatorExpr *E)
 }
 
 void ASTDumper::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
-  auto Type = E->getType();
+  auto Type = E->getType().getSelfOrArrayElementType();
   if(Type->isIntegerType())
     OS << "int(";
   else if(Type->isRealType())

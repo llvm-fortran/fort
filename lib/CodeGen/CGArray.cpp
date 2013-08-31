@@ -412,7 +412,7 @@ RValueTy ArrayOperationEmmitter::VisitVarExpr(const VarExpr *E) {
 }
 
 RValueTy ArrayOperationEmmitter::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
-  return CGF.EmitImplicitConversion(Emit(E->getExpression()), E->getType());
+  return CGF.EmitImplicitConversion(Emit(E->getExpression()), E->getType().getSelfOrArrayElementType());
 }
 
 RValueTy ArrayOperationEmmitter::VisitUnaryExpr(const UnaryExpr *E) {

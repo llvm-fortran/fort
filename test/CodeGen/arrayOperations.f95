@@ -11,9 +11,11 @@ PROGRAM test
   i = 11
   i_mat = 11
   i_mat2 = 12
+  i_mat = 1.0
   r_mat = 1.0
   c_mat = (1.0,0.0)
   c_mat2 = c_mat
+  i_mat = r_mat
 
   i_mat = i_mat + i_mat2
   ! FIXME: implicit casts

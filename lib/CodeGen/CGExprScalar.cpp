@@ -344,8 +344,10 @@ llvm::Value *CodeGenFunction::EmitScalarToScalarConversion(llvm::Value *Value,
 llvm::Value *ScalarExprEmitter::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
   auto Input = E->getExpression();
   if(Input->getType()->isComplexType())
-    return CGF.EmitComplexToScalarConversion(CGF.EmitComplexExpr(Input), E->getType());
-  return CGF.EmitScalarToScalarConversion(EmitExpr(Input), E->getType());
+    return CGF.EmitComplexToScalarConversion(CGF.EmitComplexExpr(Input),
+                                             E->getType().getSelfOrArrayElementType());
+  return CGF.EmitScalarToScalarConversion(EmitExpr(Input),
+                                          E->getType().getSelfOrArrayElementType());
 }
 
 llvm::Value *ScalarExprEmitter::VisitCallExpr(const CallExpr *E) {
