@@ -31,6 +31,7 @@ namespace llvm {
   class Module;
   class Constant;
   class ConstantInt;
+  class ConstantArray;
   class Function;
   class GlobalValue;
   class DataLayout;
@@ -169,6 +170,8 @@ public:
 
   llvm::GlobalVariable *EmitGlobalVariable(StringRef FuncName, StringRef VarName,
                                            llvm::Type *Type, llvm::Constant *Initializer);
+
+  llvm::Value *EmitConstantArray(llvm::Constant *Array);
 
   llvm::Value *GetCFunction(StringRef Name,
                             ArrayRef<llvm::Type*> ArgTypes,

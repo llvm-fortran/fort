@@ -135,6 +135,7 @@ public:
   RValueTy VisitImplicitCastExpr(const ImplicitCastExpr *E);
   RValueTy VisitUnaryExpr(const UnaryExpr *E);
   RValueTy VisitBinaryExpr(const BinaryExpr *E);
+  RValueTy VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
 
   static QualType ElementType(const Expr *E) {
     return cast<ArrayType>(E->getType().getTypePtr())->getElementType();

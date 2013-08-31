@@ -103,6 +103,16 @@ RValueTy CodeGenFunction::EmitImplicitConversion(RValueTy Val, QualType T) {
   return EmitComplexToScalarConversion(Val.asComplex(), T);
 }
 
+llvm::Constant *CodeGenFunction::EmitConstantExpr(const Expr *E) {
+  auto T = E->getType();
+  if(T->isComplexType())
+    return CreateComplexConstant(EmitComplexExpr(E));
+  else if(T->isCharacterType()) //FIXME
+    ;//;return CreateCharacterConstant(EmitCharacterExpr(E));
+  else
+    return cast<llvm::Constant>(EmitScalarExpr(E));
+}
+
 class LValueExprEmitter
   : public ConstExprVisitor<LValueExprEmitter, LValueTy> {
   CodeGenFunction &CGF;

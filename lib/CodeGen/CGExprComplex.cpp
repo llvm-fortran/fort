@@ -246,5 +246,9 @@ llvm::Value   *CodeGenFunction::CreateComplexVector(ComplexValueTy Value) {
   return Builder.CreateInsertElement(Result, Value.Im, Builder.getInt32(1), "im");
 }
 
+llvm::Constant *CodeGenFunction::CreateComplexConstant(ComplexValueTy Value) {
+  return cast<llvm::Constant>(CreateComplexAggregate(Value));
+}
+
 }
 } // end namespace flang

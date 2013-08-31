@@ -31,6 +31,7 @@ public:
   bool VisitBinaryExpr(const BinaryExpr *E);
   bool VisitImplicitCastExpr(const ImplicitCastExpr *E);
   bool VisitVarExpr(const VarExpr *E);
+  bool VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
 };
 
 bool ConstExprVerifier::Eval(const Expr *E) {
@@ -65,6 +66,14 @@ bool ConstExprVerifier::VisitVarExpr(const VarExpr *E) {
   if(NonConstants)
     NonConstants->push_back(E);
   return false;
+}
+
+bool ConstExprVerifier::VisitArrayConstructorExpr(const ArrayConstructorExpr *E) {
+  for(auto I : E->getItems()) {
+    if(!Eval(I))
+      return false;
+  }
+  return true;
 }
 
 struct IntValueTy : public llvm::APInt {

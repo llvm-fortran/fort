@@ -252,6 +252,8 @@ public:
   RValueTy EmitUnaryExpr(UnaryExpr::Operator Op, RValueTy Val);
   RValueTy EmitImplicitConversion(RValueTy Val, QualType T);
 
+  llvm::Constant *EmitConstantExpr(const Expr *E);
+
   // scalar expressions.
   llvm::Value *EmitSizeIntExpr(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
@@ -284,6 +286,7 @@ public:
   ComplexValueTy ExtractComplexValue(llvm::Value *Agg);
   llvm::Value   *CreateComplexAggregate(ComplexValueTy Value);
   llvm::Value   *CreateComplexVector(ComplexValueTy Value);
+  llvm::Constant *CreateComplexConstant(ComplexValueTy Value);
   ComplexValueTy EmitComplexExpr(const Expr *E);
   ComplexValueTy EmitComplexLoad(llvm::Value *Ptr, bool IsVolatile = false);
   void EmitComplexStore(ComplexValueTy Value, llvm::Value *Ptr,
@@ -408,9 +411,10 @@ public:
   void GetArrayDimensionsInfo(QualType T, SmallVectorImpl<ArrayDimensionValueTy> &Dims);
 
   llvm::Value *EmitArrayPtr(const Expr *E);
+  llvm::Value *EmitConstantArrayConstructor(const ArrayConstructorExpr *E);
+  llvm::Value *EmitTempArrayConstructor(const ArrayConstructorExpr *E);
+  llvm::Value *EmitArrayConstructor(const ArrayConstructorExpr *E);
   void EmitArrayAssignment(const Expr *LHS, const Expr *RHS);
-  void EmitArrayConstructorToKnownSizeAssignment(const ArrayType *LHSType, uint64_t LHSSize,
-                                                 llvm::Value *LHSPtr, ArrayRef<Expr *> RHS);
 };
 
 }  // end namespace CodeGen

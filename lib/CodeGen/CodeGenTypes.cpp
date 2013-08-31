@@ -136,7 +136,7 @@ llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {
   if(const BuiltinType *BTy = dyn_cast<BuiltinType>(TPtr))
     return ConvertBuiltInTypeForMem(BTy, Ext);
   else if(const ArrayType *ATy = dyn_cast<ArrayType>(TPtr))
-    return ConvertArrayTypeForMem(ATy, Ext);
+    return ConvertArrayTypeForMem(ATy);
 
   llvm_unreachable("invalid type");
   return nullptr;

@@ -187,5 +187,11 @@ llvm::GlobalVariable *CodeGenModule::EmitGlobalVariable(StringRef FuncName, Stri
                                   llvm::Twine(FuncName) + VarName + "_");
 }
 
+llvm::Value *CodeGenModule::EmitConstantArray(llvm::Constant *Array) {
+  // FIXME: fold identical values
+  return new llvm::GlobalVariable(TheModule, Array->getType(),
+                                  true, llvm::GlobalValue::PrivateLinkage, Array);
+}
+
 }
 } // end namespace flang

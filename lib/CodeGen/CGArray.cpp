@@ -24,8 +24,8 @@
 namespace flang {
 namespace CodeGen {
 
-llvm::Type *CodeGenTypes::GetFixedSizeArrayType(const ArrayType *T,
-                                                uint64_t Size) {
+llvm::ArrayType *CodeGenTypes::GetFixedSizeArrayType(const ArrayType *T,
+                                                     uint64_t Size) {
   return llvm::ArrayType::get(ConvertTypeForMem(T->getElementType()),
                               Size);
 }
@@ -34,8 +34,7 @@ llvm::Type *CodeGenTypes::ConvertArrayType(const ArrayType *T) {
   return llvm::PointerType::get(ConvertTypeForMem(T->getElementType()), 0);
 }
 
-llvm::Type *CodeGenTypes::ConvertArrayTypeForMem(const ArrayType *T,
-                                                 const ExtQuals *Ext) {
+llvm::ArrayType *CodeGenTypes::ConvertArrayTypeForMem(const ArrayType *T) {
   uint64_t ArraySize;
   if(T->EvaluateSize(ArraySize, Context))
     return GetFixedSizeArrayType(T, ArraySize);
@@ -136,6 +135,7 @@ public:
 
   void EmitExpr(const Expr *E);
   void VisitVarExpr(const VarExpr *E);
+  void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
 
   ArrayRef<ArrayDimensionValueTy> getResultInfo() const {
     return Dims;
@@ -158,9 +158,8 @@ void ArrayValueExprEmitter::VisitVarExpr(const VarExpr *E) {
   auto VD = E->getVarDecl();
   if(CGF.IsInlinedArgument(VD))
     return EmitExpr(CGF.GetInlinedArgumentValue(VD));
-  if(VD->isParameter()) {
-    return; //FIXME?
-  }
+  if(VD->isParameter())
+    return EmitExpr(VD->getInit());
   if(VD->isArgument()) {
     CGF.GetArrayDimensionsInfo(VD->getType(), Dims);
     Ptr = CGF.GetVarPtr(VD);
@@ -168,6 +167,11 @@ void ArrayValueExprEmitter::VisitVarExpr(const VarExpr *E) {
   }
   CGF.GetArrayDimensionsInfo(VD->getType(), Dims);
   Ptr = Builder.CreateConstInBoundsGEP2_32(CGF.GetVarPtr(VD), 0, 0);
+}
+
+void ArrayValueExprEmitter::VisitArrayConstructorExpr(const ArrayConstructorExpr *E) {
+  CGF.GetArrayDimensionsInfo(E->getType(), Dims);
+  Ptr = CGF.EmitArrayConstructor(E);
 }
 
 class ArraySectionsEmmitter
@@ -256,6 +260,7 @@ public:
   void VisitImplicitCastExpr(const ImplicitCastExpr *E);
   void VisitUnaryExpr(const UnaryExpr *E);
   void VisitBinaryExpr(const BinaryExpr *E);
+  void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
 
   const Expr *getLastEmmittedArray() const {
     return LastArrayEmmitted;
@@ -286,6 +291,11 @@ void ScalarEmmitterAndSectionGatherer::VisitBinaryExpr(const BinaryExpr *E) {
   Emit(E->getRHS());
 }
 
+void ScalarEmmitterAndSectionGatherer::VisitArrayConstructorExpr(const ArrayConstructorExpr *E) {
+  ArrayOp.EmitArraySections(CGF, E);
+  LastArrayEmmitted = E;
+}
+
 void ArrayOperation::EmitAllScalarValuesAndArraySections(CodeGenFunction &CGF, const Expr *E) {
   ScalarEmmitterAndSectionGatherer EV(CGF, *this);
   EV.Emit(E);
@@ -303,7 +313,8 @@ ArrayValueTy ArrayOperation::EmitArrayExpr(CodeGenFunction &CGF, const Expr *E) 
 
 ArrayLoopEmmitter::ArrayLoopEmmitter(CodeGenFunction &cgf,
                                              ArrayRef<ArraySection> LHS)
-  : CGF(cgf), Builder(cgf.getBuilder()), Sections(LHS) { }
+  : CGF(cgf), Builder(cgf.getBuilder()), Sections(LHS)
+{ }
 
 
 llvm::Value *ArrayLoopEmmitter::EmitSectionIndex(const ArrayRangeSection &Range,
@@ -423,6 +434,10 @@ RValueTy ArrayOperationEmmitter::VisitBinaryExpr(const BinaryExpr *E) {
   return CGF.EmitBinaryExpr(E->getOperator(), Emit(E->getLHS()), Emit(E->getRHS()));
 }
 
+RValueTy ArrayOperationEmmitter::VisitArrayConstructorExpr(const ArrayConstructorExpr *E) {
+  return CGF.EmitLoad(Looper.EmitElementPointer(Operation.getArrayValue(E)), ElementType(E));
+}
+
 LValueTy ArrayOperationEmmitter::EmitLValue(const Expr *E) {
   return Looper.EmitElementPointer(Operation.getArrayValue(E));
 }
@@ -475,33 +490,37 @@ llvm::Value *CodeGenFunction::EmitArrayPtr(const Expr *E) {
   return EV.getResultPtr();
 }
 
-void CodeGenFunction::EmitArrayConstructorToKnownSizeAssignment(const ArrayType *LHSType,
-                                                                uint64_t LHSSize,
-                                                                llvm::Value *LHSPtr,
-                                                                ArrayRef<Expr*> RHS) {
-  assert(RHS.size() == LHSSize);
-  for(uint64_t I = 0; I < LHSSize; ++I) {
-    auto Dest = Builder.CreateConstInBoundsGEP1_64(LHSPtr, I);
-    EmitAssignment(LValueTy(Dest, LHSType->getElementType()),
-                   EmitRValue(RHS[I]));
+llvm::Value *CodeGenFunction::EmitConstantArrayConstructor(const ArrayConstructorExpr *E) {
+  auto Items = E->getItems();
+  SmallVector<llvm::Constant*, 16> Values(Items.size());
+  for(size_t I = 0; I < Items.size(); ++I)
+    Values[I] = EmitConstantExpr(Items[I]);
+  auto Arr = llvm::ConstantArray::get(getTypes().ConvertArrayTypeForMem(E->getType()->asArrayType()),
+                                      Values);
+  return Builder.CreateConstGEP2_64(CGM.EmitConstantArray(Arr), 0, 0);
+}
+
+llvm::Value *CodeGenFunction::EmitTempArrayConstructor(const ArrayConstructorExpr *E) {
+  // FIXME: implied-do, heap allocations
+
+  auto Items = E->getItems();
+  auto ATy = E->getType()->asArrayType();
+  auto VMATy = getTypes().ConvertArrayTypeForMem(ATy);
+  auto Arr = Builder.CreateConstGEP2_64(CreateTempAlloca(VMATy, "array-constructor-temp"), 0, 0);
+  for(uint64_t I = 0, Size = VMATy->getArrayNumElements(); I < Size; ++I) {
+    auto Dest = Builder.CreateConstInBoundsGEP1_64(Arr, I);
+    EmitStore(EmitRValue(Items[I]), LValueTy(Dest), ATy->getElementType());
   }
+  return Arr;
+}
+
+llvm::Value *CodeGenFunction::EmitArrayConstructor(const ArrayConstructorExpr *E) {
+  if(E->isEvaluatable(getContext()))
+    return EmitConstantArrayConstructor(E);
+  return EmitTempArrayConstructor(E);
 }
 
 void CodeGenFunction::EmitArrayAssignment(const Expr *LHS, const Expr *RHS) {  
-  auto LHSType = cast<ArrayType>(LHS->getType().getTypePtr());
-
-  if(auto AC = dyn_cast<ArrayConstructorExpr>(RHS)) {
-    uint64_t LHSSize;
-    if(LHSType->EvaluateSize(LHSSize, getContext())) {
-      ArrayValueExprEmitter EV(*this);
-      EV.EmitExpr(LHS);
-      auto Ptr = EV.getResultPtr();
-      EmitArrayConstructorToKnownSizeAssignment(LHSType, LHSSize,
-                                                Ptr, AC->getItems());
-      return;
-    }
-  }
-
   ArrayOperation OP;
   auto LHSArray = OP.EmitArrayExpr(*this, LHS);
   OP.EmitAllScalarValuesAndArraySections(*this, RHS);
