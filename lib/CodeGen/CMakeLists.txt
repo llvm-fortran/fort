@@ -16,6 +16,8 @@ add_flang_library(flangCodeGen
   CGCall.cpp
   CGIORuntime.cpp
   CGIOLibflang.cpp
+  CGSystemRuntime.cpp
+  CGSystemLibflang.cpp
 )
 
 target_link_libraries(flangCodeGen

@@ -347,7 +347,7 @@ public:
   RValueTy EmitCall(llvm::Value *Callee,
                     const CGFunctionInfo *FuncInfo,
                     CallArgList &ArgList,
-                    ArrayRef<Expr*> Arguments,
+                    ArrayRef<Expr*> Arguments = ArrayRef<Expr*>(),
                     bool ReturnsNothing = false);
   RValueTy EmitCall(CGFunction Func,
                     ArrayRef<RValueTy> Arguments);
