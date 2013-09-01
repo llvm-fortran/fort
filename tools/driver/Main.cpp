@@ -146,6 +146,8 @@ extern "C" void jit_assignment_char1(char *LHS, size_t LHSLength,
   memmove(LHS, RHS, std::min(LHSLength, RHSLength));
 }
 
+extern "C" void jit_init() {}
+
 static int Execute(llvm::Module *Module, const char * const *envp) {
   std::string Error;
   OwningPtr<llvm::ExecutionEngine> EE(
@@ -184,6 +186,9 @@ static int Execute(llvm::Module *Module, const char * const *envp) {
   }
   if(auto F = Module->getFunction("libflang_free")) {
     EE->addGlobalMapping(F, (void*) &free);
+  }
+  if(auto F = Module->getFunction("libflang_sys_init")) {
+    EE->addGlobalMapping(F, (void*) &jit_init);
   }
 
   std::vector<std::string> Args;

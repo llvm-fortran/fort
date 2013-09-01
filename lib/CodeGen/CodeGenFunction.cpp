@@ -58,6 +58,7 @@ void CodeGenFunction::EmitFunctionDecls(const DeclContext *DC) {
 
 void CodeGenFunction::EmitMainProgramBody(const DeclContext *DC, const Stmt *S) {
   EmitBlock(createBasicBlock("program_entry"));
+  CGM.getSystemRuntime().EmitInit(*this);
   IsMainProgram = true;
 
   ReturnBlock = createBasicBlock("program_exit");

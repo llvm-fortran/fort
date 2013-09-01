@@ -344,6 +344,9 @@ public:
   llvm::Value *EmitIntrinsicNumericInquiry(intrinsic::FunctionKind Func,
                                            const Expr *E, QualType Result);
 
+  RValueTy EmitSystemIntrinsic(intrinsic::FunctionKind Func,
+                               ArrayRef<Expr*> Arguments);
+
 
   // calls
   RValueTy EmitCall(const CallExpr *E);

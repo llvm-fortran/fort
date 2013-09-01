@@ -14,6 +14,7 @@
 #include <limits>
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
+#include "CGSystemRuntime.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/ExprVisitor.h"
 #include "flang/Frontend/CodeGenOptions.h"
@@ -95,6 +96,9 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
 
   case GROUP_NUMERIC_INQUIRY:
     return EmitIntrinsicNumericInquiry(Func, Args[0], E->getType());
+
+  case GROUP_SYSTEM:
+    return EmitSystemIntrinsic(Func, Args);
 
   default:
     llvm_unreachable("invalid intrinsic");
@@ -440,6 +444,22 @@ llvm::Value *CodeGenFunction::EmitIntrinsicNumericInquiry(intrinsic::FunctionKin
 #undef HANDLE_REAL
 
   return llvm::ConstantInt::get(RetT, IntResult, true);
+}
+
+RValueTy CodeGenFunction::EmitSystemIntrinsic(intrinsic::FunctionKind Func,
+                                              ArrayRef<Expr*> Arguments) {
+  using namespace intrinsic;
+
+  switch(Func) {
+  case ETIME:
+    return CGM.getSystemRuntime().EmitETIME(*this, Arguments);
+
+  default:
+    llvm_unreachable("invalid intrinsic");
+    break;
+  }
+
+  return RValueTy();
 }
 
 }

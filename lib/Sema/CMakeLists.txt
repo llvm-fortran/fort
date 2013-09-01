@@ -9,6 +9,7 @@ add_flang_library(flangSema
   SemaIntrinsic.cpp
   SemaFormat.cpp
   SemaIO.cpp
+  SemaEquivalence.cpp
   Spec.cpp
   )
 
