@@ -95,12 +95,13 @@ class CodeGenFunction {
   llvm::Instruction *AllocaInsertPt;
 
   bool HasSavedVariables;
-  llvm::SmallVector<const Stmt*, 16> DataStmtsForSavedVariables;
 
   llvm::DenseMap<const Stmt*, llvm::BasicBlock*> GotoTargets;
   llvm::SmallVector<const Stmt*, 8> AssignedGotoTargets;
   llvm::Value *AssignedGotoVarPtr;
   llvm::BasicBlock *AssignedGotoDispatchBlock;
+
+  llvm::SmallVector<llvm::Value*, 8> TempHeapAllocations;
 
   bool IsMainProgram;
 
@@ -143,10 +144,6 @@ public:
   llvm::Function *getCurrentFunction() const {
     return CurFn;
   }
-
-  /// EmitReturnBlock - Emit the unified return block, trying to avoid its
-  /// emission when possible.
-  void EmitReturnBlock();
 
   llvm::Type *ConvertTypeForMem(QualType T) const;
   llvm::Type *ConvertType(QualType T) const;
@@ -197,6 +194,7 @@ public:
   void EmitFunctionBody(const DeclContext *DC, const Stmt *S);
   void EmitFunctionEpilogue(const FunctionDecl *Func,
                             const CGFunctionInfo *Info);
+  void EmitCleanup();
 
   void EmitVarDecl(const VarDecl *D);
   void EmitDataStmts(const Stmt *S, bool Saved = false);
@@ -212,6 +210,15 @@ public:
   /// the alloca.
   llvm::AllocaInst *CreateTempAlloca(llvm::Type *Ty,
                                      const llvm::Twine &Name = "tmp");
+
+  /// CreateTempHeapAlloca - This allocates an object using the
+  /// runtime provided dynamic allocation mechanism.
+  llvm::Value *CreateTempHeapAlloca(llvm::Value *Size);
+
+  llvm::Value *CreateTempHeapAlloca(llvm::Value *Size, llvm::Type *PtrType);
+
+  llvm::Value *CreateTempHeapArrayAlloca(QualType T,
+                                         ArrayRef<ArraySection> Sections);
 
   void EmitBlock(llvm::BasicBlock *BB);
   void EmitBranch(llvm::BasicBlock *Target);
@@ -408,9 +415,11 @@ public:
 
   ArraySection EmitDimSection(const ArrayDimensionValueTy &Dim);
 
+  llvm::Value *EmitArraySize(ArrayRef<ArraySection> Sections);
+
   void GetArrayDimensionsInfo(QualType T, SmallVectorImpl<ArrayDimensionValueTy> &Dims);
 
-  llvm::Value *EmitArrayPtr(const Expr *E);
+  llvm::Value *EmitArrayArgumentPointerValueABI(const Expr *E);
   llvm::Value *EmitConstantArrayConstructor(const ArrayConstructorExpr *E);
   llvm::Value *EmitTempArrayConstructor(const ArrayConstructorExpr *E);
   llvm::Value *EmitArrayConstructor(const ArrayConstructorExpr *E);

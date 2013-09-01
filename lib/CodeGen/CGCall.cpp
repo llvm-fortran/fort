@@ -218,7 +218,7 @@ void CodeGenFunction::EmitArrayCallArg(CallArgList &Args,
                                        const Expr *E, CGFunctionInfo::ArgInfo ArgInfo) {
   switch(ArgInfo.ABIInfo.getKind()) {
   case ABIArgInfo::Value:
-    Args.add(EmitArrayPtr(E));
+    Args.add(EmitArrayArgumentPointerValueABI(E));
     break;
 
   default:

@@ -179,6 +179,12 @@ static int Execute(llvm::Module *Module, const char * const *envp) {
   if(auto F = Module->getFunction("libflang_assignment_char1")) {
     EE->addGlobalMapping(F, (void*) &jit_assignment_char1);
   }
+  if(auto F = Module->getFunction("libflang_malloc")) {
+    EE->addGlobalMapping(F, (void*) &malloc);
+  }
+  if(auto F = Module->getFunction("libflang_free")) {
+    EE->addGlobalMapping(F, (void*) &free);
+  }
 
   std::vector<std::string> Args;
   Args.push_back(Module->getModuleIdentifier());

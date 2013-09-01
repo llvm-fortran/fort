@@ -13,6 +13,7 @@
 
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
+#include "CGSystemRuntime.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/DeclVisitor.h"
@@ -63,6 +64,7 @@ void CodeGenFunction::EmitMainProgramBody(const DeclContext *DC, const Stmt *S) 
   EmitFunctionBody(DC, S);
 
   EmitBlock(ReturnBlock);
+  EmitCleanup();
   auto ReturnValue = Builder.getInt32(0);
   Builder.CreateRet(ReturnValue);
   if(AssignedGotoDispatchBlock)
@@ -151,9 +153,16 @@ void CodeGenFunction::EmitFirstInvocationBlock(const Stmt *S) {
   EmitBlock(EndBB);
 }
 
+void CodeGenFunction::EmitCleanup() {
+  for(auto I : TempHeapAllocations)
+    CGM.getSystemRuntime().EmitFree(*this, I);
+}
+
 void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func,
                                            const CGFunctionInfo *Info) {  
   EmitBlock(ReturnBlock);
+  EmitCleanup();
+  // return
   if(auto RetVar = GetRetVarPtr()) {
     auto ReturnInfo = Info->getReturnInfo();
 
@@ -223,6 +232,18 @@ const VarDecl *CodeGenFunction::GetExternalFunctionArgument(const FunctionDecl *
   }
   llvm_unreachable("invalid external function argument");
   return nullptr;
+}
+
+llvm::Value *CodeGenFunction::CreateTempHeapAlloca(llvm::Value *Size) {
+  auto P = CGM.getSystemRuntime().EmitMalloc(*this, Size->getType() != CGM.SizeTy?
+                                             Builder.CreateZExtOrTrunc(Size, CGM.SizeTy) : Size);
+  TempHeapAllocations.push_back(P);
+  return P;
+}
+
+llvm::Value *CodeGenFunction::CreateTempHeapAlloca(llvm::Value *Size, llvm::Type *PtrType) {
+  auto P = CreateTempHeapAlloca(Size);
+  return P->getType() != PtrType? Builder.CreateBitCast(P, PtrType) : P;
 }
 
 llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID,

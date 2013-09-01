@@ -14,6 +14,7 @@
 #include "CodeGenModule.h"
 #include "CodeGenFunction.h"
 #include "CGIORuntime.h"
+#include "CGSystemRuntime.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/DeclVisitor.h"
@@ -57,6 +58,7 @@ CodeGenModule::CodeGenModule(ASTContext &C, const CodeGenOptions &CGO,
   RuntimeCC = llvm::CallingConv::C;
 
   IORuntime = CreateLibflangIORuntime(*this);
+  SystemRuntime = CreateLibflangSystemRuntime(*this);
 }
 
 CodeGenModule::~CodeGenModule() {
