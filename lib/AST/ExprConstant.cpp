@@ -229,18 +229,60 @@ void Expr::GatherNonEvaluatableExpressions(const ASTContext &Ctx,
     Result.push_back(this);
 }
 
-bool ArraySpec::EvaluateBounds(int64_t &LB, int64_t &UB, const ASTContext &Ctx) const {
+uint64_t EvaluatedArraySpec::EvaluateOffset(int64_t Index) const {
+  auto I = Index - LowerBound;
+  assert(I >= 0);
+  return uint64_t(I);
+}
+
+bool ArraySpec::Evaluate(EvaluatedArraySpec &Spec, const ASTContext &Ctx) const {
   return false;
 }
 
-bool ExplicitShapeSpec::EvaluateBounds(int64_t &LB, int64_t &UB, const ASTContext &Ctx) const {
+bool ExplicitShapeSpec::Evaluate(EvaluatedArraySpec &Spec, const ASTContext &Ctx) const {
   if(getLowerBound()) {
-    if(!getLowerBound()->EvaluateAsInt(LB, Ctx))
+    if(!getLowerBound()->EvaluateAsInt(Spec.LowerBound, Ctx))
       return false;
-  } else LB = 1;
-  if(!getUpperBound()->EvaluateAsInt(UB, Ctx))
+  } else Spec.LowerBound = 1;
+  if(!getUpperBound()->EvaluateAsInt(Spec.UpperBound, Ctx))
     return false;
+  auto Sz = Spec.UpperBound - Spec.LowerBound + 1;
+  assert(Sz > 0);
+  Spec.Size = uint64_t(Sz);
   return true;
 }
+
+static
+bool EvaluateDimensions(const ArrayType *T,
+                        llvm::MutableArrayRef<EvaluatedArraySpec> Dims,
+                        const ASTContext &Ctx) {
+  assert(T->getDimensionCount() == Dims.size());
+  auto Dimensions = T->getDimensions();
+  for(size_t I = 0; I < Dimensions.size(); ++I) {
+    if(!Dimensions[I]->Evaluate(Dims[I], Ctx))
+      return false;
+  }
+  return true;
+}
+
+bool ArrayElementExpr::EvaluateOffset(ASTContext &Ctx, uint64_t &Offset) const {
+  auto ATy = getTarget()->getType()->asArrayType();
+  SmallVector<EvaluatedArraySpec, 8> Dims(ATy->getDimensionCount());
+  if(EvaluateDimensions(ATy, Dims, Ctx))
+    return false;
+  auto Subscripts = getSubscripts();
+  Offset = 0;
+  for(size_t I = 0; I < Dims.size(); ++I) {
+    int64_t Index;
+    if(!Subscripts[I]->EvaluateAsInt(Index, Ctx))
+      return false;
+    if(I == 0)
+      Offset = Dims[I].EvaluateOffset(Index);
+    else
+      Offset = Offset * Dims[I-1].Size + Dims[I].EvaluateOffset(Index);
+  }
+  return true;
+}
+
 
 } // end namespace flang

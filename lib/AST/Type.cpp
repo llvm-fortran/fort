@@ -53,11 +53,10 @@ bool ArrayType::EvaluateSize(uint64_t &Result, const ASTContext &Ctx) const {
   Result = 1;
   auto Dimensions = getDimensions();
   for(size_t I = 0; I < Dimensions.size(); ++I) {
-    int64_t LowerBound, UpperBound;
-    if(!Dimensions[I]->EvaluateBounds(LowerBound, UpperBound, Ctx))
+    EvaluatedArraySpec Spec;
+    if(!Dimensions[I]->Evaluate(Spec, Ctx))
       return false;
-    assert(LowerBound <= UpperBound);
-    Result *= uint64_t(UpperBound - LowerBound + 1);
+    Result *= Spec.Size;
     // FIXME: overflow checks.
   }
   return true;

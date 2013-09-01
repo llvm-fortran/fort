@@ -248,6 +248,56 @@ public:
   Decl *Resolve(const IdentifierInfo *IDInfo) const;
 };
 
+/// EquivalenceScope - This is a component of a scope which assists with
+/// semantic analysis for the EQUIVALENCE statement and storage unit
+/// association for the variables that are influenced by the EQUIVALENCE
+/// statement.
+///
+class EquivalenceScope {
+public:
+  struct InfluenceObject;
+
+  class Object {
+  public:
+    const Expr *E;
+    uint64_t Offset;
+    InfluenceObject *Obj;
+
+    Object(){}
+    Object(const Expr *e, uint64_t offset,
+           InfluenceObject *obj)
+      : E(e), Offset(offset), Obj(obj) {}
+  };
+
+  class Connection {
+  public:
+    Object A;
+    Object B;
+
+    Connection(Object a, Object b)
+      : A(a), B(b) {}
+  };
+
+  class InfluenceObject {
+  public:
+    VarDecl *Var;
+  };
+private:
+  SmallVector<Connection, 16> Connections;
+  llvm::SmallDenseMap<const VarDecl*, InfluenceObject*> Objects;
+
+  InfluenceObject *GetObject(ASTContext &C, VarDecl *Var);
+public:
+
+  Object GetObject(ASTContext &C, const Expr *E, VarDecl *Var, uint64_t Offset);
+
+  /// \brief Returns true if the connection between two objects is valid.
+  bool CheckConnection(DiagnosticsEngine &Diags, Object A, Object B);
+
+  /// \brief Connects two objects.
+  void Connect(Object A, Object B);
+};
+
 /// The scope of a translation unit (a single file)
 class TranslationUnitScope {
 public:
@@ -261,6 +311,7 @@ public:
   StmtLabelScope StmtLabels;
   ConstructNameScope NamedConstructs;
   ImplicitTypingScope ImplicitTypingRules;
+  EquivalenceScope EquivalenceAssociations;
   BlockStmtBuilder Body;
 };
 

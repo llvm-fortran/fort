@@ -74,7 +74,6 @@ FunctionDecl *Sema::CurrentContextAsFunction() const {
   return dyn_cast<FunctionDecl>(CurContext);
 }
 
-
 void Sema::PushExecutableProgramUnit(ExecutableProgramUnitScope &Scope) {
   // Enter new statement label scope
   Scope.StmtLabels.setParent(CurStmtLabelScope);
@@ -87,6 +86,9 @@ void Sema::PushExecutableProgramUnit(ExecutableProgramUnitScope &Scope) {
   // Enter new implicit typing scope
   Scope.ImplicitTypingRules.setParent(CurImplicitTypingScope);
   CurImplicitTypingScope = &Scope.ImplicitTypingRules;
+
+  // Enter new equivalence association scope
+  CurEquivalenceScope = &Scope.EquivalenceAssociations;
 
   CurExecutableStmts = &Scope.Body;
 }
@@ -139,6 +141,8 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
     cast<MainProgramDecl>(CurContext)->setBody(Body);
 
   CurImplicitTypingScope = CurImplicitTypingScope->getParent();
+
+  CurEquivalenceScope = nullptr;
 }
 
 void BlockStmtBuilder::Enter(Entry S) {
@@ -979,111 +983,6 @@ StmtResult Sema::ActOnSAVE(ASTContext &C, SourceLocation Loc,
                            const IdentifierInfo *IDInfo,
                            Expr *StmtLabel) {
   auto Result = SaveStmt::Create(C, IDLoc, IDInfo, StmtLabel);
-  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  return Result;
-}
-
-bool Sema::CheckEquivalenceObject(SourceLocation Loc, Expr *E) {
-  if(auto Var = dyn_cast<VarExpr>(E)) {
-    auto VD = Var->getVarDecl();
-    if(VD->isArgument() || VD->isParameter()) {
-      Diags.Report(Loc, diag::err_spec_requires_local_var)
-        << E->getSourceRange();
-      Diags.Report(VD->getLocation(), diag::note_previous_definition_kind)
-          << VD->getIdentifier() << (VD->isArgument()? 0 : 1)
-          << getTokenRange(VD->getLocation());
-      return true;
-    }
-    if(VD->isUnusedSymbol())
-      const_cast<VarDecl*>(VD)->MarkUsedAsVariable(E->getLocation());
-
-  }  else {
-    Diags.Report(Loc, diag::err_spec_requires_var_or_arr_el)
-      << E->getSourceRange();
-    return true;
-  }
-  return false;
-}
-
-// FIXME: add support for derived types.
-// FIXME: check default character kind.
-bool Sema::CheckEquivalenceType(QualType ExpectedType, const Expr *E) {
-  auto ObjectType = E->getType();
-  if(ObjectType->isArrayType())
-    ObjectType = ObjectType->asArrayType()->getElementType();
-
-  if(ExpectedType->isCharacterType()) {
-    if(!ObjectType->isCharacterType()) {
-      Diags.Report(E->getLocation(),
-                   diag::err_typecheck_expected_char_expr)
-        << ObjectType << E->getSourceRange();
-      return true;
-    }
-  } else if(ExpectedType->isBuiltinType()) {
-    if(IsDefaultBuiltinOrDoublePrecisionType(ExpectedType)) {
-      if(ObjectType->isCharacterType()) {
-        Diags.Report(E->getLocation(), diag::err_expected_numeric_or_logical_expr)
-          << ObjectType << E->getSourceRange();
-        return true;
-      }
-      if(!IsDefaultBuiltinOrDoublePrecisionType(ObjectType)) {
-        Diags.Report(E->getLocation(),
-                     diag::err_typecheck_expected_default_kind_expr)
-          << ObjectType << E->getSourceRange();
-        return true;
-      }
-    } else {
-      if(!CheckTypesSameKind(ExpectedType, ObjectType)) {
-        Diags.Report(E->getLocation(), diag::err_typecheck_expected_expr_of_type)
-          << ExpectedType << ObjectType
-          << E->getSourceRange();
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-StmtResult Sema::ActOnEQUIVALENCE(ASTContext &C, SourceLocation Loc,
-                                  SourceLocation PartLoc,
-                                  ArrayRef<Expr*> ObjectList,
-                                  Expr *StmtLabel) {
-  // expression and type check.
-  bool HasErrors = false;
-  QualType ObjectType;
-  for(auto I : ObjectList) {
-    if(auto Arr = dyn_cast<ArrayElementExpr>(I)) {
-      if(CheckEquivalenceObject(Loc, Arr->getTarget()))
-        HasErrors = true;
-      for(auto S : Arr->getSubscripts()) {
-        if(!StatementRequiresConstantExpression(Loc, S))
-          HasErrors = true;
-      }
-    } else if(auto Str = dyn_cast<SubstringExpr>(I)) {
-      if(CheckEquivalenceObject(Loc, Str->getTarget()));
-        HasErrors = true;
-      if(Str->getStartingPoint()) {
-        if(!StatementRequiresConstantExpression(Loc, Str->getStartingPoint()))
-          HasErrors = true;
-      }
-      if(Str->getEndPoint()) {
-        if(!StatementRequiresConstantExpression(Loc, Str->getEndPoint()))
-          HasErrors = true;
-      }
-    } else if(CheckEquivalenceObject(Loc, I))
-      HasErrors = true;
-
-    if(ObjectType.isNull()) {
-      ObjectType = I->getType();
-      if(ObjectType->isArrayType())
-        ObjectType = ObjectType->asArrayType()->getElementType();
-    } else {
-      if(CheckEquivalenceType(ObjectType, I))
-        HasErrors = true;
-    }
-  }
-
-  auto Result = EquivalenceStmt::Create(C, PartLoc, ObjectList, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }

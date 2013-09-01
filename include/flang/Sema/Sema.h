@@ -60,6 +60,9 @@ class Sema {
   /// \brief The implicit scope for the current program unit.
   ImplicitTypingScope *CurImplicitTypingScope;
 
+  /// \brief The equivalence scope for the current program unit.
+  EquivalenceScope *CurEquivalenceScope;
+
   /// \brief Represents the do loop variable currently being used.
   SmallVector<const VarExpr*, 8> CurLoopVars;
 
@@ -113,6 +116,10 @@ public:
 
   ImplicitTypingScope *getCurrentImplicitTypingScope() const {
     return CurImplicitTypingScope;
+  }
+
+  EquivalenceScope *getCurrentEquivalenceScope() const {
+    return CurEquivalenceScope;
   }
 
   BlockStmtBuilder *getCurrentBody() const {
@@ -320,7 +327,7 @@ public:
                               ArrayRef<Expr*> ObjectList,
                               Expr *StmtLabel);
 
-  bool CheckEquivalenceObject(SourceLocation Loc, Expr *E);
+  bool CheckEquivalenceObject(SourceLocation Loc, Expr *E, VarDecl *&Object);
 
   bool CheckEquivalenceType(QualType ExpectedType, const Expr *E);
 

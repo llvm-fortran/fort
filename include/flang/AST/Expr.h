@@ -399,6 +399,8 @@ public:
     return getArguments();
   }
 
+  bool EvaluateOffset(ASTContext &Ctx, uint64_t &Offset) const;
+
   SourceLocation getLocEnd() const;
 
   static bool classof(const Expr *E) {
@@ -487,6 +489,17 @@ public:
 };
 
 //===----------------------------------------------------------------------===//
+
+/// EvaluatedArraySpec - represents an evaluated array specification.
+class EvaluatedArraySpec {
+public:
+  int64_t  LowerBound;
+  int64_t  UpperBound;
+  uint64_t Size;
+
+  uint64_t EvaluateOffset(int64_t Index) const;
+};
+
 /// ArraySpec - The base class for all array specifications.
 class ArraySpec {
 public:
@@ -513,7 +526,7 @@ public:
   virtual const Expr *getUpperBoundOrNull() const { return nullptr; }
 
   /// Returns true if the bounds of this dimension specification are constants.
-  virtual bool EvaluateBounds(int64_t &LB, int64_t &UB, const ASTContext &Ctx) const;
+  virtual bool Evaluate(EvaluatedArraySpec &Spec, const ASTContext &Ctx) const;
 
   static bool classof(const ArraySpec *) { return true; }
 };
@@ -539,7 +552,7 @@ public:
   const Expr *getLowerBoundOrNull() const { return LowerBound; }
   const Expr *getUpperBoundOrNull() const { return UpperBound; }
 
-  bool EvaluateBounds(int64_t &LB, int64_t &UB, const ASTContext &Ctx) const;
+  bool Evaluate(EvaluatedArraySpec &Spec, const ASTContext &Ctx) const;
 
   static bool classof(const ExplicitShapeSpec *) { return true; }
   static bool classof(const ArraySpec *AS) {

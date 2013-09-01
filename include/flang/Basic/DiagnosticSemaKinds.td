@@ -274,6 +274,13 @@ def err_spec_dimension_already_array : Error<
 def err_spec_qual_reapplication : Error<
  "the specification statement '%0' cannot be applied to the variable %1 more than once">;
 
+def warn_equivalence_same_object : Warning<
+  "this equivalence connection uses the same object">;
+def warn_equivalence_redundant : Warning<
+  "redundant equivalence connection">;
+def note_equivalence_identical_association : Note<
+  "an identical association was already created here">;
+
 
 def err_format_without_stmt_label : Error<
   "'FORMAT' statement is missing a statement label">;

@@ -646,11 +646,11 @@ static bool CheckArrayCompability(Sema &S, T& Handler,
   for(size_t I = 0, Count = LHS->getDimensionCount(); I < Count; ++I) {
     auto LHSDim = LHS->getDimensions()[I];
     auto RHSDim = RHS->getDimensions()[I];
-    int64_t LHSBounds[2], RHSBounds[2];
-    if(LHSDim->EvaluateBounds(LHSBounds[0], LHSBounds[1], S.getContext())) {
-      if(RHSDim->EvaluateBounds(RHSBounds[0], RHSBounds[1], S.getContext())) {
-        auto LHSSize = LHSBounds[1] - LHSBounds[0] + 1;
-        auto RHSSize = RHSBounds[1] - RHSBounds[0] + 1;
+    EvaluatedArraySpec LHSSpec, RHSSpec;
+    if(LHSDim->Evaluate(LHSSpec, S.getContext())) {
+      if(RHSDim->Evaluate(RHSSpec, S.getContext())) {
+        auto LHSSize = LHSSpec.Size;
+        auto RHSSize = RHSSpec.Size;
         if(LHSSize != RHSSize) {
           Handler.DimensionSizeMismatch(Loc, LHSSize, I+1, RHSSize,
                                         LHSRange, RHSRange);
