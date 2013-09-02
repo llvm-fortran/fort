@@ -19,6 +19,7 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
+#include "flang/AST/EquivalenceSet.h"
 #include "flang/AST/ExprVisitor.h"
 #include "flang/Basic/Diagnostic.h"
 
@@ -41,6 +42,70 @@ EquivalenceScope::Object EquivalenceScope::GetObject(ASTContext &C, const Expr *
 
 void EquivalenceScope::Connect(Object A, Object B) {
   Connections.push_back(Connection(A, B));
+}
+
+class SetCreator {
+  ArrayRef<EquivalenceScope::Connection> Connections;
+  SmallVector<bool, 16> Visited;
+  llvm::SmallVector<EquivalenceScope::Object, 8> Result;
+public:
+
+  SetCreator(ArrayRef<EquivalenceScope::Connection> connections);
+
+  void FindConnections(const EquivalenceScope::InfluenceObject *Obj);
+  bool CreateSet(ASTContext &C);
+};
+
+SetCreator::SetCreator(ArrayRef<EquivalenceScope::Connection> connections)
+  : Connections(connections) {
+  Visited.resize(Connections.size());
+  for(auto &I: Visited) I = false;
+}
+
+void SetCreator::FindConnections(const EquivalenceScope::InfluenceObject *Obj) {
+  for(size_t I = 0; I < Connections.size(); ++I) {
+    if(Visited[I]) continue;
+
+    if(Connections[I].A.Obj == Obj ||
+       Connections[I].B.Obj == Obj) {
+      Visited[I] = true;
+      Result.push_back(Connections[I].A);
+      Result.push_back(Connections[I].B);
+
+      if(Connections[I].A.Obj == Obj)
+        FindConnections(Connections[I].B.Obj);
+      else
+        FindConnections(Connections[I].A.Obj);
+    }
+  }
+}
+
+bool SetCreator::CreateSet(ASTContext &C) {
+  SmallVector<EquivalenceSet::Object, 16> Objects;
+  const EquivalenceScope::InfluenceObject *Obj = nullptr;
+  for(size_t I = 0; I < Connections.size(); ++I) {
+    if(Visited[I]) continue;
+    Obj = Connections[I].A.Obj;
+  }
+  if(!Obj) return false;
+
+  Result.clear();
+  FindConnections(Obj);
+  llvm::SmallPtrSet<VarDecl*, 16> ProcessedObjects;
+  for(auto I : Result) {
+    if(ProcessedObjects.insert(I.Obj->Var))
+      Objects.push_back(EquivalenceSet::Object(I.Obj->Var, I.E));
+  }
+
+  auto Set = EquivalenceSet::Create(C, Objects);
+  for(auto I : Objects)
+    I.Var->setEquivalenceSet(Set);
+  return true;
+}
+
+void EquivalenceScope::CreateEquivalenceSets(ASTContext &C) {
+  SetCreator Creator(Connections);
+  while(Creator.CreateSet(C)) ;
 }
 
 class ConnectionFinder {
@@ -68,11 +133,11 @@ void ConnectionFinder::FindRelevantConnections(EquivalenceScope::Object Point,
                                                EquivalenceScope::Object Target) {
   for(size_t I = 0; I < Connections.size(); ++I) {
     if(Visited[I]) continue;
-    Visited[I] = true;
 
     // given (a - b), found (a - x) or (x - a)
     if(Connections[I].A.Obj == Point.Obj ||
        Connections[I].B.Obj == Point.Obj) {
+      Visited[I] = true;
       auto Other = Connections[I].A.Obj == Point.Obj? Connections[I].B :
                                                       Connections[I].A;
 
@@ -88,25 +153,50 @@ void ConnectionFinder::FindRelevantConnections(EquivalenceScope::Object Point,
   }
 }
 
-bool EquivalenceScope::CheckConnection(DiagnosticsEngine &Diags, Object A, Object B) {
+bool EquivalenceScope::CheckConnection(DiagnosticsEngine &Diags, Object A, Object B, bool ReportWarnings) {
   // equivalence (x,x)
   if(A.Obj == B.Obj) {
-    Diags.Report(B.E->getLocation(), diag::warn_equivalence_same_object)
-      << A.E->getSourceRange()
-      << B.E->getSourceRange();
+    if(ReportWarnings) {
+      Diags.Report(B.E->getLocation(), diag::warn_equivalence_same_object)
+        << A.E->getSourceRange() << B.E->getSourceRange();
+      ReportWarnings = false;
+    }
   }
   //
   ConnectionFinder Finder(Connections);
   Finder.FindRelevantConnections(A, B);
   auto Relevant = Finder.getResults();
   if (!Relevant.empty()) {
-    Diags.Report(B.E->getLocation(), diag::warn_equivalence_redundant)
-      << A.E->getSourceRange()
-      << B.E->getSourceRange();
-    auto I = Relevant.front();
-    Diags.Report(I.A.E->getLocation(), diag::note_equivalence_identical_association)
-      << I.A.E->getSourceRange()
-      << I.B.E->getSourceRange();
+
+    for(auto I : Relevant) {
+      bool same = true;
+      if(B.Obj == I.A.Obj)
+        same = B.Offset == I.A.Offset;
+      else if(B.Obj == I.B.Obj)
+        same = B.Offset == I.B.Offset;
+      if(same) {
+        if(A.Obj == I.A.Obj)
+          same = A.Offset == I.A.Offset;
+        else if(A.Obj == I.B.Obj)
+          same = A.Offset == I.B.Offset;
+      }
+      if(!same) {
+        Diags.Report(B.E->getLocation(), diag::err_equivalence_conflicting_offsets)
+          << A.E->getSourceRange() << B.E->getSourceRange();
+        Diags.Report(I.A.E->getLocation(), diag::note_equivalence_prev_offset)
+          << I.A.E->getSourceRange() << I.B.E->getSourceRange();
+        return false;
+      }
+    }
+
+    if(ReportWarnings) {
+      Diags.Report(B.E->getLocation(), diag::warn_equivalence_redundant)
+        << A.E->getSourceRange() << B.E->getSourceRange();
+      auto I = Relevant.front();
+      Diags.Report(I.A.E->getLocation(), diag::note_equivalence_identical_association)
+        << I.A.E->getSourceRange() << I.B.E->getSourceRange();
+      ReportWarnings = false;
+    }
   }
   return true;
 }
@@ -177,11 +267,11 @@ StmtResult Sema::ActOnEQUIVALENCE(ASTContext &C, SourceLocation Loc,
                                   ArrayRef<Expr*> ObjectList,
                                   Expr *StmtLabel) {
   // expression and type check.
-  bool HasErrors = false;
   QualType ObjectType;
   EquivalenceScope::Object FirstEquivObject;
 
   for(auto I : ObjectList) {
+    bool HasErrors = false;
     VarDecl *Object = nullptr;
     uint64_t Offset = 0;
     if(auto Arr = dyn_cast<ArrayElementExpr>(I)) {
@@ -218,7 +308,7 @@ StmtResult Sema::ActOnEQUIVALENCE(ASTContext &C, SourceLocation Loc,
       if(CheckEquivalenceType(ObjectType, I))
         HasErrors = true;
       auto EquivObject = getCurrentEquivalenceScope()->GetObject(C, I, Object, Offset);
-      if(getCurrentEquivalenceScope()->CheckConnection(Diags, FirstEquivObject, EquivObject))
+      if(getCurrentEquivalenceScope()->CheckConnection(Diags, FirstEquivObject, EquivObject, !HasErrors))
         getCurrentEquivalenceScope()->Connect(FirstEquivObject,
                                               EquivObject);
     }

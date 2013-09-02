@@ -142,6 +142,7 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
 
   CurImplicitTypingScope = CurImplicitTypingScope->getParent();
 
+  CurEquivalenceScope->CreateEquivalenceSets(Context);
   CurEquivalenceScope = nullptr;
 }
 

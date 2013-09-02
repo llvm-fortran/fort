@@ -7,13 +7,15 @@ SUBROUTINE equivtest(JJ) ! expected-note {{'jj' is an argument defined here}}
   CHARACTER*10 STR, STR_ARR(10)
   INTEGER(Kind=8) FOO
   PARAMETER(II = 111) ! expected-note {{'ii' is a parameter constant defined here}}
-  INTEGER II ! expected-note@+1 {{an identical association was already created here}}
+  INTEGER III ! expected-note@+1 {{an identical association was already created here}}
   EQUIVALENCE (A, I), (B, K) ! expected-note {{an identical association was already created here}}
 
-  EQUIVALENCE (I, I_ARR)
+  REAL AA ! expected-note@+2 {{previous memory offset was defined here}}
+  REAL BB ! expected-note@+1 {{previous memory offset was defined here}}
+  EQUIVALENCE (I, I_ARR) ! expected-note {{an identical association was already created here}}
   EQUIVALENCE (STR(2:), STR_ARR)
 
-  EQUIVALENCE (I, O(1))
+  EQUIVALENCE (I, O(1)) ! expected-note {{an identical association was already created here}}
   EQUIVALENCE (N, O(I)) ! expected-error {{statement requires a constant expression}}
 
   EQUIVALENCE (II, I) ! expected-error {{specification statement requires a local variable}}
@@ -30,6 +32,15 @@ SUBROUTINE equivtest(JJ) ! expected-note {{'jj' is an argument defined here}}
 
   EQUIVALENCE (I, A) ! expected-warning {{redundant equivalence connection}}
   EQUIVALENCE (A, I) ! expected-warning {{redundant equivalence connection}}
+
+  EQUIVALENCE (I, I_ARR(1,1)) ! expected-warning {{redundant equivalence connection}}
+  EQUIVALENCE (I_ARR(1,1), O(1)) ! expected-warning {{redundant equivalence connection}}
+
+  EQUIVALENCE (I, I_ARR(2,2)) ! expected-error {{conflicting memory offsets in an equivalence connection}}
+  EQUIVALENCE (I_ARR(2,1), I) ! expected-error {{conflicting memory offsets in an equivalence connection}}
+
+  LOGICAL L, L_ARR(2) ! expected-note@+1 {{previous memory offset was defined here}}
+  EQUIVALENCE( L, L_ARR, L_ARR(2) ) ! expected-error {{conflicting memory offsets in an equivalence connection}}
 
 END
 

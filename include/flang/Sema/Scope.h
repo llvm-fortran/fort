@@ -292,10 +292,14 @@ public:
   Object GetObject(ASTContext &C, const Expr *E, VarDecl *Var, uint64_t Offset);
 
   /// \brief Returns true if the connection between two objects is valid.
-  bool CheckConnection(DiagnosticsEngine &Diags, Object A, Object B);
+  bool CheckConnection(DiagnosticsEngine &Diags, Object A, Object B, bool ReportWarnings = true);
 
   /// \brief Connects two objects.
   void Connect(Object A, Object B);
+
+  /// \brief Creates the required equivalence sets and associates them with
+  /// the influenced objects.
+  void CreateEquivalenceSets(ASTContext &C);
 };
 
 /// The scope of a translation unit (a single file)

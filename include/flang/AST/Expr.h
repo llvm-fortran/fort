@@ -399,6 +399,7 @@ public:
     return getArguments();
   }
 
+  /// Returns true if the offset of the given element can be evaluated.
   bool EvaluateOffset(ASTContext &Ctx, uint64_t &Offset) const;
 
   SourceLocation getLocEnd() const;

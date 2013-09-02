@@ -37,6 +37,7 @@ class IdentifierInfo;
 class StoredDeclsMap;
 class TypeLoc;
 class BlockStmt;
+class EquivalenceSet;
 
 // Decls
 class DeclContext;
@@ -903,12 +904,15 @@ private:
   /// \brief The initializer for this variable.
   mutable Expr *Init; // FIXME: This should be a different type?
 
+  /// \brief The equivalence set for this variable.
+  EquivalenceSet *EquivSet;
+
   friend class ASTContext;  // ASTContext creates these.
 
 protected:
   VarDecl(Kind DK, DeclContext *DC, SourceLocation IdLoc, const IdentifierInfo *ID,
           QualType T)
-    : DeclaratorDecl(DK, DC, IdLoc, ID, T), Init(nullptr) {}
+    : DeclaratorDecl(DK, DC, IdLoc, ID, T), Init(nullptr), EquivSet(nullptr) {}
 
 public:
   static VarDecl *Create(ASTContext &C, DeclContext *DC,
@@ -944,6 +948,14 @@ public:
 
   void MutateIntoParameter(Expr *Value);
   void MarkUsedAsVariable (SourceLocation Loc);
+
+  EquivalenceSet *getEquivalenceSet() const { return EquivSet; }
+  bool hasEquivalenceSet() const {
+    return EquivSet != nullptr;
+  }
+  void setEquivalenceSet(EquivalenceSet *E) {
+    EquivSet = E;
+  }
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }

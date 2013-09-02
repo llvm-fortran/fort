@@ -268,7 +268,7 @@ bool EvaluateDimensions(const ArrayType *T,
 bool ArrayElementExpr::EvaluateOffset(ASTContext &Ctx, uint64_t &Offset) const {
   auto ATy = getTarget()->getType()->asArrayType();
   SmallVector<EvaluatedArraySpec, 8> Dims(ATy->getDimensionCount());
-  if(EvaluateDimensions(ATy, Dims, Ctx))
+  if(!EvaluateDimensions(ATy, Dims, Ctx))
     return false;
   auto Subscripts = getSubscripts();
   Offset = 0;

@@ -280,6 +280,10 @@ def warn_equivalence_redundant : Warning<
   "redundant equivalence connection">;
 def note_equivalence_identical_association : Note<
   "an identical association was already created here">;
+def err_equivalence_conflicting_offsets : Error<
+  "conflicting memory offsets in an equivalence connection">;
+def note_equivalence_prev_offset : Note<
+  "previous memory offset was defined here">;
 
 
 def err_format_without_stmt_label : Error<
