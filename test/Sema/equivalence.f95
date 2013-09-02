@@ -52,3 +52,9 @@ SUBROUTINE foo()
   EQUIVALENCE (I, A) ! expected-warning {{redundant equivalence connection}}
   EQUIVALENCE (A, I) ! expected-warning {{redundant equivalence connection}}
 END
+
+SUBROUTINE bar()
+  INTEGER I_MAT(4,4), I_MAT2(4,4)
+  EQUIVALENCE(I_MAT, I_MAT(1,2)) ! expected-error {{conflicting memory offsets in an equivalence connection}}
+END
+

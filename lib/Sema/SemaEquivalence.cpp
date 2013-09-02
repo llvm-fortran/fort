@@ -154,15 +154,20 @@ void ConnectionFinder::FindRelevantConnections(EquivalenceScope::Object Point,
 }
 
 bool EquivalenceScope::CheckConnection(DiagnosticsEngine &Diags, Object A, Object B, bool ReportWarnings) {
-  // equivalence (x,x)
   if(A.Obj == B.Obj) {
+    // equivalence (x,x)
+    if(A.Offset != B.Offset) {
+      Diags.Report(B.E->getLocation(), diag::err_equivalence_conflicting_offsets)
+        << A.E->getSourceRange() << B.E->getSourceRange();
+      ReportWarnings = false;
+    }
     if(ReportWarnings) {
       Diags.Report(B.E->getLocation(), diag::warn_equivalence_same_object)
         << A.E->getSourceRange() << B.E->getSourceRange();
       ReportWarnings = false;
     }
   }
-  //
+
   ConnectionFinder Finder(Connections);
   Finder.FindRelevantConnections(A, B);
   auto Relevant = Finder.getResults();
