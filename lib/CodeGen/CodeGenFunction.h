@@ -91,6 +91,12 @@ class CodeGenFunction {
 
   llvm::DenseMap<const VarDecl*, llvm::Value*>   LocalVariables;
   llvm::DenseMap<const VarDecl*, CharacterValueTy> CharacterArgs;
+  struct EquivSet {
+    llvm::Value *Ptr;
+    int64_t LowestBound;
+  };
+  llvm::SmallDenseMap<const EquivalenceSet*, EquivSet, 4> EquivSets;
+  llvm::SmallDenseMap<const VarDecl*, int64_t, 16> LocalVariablesInEquivSets;
   llvm::Value *ReturnValuePtr;
   llvm::Instruction *AllocaInsertPt;
 
@@ -199,6 +205,10 @@ public:
   void EmitVarDecl(const VarDecl *D);
   void EmitDataStmts(const Stmt *S, bool Saved = false);
   void EmitFirstInvocationBlock(const Stmt *S);
+
+  std::pair<int64_t, int64_t> GetObjectBounds(const VarDecl *Var, const Expr *E);
+  EquivSet EmitEquivalenceSet(const EquivalenceSet *S);
+  llvm::Value *EmitEquivalenceSetObject(EquivSet Set, const VarDecl *Var);
 
 
   llvm::Value *CreateArrayAlloca(QualType T,

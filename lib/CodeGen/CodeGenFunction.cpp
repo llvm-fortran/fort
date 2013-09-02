@@ -19,6 +19,7 @@
 #include "flang/AST/DeclVisitor.h"
 #include "flang/AST/Stmt.h"
 #include "flang/AST/Expr.h"
+#include "flang/AST/EquivalenceSet.h"
 #include "flang/Frontend/CodeGenOptions.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Intrinsics.h"
@@ -190,6 +191,13 @@ void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
      D->isArgument()  ||
      D->isFunctionResult()) return;
 
+  if(D->hasEquivalenceSet()) {
+    auto Set = EmitEquivalenceSet(D->getEquivalenceSet());
+    auto Ptr = EmitEquivalenceSetObject(Set, D);
+    LocalVariables.insert(std::make_pair(D, Ptr));
+    return;
+  }
+
   llvm::Value *Ptr;
   auto Type = D->getType();
   auto Quals = Type.getExtQualsPtrOrNull();
@@ -204,6 +212,53 @@ void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
                                     nullptr, D->getName());
   }
   LocalVariables.insert(std::make_pair(D, Ptr));
+}
+
+// FIXME: support substrings.
+std::pair<int64_t, int64_t> CodeGenFunction::GetObjectBounds(const VarDecl *Var, const Expr *E) {
+  auto Size = CGM.getDataLayout().getTypeStoreSize(ConvertTypeForMem(Var->getType()));
+  uint64_t Offset = 0;
+  if(auto Arr = dyn_cast<ArrayElementExpr>(E)) {
+    Arr->EvaluateOffset(getContext(), Offset);
+    Offset = Offset * CGM.getDataLayout().getTypeStoreSize(ConvertTypeForMem(E->getType()));
+  } else
+    Offset = 0;
+
+  return std::make_pair(-int64_t(Offset), -int64_t(Offset) + int64_t(Size));
+}
+
+CodeGenFunction::EquivSet CodeGenFunction::EmitEquivalenceSet(const EquivalenceSet *S) {
+  auto Result = EquivSets.find(S);
+  if(Result != EquivSets.end())
+    return Result->second;
+
+  // Find the bounds of the set
+  int64_t LowestBound = 0;
+  int64_t HighestBound = 0;
+  for(auto I : S->getObjects()) {
+    auto Bounds  = GetObjectBounds(I.Var, I.E);
+    LowestBound  = std::min(Bounds.first, LowestBound);
+    HighestBound = std::max(Bounds.second, HighestBound);
+    LocalVariablesInEquivSets.insert(std::make_pair(I.Var, Bounds.first));
+  }
+  EquivSet Set;
+  // FIXME: more accurate alignment?
+  Set.Ptr= Builder.Insert(new llvm::AllocaInst(CGM.Int8Ty,
+                          llvm::ConstantInt::get(CGM.SizeTy, HighestBound - LowestBound),
+                          CGM.getDataLayout().getTypeStoreSize(CGM.DoubleTy)),
+                          "equivalence-set");
+  Set.LowestBound = LowestBound;
+  EquivSets.insert(std::make_pair(S, Set));
+  return Set;
+}
+
+llvm::Value *CodeGenFunction::EmitEquivalenceSetObject(EquivSet Set, const VarDecl *Var) {
+  // Compute the pointer to the object.
+  auto ObjLowBound = LocalVariablesInEquivSets.find(Var)->second;
+  auto Ptr = Builder.CreateConstInBoundsGEP1_64(Set.Ptr,
+                                                uint64_t(ObjLowBound - Set.LowestBound));
+  auto T = Var->getType();
+  return Builder.CreatePointerCast(Ptr, llvm::PointerType::get(ConvertTypeForMem(T), 0));
 }
 
 llvm::Value *CodeGenFunction::GetVarPtr(const VarDecl *D) {

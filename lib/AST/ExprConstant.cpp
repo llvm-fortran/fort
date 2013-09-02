@@ -272,14 +272,18 @@ bool ArrayElementExpr::EvaluateOffset(ASTContext &Ctx, uint64_t &Offset) const {
     return false;
   auto Subscripts = getSubscripts();
   Offset = 0;
+  uint64_t DimSizes = 0;
   for(size_t I = 0; I < Dims.size(); ++I) {
     int64_t Index;
     if(!Subscripts[I]->EvaluateAsInt(Index, Ctx))
       return false;
-    if(I == 0)
+    if(I == 0) {
       Offset = Dims[I].EvaluateOffset(Index);
-    else
-      Offset = Offset * Dims[I-1].Size + Dims[I].EvaluateOffset(Index);
+      DimSizes = Dims[I].Size;
+    } else {
+      Offset += DimSizes * Dims[I].EvaluateOffset(Index);
+      DimSizes *= Dims[I].Size;
+    }
   }
   return true;
 }
