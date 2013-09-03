@@ -28,6 +28,33 @@ public:
     : Sections(sections), Ptr(P) {}
 };
 
+/// StandaloneArrayValueSectionGatherer - Gathers the array sections
+/// which are needed for a standalone array expression.
+class StandaloneArrayValueSectionGatherer
+  : public ConstExprVisitor<StandaloneArrayValueSectionGatherer> {
+  CodeGenFunction &CGF;
+
+  SmallVector<ArraySection, 8> Sections;
+  bool Gathered;
+
+  void GatherSections(const Expr *E);
+public:
+
+  StandaloneArrayValueSectionGatherer(CodeGenFunction &cgf);
+  void EmitExpr(const Expr *E);
+
+  void VisitVarExpr(const VarExpr *E);
+  void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
+  void VisitBinaryExpr(const BinaryExpr *E);
+  void VisitUnaryExpr(const UnaryExpr *E);
+  void VisitImplicitCastExpr(const ImplicitCastExpr *E);
+  void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
+
+  ArrayRef<ArraySection> getSections() const {
+    return Sections;
+  }
+};
+
 /// ArrayOperation - Represents an array expression / statement.
 /// Stores the array sections and scalars used in the array operation.
 class ArrayOperation {
@@ -104,6 +131,10 @@ public:
   /// EmitElementOffset - computes the offset of the
   /// current element in the given array.
   llvm::Value *EmitElementOffset(ArrayRef<ArraySection> Sections);
+
+  /// EmitElementOneDimensionalIndex - computes the
+  /// index (which starts with 1) for the current element in the given array.
+  llvm::Value *EmitElementOneDimensionalIndex(ArrayRef<ArraySection> Sections);
 
   /// EmitElelementPointer - returns the pointer to the current
   /// element in the given array.

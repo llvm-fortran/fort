@@ -403,5 +403,13 @@ llvm::Value *CodeGenFunction::GetConstantZero(llvm::Type *T) {
                            llvm::ConstantFP::get(T, 0.0);
 }
 
+llvm::Value *CodeGenFunction::GetConstantScalarMaxValue(QualType T) {
+  return EmitIntrinsicNumericInquiry(intrinsic::HUGE, T, T);
+}
+
+llvm::Value *CodeGenFunction::GetConstantScalarMinValue(QualType T) {
+  return EmitIntrinsicNumericInquiry(intrinsic::TINY, T, T);
+}
+
 }
 } // end namespace flang

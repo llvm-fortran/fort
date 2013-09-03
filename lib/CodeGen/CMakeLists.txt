@@ -13,6 +13,7 @@ add_flang_library(flangCodeGen
   CGExprCharacter.cpp
   CGArray.cpp
   CGIntrinsic.cpp
+  CGArrayIntrinsic.cpp
   CGCall.cpp
   CGIORuntime.cpp
   CGIOLibflang.cpp

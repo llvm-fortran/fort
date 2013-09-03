@@ -298,6 +298,8 @@ public:
   }
   llvm::Value *GetConstantOne(QualType T);
   llvm::Value *EmitFunctionPointer(const FunctionDecl *F);
+  llvm::Value *GetConstantScalarMaxValue(QualType T);
+  llvm::Value *GetConstantScalarMinValue(QualType T);
 
   // complex expressions.
   ComplexValueTy ExtractComplexValue(llvm::Value *Agg);
@@ -352,10 +354,16 @@ public:
                                         ComplexValueTy Value);
 
   llvm::Value *EmitIntrinsicNumericInquiry(intrinsic::FunctionKind Func,
-                                           const Expr *E, QualType Result);
+                                           QualType ArgType, QualType Result);
 
   RValueTy EmitSystemIntrinsic(intrinsic::FunctionKind Func,
                                ArrayRef<Expr*> Arguments);
+
+  RValueTy EmitArrayIntrinsic(intrinsic::FunctionKind Func,
+                              ArrayRef<Expr*> Arguments);
+
+  RValueTy EmitVectorDimReturningScalarArrayIntrinsic(intrinsic::FunctionKind Func,
+                                                      Expr *Arr);
 
 
   // calls

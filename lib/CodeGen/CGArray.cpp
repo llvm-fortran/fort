@@ -237,33 +237,6 @@ void ArraySectionsEmmitter::VisitExpr(const Expr *E) {
     Sections.push_back(CGF.EmitDimSection(I));
 }
 
-/// \brief Gathers the array sections which are needed for
-/// an standalone array expression.
-class StandaloneArrayValueSectionGatherer
-  : public ConstExprVisitor<StandaloneArrayValueSectionGatherer> {
-  CodeGenFunction &CGF;
-
-  SmallVector<ArraySection, 8> Sections;
-  bool Gathered;
-
-  void GatherSections(const Expr *E);
-public:
-
-  StandaloneArrayValueSectionGatherer(CodeGenFunction &cgf);
-  void EmitExpr(const Expr *E);
-
-  void VisitVarExpr(const VarExpr *E);
-  void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
-  void VisitBinaryExpr(const BinaryExpr *E);
-  void VisitUnaryExpr(const UnaryExpr *E);
-  void VisitImplicitCastExpr(const ImplicitCastExpr *E);
-  void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
-
-  ArrayRef<ArraySection> getSections() const {
-    return Sections;
-  }
-};
-
 StandaloneArrayValueSectionGatherer::StandaloneArrayValueSectionGatherer(CodeGenFunction &cgf)
   : CGF(cgf), Gathered(false) {
 }
@@ -496,6 +469,11 @@ llvm::Value *ArrayLoopEmmitter::EmitElementOffset(ArrayRef<ArraySection> Section
     }
   }
   return Offset;
+}
+
+llvm::Value *ArrayLoopEmmitter::EmitElementOneDimensionalIndex(ArrayRef<ArraySection> Sections) {
+  auto Offset = EmitSectionIndex(Sections[0], 0);
+  return Builder.CreateAdd(Offset, llvm::ConstantInt::get(Offset->getType(), 1));
 }
 
 llvm::Value *ArrayLoopEmmitter::EmitElementPointer(ArrayValueTy Array) {

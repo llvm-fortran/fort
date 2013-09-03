@@ -94,8 +94,11 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
       return EmitIntrinsicCallCharacter(Func, EmitCharacterExpr(Args[0]),
                                         EmitCharacterExpr(Args[1]));
 
+  case GROUP_ARRAY:
+    return EmitArrayIntrinsic(Func, Args);
+
   case GROUP_NUMERIC_INQUIRY:
-    return EmitIntrinsicNumericInquiry(Func, Args[0], E->getType());
+    return EmitIntrinsicNumericInquiry(Func, Args[0]->getType(), E->getType());
 
   case GROUP_SYSTEM:
     return EmitSystemIntrinsic(Func, Args);
@@ -332,12 +335,12 @@ RValueTy CodeGenFunction::EmitIntrinsicCallComplexMath(intrinsic::FunctionKind F
 }
 
 llvm::Value *CodeGenFunction::EmitIntrinsicNumericInquiry(intrinsic::FunctionKind Func,
-                                                          const Expr *E, QualType Result) {
+                                                          QualType ArgType, QualType Result) {
   using namespace intrinsic;
   using namespace std;
 
   auto RetT = ConvertType(Result);
-  auto T = E->getType();
+  auto T = ArgType;
   auto TKind = getContext().getArithmeticTypeKind(T.getExtQualsPtrOrNull(), T);
   int IntResult;
 
