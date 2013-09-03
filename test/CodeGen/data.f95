@@ -2,8 +2,13 @@
 PROGRAM datatest
   INTEGER I, J
   REAL X
+  INTEGER I_ARR(10)
+
+  DATA (I_ARR(I), I = 1,10) / 2*0, 5*2, 3*-1 /
 
   DATA I / 1 / J, X / 2*0 / ! CHECK:      store i32 1
   CONTINUE                  ! CHECK-NEXT: store i32 0
   CONTINUE                  ! CHECK-NEXT: store float 0
+
+
 END PROGRAM

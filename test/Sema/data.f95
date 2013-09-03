@@ -50,7 +50,7 @@ PROGRAM datatest
   DATA R_MULTIARR / 24*88.0 /
 
   DATA (I_ARR(I), I = 1,10) / 10*0 /
-  DATA (I_ARR(I), I = 0 + 1, 20/2) / 10*0 /
+  DATA (I_ARR(I), I = 0 + 1, 20/2) / 10*2 /
 
   DATA (I_ARR(WHAT), I = 1,10) / 10*0 / ! expected-error {{use of undeclared identifier 'what'}}
 
