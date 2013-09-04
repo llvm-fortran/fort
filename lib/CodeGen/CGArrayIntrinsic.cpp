@@ -42,12 +42,15 @@ EmitVectorDimReturningScalarArrayIntrinsic(intrinsic::FunctionKind Func,
     else
       Builder.CreateStore(GetConstantScalarMaxValue(ElementType), MaxMinVar);
 
+    StandaloneArrayValueSectionGatherer Gatherer(*this);
+    Gatherer.EmitExpr(Arr);
     ArrayOperation OP;
-    auto ArrVal = OP.EmitArrayExpr(*this, Arr);
-    ArrayLoopEmmitter Looper(*this, ArrVal.Sections);
+    OP.EmitAllScalarValuesAndArraySections(*this, Arr);
+    ArrayLoopEmmitter Looper(*this, Gatherer.getSections());
     Looper.EmitArrayIterationBegin();
+    ArrayOperationEmmitter EV(*this, OP, Looper);
 
-    auto ElementValue = Builder.CreateLoad(Looper.EmitElementPointer(ArrVal));
+    auto ElementValue = EV.Emit(Arr).asScalar();
     auto ResultValue = Builder.CreateLoad(MaxMinVar);
     auto ThenBlock = createBasicBlock("maxminloc-then");
     auto EndBlock = createBasicBlock("maxminloc-end");
@@ -56,7 +59,7 @@ EmitVectorDimReturningScalarArrayIntrinsic(intrinsic::FunctionKind Func,
                          ThenBlock, EndBlock);
     EmitBlock(ThenBlock);
     Builder.CreateStore(ElementValue, MaxMinVar);
-    Builder.CreateStore(Looper.EmitElementOneDimensionalIndex(ArrVal.Sections), Result);
+    Builder.CreateStore(Looper.EmitElementOneDimensionalIndex(Gatherer.getSections()), Result);
     EmitBranch(EndBlock);
     EmitBlock(EndBlock);
 

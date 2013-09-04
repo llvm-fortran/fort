@@ -326,7 +326,7 @@ class ScalarEmmitterAndSectionGatherer : public ConstExprVisitor<ScalarEmmitterA
 public:
 
   ScalarEmmitterAndSectionGatherer(CodeGenFunction &cgf, ArrayOperation &ArrOp)
-    : CGF(cgf), ArrayOp(ArrOp) {}
+    : CGF(cgf), ArrayOp(ArrOp), LastArrayEmmitted(nullptr) {}
 
   void Emit(const Expr *E);
   void VisitVarExpr(const VarExpr *E);

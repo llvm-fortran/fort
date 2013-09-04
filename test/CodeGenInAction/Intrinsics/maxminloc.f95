@@ -1,5 +1,10 @@
 ! RUN: %flang -interpret %s | %file_check %s
 
+real function foo()
+  print *, 'foo'
+  foo = 10.0
+end
+
 program maxminloctest
 
   intrinsic maxloc, minloc
@@ -17,5 +22,15 @@ program maxminloctest
   r_arr = (/ 1.0, 2.0, 0.0, 9.0, 9.0 /)
   i = maxloc(r_arr,1)
   print *, i ! CHECK-NEXT: 4
+
+  i = maxloc(r_arr + (/ foo(), foo(), 1.0, 0.0, 0.0 /), 1)
+  continue   ! CHECK-NEXT: foo
+  continue   ! CHECK-NEXT: foo
+  print *, i ! CHECK-NEXT: 2
+
+  i = minloc(r_arr * (/ foo(), foo(), 1.0, 0.0, 0.0 /), 1)
+  continue   ! CHECK-NEXT: foo
+  continue   ! CHECK-NEXT: foo
+  print *, i ! CHECK-NEXT: 3
 
 end
