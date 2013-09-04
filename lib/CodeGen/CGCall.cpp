@@ -56,7 +56,10 @@ void CodeGenTypes::ConvertArgumentType(SmallVectorImpl<llvm::Type*> &ArgTypes,
     break;
 
   case ABIArgInfo::Reference:
-    ArgTypes.push_back(llvm::PointerType::get(ConvertType(T), 0));
+    if(T->isArrayType())
+      ArgTypes.push_back(ConvertType(T));
+    else
+      ArgTypes.push_back(llvm::PointerType::get(ConvertType(T), 0));
     break;
 
   case ABIArgInfo::ReferenceAsVoidExtraSize:
@@ -217,7 +220,7 @@ void CodeGenFunction::EmitCallArg(CallArgList &Args,
 void CodeGenFunction::EmitArrayCallArg(CallArgList &Args,
                                        const Expr *E, CGFunctionInfo::ArgInfo ArgInfo) {
   switch(ArgInfo.ABIInfo.getKind()) {
-  case ABIArgInfo::Value:
+  case ABIArgInfo::Reference:
     Args.add(EmitArrayArgumentPointerValueABI(E));
     break;
 
