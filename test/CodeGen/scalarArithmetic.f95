@@ -41,7 +41,7 @@ PROGRAM test
 
   Y = Y ** 4.0   ! CHECK: call float @llvm.pow.f32.f32
   Y = Y ** 5     ! CHECK: call float @llvm.powi.f32.i32
-  X = X ** 2     ! CHECK: call i32 @llvm.powi.i32.i32
+  X = X ** 2     ! CHECK: call i32 @libflang_pow_i4_i4
 
   DP = DP         ! CHECK: load double*
   DP = 1.0d0 + DP ! CHECK: fadd double 1

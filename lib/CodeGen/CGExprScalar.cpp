@@ -178,8 +178,10 @@ llvm::Value *CodeGenFunction::EmitScalarBinaryExpr(BinaryExpr::Operator Op,
                      Builder.CreateFDiv(LHS, RHS);
     break;
   case BinaryExpr::Power: {
+    if(IsInt)
+      return EmitScalarPowIntInt(LHS, RHS);
     auto Intrinsic = llvm::Intrinsic::pow;
-    if(IsInt || RHS->getType()->isIntegerTy()) {
+    if(RHS->getType()->isIntegerTy()) {
       Intrinsic = llvm::Intrinsic::powi;
       RHS = EmitIntToInt32Conversion(RHS);
     }

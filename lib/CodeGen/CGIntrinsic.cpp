@@ -266,6 +266,28 @@ llvm::Value *CodeGenFunction::EmitIntrinsicScalarMinMax(intrinsic::FunctionKind 
 }
 
 // Lets pretend ** is an intrinsic
+llvm::Value *CodeGenFunction::EmitScalarPowIntInt(llvm::Value *LHS, llvm::Value *RHS) {
+  auto T = cast<llvm::IntegerType>(LHS->getType());
+  StringRef FuncName;
+  switch(T->getBitWidth()) {
+  case 8:
+    FuncName = "pow_i1_i1"; break;
+  case 16:
+    FuncName = "pow_i2_i2"; break;
+  case 32:
+    FuncName = "pow_i4_i4"; break;
+  case 64:
+    FuncName = "pow_i8_i8"; break;
+  default:
+    llvm_unreachable("unsupported integer type");
+  }
+  auto Func = CGM.GetRuntimeFunction2(FuncName, T, T, T);
+  CallArgList Args;
+  Args.add(LHS);
+  Args.add(RHS);
+  return EmitCall(Func.getFunction(), Func.getInfo(), Args).asScalar();
+}
+
 ComplexValueTy CodeGenFunction::EmitComplexPowi(ComplexValueTy LHS, llvm::Value *RHS) {
   auto ElementType = LHS.Re->getType();
   llvm::Type *ArgTypes[] = { ElementType, ElementType, CGM.Int32Ty };
