@@ -28,6 +28,14 @@ public:
     Values.push_back(Arg);
   }
 
+  llvm::Value *getLast() const {
+    return Values.back();
+  }
+
+  void setLast(llvm::Value *Arg) {
+    Values.back() = Arg;
+  }
+
   void addAditional(llvm::Value *Arg) {
     AdditionalValues.push_back(Arg);
   }
@@ -44,6 +52,10 @@ public:
     for(auto I : AdditionalValues)
       Values.push_back(I);
     return Values;
+  }
+
+  int getOffset() const {
+    return Values.size();
   }
 };
 

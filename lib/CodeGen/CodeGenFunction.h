@@ -398,6 +398,8 @@ public:
     return EmitCall(Func, llvm::makeArrayRef(Args, 3));
   }
 
+  void EmitCallArg(llvm::Type *T, CallArgList &Args,
+                   const Expr *E, CGFunctionInfo::ArgInfo ArgInfo);
   void EmitCallArg(CallArgList &Args,
                    const Expr *E, CGFunctionInfo::ArgInfo ArgInfo);
   void EmitArrayCallArg(CallArgList &ArgBuilder,

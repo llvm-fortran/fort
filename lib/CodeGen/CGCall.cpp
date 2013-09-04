@@ -142,8 +142,11 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
                                    ArrayRef<Expr*> Arguments,
                                    bool ReturnsNothing) {
   auto ArgumentInfo = FuncInfo->getArguments();
+  auto FType = Callee->getType()->isFunctionTy()? cast<llvm::FunctionType>(Callee->getType())
+                 : dyn_cast<llvm::FunctionType>(cast<llvm::PointerType>(Callee->getType())->getPointerElementType());
   for(size_t I = 0; I < Arguments.size(); ++I)
-    EmitCallArg(ArgList, Arguments[I], ArgumentInfo[I]);
+    EmitCallArg(FType->getParamType(ArgList.getOffset()),
+                ArgList, Arguments[I], ArgumentInfo[I]);
   auto ReturnInfo = FuncInfo->getReturnInfo().ABIInfo.getKind();
   if(ReturnInfo == ABIRetInfo::CharacterValueAsArg)
     EmitCallArg(ArgList, ArgList.getReturnValueArg().asCharacter(),
@@ -185,6 +188,19 @@ RValueTy CodeGenFunction::EmitCall(CGFunction Func,
   if(FuncInfo->getReturnInfo().Kind == CGFunctionInfo::RetInfo::ComplexValue)
     return ExtractComplexValue(Result);
   return Result;
+}
+
+void CodeGenFunction::EmitCallArg(llvm::Type *T, CallArgList &Args,
+                                  const Expr *E, CGFunctionInfo::ArgInfo ArgInfo) {
+  EmitCallArg(Args, E, ArgInfo);
+
+  // NB: cast pointer types when different argument types are used in source code
+  // for the same function.
+  if(ArgInfo.ABIInfo.getKind() == ABIArgInfo::Reference) {
+    auto Ptr = Args.getLast();
+    if(Ptr->getType() != T)
+      Args.setLast(Builder.CreatePointerCast(Ptr, T));
+  }
 }
 
 void CodeGenFunction::EmitCallArg(CallArgList &Args,
