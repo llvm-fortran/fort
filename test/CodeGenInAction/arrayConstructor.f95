@@ -3,6 +3,7 @@
 program test
 
   integer i_arr(4), i_mat(4,4)
+  logical l_arr(4)
   integer i
   parameter(i = 0)
   integer n
@@ -21,5 +22,9 @@ program test
   i_arr = i_arr * (/ 0, 1, n, 3 /) + (/ i, 1, 2, 3 /)
   print *, i_arr(1), ', ', i_arr(2), ', ', i_arr(3), ', ', i_arr(4)
   continue ! CHECK-NEXT: 0, 1, 86, 129
+
+  l_arr = (/ .true., n == 42, .false., n < 1 /)
+  print *, l_arr(1), ', ', l_arr(2), ', ', l_arr(3), ', ', l_arr(4)
+  continue ! CHECK-NEXT: true, true, false, false
 
 end

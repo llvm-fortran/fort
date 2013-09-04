@@ -109,6 +109,8 @@ llvm::Constant *CodeGenFunction::EmitConstantExpr(const Expr *E) {
     return CreateComplexConstant(EmitComplexExpr(E));
   else if(T->isCharacterType()) //FIXME
     ;//;return CreateCharacterConstant(EmitCharacterExpr(E));
+  else if(T->isLogicalType())
+    return cast<llvm::Constant>(EmitLogicalValueExpr(E));
   else
     return cast<llvm::Constant>(EmitScalarExpr(E));
 }

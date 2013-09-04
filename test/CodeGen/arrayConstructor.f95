@@ -3,6 +3,7 @@
 PROGRAM test ! CHECK: private constant [4 x i32] [i32 1, i32 2, i32 3, i32 4]
 
   integer i_arr(4), i_mat(4,4)
+  logical l_arr(4)
   integer i
   parameter(i = 0)
   integer n
@@ -14,5 +15,7 @@ PROGRAM test ! CHECK: private constant [4 x i32] [i32 1, i32 2, i32 3, i32 4]
   i_arr = (/ n, i, 2, n /)
 
   i_arr = i_arr + (/ 0, 1, 2, 3 /)
+
+  l_arr = (/ .false., .true., .false., i == n /)
 
 END
