@@ -34,13 +34,6 @@ public:
   ComplexValueTy() {}
   ComplexValueTy(llvm::Value *Real, llvm::Value *Imaginary)
     : Re(Real), Im(Imaginary) {}
-
-  inline llvm::Value *getPolarLength() const {
-    return Re;
-  }
-  inline llvm::Value *getPolarTheta() const {
-    return Im;
-  }
 };
 
 class CharacterValueTy {
@@ -57,44 +50,17 @@ public:
   llvm::Value *LowerBound;
   llvm::Value *UpperBound;
   llvm::Value *Stride;
-  llvm::Value *Offset;
 
   ArrayDimensionValueTy() {}
   ArrayDimensionValueTy(llvm::Value *LB, llvm::Value *UB = nullptr,
-                        llvm::Value *stride = nullptr,
-                        llvm::Value *offset = nullptr)
-    : LowerBound(LB), UpperBound(UB), Stride(stride),
-      Offset(offset) {}
+                        llvm::Value *stride = nullptr)
+    : LowerBound(LB), UpperBound(UB), Stride(stride) {}
 
   bool hasLowerBound() const {
     return LowerBound != nullptr;
   }
   bool hasUpperBound() const {
     return UpperBound != nullptr;
-  }
-  bool hasStride() const {
-    return Stride != nullptr;
-  }
-  bool hasOffset() const {
-    return Offset != nullptr;
-  }
-};
-
-/// \brief Represents a ranged section of an array.
-class ArrayRangeSection {
-public:
-  llvm::Value *Offset;
-  llvm::Value *Size;
-  llvm::Value *Stride;
-
-  ArrayRangeSection() {}
-  ArrayRangeSection(llvm::Value *offset,
-                    llvm::Value *size,
-                    llvm::Value *stride = nullptr)
-    : Offset(offset), Size(size), Stride(stride) {}
-
-  bool hasOffset() const {
-    return Offset != nullptr;
   }
   bool hasStride() const {
     return Stride != nullptr;
@@ -127,19 +93,15 @@ class ArraySection {
     Range, Element, Vector
   };
   Kind Type;
-  llvm::Value *V1, *V2, *V3;
-  llvm::Value *DimSize;
+  llvm::Value *V1, *V2;
 public:
 
-  ArraySection(const ArrayRangeSection &S, llvm::Value *DimensionSize)
-    : Type(Range), V1(S.Offset), V2(S.Size), V3(S.Stride),
-      DimSize(DimensionSize) {}
-  ArraySection(const ArrayElementSection &S, llvm::Value *DimensionSize)
-    : Type(Element), V1(S.Index),
-      DimSize(DimensionSize) {}
-  ArraySection(const ArrayVectorSection &S, llvm::Value *DimensionSize)
-    : Type(Vector), V1(S.Ptr), V2(S.Size),
-      DimSize(DimensionSize) {}
+  ArraySection()
+    : Type(Range) {}
+  ArraySection(const ArrayElementSection &S)
+    : Type(Element), V1(S.Index) {}
+  ArraySection(const ArrayVectorSection &S)
+    : Type(Vector), V1(S.Ptr), V2(S.Size) {}
 
   bool isRangeSection() const {
     return Type == Range;
@@ -151,10 +113,6 @@ public:
     return Type == Vector;
   }
 
-  ArrayRangeSection getRangeSection() const {
-    assert(isRangeSection());
-    return ArrayRangeSection(V1, V2, V3);
-  }
   ArrayElementSection getElementSection() const {
     assert(isElementSection());
     return ArrayElementSection(V1);
@@ -163,8 +121,24 @@ public:
     assert(isVectorSection());
     return ArrayVectorSection(V1, V2);
   }
-  llvm::Value *getDimensionSize() const {
-    return DimSize;
+};
+
+class ArrayValueTy {
+public:
+  ArrayRef<ArrayDimensionValueTy> Dimensions;
+  ArrayRef<ArraySection> Sections;
+  llvm::Value *Ptr;
+  llvm::Value *Offset;
+
+  ArrayValueTy(ArrayRef<ArrayDimensionValueTy> Dims,
+               ArrayRef<ArraySection> sections,
+               llvm::Value *P,
+               llvm::Value *offset = nullptr)
+    : Dimensions(Dims), Sections(sections), Ptr(P),
+      Offset(offset) {}
+
+  bool hasOffset() const {
+    return Offset != nullptr;
   }
 };
 

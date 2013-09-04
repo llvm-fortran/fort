@@ -8,5 +8,7 @@ PROGRAM test
   i = 11
   i_mat = i
   i_mat2 = i_mat
+  i_mat(1:3,:) = 2
+  i_mat(:1,:1) = 11
 
 END

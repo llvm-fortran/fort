@@ -33,4 +33,13 @@ program maxminloctest
   continue   ! CHECK-NEXT: foo
   print *, i ! CHECK-NEXT: 3
 
+  i = maxloc(r_arr(:3),1)
+  print *, i ! CHECK-NEXT: 2
+
+  i = maxloc(r_arr(2:4),1)
+  print *, i ! CHECK-NEXT: 3
+
+  i = minloc(r_arr(3:),1)
+  print *, i ! CHECK-NEXT: 1
+
 end

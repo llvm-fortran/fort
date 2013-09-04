@@ -48,4 +48,35 @@ program test
            i_mat(1,3), ', ', i_mat(2,3), ', ', i_mat(3,3)
   continue ! CHECK-NEXT: 3, 2, 2, 2, 4, 2, 2, 2, 2
 
+  i_mat = 0
+  i_mat(2:,:) = 1
+  print *, i_mat(1,1), ', ', i_mat(2,1), ', ', i_mat(3,1), ', ', &
+           i_mat(1,2), ', ', i_mat(2,2), ', ', i_mat(3,2), ', ', &
+           i_mat(1,3), ', ', i_mat(2,3), ', ', i_mat(3,3)
+  continue ! CHECK-NEXT: 0, 1, 1, 0, 1, 1, 0, 1, 1
+
+  i_mat(:,2:) = 2
+  print *, i_mat(1,1), ', ', i_mat(2,1), ', ', i_mat(3,1), ', ', &
+           i_mat(1,2), ', ', i_mat(2,2), ', ', i_mat(3,2), ', ', &
+           i_mat(1,3), ', ', i_mat(2,3), ', ', i_mat(3,3)
+  continue ! CHECK-NEXT: 0, 1, 1, 2, 2, 2, 2, 2, 2
+
+  i_mat(:1,:1) = 11
+  print *, i_mat(1,1), ', ', i_mat(2,1), ', ', i_mat(3,1), ', ', &
+           i_mat(1,2), ', ', i_mat(2,2), ', ', i_mat(3,2), ', ', &
+           i_mat(1,3), ', ', i_mat(2,3), ', ', i_mat(3,3)
+  continue ! CHECK-NEXT: 11, 1, 1, 2, 2, 2, 2, 2, 2
+
+  i_mat(3:3,1:2) = 42
+  print *, i_mat(1,1), ', ', i_mat(2,1), ', ', i_mat(3,1), ', ', &
+           i_mat(1,2), ', ', i_mat(2,2), ', ', i_mat(3,2), ', ', &
+           i_mat(1,3), ', ', i_mat(2,3), ', ', i_mat(3,3)
+  continue ! CHECK-NEXT: 11, 1, 42, 2, 2, 42, 2, 2, 2
+
+  i_mat(3:3,3:3) = 42
+  print *, i_mat(1,1), ', ', i_mat(2,1), ', ', i_mat(3,1), ', ', &
+           i_mat(1,2), ', ', i_mat(2,2), ', ', i_mat(3,2), ', ', &
+           i_mat(1,3), ', ', i_mat(2,3), ', ', i_mat(3,3)
+  continue ! CHECK-NEXT: 11, 1, 42, 2, 2, 42, 2, 2, 42
+
 end

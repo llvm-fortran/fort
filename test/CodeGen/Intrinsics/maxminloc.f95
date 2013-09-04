@@ -17,6 +17,8 @@ PROGRAM maxminloctest
 
   i = maxloc(r_arr + (/ 1.0, 0.0, 2.0, 3.0, 4.0 /), 1)
 
+  i = maxloc(r_arr(:3), 1)
+
   ! FIXME: add codegen for other variations of max/min loc
 
 END

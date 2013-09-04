@@ -19,39 +19,42 @@
 namespace flang {
 namespace CodeGen {
 
-class ArrayValueTy {
-public:
-  ArrayRef<ArraySection> Sections;
-  llvm::Value *Ptr;
-
-  ArrayValueTy(ArrayRef<ArraySection> sections, llvm::Value *P)
-    : Sections(sections), Ptr(P) {}
-};
-
-/// StandaloneArrayValueSectionGatherer - Gathers the array sections
-/// which are needed for a standalone array expression.
-class StandaloneArrayValueSectionGatherer
-  : public ConstExprVisitor<StandaloneArrayValueSectionGatherer> {
+/// ArrayValueExprEmitter - Emits the information about an array.
+class ArrayValueExprEmitter
+  : public ConstExprVisitor<ArrayValueExprEmitter> {
   CodeGenFunction &CGF;
+  CGBuilderTy &Builder;
+  llvm::LLVMContext &VMContext;
 
+  llvm::Value *Offset;
+  llvm::Value *Ptr;
+  bool GetPointer;
+  SmallVector<ArrayDimensionValueTy, 8> Dims;
   SmallVector<ArraySection, 8> Sections;
-  bool Gathered;
 
-  void GatherSections(const Expr *E);
+  void EmitSections();
+  void IncrementOffset(llvm::Value *OffsetDelta);
 public:
 
-  StandaloneArrayValueSectionGatherer(CodeGenFunction &cgf);
-  void EmitExpr(const Expr *E);
+  ArrayValueExprEmitter(CodeGenFunction &cgf, bool getPointer = true);
 
+  void EmitExpr(const Expr *E);
   void VisitVarExpr(const VarExpr *E);
   void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
-  void VisitBinaryExpr(const BinaryExpr *E);
-  void VisitUnaryExpr(const UnaryExpr *E);
-  void VisitImplicitCastExpr(const ImplicitCastExpr *E);
-  void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
+  void VisitArraySectionExpr(const ArraySectionExpr *E);
 
+  ArrayRef<ArrayDimensionValueTy> getDimensions() const {
+    return Dims;
+  }
   ArrayRef<ArraySection> getSections() const {
+    assert(GetSections);
     return Sections;
+  }
+  llvm::Value *getPointer() const {
+    return Ptr;
+  }
+  ArrayValueTy getResult() const {
+    return ArrayValueTy(Dims, Sections, Ptr, Offset);
   }
 };
 
@@ -59,13 +62,15 @@ public:
 /// Stores the array sections and scalars used in the array operation.
 class ArrayOperation {
   struct StoredArrayValue {
-    size_t SectionsOffset;
+    size_t DataOffset;
     llvm::Value *Ptr;
+    llvm::Value *Offset;
   };
   llvm::SmallDenseMap<const Expr*, StoredArrayValue, 8> Arrays;
   llvm::SmallDenseMap<const Expr*, RValueTy, 8> Scalars;
 
   SmallVector<ArraySection, 32> Sections;
+  SmallVector<ArrayDimensionValueTy, 32> Dims;
 
 protected:
 
@@ -75,7 +80,7 @@ protected:
   /// \brief Emits the array sections used for the given expression.
   void EmitArraySections(CodeGenFunction &CGF, const Expr *E);
 
-  friend class ScalarEmmitterAndSectionGatherer;
+  friend class ScalarEmitterAndSectionGatherer;
 public:
 
   /// \brief Returns the array value used for the given expression.
@@ -96,9 +101,39 @@ public:
   void EmitAllScalarValuesAndArraySections(CodeGenFunction &CGF, const Expr *E);
 };
 
-/// ArrayLoopEmmitter - Emits the multidimensional loop which
+/// StandaloneArrayValueSectionGatherer - Gathers the array sections
+/// which are needed for a standalone array expression.
+class StandaloneArrayValueSectionGatherer
+  : public ConstExprVisitor<StandaloneArrayValueSectionGatherer> {
+  CodeGenFunction &CGF;
+  ArrayOperation &Operation;
+  bool Gathered;
+  SmallVector<ArrayDimensionValueTy, 8> Dims;
+  SmallVector<ArraySection, 8> Sections;
+
+  void GatherSections(const Expr *E);
+public:
+
+  StandaloneArrayValueSectionGatherer(CodeGenFunction &cgf,
+                                      ArrayOperation &Op);
+  void EmitExpr(const Expr *E);
+
+  void VisitVarExpr(const VarExpr *E);
+  void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
+  void VisitBinaryExpr(const BinaryExpr *E);
+  void VisitUnaryExpr(const UnaryExpr *E);
+  void VisitImplicitCastExpr(const ImplicitCastExpr *E);
+  void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
+  void VisitArraySectionExpr(const ArraySectionExpr *E);
+
+  ArrayValueTy getResult() const {
+    return ArrayValueTy(Dims, Sections, nullptr);
+  }
+};
+
+/// ArrayLoopEmitter - Emits the multidimensional loop which
 /// is used to iterate over array sections in an array expression.
-class ArrayLoopEmmitter {
+class ArrayLoopEmitter {
 private:
   /// Loop - stores some information about the generated loops.
   struct Loop {
@@ -109,7 +144,7 @@ private:
 
   CodeGenFunction &CGF;
   CGBuilderTy &Builder;
-  ArrayRef<ArraySection> Sections;
+
   /// ElementInfo - stores the current loop index for all
   /// dimensions, or null if the loop index doesn't apply
   /// (i.e. element section).
@@ -117,49 +152,46 @@ private:
   SmallVector<Loop, 8> Loops;
 public:
 
-  ArrayLoopEmmitter(CodeGenFunction &cgf, ArrayRef<ArraySection> LHS);
+  ArrayLoopEmitter(CodeGenFunction &cgf);
 
   /// EmitSectionIndex - computes the index of the element during
   /// the current iteration of the multidimensional loop
   /// for the given dimension.
-  llvm::Value *EmitSectionIndex(const ArrayRangeSection &Range,
-                                int Dimension);
-
-  llvm::Value *EmitSectionIndex(const ArraySection &Section,
-                                int Dimension);
+  llvm::Value *EmitSectionOffset(const ArrayValueTy &Array,
+                                int I);
 
   /// EmitElementOffset - computes the offset of the
   /// current element in the given array.
-  llvm::Value *EmitElementOffset(ArrayRef<ArraySection> Sections);
+  llvm::Value *EmitElementOffset(const ArrayValueTy &Array);
 
   /// EmitElementOneDimensionalIndex - computes the
   /// index (which starts with 1) for the current element in the given array.
-  llvm::Value *EmitElementOneDimensionalIndex(ArrayRef<ArraySection> Sections);
+  llvm::Value *EmitElementOneDimensionalIndex(const ArrayValueTy &Array);
 
   /// EmitElelementPointer - returns the pointer to the current
   /// element in the given array.
-  llvm::Value *EmitElementPointer(ArrayValueTy Array);
+  llvm::Value *EmitElementPointer(const ArrayValueTy &Array);
 
   /// EmitArrayIterationBegin - Emits the beginning of a
   /// multidimensional loop which iterates over the given array section.
-  void EmitArrayIterationBegin();
+  void EmitArrayIterationBegin(const ArrayValueTy &Array);
 
   /// EmitArrayIterationEnd - Emits the end of a
   /// multidimensional loop which iterates over the given array section.
   void EmitArrayIterationEnd();
 };
 
-/// ArrayOperationEmmitter - Emits the array expression for the current
+/// ArrayOperationEmitter - Emits the array expression for the current
 /// iteration of the multidimensional array loop.
-class ArrayOperationEmmitter : public ConstExprVisitor<ArrayOperationEmmitter, RValueTy> {
+class ArrayOperationEmitter : public ConstExprVisitor<ArrayOperationEmitter, RValueTy> {
   CodeGenFunction   &CGF;
   CGBuilderTy       &Builder;
   ArrayOperation    &Operation;
-  ArrayLoopEmmitter &Looper;
+  ArrayLoopEmitter &Looper;
 public:
 
-  ArrayOperationEmmitter(CodeGenFunction &cgf, ArrayOperation &Op,
-                         ArrayLoopEmmitter &Loop);
+  ArrayOperationEmitter(CodeGenFunction &cgf, ArrayOperation &Op,
+                         ArrayLoopEmitter &Loop);
 
   RValueTy Emit(const Expr *E);
   RValueTy VisitVarExpr(const VarExpr *E);
@@ -167,6 +199,7 @@ public:
   RValueTy VisitUnaryExpr(const UnaryExpr *E);
   RValueTy VisitBinaryExpr(const BinaryExpr *E);
   RValueTy VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
+  RValueTy VisitArraySectionExpr(const ArraySectionExpr *E);
 
   static QualType ElementType(const Expr *E) {
     return cast<ArrayType>(E->getType().getTypePtr())->getElementType();

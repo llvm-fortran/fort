@@ -228,7 +228,7 @@ public:
   llvm::Value *CreateTempHeapAlloca(llvm::Value *Size, llvm::Type *PtrType);
 
   llvm::Value *CreateTempHeapArrayAlloca(QualType T,
-                                         ArrayRef<ArraySection> Sections);
+                                         const ArrayValueTy &Value);
 
   void EmitBlock(llvm::BasicBlock *BB);
   void EmitBranch(llvm::BasicBlock *Target);
@@ -427,17 +427,30 @@ public:
   }
 
 
+
   llvm::Value *EmitDimSize(const ArrayDimensionValueTy &Dim);
-  llvm::Value *EmitDimSubscript(llvm::Value *Subscript,
-                                const ArrayDimensionValueTy &Dim);
+  llvm::Value *EmitDimOffset(llvm::Value *Subscript,
+                             const ArrayDimensionValueTy &Dim);
 
-  llvm::Value *EmitNthDimSubscript(llvm::Value *Subscript,
-                                   const ArrayDimensionValueTy &Dim,
-                                   llvm::Value *DimSizeProduct);
+  /// \brief Computes the element offset from the array base for the given
+  /// subscripts.
+  llvm::Value *EmitArrayOffset(ArrayRef<llvm::Value*> Subscripts,
+                               const ArrayValueTy &Value);
 
-  ArraySection EmitDimSection(const ArrayDimensionValueTy &Dim);
+  /// \brief Returns the pointer to the element for the given subscripts.
+  llvm::Value *EmitArrayElementPtr(ArrayRef<llvm::Value*> Subscripts,
+                                   const ArrayValueTy &Value);
 
-  llvm::Value *EmitArraySize(ArrayRef<ArraySection> Sections);
+  llvm::Value *EmitSectionSize(const ArrayValueTy &Value, int I);
+  llvm::Value *EmitArraySize(const ArrayValueTy &Value);
+
+  llvm::Value *EmitSliceFlatDifference(const ArrayDimensionValueTy &Dim,
+                                       llvm::Value *SliceLowerBound);
+
+  ArrayDimensionValueTy EmitArrayRangeSection(const ArrayDimensionValueTy &Dim,
+                                              llvm::Value *&Ptr, llvm::Value *&Offset,
+                                              llvm::Value *LB, llvm::Value *UB,
+                                              llvm::Value *Stride = nullptr);
 
   void GetArrayDimensionsInfo(QualType T, SmallVectorImpl<ArrayDimensionValueTy> &Dims);
 
