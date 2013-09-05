@@ -52,16 +52,6 @@
 using namespace llvm;
 using namespace flang;
 
-llvm::sys::Path GetExecutablePath(const char *Argv0, bool CanonicalPrefixes) {
-  if (!CanonicalPrefixes)
-    return llvm::sys::Path(Argv0);
-
-  // This just needs to be some symbol in the binary; C++ doesn't
-  // allow taking the address of ::main however.
-  void *P = (void*) (intptr_t) GetExecutablePath;
-  return llvm::sys::Path::GetMainExecutable(Argv0, P);
-}
-
 //===----------------------------------------------------------------------===//
 // Command line options.
 //===----------------------------------------------------------------------===//
@@ -255,7 +245,7 @@ static bool EmitOutputFile(const std::string &Input,
                            llvm::TargetMachine* TM,
                            BackendAction Action) {
   std::string err;
-  llvm::raw_fd_ostream Out(Input.c_str(), err, llvm::raw_fd_ostream::F_Binary);
+  llvm::raw_fd_ostream Out(Input.c_str(), err, llvm::raw_fd_ostream::F_Binary);//FIXME: llvm 3.4: llvm::sys::fs::F_Binary);
   if (!err.empty()){
     llvm::errs() << "Could not open output file '" << Input << "': "
                  << err <<"\n";
@@ -409,8 +399,6 @@ int main(int argc, char **argv) {
       CanonicalPrefixes = false;
       break;
     }
-
-  llvm::sys::Path Path = GetExecutablePath(argv[0], CanonicalPrefixes);
 
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
