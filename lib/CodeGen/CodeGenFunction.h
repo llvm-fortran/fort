@@ -454,6 +454,10 @@ public:
                                               llvm::Value *LB, llvm::Value *UB,
                                               llvm::Value *Stride = nullptr);
 
+  void EmitArrayElementSection(const ArrayDimensionValueTy &Dim,
+                               llvm::Value *&Ptr, llvm::Value *&Offset,
+                               llvm::Value *Index);
+
   void GetArrayDimensionsInfo(QualType T, SmallVectorImpl<ArrayDimensionValueTy> &Dims);
 
   llvm::Value *EmitArrayArgumentPointerValueABI(const Expr *E);

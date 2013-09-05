@@ -79,4 +79,16 @@ program test
            i_mat(1,3), ', ', i_mat(2,3), ', ', i_mat(3,3)
   continue ! CHECK-NEXT: 11, 1, 42, 2, 2, 42, 2, 2, 42
 
+  i_mat(1,:) = 0
+  print *, i_mat(1,1), ', ', i_mat(2,1), ', ', i_mat(3,1), ', ', &
+           i_mat(1,2), ', ', i_mat(2,2), ', ', i_mat(3,2), ', ', &
+           i_mat(1,3), ', ', i_mat(2,3), ', ', i_mat(3,3)
+  continue ! CHECK-NEXT: 0, 1, 42, 0, 2, 42, 0, 2, 42
+
+  i_mat(:2,2) = 21
+  print *, i_mat(1,1), ', ', i_mat(2,1), ', ', i_mat(3,1), ', ', &
+           i_mat(1,2), ', ', i_mat(2,2), ', ', i_mat(3,2), ', ', &
+           i_mat(1,3), ', ', i_mat(2,3), ', ', i_mat(3,3)
+  continue ! CHECK-NEXT: 0, 1, 42, 21, 21, 42, 0, 2, 42
+
 end

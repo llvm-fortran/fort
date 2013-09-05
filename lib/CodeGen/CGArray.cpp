@@ -185,6 +185,13 @@ EmitArrayRangeSection(const ArrayDimensionValueTy &Dim,
                                    UB, Dim.Stride);
 }
 
+void CodeGenFunction::EmitArrayElementSection(const ArrayDimensionValueTy &Dim,
+                                              llvm::Value *&Ptr, llvm::Value *&Offset,
+                                              llvm::Value *Index) {
+  auto Diff = EmitSliceFlatDifference(Dim, Index);
+  Offset = Offset? Builder.CreateAdd(Offset, Diff) : Diff;
+}
+
 ArrayValueExprEmitter::ArrayValueExprEmitter(CodeGenFunction &cgf, bool getPointer)
   : CGF(cgf), Builder(cgf.getBuilder()),
     VMContext(cgf.getLLVMContext()), GetPointer(getPointer), Ptr(nullptr),
@@ -243,7 +250,9 @@ void ArrayValueExprEmitter::VisitArraySectionExpr(const ArraySectionExpr *E) {
                                               nullptr,
                        Range->hasSecondExpr()? CGF.EmitScalarExpr(Range->getSecondExpr()) :
                                                nullptr));
-    }
+    } else
+      CGF.EmitArrayElementSection(TargetDims[I], Ptr, Offset,
+                                  CGF.EmitScalarExpr(Subscripts[I]));
     // FIXME: the rest
   }
 }
@@ -427,26 +436,20 @@ void ArrayLoopEmitter::EmitArrayIterationBegin(const ArrayValueTy &Array) {
   // order for efficient memory access).
   for(auto I = Sections.size(); I!=0;) {
     --I;
-    if(Sections[I].isRangeSection() ||
-       Sections[I].isVectorSection()) {
-      auto Var = CGF.CreateTempAlloca(IndexType,"array-dim-loop-counter");
-      Builder.CreateStore(llvm::ConstantInt::get(IndexType, 0), Var);
-      auto LoopCond = CGF.createBasicBlock("array-dim-loop");
-      auto LoopBody = CGF.createBasicBlock("array-dim-loop-body");
-      auto LoopEnd = CGF.createBasicBlock("array-dim-loop-end");
-      CGF.EmitBlock(LoopCond);
-      Builder.CreateCondBr(Builder.CreateICmpULT(Builder.CreateLoad(Var), CGF.EmitSectionSize(Array, I)),
-                           LoopBody, LoopEnd);
-      CGF.EmitBlock(LoopBody);
-      Elements[I] = Builder.CreateLoad(Var);
+    auto Var = CGF.CreateTempAlloca(IndexType,"array-dim-loop-counter");
+    Builder.CreateStore(llvm::ConstantInt::get(IndexType, 0), Var);
+    auto LoopCond = CGF.createBasicBlock("array-dim-loop");
+    auto LoopBody = CGF.createBasicBlock("array-dim-loop-body");
+    auto LoopEnd = CGF.createBasicBlock("array-dim-loop-end");
+    CGF.EmitBlock(LoopCond);
+    Builder.CreateCondBr(Builder.CreateICmpULT(Builder.CreateLoad(Var), CGF.EmitSectionSize(Array, I)),
+                         LoopBody, LoopEnd);
+    CGF.EmitBlock(LoopBody);
+    Elements[I] = Builder.CreateLoad(Var);
 
-      Loops[I].EndBlock = LoopEnd;
-      Loops[I].TestBlock = LoopCond;
-      Loops[I].Counter = Var;
-    } else {
-      Elements[I] = nullptr;
-      Loops[I].EndBlock = nullptr;
-    }
+    Loops[I].EndBlock = LoopEnd;
+    Loops[I].TestBlock = LoopCond;
+    Loops[I].Counter = Var;
   }
 }
 
@@ -470,7 +473,7 @@ llvm::Value *ArrayLoopEmitter::EmitSectionOffset(const ArrayValueTy &Array,
   if(Array.Sections[I].isRangeSection())
     return Array.Dimensions[I].hasStride()?
              Builder.CreateMul(Elements[I], Array.Dimensions[I].Stride) : Elements[I];
-  // FIXME: element sections + vector sections.
+  // FIXME: vector sections.
   return nullptr;
 }
 

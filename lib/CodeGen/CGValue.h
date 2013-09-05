@@ -67,16 +67,6 @@ public:
   }
 };
 
-/// \brief Rerpresents a single-element section of an array.
-class ArrayElementSection {
-public:
-  llvm::Value *Index;
-
-  ArrayElementSection() {}
-  ArrayElementSection(llvm::Value *index)
-    : Index(index) {}
-};
-
 /// \brief Represents a vector section of an array.
 class ArrayVectorSection {
 public:
@@ -90,7 +80,7 @@ public:
 
 class ArraySection {
   enum Kind {
-    Range, Element, Vector
+    Range, Vector
   };
   Kind Type;
   llvm::Value *V1, *V2;
@@ -98,25 +88,16 @@ public:
 
   ArraySection()
     : Type(Range) {}
-  ArraySection(const ArrayElementSection &S)
-    : Type(Element), V1(S.Index) {}
   ArraySection(const ArrayVectorSection &S)
     : Type(Vector), V1(S.Ptr), V2(S.Size) {}
 
   bool isRangeSection() const {
     return Type == Range;
   }
-  bool isElementSection() const {
-    return Type == Element;
-  }
   bool isVectorSection() const {
     return Type == Vector;
   }
 
-  ArrayElementSection getElementSection() const {
-    assert(isElementSection());
-    return ArrayElementSection(V1);
-  }
   ArrayVectorSection getVectorSection() const {
     assert(isVectorSection());
     return ArrayVectorSection(V1, V2);
