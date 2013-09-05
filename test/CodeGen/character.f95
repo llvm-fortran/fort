@@ -18,6 +18,13 @@ CHARACTER*10 FUNCTION BAR(I) ! CHECK: define void @bar_(i32* noalias %i, { i8*, 
   BAR = BAR
 END
 
+SUBROUTINE SUB(C,C2)
+  CHARACTER C
+  CHARACTER*2 C2
+  IF(C.EQ.'A') RETURN   ! CHECK: call i32 @libflang_compare_char1(i8* {{.*}}, i64 1, i8* {{.*}}, i64 1)
+  IF(C2.NE.'HI') RETURN ! CHECK: call i32 @libflang_compare_char1(i8* {{.*}}, i64 2, i8* {{.*}}, i64 2)
+END
+
 PROGRAM test
   CHARACTER STR     ! CHECK: alloca [1 x i8]
   CHARACTER*20 STR2 ! CHECK: alloca [20 x i8]

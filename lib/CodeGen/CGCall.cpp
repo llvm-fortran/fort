@@ -293,7 +293,7 @@ void CodeGenFunction::EmitCallArg(CallArgList &Args,
 CharacterValueTy CodeGenFunction::GetCharacterArg(const VarDecl *Arg) {
   auto Result = CharacterArgs.find(Arg);
   if(Result == CharacterArgs.end()) {
-    CharacterValueTy Val;
+    CharacterValueTy Val;    
     switch(GetArgInfo(Arg).ABIInfo.getKind()) {
     case ABIArgInfo::Value:
       Val = ExtractCharacterValue(GetVarPtr(Arg));
@@ -315,6 +315,10 @@ CharacterValueTy CodeGenFunction::GetCharacterArg(const VarDecl *Arg) {
     }
 
     }
+    auto T = Arg->getType().getExtQualsPtrOrNull();
+    if(!(T && T->isStarLengthSelector()))
+      Val.Len = llvm::ConstantInt::get(CGM.SizeTy, T && T->hasLengthSelector()?
+                                                   T->getLengthSelector() : 1);
     CharacterArgs.insert(std::make_pair(Arg, Val));
     return Val;
   }
