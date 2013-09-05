@@ -154,41 +154,64 @@ llvm::Value *CodeGenFunction::EmitArraySize(const ArrayValueTy &Value) {
   return Size;
 }
 
-llvm::Value *CodeGenFunction::EmitSliceFlatDifference(const ArrayDimensionValueTy &Dim,
-                                                      llvm::Value *SliceLowerBound) {
-  // (SliceLowerBound - LowerBound) * Stride
+/// \brief Emits the offset from the base of an array for a range section.
+/// => (SliceLowerBound - LowerBound) * Stride
+llvm::Value *EmitSectionPointerOffset(CGBuilderTy &Builder,
+                                      const ArrayDimensionValueTy &Dim,
+                                      llvm::Value *SliceLowerBound) {
   auto LB = Dim.hasLowerBound()? Dim.LowerBound :
                                  llvm::ConstantInt::get(SliceLowerBound->getType(), 1);
   auto LBDiff = Builder.CreateSub(SliceLowerBound, LB);
   return Dim.hasStride()? Builder.CreateMul(LBDiff, Dim.Stride) : LBDiff;
 }
 
-// FIXME: (UB:LB:-Stride), (::Stride)
+/// \brief Emits the new stride for a range section.
+/// => Stride * SliceStride
+static llvm::Value *EmitSectionStride(CGBuilderTy &Builder,
+                                      const ArrayDimensionValueTy &Dim,
+                                      llvm::Value *Stride) {
+  return Stride? (Dim.hasStride()? Builder.CreateMul(Dim.Stride, Stride) : Stride) :
+                 Dim.Stride;
+}
+
+/// \brief Emits the new upper bound for a range section.
+/// => ((UpperBound - LowerBound + 1) + (SliceStride - 1)) / SliceStride
+static llvm::Value *EmitSectionUpperBound(CGBuilderTy &Builder,
+                                          llvm::Value *LB, llvm::Value *UB,
+                                          llvm::Value *Stride) {
+  auto Diff = !LB? UB: Builder.CreateAdd(Builder.CreateSub(UB, LB),
+                                         llvm::ConstantInt::get(UB->getType(), 1));
+  return Stride? Builder.CreateSDiv(Builder.CreateAdd(Diff,
+                                      Builder.CreateSub(Stride, llvm::ConstantInt::get(Stride->getType(), 1))),
+                                    Stride) : Diff;
+}
+
+// FIXME: (UB:LB:-Stride)
 ArrayDimensionValueTy CodeGenFunction::
 EmitArrayRangeSection(const ArrayDimensionValueTy &Dim,
                       llvm::Value *&Ptr, llvm::Value *&Offset,
                       llvm::Value *LB, llvm::Value *UB, llvm::Value *Stride) {
-  if(!LB && !UB && !Stride)
-    return Dim;
   if(LB) {
-    auto Diff = EmitSliceFlatDifference(Dim, LB);
+    auto Diff = EmitSectionPointerOffset(Builder, Dim, LB);
     Offset = Offset? Builder.CreateAdd(Offset, Diff) : Diff;
-    auto NewUB = UB? Builder.CreateAdd(Builder.CreateSub(UB, LB),
-                                       llvm::ConstantInt::get(LB->getType(), 1)) :
-                   Builder.CreateSub(Builder.CreateAdd(EmitDimSize(Dim),
-                                     llvm::ConstantInt::get(LB->getType(), 1)), LB);
-    return ArrayDimensionValueTy(nullptr, NewUB, Dim.Stride);
+    return ArrayDimensionValueTy(nullptr,
+                                 EmitSectionUpperBound(Builder, LB, UB? UB : Dim.UpperBound, Stride),
+                                 EmitSectionStride(Builder, Dim, Stride));
   } else if(UB)
-    return ArrayDimensionValueTy(nullptr, Dim.hasLowerBound()?
-                                   Builder.CreateAdd(Builder.CreateSub(UB, Dim.LowerBound),
-                                                     llvm::ConstantInt::get(UB->getType(), 1)) :
-                                   UB, Dim.Stride);
+    return ArrayDimensionValueTy(nullptr,
+                                 EmitSectionUpperBound(Builder, Dim.LowerBound, UB, Stride),
+                                 EmitSectionStride(Builder, Dim, Stride));
+  else if(Stride)
+    return ArrayDimensionValueTy(nullptr,
+                                 EmitSectionUpperBound(Builder, Dim.LowerBound, Dim.UpperBound, Stride),
+                                 EmitSectionStride(Builder, Dim, Stride));
+  return Dim;
 }
 
 void CodeGenFunction::EmitArrayElementSection(const ArrayDimensionValueTy &Dim,
                                               llvm::Value *&Ptr, llvm::Value *&Offset,
                                               llvm::Value *Index) {
-  auto Diff = EmitSliceFlatDifference(Dim, Index);
+  auto Diff = EmitSectionPointerOffset(Builder, Dim, Index);
   Offset = Offset? Builder.CreateAdd(Offset, Diff) : Diff;
 }
 
@@ -234,7 +257,6 @@ void ArrayValueExprEmitter::IncrementOffset(llvm::Value *OffsetDelta) {
 }
 
 void ArrayValueExprEmitter::VisitArraySectionExpr(const ArraySectionExpr *E) {
-  //FIXME
   ArrayValueExprEmitter TargetEmitter(CGF, GetPointer);
   TargetEmitter.EmitExpr(E->getTarget());
   Offset = TargetEmitter.Offset;
@@ -246,14 +268,18 @@ void ArrayValueExprEmitter::VisitArraySectionExpr(const ArraySectionExpr *E) {
     if(auto Range = dyn_cast<RangeExpr>(Subscripts[I])) {
       Sections.push_back(ArraySection());
       Dims.push_back(CGF.EmitArrayRangeSection(TargetDims[I], Ptr, Offset,
-                       Range->hasFirstExpr()? CGF.EmitScalarExpr(Range->getFirstExpr()) :
-                                              nullptr,
-                       Range->hasSecondExpr()? CGF.EmitScalarExpr(Range->getSecondExpr()) :
-                                               nullptr));
+                       CGF.EmitScalarExprOrNull(Range->getFirstExpr()),
+                       CGF.EmitScalarExprOrNull(Range->getSecondExpr())));
+    } else if(auto StridedRange = dyn_cast<StridedRangeExpr>(Subscripts[I])) {
+      Sections.push_back(ArraySection());
+      Dims.push_back(CGF.EmitArrayRangeSection(TargetDims[I], Ptr, Offset,
+                       CGF.EmitScalarExprOrNull(StridedRange->getFirstExpr()),
+                       CGF.EmitScalarExprOrNull(StridedRange->getSecondExpr()),
+                       CGF.EmitScalarExprOrNull(StridedRange->getStride())));
     } else
       CGF.EmitArrayElementSection(TargetDims[I], Ptr, Offset,
                                   CGF.EmitScalarExpr(Subscripts[I]));
-    // FIXME: the rest
+    // FIXME: vector sections.
   }
 }
 

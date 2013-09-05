@@ -274,6 +274,10 @@ public:
   // scalar expressions.
   llvm::Value *EmitSizeIntExpr(const Expr *E);
   llvm::Value *EmitScalarExpr(const Expr *E);
+  llvm::Value *EmitScalarExprOrNull(const Expr *E) {
+    if(!E) return nullptr;
+    return EmitScalarExpr(E);
+  }
   llvm::Value *EmitScalarUnaryMinus(llvm::Value *Val);
   llvm::Value *EmitScalarUnaryNot(llvm::Value *Val);
   llvm::Value *EmitScalarBinaryExpr(BinaryExpr::Operator Op,
@@ -443,11 +447,12 @@ public:
   llvm::Value *EmitArrayElementPtr(ArrayRef<llvm::Value*> Subscripts,
                                    const ArrayValueTy &Value);
 
+  /// EmitSectionSize - Emits the number of elements in a single
+  /// section in the given given array.
   llvm::Value *EmitSectionSize(const ArrayValueTy &Value, int I);
-  llvm::Value *EmitArraySize(const ArrayValueTy &Value);
 
-  llvm::Value *EmitSliceFlatDifference(const ArrayDimensionValueTy &Dim,
-                                       llvm::Value *SliceLowerBound);
+  /// EmitArraySize - Emits the number of elements in the given array.
+  llvm::Value *EmitArraySize(const ArrayValueTy &Value);
 
   ArrayDimensionValueTy EmitArrayRangeSection(const ArrayDimensionValueTy &Dim,
                                               llvm::Value *&Ptr, llvm::Value *&Offset,

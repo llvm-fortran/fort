@@ -12,5 +12,6 @@ PROGRAM test
   i_mat(:1,:1) = 11
   i_mat(1,:) = 10
   i_mat(:2,4) = 12
+  i_mat(:3:2,1:3:1) = 13
 
 END
