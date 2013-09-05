@@ -2,6 +2,7 @@
 
 PROGRAM sys ! CHECK: call void @libflang_sys_init()
 
+  REAL ETIME
   INTRINSIC ETIME
   REAL R_ARR(2)
   REAL T

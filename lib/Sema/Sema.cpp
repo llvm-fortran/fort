@@ -957,6 +957,7 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
     auto VD = dyn_cast<VarDecl>(Prev);
     if(VD && VD->isUnusedSymbol()) {
       Type = VD->getType();
+      CurContext->removeDecl(VD);
     } else {
       Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
       Diags.Report(Prev->getLocation(), diag::note_previous_definition);
