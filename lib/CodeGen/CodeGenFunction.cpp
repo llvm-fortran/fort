@@ -121,6 +121,14 @@ void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func,
 void CodeGenFunction::EmitFunctionPrologue(const FunctionDecl *Func,
                                            const CGFunctionInfo *Info) {
   EmitBlock(createBasicBlock("entry"));
+
+  // Extract argument values when necessary
+  for(auto Arg : ArgsList) {
+    if(Arg->getType()->isCharacterType())
+      GetCharacterArg(Arg);
+  }
+
+  // Create return value and lbock
   auto RetABI = Info->getReturnInfo().ABIInfo.getKind();
   if(RetABI == ABIRetInfo::Value) {
     ReturnValuePtr = Builder.CreateAlloca(ConvertType(Func->getType()),
