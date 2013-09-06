@@ -230,8 +230,8 @@ void ArrayValueExprEmitter::EmitSections() {
 
 void ArrayValueExprEmitter::VisitVarExpr(const VarExpr *E) {
   auto VD = E->getVarDecl();
-  if(CGF.IsInlinedArgument(VD))
-    return EmitExpr(CGF.GetInlinedArgumentValue(VD));
+  //FIXME: if(CGF.IsInlinedArgument(VD))
+  //           return CGF.GetInlinedArgumentValue(VD);
   if(VD->isParameter())
     return EmitExpr(VD->getInit());
 

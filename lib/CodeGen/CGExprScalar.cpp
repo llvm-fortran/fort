@@ -107,7 +107,7 @@ llvm::Value *ScalarExprEmitter::VisitLogicalConstantExpr(const LogicalConstantEx
 llvm::Value *ScalarExprEmitter::VisitVarExpr(const VarExpr *E) {
   auto VD = E->getVarDecl();
   if(CGF.IsInlinedArgument(VD))
-    return EmitExpr(CGF.GetInlinedArgumentValue(VD));
+    return CGF.GetInlinedArgumentValue(VD).asScalar();
   if(VD->isParameter())
     return EmitExpr(VD->getInit());
   auto Ptr = CGF.GetVarPtr(VD);

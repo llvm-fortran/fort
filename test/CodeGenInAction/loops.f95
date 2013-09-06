@@ -63,4 +63,19 @@ PROGRAM loops
   end do outer ! CHECK-NEXT: I=3
   PRINT *, 'END'       ! CHECK-NEXT: END
 
+   do 10 i = 1,10
+10 continue
+   print *, i ! CHECK-NEXT: 11
+
+   do 20 i = 1,10
+   if(i == 5) goto 20
+20 continue
+   print *, i ! CHECK-NEXT: 11
+
+   do 30 i = 1,10
+   if(i == 5) goto 40
+30 continue
+40 continue
+   print *, i ! CHECK-NEXT: 5
+
 END PROGRAM

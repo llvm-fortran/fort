@@ -423,7 +423,7 @@ public:
   RValueTy EmitStatementFunctionCall(const FunctionDecl *Function,
                                      ArrayRef<Expr*> Arguments);
   bool IsInlinedArgument(const VarDecl *VD);
-  const Expr *GetInlinedArgumentValue(const VarDecl *VD);
+  RValueTy GetInlinedArgumentValue(const VarDecl *VD);
 
   // arrays
   llvm::Value *EmitArrayElementPtr(const Expr *Target,

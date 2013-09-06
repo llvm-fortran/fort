@@ -76,7 +76,7 @@ void CodeGenFunction::EmitComplexStore(ComplexValueTy Value, llvm::Value *Ptr,
 ComplexValueTy ComplexExprEmitter::VisitVarExpr(const VarExpr *E) {
   auto VD = E->getVarDecl();
   if(CGF.IsInlinedArgument(VD))
-    return EmitExpr(CGF.GetInlinedArgumentValue(VD));
+    return CGF.GetInlinedArgumentValue(VD).asComplex();
   if(VD->isParameter())
     return EmitExpr(VD->getInit());
   auto Ptr = CGF.GetVarPtr(VD);

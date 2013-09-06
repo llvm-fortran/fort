@@ -360,16 +360,17 @@ llvm::CallInst *CodeGenFunction::EmitRuntimeCall2(llvm::Value *Func, llvm::Value
   return Result;
 }
 
+/// StatementFunctionInliningScope - inlines the statement functions.
 class StatementFunctionInliningScope {
 public:
   CodeGenFunction *CGF;
   const FunctionDecl *Func;
   const StatementFunctionInliningScope *Previous;
-  llvm::DenseMap<const VarDecl*, const Expr*> Args;
+  llvm::DenseMap<const VarDecl*, RValueTy> Args;
 
   StatementFunctionInliningScope(CodeGenFunction *cgf,
                                  const FunctionDecl *Function,
-                                 ArrayRef<Expr*> Arguments)
+                                 ArrayRef<RValueTy> Arguments)
     : CGF(cgf), Func(Function), Previous(cgf->CurInlinedStmtFunc) {
       cgf->CurInlinedStmtFunc = this;
       for(size_t I = 0; I < Arguments.size(); ++I)
@@ -378,17 +379,20 @@ public:
   ~StatementFunctionInliningScope() {
     CGF->CurInlinedStmtFunc = Previous;
   }
-  const Expr *getArgValue(const VarDecl *Arg) const {
-    auto result = Args.find(Arg);
-    if(result != Args.end())
-      return result->second;
+  RValueTy getArgValue(const VarDecl *Arg) const {
+    auto Result = Args.find(Arg);
+    if(Result != Args.end())
+      return Result->second;
     return Previous->getArgValue(Arg);
   }
 };
 
 RValueTy CodeGenFunction::EmitStatementFunctionCall(const FunctionDecl *Function,
                                                     ArrayRef<Expr*> Arguments) {
-  StatementFunctionInliningScope Scope(this, Function, Arguments);
+  llvm::SmallVector<RValueTy, 8> Args;
+  for(auto Arg : Arguments)
+    Args.push_back(EmitRValue(Arg));
+  StatementFunctionInliningScope Scope(this, Function, Args);
   return EmitRValue(Function->getBodyExpr());
 }
 
@@ -398,7 +402,7 @@ bool CodeGenFunction::IsInlinedArgument(const VarDecl *VD) {
   return false;
 }
 
-const Expr *CodeGenFunction::GetInlinedArgumentValue(const VarDecl *VD) {
+RValueTy CodeGenFunction::GetInlinedArgumentValue(const VarDecl *VD) {
   return CurInlinedStmtFunc->getArgValue(VD);
 }
 
