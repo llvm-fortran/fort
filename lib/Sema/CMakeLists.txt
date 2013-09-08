@@ -5,6 +5,7 @@ add_flang_library(flangSema
   SemaExecStmt.cpp
   SemaDataStmt.cpp
   SemaExpr.cpp
+  SemaArrayExpr.cpp
   SemaChecking.cpp
   SemaIntrinsic.cpp
   SemaFormat.cpp

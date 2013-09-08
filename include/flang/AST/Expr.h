@@ -556,6 +556,8 @@ public:
   const Expr *getLowerBoundOrNull() const { return LowerBound; }
   const Expr *getUpperBoundOrNull() const { return UpperBound; }
 
+  bool hasLowerBound() const { return LowerBound != nullptr; }
+
   bool Evaluate(EvaluatedArraySpec &Spec, const ASTContext &Ctx) const;
 
   static bool classof(const ExplicitShapeSpec *) { return true; }

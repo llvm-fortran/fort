@@ -774,23 +774,4 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
                                    Arguments, ReturnType);
 }
 
-ExprResult Sema::ActOnArrayConstructorExpr(ASTContext &C, SourceLocation Loc,
-                                           SourceLocation RParenLoc, ArrayRef<Expr*> Elements) {
-  SmallVector<Expr*, 32> Items;
-  for(auto I : Elements) {
-    if(auto ArrC = dyn_cast<ArrayConstructorExpr>(I)) {
-      for(auto J : ArrC->getItems())
-        Items.push_back(J);
-    } else
-      Items.push_back(I);
-  }
-  QualType ElementType;
-  CheckArrayConstructorItems(Items, ElementType);
-  ArraySpec *Dim = ExplicitShapeSpec::Create(C,
-                     IntegerConstantExpr::Create(C, Loc, Loc,
-                       llvm::APInt(64, Items.size())));
-  auto ArrayType = C.getArrayType(ElementType, Dim);
-  return ArrayConstructorExpr::Create(C, Loc, Items, ArrayType);
-}
-
 } // namespace flang

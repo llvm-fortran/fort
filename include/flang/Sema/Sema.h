@@ -610,7 +610,12 @@ public:
 
   /// Returns true if two types have the same type class
   /// and kind.
-  bool CheckTypesSameKind(QualType A, QualType B) const;
+  bool AreTypesOfSameKind(QualType A, QualType B) const;
+
+  /// Returns true if two types have the same type class
+  /// and kind.
+  bool CheckTypesOfSameKind(QualType A, QualType B,
+                            const Expr *E) const;
 
   /// Returns true if the given Type is a scalar(integer,
   /// real, complex) or character
@@ -789,7 +794,8 @@ public:
   /// satisfy all the constraints.
   /// As a bonus it also returns the Element type in ObtainedElementType.
   bool CheckArrayConstructorItems(ArrayRef<Expr*> Items,
-                                  QualType &ObtainedElementType);
+                                  QualType &ResultingArrayType);
+
 
   /// Returns true if an array doesn't
   /// have an implied shape dimension specifier.

@@ -286,7 +286,7 @@ bool Sema::CheckCharacterExpression(const Expr *E) {
   return false;
 }
 
-bool Sema::CheckTypesSameKind(QualType A, QualType B) const {
+bool Sema::AreTypesOfSameKind(QualType A, QualType B) const {
   if(auto ABTy = dyn_cast<BuiltinType>(A.getTypePtr())) {
     auto BBTy = dyn_cast<BuiltinType>(B.getTypePtr());
     if(!BBTy) return false;
@@ -314,6 +314,15 @@ bool Sema::CheckTypesSameKind(QualType A, QualType B) const {
   return false;
 }
 
+bool Sema::CheckTypesOfSameKind(QualType A, QualType B,
+                                const Expr *E) const {
+  if(AreTypesOfSameKind(A,B)) return true;
+  Diags.Report(E->getLocation(),
+               diag::err_typecheck_expected_expr_of_type)
+    << A << B << E->getSourceRange();
+  return false;
+}
+
 bool Sema::CheckTypeScalarOrCharacter(const Expr *E, QualType T, bool IsConstant) {
   if(isa<BuiltinType>(T.getTypePtr())) return true;
   Diags.Report(E->getLocation(), IsConstant?
@@ -328,18 +337,18 @@ Expr *Sema::TypecheckExprIntegerOrLogicalOrSameCharacter(Expr *E,
   auto GivenType = E->getType();
   if(ExpectedType->isIntegerType()) {
     if(CheckIntegerExpression(E)) {
-      if(!CheckTypesSameKind(ExpectedType, GivenType))
+      if(!AreTypesOfSameKind(ExpectedType, GivenType))
         return ImplicitCastExpr::Create(Context, E->getLocation(), ExpectedType, E);
     }
   }
   else if(ExpectedType->isLogicalType()) {
     if(CheckLogicalExpression(E)) {
-      if(!CheckTypesSameKind(ExpectedType, GivenType))
+      if(!AreTypesOfSameKind(ExpectedType, GivenType))
         return ImplicitCastExpr::Create(Context, E->getLocation(), ExpectedType, E);
     }
   } else {
     assert(ExpectedType->isCharacterType());
-    if(!GivenType->isCharacterType() || !CheckTypesSameKind(ExpectedType, GivenType)) {
+    if(!GivenType->isCharacterType() || !AreTypesOfSameKind(ExpectedType, GivenType)) {
       Diags.Report(E->getLocation(),
                    diag::err_typecheck_expected_char_expr)
         << E->getType() << E->getSourceRange();
@@ -373,7 +382,7 @@ void Sema::CheckExpressionListSameTypeKind(ArrayRef<Expr*> Expressions) {
   auto T = Expressions.front()->getType();
   for(size_t I = 0; I < Expressions.size(); ++I) {
     auto E = Expressions[I];
-    if(!CheckTypesSameKind(T, E->getType())) {
+    if(!AreTypesOfSameKind(T, E->getType())) {
       Diags.Report(E->getLocation(), 0) // FIXME
         << E->getSourceRange();
     }
@@ -571,39 +580,6 @@ bool Sema::CheckIntegerArgumentOrLogicalArrayArgument(const Expr *E, StringRef A
     << ArgName2 << "'logical array'"
     << E->getSourceRange();
   return true;
-}
-
-// FIXME: Items can be implied do and other array constructors..
-bool Sema::CheckArrayConstructorItems(ArrayRef<Expr*> Items,
-                                      QualType &ObtainedElementType) {
-  if(Items.empty()) return true;
-
-  bool Result = true;
-  size_t I;
-  QualType ElementType;
-  // Set the first valid type to be the element type
-  for(I = 0; I < Items.size(); ++I) {
-    ElementType = Items[I]->getType();
-    if(CheckTypeScalarOrCharacter(Items[I], ElementType, true))
-      break;
-    Result = false;
-  }
-
-  // NB: ignore character value same length constraint.
-  // Constraint: Each ac-value expression in the array-constructor
-  // shall have the same type and kind type parameter.
-  for(; I < Items.size(); ++I) {
-    auto T = Items[I]->getType();
-    if(!CheckTypesSameKind(ElementType, T)) {
-      Diags.Report(Items[I]->getLocation(),
-                   diag::err_typecheck_expected_expr_of_type)
-        << ElementType << T << Items[I]->getSourceRange();
-      Result = false;
-    }
-  }
-
-  ObtainedElementType = ElementType;
-  return Result;
 }
 
 bool Sema::CheckArrayNoImpliedDimension(const ArrayType *T,

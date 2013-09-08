@@ -59,7 +59,7 @@ llvm::Value *CodeGenFunction::CreateArrayAlloca(QualType T,
 }
 
 llvm::Value *CodeGenFunction::CreateTempHeapArrayAlloca(QualType T,
-                                                        const ArrayValueTy &Value) {
+                                                        const ArrayValueRef &Value) {
   auto ETy = getTypes().ConvertTypeForMem(T.getSelfOrArrayElementType());
   auto PTy = llvm::PointerType::get(ETy, 0);
   auto Size = EmitArraySize(Value);
@@ -110,22 +110,22 @@ llvm::Value *CodeGenFunction::EmitDimOffset(llvm::Value *Subscript,
 }
 
 llvm::Value *CodeGenFunction::EmitArrayOffset(ArrayRef<llvm::Value*> Subscripts,
-                                              const ArrayValueTy &Value) {
+                                              const ArrayValueRef &Value) {
   // return offset + (Subscript[i] - LowerBound[i] * Stride[i] for i in 0..Subscripts.size())
   assert(Subscripts.size() == Value.Dimensions.size());
   auto Offset = EmitDimOffset(Subscripts[0], Value.Dimensions[0]);
   for(size_t I = 1; I < Subscripts.size(); ++I)
     Offset = Builder.CreateAdd(Offset,
                                EmitDimOffset(Subscripts[I], Value.Dimensions[I]));
-  return Value.hasOffset()? Builder.CreateAdd(Offset, Value.Offset) : Offset;
+  return Offset;
 }
 
 llvm::Value *CodeGenFunction::EmitArrayElementPtr(ArrayRef<llvm::Value*> Subscripts,
-                                                  const ArrayValueTy &Value) {
+                                                  const ArrayValueRef &Value) {
   return Builder.CreateGEP(Value.Ptr, EmitArrayOffset(Subscripts, Value));
 }
 
-llvm::Value *CodeGenFunction::EmitSectionSize(const ArrayValueTy &Value, int I) {
+llvm::Value *CodeGenFunction::EmitSectionSize(const ArrayValueRef &Value, int I) {
   //if(Value.Sections[I].isRangeSection())
   return EmitDimSize(Value.Dimensions[I]);
   //else if(Value.Sections[I].isVectorSection())
@@ -133,7 +133,7 @@ llvm::Value *CodeGenFunction::EmitSectionSize(const ArrayValueTy &Value, int I) 
   return nullptr;
 }
 
-llvm::Value *CodeGenFunction::EmitArraySize(const ArrayValueTy &Value) {
+llvm::Value *CodeGenFunction::EmitArraySize(const ArrayValueRef &Value) {
   llvm::Value *Size = nullptr;
   for(size_t I = 0; I < Value.Dimensions.size(); ++I) {
     auto DimSize = EmitSectionSize(Value, I);
@@ -182,7 +182,7 @@ EmitArrayRangeSection(const ArrayDimensionValueTy &Dim,
                       llvm::Value *LB, llvm::Value *UB, llvm::Value *Stride) {
   if(LB) {
     auto Diff = EmitSectionPointerOffset(Builder, Dim, LB);
-    Offset = Offset? Builder.CreateAdd(Offset, Diff) : Diff;
+    Ptr = Builder.CreateGEP(Ptr, Diff);
     return ArrayDimensionValueTy(nullptr,
                                  EmitSectionUpperBound(Builder, LB, UB? UB : Dim.UpperBound, Stride),
                                  EmitSectionStride(Builder, Dim, Stride));
@@ -201,7 +201,7 @@ void CodeGenFunction::EmitArrayElementSection(const ArrayDimensionValueTy &Dim,
                                               llvm::Value *&Ptr, llvm::Value *&Offset,
                                               llvm::Value *Index) {
   auto Diff = EmitSectionPointerOffset(Builder, Dim, Index);
-  Offset = Offset? Builder.CreateAdd(Offset, Diff) : Diff;
+  Ptr = Builder.CreateGEP(Ptr, Diff);
 }
 
 ArrayValueExprEmitter::ArrayValueExprEmitter(CodeGenFunction &cgf, bool getPointer)
@@ -321,10 +321,10 @@ void StandaloneArrayValueSectionGatherer::VisitArraySectionExpr(const ArraySecti
 // Scalar values and array sections emmitter for an array operations.
 //
 
-ArrayValueTy ArrayOperation::getArrayValue(const Expr *E) {
+ArrayValueRef ArrayOperation::getArrayValue(const Expr *E) {
   auto Arr = Arrays[E];
   auto DimCount = E->getType()->asArrayType()->getDimensionCount();
-  return ArrayValueTy(llvm::makeArrayRef(Dims.begin() + Arr.DataOffset, DimCount),
+  return ArrayValueRef(llvm::makeArrayRef(Dims.begin() + Arr.DataOffset, DimCount),
                         Arr.Ptr, Arr.Offset);
 }
 
@@ -418,7 +418,7 @@ void ArrayOperation::EmitAllScalarValuesAndArraySections(CodeGenFunction &CGF, c
   EV.Emit(E);
 }
 
-ArrayValueTy ArrayOperation::EmitArrayExpr(CodeGenFunction &CGF, const Expr *E) {
+ArrayValueRef ArrayOperation::EmitArrayExpr(CodeGenFunction &CGF, const Expr *E) {
   ScalarEmitterAndSectionGatherer EV(CGF, *this);
   EV.Emit(E);
   return getArrayValue(EV.getLastEmmittedArray());
@@ -432,7 +432,7 @@ ArrayLoopEmitter::ArrayLoopEmitter(CodeGenFunction &cgf)
   : CGF(cgf), Builder(cgf.getBuilder())
 { }
 
-void ArrayLoopEmitter::EmitArrayIterationBegin(const ArrayValueTy &Array) {
+void ArrayLoopEmitter::EmitArrayIterationBegin(const ArrayValueRef &Array) {
   auto IndexType = CGF.getModule().SizeTy;
 
   auto Dimensions = Array.Dimensions;
@@ -473,7 +473,7 @@ void ArrayLoopEmitter::EmitArrayIterationEnd() {
   }
 }
 
-llvm::Value *ArrayLoopEmitter::EmitSectionOffset(const ArrayValueTy &Array,
+llvm::Value *ArrayLoopEmitter::EmitSectionOffset(const ArrayValueRef &Array,
                                                 int I) {
   return Array.Dimensions[I].hasStride()?
            Builder.CreateMul(Elements[I], Array.Dimensions[I].Stride) : Elements[I];
@@ -481,19 +481,19 @@ llvm::Value *ArrayLoopEmitter::EmitSectionOffset(const ArrayValueTy &Array,
   return nullptr;
 }
 
-llvm::Value *ArrayLoopEmitter::EmitElementOffset(const ArrayValueTy &Array) {
+llvm::Value *ArrayLoopEmitter::EmitElementOffset(const ArrayValueRef &Array) {
   auto Offset = EmitSectionOffset(Array, 0);
   for(size_t I = 1; I < Array.Dimensions.size(); ++I)
     Offset = Builder.CreateAdd(EmitSectionOffset(Array, I), Offset);
-  return Array.hasOffset()? Builder.CreateAdd(Array.Offset, Offset) : Offset;
+  return Offset;
 }
 
-llvm::Value *ArrayLoopEmitter::EmitElementOneDimensionalIndex(const ArrayValueTy &Array) {
+llvm::Value *ArrayLoopEmitter::EmitElementOneDimensionalIndex(const ArrayValueRef &Array) {
   auto Offset = EmitSectionOffset(Array, 0);
   return Builder.CreateAdd(Offset, llvm::ConstantInt::get(Offset->getType(), 1));
 }
 
-llvm::Value *ArrayLoopEmitter::EmitElementPointer(const ArrayValueTy &Array) {
+llvm::Value *ArrayLoopEmitter::EmitElementPointer(const ArrayValueRef &Array) {
   return Builder.CreateGEP(Array.Ptr, EmitElementOffset(Array));
 }
 
@@ -542,7 +542,7 @@ LValueTy ArrayOperationEmitter::EmitLValue(const Expr *E) {
 }
 
 static void EmitArrayAssignment(CodeGenFunction &CGF, ArrayOperation &Op,
-                                ArrayLoopEmitter &Looper, ArrayValueTy LHS,
+                                ArrayLoopEmitter &Looper, ArrayValueRef LHS,
                                 const Expr *RHS) {
   ArrayOperationEmitter EV(CGF, Op, Looper);
   auto Val = EV.Emit(RHS);
@@ -588,7 +588,7 @@ llvm::Value *CodeGenFunction::EmitArrayArgumentPointerValueABI(const Expr *E) {
     EV.EmitExpr(E);
     auto Value = EV.getResult();
     auto DestPtr = CreateTempHeapArrayAlloca(E->getType(), Value);
-    auto Dest = ArrayValueTy(Value.Dimensions, DestPtr);
+    auto Dest = ArrayValueRef(Value.Dimensions, DestPtr);
     OP.EmitAllScalarValuesAndArraySections(*this, E);
     ArrayLoopEmitter Looper(*this);
     Looper.EmitArrayIterationBegin(Value);

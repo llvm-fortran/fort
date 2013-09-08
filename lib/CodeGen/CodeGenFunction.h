@@ -228,7 +228,7 @@ public:
   llvm::Value *CreateTempHeapAlloca(llvm::Value *Size, llvm::Type *PtrType);
 
   llvm::Value *CreateTempHeapArrayAlloca(QualType T,
-                                         const ArrayValueTy &Value);
+                                         const ArrayValueRef &Value);
 
   void EmitBlock(llvm::BasicBlock *BB);
   void EmitBranch(llvm::BasicBlock *Target);
@@ -445,18 +445,18 @@ public:
   /// \brief Computes the element offset from the array base for the given
   /// subscripts.
   llvm::Value *EmitArrayOffset(ArrayRef<llvm::Value*> Subscripts,
-                               const ArrayValueTy &Value);
+                               const ArrayValueRef &Value);
 
   /// \brief Returns the pointer to the element for the given subscripts.
   llvm::Value *EmitArrayElementPtr(ArrayRef<llvm::Value*> Subscripts,
-                                   const ArrayValueTy &Value);
+                                   const ArrayValueRef &Value);
 
   /// EmitSectionSize - Emits the number of elements in a single
   /// section in the given given array.
-  llvm::Value *EmitSectionSize(const ArrayValueTy &Value, int I);
+  llvm::Value *EmitSectionSize(const ArrayValueRef &Value, int I);
 
   /// EmitArraySize - Emits the number of elements in the given array.
-  llvm::Value *EmitArraySize(const ArrayValueTy &Value);
+  llvm::Value *EmitArraySize(const ArrayValueRef &Value);
 
   ArrayDimensionValueTy EmitArrayRangeSection(const ArrayDimensionValueTy &Dim,
                                               llvm::Value *&Ptr, llvm::Value *&Offset,

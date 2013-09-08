@@ -256,7 +256,7 @@ bool Sema::CheckEquivalenceType(QualType ExpectedType, const Expr *E) {
         return true;
       }
     } else {
-      if(!CheckTypesSameKind(ExpectedType, ObjectType)) {
+      if(!AreTypesOfSameKind(ExpectedType, ObjectType)) {
         Diags.Report(E->getLocation(), diag::err_typecheck_expected_expr_of_type)
           << ExpectedType << ObjectType
           << E->getSourceRange();

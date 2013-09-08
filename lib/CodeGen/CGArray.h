@@ -48,8 +48,8 @@ public:
   llvm::Value *getPointer() const {
     return Ptr;
   }
-  ArrayValueTy getResult() const {
-    return ArrayValueTy(Dims, Ptr, Offset);
+  ArrayValueRef getResult() const {
+    return ArrayValueRef(Dims, Ptr, Offset);
   }
 };
 
@@ -78,14 +78,14 @@ protected:
 public:
 
   /// \brief Returns the array value used for the given expression.
-  ArrayValueTy getArrayValue(const Expr *E);
+  ArrayValueRef getArrayValue(const Expr *E);
 
   /// \brief Returns the value used for the given scalar expression.
   RValueTy getScalarValue(const Expr *E);
 
   /// \brief Emits the array section used on the left side of an assignment
   /// in a multidimensional loop.
-  ArrayValueTy EmitArrayExpr(CodeGenFunction &CGF, const Expr *E);
+  ArrayValueRef EmitArrayExpr(CodeGenFunction &CGF, const Expr *E);
 
   /// EmitAllScalarValuesAndArraySections - walks the given expression,
   /// and prepares the array operation for a multidimensional loop by emitting
@@ -119,8 +119,8 @@ public:
   void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
   void VisitArraySectionExpr(const ArraySectionExpr *E);
 
-  ArrayValueTy getResult() const {
-    return ArrayValueTy(Dims, nullptr);
+  ArrayValueRef getResult() const {
+    return ArrayValueRef(Dims, nullptr);
   }
 };
 
@@ -150,24 +150,24 @@ public:
   /// EmitSectionIndex - computes the index of the element during
   /// the current iteration of the multidimensional loop
   /// for the given dimension.
-  llvm::Value *EmitSectionOffset(const ArrayValueTy &Array,
+  llvm::Value *EmitSectionOffset(const ArrayValueRef &Array,
                                 int I);
 
   /// EmitElementOffset - computes the offset of the
   /// current element in the given array.
-  llvm::Value *EmitElementOffset(const ArrayValueTy &Array);
+  llvm::Value *EmitElementOffset(const ArrayValueRef &Array);
 
   /// EmitElementOneDimensionalIndex - computes the
   /// index (which starts with 1) for the current element in the given array.
-  llvm::Value *EmitElementOneDimensionalIndex(const ArrayValueTy &Array);
+  llvm::Value *EmitElementOneDimensionalIndex(const ArrayValueRef &Array);
 
   /// EmitElelementPointer - returns the pointer to the current
   /// element in the given array.
-  llvm::Value *EmitElementPointer(const ArrayValueTy &Array);
+  llvm::Value *EmitElementPointer(const ArrayValueRef &Array);
 
   /// EmitArrayIterationBegin - Emits the beginning of a
   /// multidimensional loop which iterates over the given array section.
-  void EmitArrayIterationBegin(const ArrayValueTy &Array);
+  void EmitArrayIterationBegin(const ArrayValueRef &Array);
 
   /// EmitArrayIterationEnd - Emits the end of a
   /// multidimensional loop which iterates over the given array section.

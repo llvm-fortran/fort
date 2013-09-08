@@ -45,6 +45,8 @@ public:
     : Ptr(Pointer), Len(Length) {}
 };
 
+/// ArrayDimensionValueTy - this is a single dimension
+/// of an array. All values have SizeTy type.
 class ArrayDimensionValueTy {
 public:
   llvm::Value *LowerBound;
@@ -67,13 +69,15 @@ public:
   }
 };
 
-class ArrayValueTy {
+/// ArrayValueRef - this a reference to an array
+/// value.
+class ArrayValueRef {
 public:
   ArrayRef<ArrayDimensionValueTy> Dimensions;
   llvm::Value *Ptr;
   llvm::Value *Offset;
 
-  ArrayValueTy(ArrayRef<ArrayDimensionValueTy> Dims,
+  ArrayValueRef(ArrayRef<ArrayDimensionValueTy> Dims,
                llvm::Value *P,
                llvm::Value *offset = nullptr)
     : Dimensions(Dims), Ptr(P),
