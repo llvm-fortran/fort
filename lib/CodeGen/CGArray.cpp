@@ -59,12 +59,26 @@ llvm::Value *CodeGenFunction::CreateArrayAlloca(QualType T,
 }
 
 llvm::Value *CodeGenFunction::CreateTempHeapArrayAlloca(QualType T,
-                                                        const ArrayValueRef &Value) {
+                                                        llvm::Value *Size) {
   auto ETy = getTypes().ConvertTypeForMem(T.getSelfOrArrayElementType());
   auto PTy = llvm::PointerType::get(ETy, 0);
-  auto Size = EmitArraySize(Value);
-  Size = Builder.CreateMul(Size, llvm::ConstantInt::get(Size->getType(), CGM.getDataLayout().getTypeStoreSize(ETy)));
+  Size = Builder.CreateMul(Size, llvm::ConstantInt::get(CGM.SizeTy, CGM.getDataLayout().getTypeStoreSize(ETy)));
   return CreateTempHeapAlloca(Size, PTy);
+}
+
+llvm::Value *CodeGenFunction::CreateTempHeapArrayAlloca(QualType T,
+                                                        const ArrayValueRef &Value) {
+  return CreateTempHeapArrayAlloca(T, EmitArraySize(Value));
+}
+
+
+ArrayDimensionValueTy CodeGenFunction::GetVectorDimensionInfo(QualType T) {
+  auto ATy = cast<ArrayType>(T.getTypePtr());
+  auto Dimension = ATy->getDimensions().front();
+  auto LowerBound = Dimension->getLowerBoundOrNull();
+  auto UpperBound = Dimension->getUpperBoundOrNull();
+  return ArrayDimensionValueTy(LowerBound? EmitSizeIntExpr(LowerBound) : nullptr,
+                               UpperBound? EmitSizeIntExpr(UpperBound) : nullptr);
 }
 
 void CodeGenFunction::GetArrayDimensionsInfo(QualType T, SmallVectorImpl<ArrayDimensionValueTy> &Dims) {
@@ -234,9 +248,19 @@ void ArrayValueExprEmitter::VisitVarExpr(const VarExpr *E) {
 }
 
 void ArrayValueExprEmitter::VisitArrayConstructorExpr(const ArrayConstructorExpr *E) {
-  CGF.GetArrayDimensionsInfo(E->getType(), Dims);
-  if(GetPointer)
-    Ptr = CGF.EmitArrayConstructor(E);
+  if(!GetPointer) {
+    // FIXME
+    CGF.GetArrayDimensionsInfo(E->getType(), Dims);
+    EmitSections();
+    return;
+  }
+
+  auto Arr = CGF.EmitArrayConstructor(E);
+  if(E->getType()->asArrayType()->getDimensionCount() != 1)
+    CGF.GetArrayDimensionsInfo(E->getType(), Dims);
+  else
+    Dims.push_back(Arr.Dimension);
+  Ptr = Arr.Ptr;
   EmitSections();
 }
 
@@ -605,33 +629,83 @@ llvm::Value *CodeGenFunction::EmitArrayArgumentPointerValueABI(const Expr *E) {
   return EV.getPointer();
 }
 
-llvm::Value *CodeGenFunction::EmitConstantArrayConstructor(const ArrayConstructorExpr *E) {
+llvm::Constant *CodeGenFunction::EmitConstantArrayExpr(const ArrayConstructorExpr *E) {
   auto Items = E->getItems();
-  SmallVector<llvm::Constant*, 16> Values(Items.size());
-  for(size_t I = 0; I < Items.size(); ++I)
-    Values[I] = EmitConstantExpr(Items[I]);
-  auto Arr = llvm::ConstantArray::get(getTypes().ConvertArrayTypeForMem(E->getType()->asArrayType()),
-                                      Values);
+  auto VMATy = getTypes().ConvertArrayTypeForMem(E->getType()->asArrayType());
+
+  SmallVector<llvm::Constant*, 16> Values(VMATy->getArrayNumElements());
+  uint64_t I = 0;
+  for(auto Item : Items) {
+    auto Val = EmitConstantExpr(Item);
+    if(auto Arr = dyn_cast<llvm::ConstantArray>(Val)) {
+      for(uint64_t J = 0, End = Arr->getType()->getArrayNumElements(); J < End; ++J,++I)
+        Values[I] = Arr->getOperand(J);
+    } else {
+      Values[I] = Val;
+      ++I;
+    }
+  }
+  return llvm::ConstantArray::get(VMATy, Values);
+}
+
+llvm::Value *CodeGenFunction::EmitConstantArrayConstructor(const ArrayConstructorExpr *E) {
+  auto Arr = EmitConstantArrayExpr(E);
   return Builder.CreateConstGEP2_64(CGM.EmitConstantArray(Arr), 0, 0);
 }
 
-llvm::Value *CodeGenFunction::EmitTempArrayConstructor(const ArrayConstructorExpr *E) {
-  // FIXME: implied-do, heap allocations
+ArrayVectorValueTy CodeGenFunction::EmitTempArrayConstructor(const ArrayConstructorExpr *E) {
+  // FIXME: implied-do
 
   auto Items = E->getItems();
   auto ATy = E->getType()->asArrayType();
-  auto VMATy = getTypes().ConvertArrayTypeForMem(ATy);
-  auto Arr = Builder.CreateConstGEP2_64(CreateTempAlloca(VMATy, "array-constructor-temp"), 0, 0);
-  for(uint64_t I = 0, Size = VMATy->getArrayNumElements(); I < Size; ++I) {
-    auto Dest = Builder.CreateConstInBoundsGEP1_64(Arr, I);
-    EmitStore(EmitRValue(Items[I]), LValueTy(Dest), ATy->getElementType());
+  auto ETy = ATy->getElementType();
+  llvm::Value *Ptr;
+  ArrayDimensionValueTy Dim;
+  uint64_t Size;
+
+  if(ATy->EvaluateSize(Size, getContext())) {
+    // FIXME: better stack/heap heuristics?
+    if(Size <= 32)
+      Ptr = Builder.CreateConstGEP2_64(CreateTempAlloca(
+                                         getTypes().ConvertArrayTypeForMem(ATy),
+                                         "array-constructor-temp"), 0, 0);
+    else
+      Ptr = CreateTempHeapArrayAlloca(E->getType(), llvm::ConstantInt::get(CGM.SizeTy, Size));
+
+    Dim = GetVectorDimensionInfo(E->getType());
+    uint64_t I = 0;
+    for(auto Item : Items) {
+      if(Item->getType()->isArrayType()) {
+        auto SubATy = Item->getType()->asArrayType();
+        uint64_t SubSize;
+        SubATy->EvaluateSize(SubSize, getContext());
+        ArrayValueExprEmitter EV(*this);
+        EV.EmitExpr(Item);
+        // FIXME: multi dimensional and strided items
+        for(uint64_t J = 0; J < SubSize; ++J,++I) {
+          auto Dest = Builder.CreateConstInBoundsGEP1_64(Ptr, I);
+          EmitStore(EmitLoad(Builder.CreateConstInBoundsGEP1_64(EV.getPointer(), J), ETy),
+                    LValueTy(Dest), ETy);
+        }
+      } else {
+        auto Dest = Builder.CreateConstInBoundsGEP1_64(Ptr, I);
+        EmitStore(EmitRValue(Item), LValueTy(Dest), ETy);
+        ++I;
+      }
+    }
+  } else {
+    // FIXME: compute array size.
+    Ptr = nullptr;
+    assert(false && "FIXME");
   }
-  return Arr;
+
+  return ArrayVectorValueTy(Dim, Ptr);
 }
 
-llvm::Value *CodeGenFunction::EmitArrayConstructor(const ArrayConstructorExpr *E) {
+ArrayVectorValueTy CodeGenFunction::EmitArrayConstructor(const ArrayConstructorExpr *E) {
   if(E->isEvaluatable(getContext()))
-    return EmitConstantArrayConstructor(E);
+    return ArrayVectorValueTy(GetVectorDimensionInfo(E->getType()),
+                              EmitConstantArrayConstructor(E));
   return EmitTempArrayConstructor(E);
 }
 

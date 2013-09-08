@@ -88,6 +88,18 @@ public:
   }
 };
 
+/// ArrayVectorValueTy - this is a one dimensional
+/// array value.
+class ArrayVectorValueTy {
+public:
+  ArrayDimensionValueTy Dimension;
+  llvm::Value *Ptr;
+
+  ArrayVectorValueTy(ArrayDimensionValueTy Dim,
+                     llvm::Value *P)
+    : Dimension(Dim), Ptr(P) {}
+};
+
 class LValueTy {
 public:
   llvm::Value *Ptr;

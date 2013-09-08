@@ -2,7 +2,7 @@
 
 program test
 
-  integer i_arr(4), i_mat(4,4)
+  integer i_arr(4), i_mat(4,4), i_arr2(2)
   logical l_arr(4)
   integer i
   parameter(i = 0)
@@ -26,5 +26,10 @@ program test
   l_arr = (/ .true., n == 42, .false., n < 1 /)
   print *, l_arr(1), ', ', l_arr(2), ', ', l_arr(3), ', ', l_arr(4)
   continue ! CHECK-NEXT: true, true, false, false
+
+  i_arr2 = 11
+  i_arr = (/ i_arr2, i_arr2 /)
+  print *, i_arr(1), ', ', i_arr(2), ', ', i_arr(3), ', ', i_arr(4)
+  continue ! CHECK-NEXT: 11, 11, 11, 11
 
 end

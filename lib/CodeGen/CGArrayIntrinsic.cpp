@@ -33,10 +33,9 @@ EmitVectorDimReturningScalarArrayIntrinsic(intrinsic::FunctionKind Func,
   switch(Func) {
   case MAXLOC:
   case MINLOC: {
-    auto Result = CreateTempAlloca(ConvertTypeForMem(getContext().IntegerTy),
-                                   "maxminloc-result");
+    auto Result = CreateTempAlloca(CGM.SizeTy, "maxminloc-result");
     auto MaxMinVar = CreateTempAlloca(ConvertTypeForMem(ElementType), "maxminloc-var");
-    Builder.CreateStore(GetConstantZero(getContext().IntegerTy), Result);
+    Builder.CreateStore(llvm::ConstantInt::get(CGM.SizeTy, 0), Result);
     if(Func == MAXLOC)
       Builder.CreateStore(GetConstantScalarMinValue(ElementType), MaxMinVar);
     else
@@ -64,7 +63,8 @@ EmitVectorDimReturningScalarArrayIntrinsic(intrinsic::FunctionKind Func,
     EmitBlock(EndBlock);
 
     Looper.EmitArrayIterationEnd();
-    return Builder.CreateLoad(Result);
+    return EmitScalarToScalarConversion(Builder.CreateLoad(Result),
+                                        getContext().IntegerTy);
   }
 
   default:

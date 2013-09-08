@@ -228,6 +228,9 @@ public:
   llvm::Value *CreateTempHeapAlloca(llvm::Value *Size, llvm::Type *PtrType);
 
   llvm::Value *CreateTempHeapArrayAlloca(QualType T,
+                                         llvm::Value *Size);
+
+  llvm::Value *CreateTempHeapArrayAlloca(QualType T,
                                          const ArrayValueRef &Value);
 
   void EmitBlock(llvm::BasicBlock *BB);
@@ -467,12 +470,15 @@ public:
                                llvm::Value *&Ptr, llvm::Value *&Offset,
                                llvm::Value *Index);
 
+  ArrayDimensionValueTy GetVectorDimensionInfo(QualType T);
+
   void GetArrayDimensionsInfo(QualType T, SmallVectorImpl<ArrayDimensionValueTy> &Dims);
 
   llvm::Value *EmitArrayArgumentPointerValueABI(const Expr *E);
+  llvm::Constant *EmitConstantArrayExpr(const ArrayConstructorExpr *E);
   llvm::Value *EmitConstantArrayConstructor(const ArrayConstructorExpr *E);
-  llvm::Value *EmitTempArrayConstructor(const ArrayConstructorExpr *E);
-  llvm::Value *EmitArrayConstructor(const ArrayConstructorExpr *E);
+  ArrayVectorValueTy EmitTempArrayConstructor(const ArrayConstructorExpr *E);
+  ArrayVectorValueTy EmitArrayConstructor(const ArrayConstructorExpr *E);
   void EmitArrayAssignment(const Expr *LHS, const Expr *RHS);
 };
 
