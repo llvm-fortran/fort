@@ -380,7 +380,7 @@ llvm::Value *CodeGenFunction::EmitScalarExpr(const Expr *E) {
 llvm::Value *CodeGenFunction::EmitSizeIntExpr(const Expr *E) {
   auto Value = EmitScalarExpr(E);
   if(Value->getType() != CGM.SizeTy)
-    return Builder.CreateZExtOrTrunc(Value, CGM.SizeTy);
+    return Builder.CreateSExtOrTrunc(Value, CGM.SizeTy);
   return Value;
 }
 

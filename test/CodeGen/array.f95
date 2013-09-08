@@ -8,6 +8,7 @@ PROGRAM helloArrays
   CHARACTER*20 STR(-5:4, 9) ! CHECK: alloca [90 x [20 x i8]]
 
   INTEGER ii
+  INTEGER (Kind=1) is
   REAL rr
   COMPLEX cc
   CHARACTER*20 STRSTR
@@ -17,6 +18,9 @@ PROGRAM helloArrays
   CONTINUE  ! CHECK: load float*
 
   ii = i(0) ! CHECK: getelementptr i32*
+
+  is = 1
+  i(is) = r(is) ! CHECK: sext i8
 
   cc = c(1, 1, 1) ! CHECK: getelementptr { float, float }*
 

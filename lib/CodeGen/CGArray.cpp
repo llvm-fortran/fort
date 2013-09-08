@@ -70,27 +70,17 @@ llvm::Value *CodeGenFunction::CreateTempHeapArrayAlloca(QualType T,
 void CodeGenFunction::GetArrayDimensionsInfo(QualType T, SmallVectorImpl<ArrayDimensionValueTy> &Dims) {
   auto ATy = cast<ArrayType>(T.getTypePtr());
   auto Dimensions = ATy->getDimensions();
-  llvm::Value *Stride = llvm::ConstantInt::get(ConvertType(getContext().IntegerTy), 1);
+  llvm::Value *Stride = llvm::ConstantInt::get(CGM.SizeTy, 1);
 
   for(size_t I = 0; I < Dimensions.size(); ++I) {
     llvm::Value *LB = nullptr;
     llvm::Value *UB = nullptr;
     auto LowerBound = Dimensions[I]->getLowerBoundOrNull();
     auto UpperBound = Dimensions[I]->getUpperBoundOrNull();
-    if(LowerBound) {
-      int64_t ConstantLowerBound;
-      if(LowerBound->EvaluateAsInt(ConstantLowerBound, getContext())) {
-        LB = llvm::ConstantInt::get(ConvertType(getContext().IntegerTy),
-                                                ConstantLowerBound);
-      } else LB = EmitScalarExpr(LowerBound);
-    }
-    if(UpperBound) {
-      int64_t ConstantUpperBound;
-      if(UpperBound->EvaluateAsInt(ConstantUpperBound, getContext())) {
-        UB = llvm::ConstantInt::get(ConvertType(getContext().IntegerTy),
-                                                ConstantUpperBound);
-      } else UB = EmitScalarExpr(UpperBound);
-    }
+    if(LowerBound)
+      LB = EmitSizeIntExpr(LowerBound);
+    if(UpperBound)
+      UB = EmitSizeIntExpr(UpperBound);
     Dims.push_back(ArrayDimensionValueTy(LB, UB, I == 0? nullptr : Stride));
     if(I != Dimensions.size() - 1)
       Stride = Builder.CreateMul(Stride, EmitDimSize(Dims.back()));
@@ -102,8 +92,7 @@ llvm::Value *CodeGenFunction::EmitDimSize(const ArrayDimensionValueTy &Dim) {
   if(Dim.hasLowerBound()) {
     return Builder.CreateAdd(Builder.CreateSub(Dim.UpperBound,
                                                Dim.LowerBound),
-                             llvm::ConstantInt::get(Dim.LowerBound->getType(),
-                                                    1));
+                             llvm::ConstantInt::get(CGM.SizeTy,1));
   }
   // UB - LB + 1 => UB - 1 + 1 => UB
   return Dim.UpperBound;
@@ -113,7 +102,7 @@ llvm::Value *CodeGenFunction::EmitDimOffset(llvm::Value *Subscript,
                                             const ArrayDimensionValueTy &Dim) {
   // (S - LB) * Stride
   auto LB = Dim.hasLowerBound()? Dim.LowerBound :
-                                 llvm::ConstantInt::get(Subscript->getType(), 1);
+                                 llvm::ConstantInt::get(CGM.SizeTy,1);
   auto Offset = Builder.CreateSub(Subscript, LB);
   if(Dim.hasStride())
     return Builder.CreateMul(Offset, Dim.Stride);
@@ -268,17 +257,17 @@ void ArrayValueExprEmitter::VisitArraySectionExpr(const ArraySectionExpr *E) {
     if(auto Range = dyn_cast<RangeExpr>(Subscripts[I])) {
       Sections.push_back(ArraySection());
       Dims.push_back(CGF.EmitArrayRangeSection(TargetDims[I], Ptr, Offset,
-                       CGF.EmitScalarExprOrNull(Range->getFirstExpr()),
-                       CGF.EmitScalarExprOrNull(Range->getSecondExpr())));
+                       CGF.EmitSizeIntExprOrNull(Range->getFirstExpr()),
+                       CGF.EmitSizeIntExprOrNull(Range->getSecondExpr())));
     } else if(auto StridedRange = dyn_cast<StridedRangeExpr>(Subscripts[I])) {
       Sections.push_back(ArraySection());
       Dims.push_back(CGF.EmitArrayRangeSection(TargetDims[I], Ptr, Offset,
-                       CGF.EmitScalarExprOrNull(StridedRange->getFirstExpr()),
-                       CGF.EmitScalarExprOrNull(StridedRange->getSecondExpr()),
-                       CGF.EmitScalarExprOrNull(StridedRange->getStride())));
+                       CGF.EmitSizeIntExprOrNull(StridedRange->getFirstExpr()),
+                       CGF.EmitSizeIntExprOrNull(StridedRange->getSecondExpr()),
+                       CGF.EmitSizeIntExprOrNull(StridedRange->getStride())));
     } else
       CGF.EmitArrayElementSection(TargetDims[I], Ptr, Offset,
-                                  CGF.EmitScalarExpr(Subscripts[I]));
+                                  CGF.EmitSizeIntExpr(Subscripts[I]));
     // FIXME: vector sections.
   }
 }
@@ -452,7 +441,7 @@ ArrayLoopEmitter::ArrayLoopEmitter(CodeGenFunction &cgf)
 { }
 
 void ArrayLoopEmitter::EmitArrayIterationBegin(const ArrayValueTy &Array) {
-  auto IndexType = CGF.ConvertType(CGF.getContext().IntegerTy);
+  auto IndexType = CGF.getModule().SizeTy;
 
   auto Sections = Array.Sections;
   Elements.resize(Sections.size());
@@ -480,7 +469,7 @@ void ArrayLoopEmitter::EmitArrayIterationBegin(const ArrayValueTy &Array) {
 }
 
 void ArrayLoopEmitter::EmitArrayIterationEnd() {
-  auto IndexType = CGF.ConvertType(CGF.getContext().IntegerTy);
+  auto IndexType = CGF.getModule().SizeTy;
 
   // foreach loop from front to back.
   for(auto Loop : Loops) {
@@ -598,7 +587,7 @@ llvm::Value *CodeGenFunction::EmitArrayElementPtr(const Expr *Target,
   EV.EmitExpr(Target);
   llvm::SmallVector<llvm::Value*, 8> Subs(Subscripts.size());
   for(size_t I = 0; I < Subs.size(); ++I)
-    Subs[I] = EmitScalarExpr(Subscripts[I]);
+    Subs[I] = EmitSizeIntExpr(Subscripts[I]);
   return EmitArrayElementPtr(Subs, EV.getResult());
 }
 

@@ -278,6 +278,10 @@ public:
     if(!E) return nullptr;
     return EmitScalarExpr(E);
   }
+  llvm::Value *EmitSizeIntExprOrNull(const Expr *E) {
+    if(!E) return nullptr;
+    return EmitSizeIntExpr(E);
+  }
   llvm::Value *EmitScalarUnaryMinus(llvm::Value *Val);
   llvm::Value *EmitScalarUnaryNot(llvm::Value *Val);
   llvm::Value *EmitScalarBinaryExpr(BinaryExpr::Operator Op,
