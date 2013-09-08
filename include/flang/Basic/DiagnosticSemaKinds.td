@@ -149,6 +149,7 @@ def err_redefinition_of_construct_name : Error<"redefinition of named construct 
 def err_use_of_invalid_construct_name : Error<"use of construct name for an unnamed construct">;
 def err_expected_construct_name : Error<"expected construct name %0">;
 def err_expected_subprogram_name : Error<"expected %select{program|function|subroutine}1 name %0">;
+def err_expected_type_name : Error<"expected %select{type|class}1 name %0">;
 
 def err_same_result_name : Error<
   "use of name %0 for the result variable (function uses the same name)">;

@@ -239,15 +239,17 @@ public:
   /// of statement function declarations and array subscript assignments.
   bool IsValidStatementFunctionIdentifier(const IdentifierInfo *IDInfo);
 
-  // FIXME: TODO more features.
   RecordDecl *ActOnDerivedTypeDecl(ASTContext &C, SourceLocation Loc,
-                                   SourceLocation NameLoc, const IdentifierInfo* IDInfo);
+                                   SourceLocation IDLoc, const IdentifierInfo* IDInfo);
 
   FieldDecl *ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
                                        const IdentifierInfo *IDInfo,
                                        ExprResult Init = ExprResult());
 
-  void ActOnEndDerivedTypeDecl();
+  void ActOnENDTYPE(ASTContext &C, SourceLocation Loc,
+                    SourceLocation IDLoc, const IdentifierInfo* IDInfo);
+
+  void ActOnEndDerivedTypeDecl(ASTContext &C);
 
   StmtResult ActOnCompoundStmt(ASTContext &C, SourceLocation Loc,
                                ArrayRef<Stmt*> Body, Expr *StmtLabel);
@@ -542,6 +544,8 @@ public:
                                              IntegerConstantExpr *RepeatCount,
                                              ArrayRef<FormatItem*> Items);
 
+  /// Returns true if the declaration with the given name is valid.
+  bool CheckDeclaration(const IdentifierInfo *IDInfo, SourceLocation IDLoc);
 
   /// Returns evaluated integer,
   /// or an ErrorValue if the expression couldn't

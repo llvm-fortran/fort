@@ -1237,32 +1237,6 @@ bool Sema::CheckCharacterLengthDeclarationCompability(QualType T, VarDecl *VD) {
   return true;
 }
 
-RecordDecl *Sema::ActOnDerivedTypeDecl(ASTContext &C, SourceLocation Loc,
-                                       SourceLocation NameLoc,
-                                       const IdentifierInfo* IDInfo) {
-  RecordDecl* Record = RecordDecl::Create(C, CurContext, Loc, NameLoc, IDInfo);
-  CurContext->addDecl(Record);
-  PushDeclContext(Record);
-  return Record;
-}
-
-FieldDecl *Sema::ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
-                                     const IdentifierInfo *IDInfo,
-                                     ExprResult Init) {
-  //FIXME: TODO same field name check
-  //FIXME: TODO init expression
-
-  QualType T = ActOnTypeName(C, DS);
-  FieldDecl* Field = FieldDecl::Create(C, CurContext, IDLoc, IDInfo, T);
-  CurContext->addDecl(Field);
-
-  return Field;
-}
-
-void Sema::ActOnEndDerivedTypeDecl() {
-  PopDeclContext();
-}
-
 QualType Sema::GetSingleDimArrayType(QualType ElTy, int Size) {
   auto Dim = ExplicitShapeSpec::Create(Context, IntegerConstantExpr::Create(
                                          Context, SourceLocation(), SourceLocation(), llvm::APInt(64, Size)));

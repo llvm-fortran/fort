@@ -522,6 +522,7 @@ private:
 
   // Declaration construct functions
   bool ParseDerivedTypeDefinitionStmt();
+  void ParseEndTypeStmt();
   bool ParseDerivedTypeComponent();
   bool ParseDerivedTypeComponentDeclarationList(DeclSpec &DS,
                                 SmallVectorImpl<DeclResult> &Decls);

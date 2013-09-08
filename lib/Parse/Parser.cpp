@@ -1168,8 +1168,7 @@ bool Parser::ParseDeclarationConstruct() {
     break;
   case tok::kw_TYPE:
   case tok::kw_CLASS: {
-    if(!IsNextToken(tok::l_paren)){
-      //FIXME: error handling?
+    if(!IsNextToken(tok::l_paren)) {
       ParseDerivedTypeDefinitionStmt();
       break;
     }

@@ -632,42 +632,49 @@ bool Parser::ParseOptionalMatchingIdentifier(const IdentifierInfo *OriginalId) {
 ///   end-type-stmt :=
 ///     END TYPE [ type-name ]
 bool Parser::ParseDerivedTypeDefinitionStmt() {
-  SourceLocation Loc, IDLoc;
-  const IdentifierInfo *ID;
+  bool IsClass = Tok.is(tok::kw_CLASS);
+  auto Loc = ConsumeToken();
 
-  Loc = Tok.getLocation();
-  if (!EatIfPresent(tok::kw_TYPE)) {
-    bool result = EatIfPresent(tok::kw_CLASS);
-    assert(result);
-    //FIXME: TODO CLASS
-    goto error;
+  if(ConsumeIfPresent(tok::comma)) {
+    //FIXME: access-spec
   }
+  ConsumeIfPresent(tok::coloncolon);
 
-  //FIXME: access-spec
-
-  EatIfPresent(tok::coloncolon);
-  IDLoc = Tok.getLocation();
-  ID = Tok.getIdentifierInfo();
-  if (Tok.isAtStartOfStatement() || !ID) {
-    Diag.ReportError(Tok.getLocation(),"expected an identifier after 'TYPE'");
-    goto error;
-  }
-  Lex();
+  auto ID = Tok.getIdentifierInfo();
+  auto IDLoc = Tok.getLocation();
+  if(!ExpectAndConsume(tok::identifier)) {
+    SkipUntilNextStatement();
+    return true;
+  } else
+    ExpectStatementEnd();
 
   Actions.ActOnDerivedTypeDecl(Context, Loc, IDLoc, ID);
+  while(true) {
+    if(Tok.is(tok::kw_ENDTYPE) || Tok.is(tok::eof))
+      break;
 
-  //FIXME: private-sequence-stmt
-  //FIXME: components.
-  while(!EatIfPresent(tok::kw_ENDTYPE)){
     ParseDerivedTypeComponent();
   }
 
-  ParseOptionalMatchingIdentifier(ID); // type-name
-  Actions.ActOnEndDerivedTypeDecl();
+  // ENDTYPE
+  if(Tok.isNot(tok::kw_ENDTYPE)) {
 
+  } else ParseEndTypeStmt();
+
+  Actions.ActOnEndDerivedTypeDecl(Context);
   return false;
 error:
   return true;
+}
+
+void Parser::ParseEndTypeStmt() {
+  auto Loc = ConsumeToken();
+  if(IsPresent(tok::identifier)) {
+    auto ID = Tok.getIdentifierInfo();
+    Actions.ActOnENDTYPE(Context, Loc, ConsumeToken(), ID);
+  } else
+    Actions.ActOnENDTYPE(Context, Loc, Loc, nullptr);
+  ExpectStatementEnd();
 }
 
 bool Parser::ParseDerivedTypeComponent() {
