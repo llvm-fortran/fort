@@ -30,7 +30,6 @@ class ArrayValueExprEmitter
   llvm::Value *Ptr;
   bool GetPointer;
   SmallVector<ArrayDimensionValueTy, 8> Dims;
-  SmallVector<ArraySection, 8> Sections;
 
   void EmitSections();
   void IncrementOffset(llvm::Value *OffsetDelta);
@@ -46,15 +45,11 @@ public:
   ArrayRef<ArrayDimensionValueTy> getDimensions() const {
     return Dims;
   }
-  ArrayRef<ArraySection> getSections() const {
-    assert(GetSections);
-    return Sections;
-  }
   llvm::Value *getPointer() const {
     return Ptr;
   }
   ArrayValueTy getResult() const {
-    return ArrayValueTy(Dims, Sections, Ptr, Offset);
+    return ArrayValueTy(Dims, Ptr, Offset);
   }
 };
 
@@ -69,7 +64,6 @@ class ArrayOperation {
   llvm::SmallDenseMap<const Expr*, StoredArrayValue, 8> Arrays;
   llvm::SmallDenseMap<const Expr*, RValueTy, 8> Scalars;
 
-  SmallVector<ArraySection, 32> Sections;
   SmallVector<ArrayDimensionValueTy, 32> Dims;
 
 protected:
@@ -109,7 +103,6 @@ class StandaloneArrayValueSectionGatherer
   ArrayOperation &Operation;
   bool Gathered;
   SmallVector<ArrayDimensionValueTy, 8> Dims;
-  SmallVector<ArraySection, 8> Sections;
 
   void GatherSections(const Expr *E);
 public:
@@ -127,7 +120,7 @@ public:
   void VisitArraySectionExpr(const ArraySectionExpr *E);
 
   ArrayValueTy getResult() const {
-    return ArrayValueTy(Dims, Sections, nullptr);
+    return ArrayValueTy(Dims, nullptr);
   }
 };
 

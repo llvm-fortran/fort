@@ -67,55 +67,16 @@ public:
   }
 };
 
-/// \brief Represents a vector section of an array.
-class ArrayVectorSection {
-public:
-  llvm::Value *Ptr;
-  llvm::Value *Size;
-
-  ArrayVectorSection() {}
-  ArrayVectorSection(llvm::Value *P, llvm::Value *Len)
-    : Ptr(P), Size(Len) {}
-};
-
-class ArraySection {
-  enum Kind {
-    Range, Vector
-  };
-  Kind Type;
-  llvm::Value *V1, *V2;
-public:
-
-  ArraySection()
-    : Type(Range) {}
-  ArraySection(const ArrayVectorSection &S)
-    : Type(Vector), V1(S.Ptr), V2(S.Size) {}
-
-  bool isRangeSection() const {
-    return Type == Range;
-  }
-  bool isVectorSection() const {
-    return Type == Vector;
-  }
-
-  ArrayVectorSection getVectorSection() const {
-    assert(isVectorSection());
-    return ArrayVectorSection(V1, V2);
-  }
-};
-
 class ArrayValueTy {
 public:
   ArrayRef<ArrayDimensionValueTy> Dimensions;
-  ArrayRef<ArraySection> Sections;
   llvm::Value *Ptr;
   llvm::Value *Offset;
 
   ArrayValueTy(ArrayRef<ArrayDimensionValueTy> Dims,
-               ArrayRef<ArraySection> sections,
                llvm::Value *P,
                llvm::Value *offset = nullptr)
-    : Dimensions(Dims), Sections(sections), Ptr(P),
+    : Dimensions(Dims), Ptr(P),
       Offset(offset) {}
 
   bool hasOffset() const {
