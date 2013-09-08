@@ -37,6 +37,7 @@ llvm::Type *CodeGenTypes::ConvertReturnType(QualType T,
   case ABIRetInfo::CharacterValueAsArg:
     ReturnInfo.ReturnArgInfo.ABIInfo = ABIArgInfo(ABIArgInfo::Value);
     return CGM.VoidTy;
+
   default:
     break;
   }
@@ -49,7 +50,7 @@ llvm::Type *CodeGenTypes::ConvertReturnType(QualType T,
 void CodeGenTypes::ConvertArgumentType(SmallVectorImpl<llvm::Type*> &ArgTypes,
                                        SmallVectorImpl<llvm::Type*> &AdditionalArgTypes,
                                        QualType T,
-                                       CGFunctionInfo::ArgInfo &ArgInfo) {
+                                       const CGFunctionInfo::ArgInfo &ArgInfo) {
   switch(ArgInfo.ABIInfo.getKind()) {
   case ABIArgInfo::Value:
     ArgTypes.push_back(ConvertType(T));
@@ -90,6 +91,18 @@ void CodeGenTypes::ConvertArgumentType(SmallVectorImpl<llvm::Type*> &ArgTypes,
     ArgTypes.push_back(GetComplexTypeAsVector(
                          ConvertType(Context.getComplexTypeElementType(T))));
     break;
+  }
+}
+
+void CodeGenTypes::ConvertArgumentTypeForReturnValue(SmallVectorImpl<CGFunctionInfo::ArgInfo> &ArgInfo,
+                                                     SmallVectorImpl<llvm::Type *> &ArgTypes,
+                                                     SmallVectorImpl<llvm::Type *> &AdditionalArgTypes,
+                                                     QualType T,
+                                                     const CGFunctionInfo::RetInfo &ReturnInfo) {
+  if(ReturnInfo.ABIInfo.getKind() == ABIRetInfo::CharacterValueAsArg) {
+    ArgInfo.push_back(ReturnInfo.ReturnArgInfo);
+    ConvertArgumentType(ArgTypes, AdditionalArgTypes,
+                        T, ReturnInfo.ReturnArgInfo);
   }
 }
 
@@ -141,6 +154,7 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
                                    CallArgList &ArgList,
                                    ArrayRef<Expr*> Arguments,
                                    bool ReturnsNothing) {
+  llvm::Value *ResultTemp;
   auto ArgumentInfo = FuncInfo->getArguments();
   auto FType = Callee->getType()->isFunctionTy()? cast<llvm::FunctionType>(Callee->getType())
                  : dyn_cast<llvm::FunctionType>(cast<llvm::PointerType>(Callee->getType())->getPointerElementType());

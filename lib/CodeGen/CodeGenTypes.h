@@ -110,7 +110,13 @@ public:
   void ConvertArgumentType(SmallVectorImpl<llvm::Type *> &ArgTypes,
                            SmallVectorImpl<llvm::Type *> &AdditionalArgTypes,
                            QualType T,
-                           CGFunctionInfo::ArgInfo &ArgInfo);
+                           const CGFunctionInfo::ArgInfo &ArgInfo);
+
+  void ConvertArgumentTypeForReturnValue(SmallVectorImpl<CGFunctionInfo::ArgInfo> &ArgInfo,
+                                         SmallVectorImpl<llvm::Type *> &ArgTypes,
+                                         SmallVectorImpl<llvm::Type *> &AdditionalArgTypes,
+                                         QualType T,
+                                         const CGFunctionInfo::RetInfo &ReturnInfo);
 
   uint64_t GetCharacterTypeLength(QualType T);
 

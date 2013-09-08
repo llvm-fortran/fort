@@ -34,7 +34,6 @@ ABIArgInfo LibflangABI::GetArgABI(QualType ArgType) {
   if(ArgType->isComplexType() ||
      ArgType->isCharacterType())
     return ABIArgInfo(ABIArgInfo::Expand);
-
   return ABIArgInfo(ABIArgInfo::Value);
 }
 

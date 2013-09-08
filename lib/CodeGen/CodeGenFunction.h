@@ -355,7 +355,7 @@ public:
                                    ArrayRef<Expr*> Arguments);
   llvm::Value *EmitIntrinsicScalarMinMax(intrinsic::FunctionKind Func,
                                          ArrayRef<llvm::Value*> Args);
-  RValueTy EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
+  RValueTy EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Function,
                                         ComplexValueTy Value);
 
   llvm::Value *EmitIntrinsicNumericInquiry(intrinsic::FunctionKind Func,

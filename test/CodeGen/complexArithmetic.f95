@@ -53,8 +53,8 @@ PROGRAM test
   C = (1.0, 1.0)
   C = C ** 1
   C = C ** 2
-  C = C ** 3 ! CHECK: call { float, float } @libflang_cpowif
-  C = C ** C ! CHECK: call { float, float } @libflang_cpowf
+  C = C ** 3 ! CHECK: call void @libflang_cpowif(float {{.*}}, float {{.*}}, i32 3, { float, float }*
+  C = C ** C ! CHECK: call void @libflang_cpowf(float {{.*}}, float {{.*}}, float {{.*}}, float {{.*}}, { float, float }*
 
   DC = (2d0, 1d0) + DC ! CHECK: fadd double 2
   CONTINUE             ! CHECK: fadd double 1

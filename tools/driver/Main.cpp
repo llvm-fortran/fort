@@ -263,9 +263,11 @@ static bool LinkFiles(ArrayRef<std::string> OutputFiles) {
     OS << " " << I;
   for(const std::string &I : LinkDirectories)
     OS << " -L " << I;
+  OS << " -l libflang";
   for(const std::string &I : LinkLibraries)
     OS << " -l " << I;
-  OS << " -l libflang";
+  // Link with the math library.
+  OS << " -l m";
   if(OutputFile.size())
     OS << " -o " << OutputFile;
   Cmd = OS.str();

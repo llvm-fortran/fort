@@ -162,11 +162,8 @@ const CGFunctionInfo *CodeGenTypes::GetFunctionType(const FunctionDecl *FD) {
     ConvertArgumentType(ArgTypes, AdditionalArgTypes, ArgType, Info);
     ArgInfo.push_back(Info);
   }
-  if(ReturnInfo.ABIInfo.getKind() == ABIRetInfo::CharacterValueAsArg) {
-    ArgInfo.push_back(ReturnInfo.ReturnArgInfo);
-    ConvertArgumentType(ArgTypes, AdditionalArgTypes,
-                        FD->getType(), ReturnInfo.ReturnArgInfo);
-  }
+  ConvertArgumentTypeForReturnValue(ArgInfo, ArgTypes, AdditionalArgTypes,
+                                    FD->getType(), ReturnInfo);
   for(auto I : AdditionalArgTypes) ArgTypes.push_back(I);
 
   // FIXME: fold same infos into one?
@@ -208,6 +205,8 @@ CodeGenTypes::GetFunctionType(FortranABI &ABI,
     }
     ArgInfo.push_back(Info);
   }
+  ConvertArgumentTypeForReturnValue(ArgInfo, ArgTypes, AdditionalArgTypes,
+                                    ReturnType.asQualType(), ReturnInfo);
   for(auto I : AdditionalArgTypes) ArgTypes.push_back(I);
 
   auto Result = CGFunctionInfo::Create(Context, llvm::CallingConv::C,

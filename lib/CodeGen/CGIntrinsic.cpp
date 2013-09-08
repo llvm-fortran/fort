@@ -290,70 +290,85 @@ llvm::Value *CodeGenFunction::EmitScalarPowIntInt(llvm::Value *LHS, llvm::Value 
 
 ComplexValueTy CodeGenFunction::EmitComplexPowi(ComplexValueTy LHS, llvm::Value *RHS) {
   auto ElementType = LHS.Re->getType();
-  llvm::Type *ArgTypes[] = { ElementType, ElementType, CGM.Int32Ty };
-  auto Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("cpowi", ElementType),
-                                     llvm::makeArrayRef(ArgTypes, 3),
-                                     getTypes().GetComplexType(ElementType));
-  llvm::Value *Args[] = { LHS.Re, LHS.Im, RHS };
-  return ExtractComplexValue(
-           EmitRuntimeCall(Func, llvm::makeArrayRef(Args, 3)));
+  auto ValueType = getTypes().GetComplexType(ElementType);
+  auto ResultType =  llvm::PointerType::get(ValueType, 0);
+  auto Func = CGM.GetRuntimeFunction4(MANGLE_MATH_FUNCTION("cpowi", ElementType),
+                                      ElementType, ElementType, RHS->getType(), ResultType);
+  CallArgList Args;
+  Args.add(LHS.Re);Args.add(LHS.Im);Args.add(RHS);
+  auto Result = CreateTempAlloca(ValueType,"libflang_complex_result");
+  Args.add(Result);
+  EmitCall(Func.getFunction(), Func.getInfo(), Args);
+  return EmitComplexLoad(Result);
 }
 
 ComplexValueTy CodeGenFunction::EmitComplexPow(ComplexValueTy LHS, ComplexValueTy RHS) {
   auto ElementType = LHS.Re->getType();
-  llvm::Type *ElementTypeX4[] = { ElementType, ElementType, ElementType, ElementType };
-  auto Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("cpow", ElementType),
-                                     llvm::makeArrayRef(ElementTypeX4, 4),
-                                     getTypes().GetComplexType(ElementType));
-  llvm::Value *Args[] = { LHS.Re, LHS.Im, RHS.Re, RHS.Im };
-  return ExtractComplexValue(
-           EmitRuntimeCall(Func, llvm::makeArrayRef(Args, 4)));
+  auto ValueType = getTypes().GetComplexType(ElementType);
+  auto ResultType =  llvm::PointerType::get(ValueType, 0);
+  auto Func = CGM.GetRuntimeFunction5(MANGLE_MATH_FUNCTION("cpow", ElementType),
+                                      ElementType, ElementType, ElementType, ElementType, ResultType);
+  CallArgList Args;
+  Args.add(LHS.Re);Args.add(LHS.Im);
+  Args.add(RHS.Re);Args.add(RHS.Im);
+  auto Result = CreateTempAlloca(ValueType,"libflang_complex_result");
+  Args.add(Result);
+  EmitCall(Func.getFunction(), Func.getInfo(), Args);
+  return EmitComplexLoad(Result);
 }
 
-RValueTy CodeGenFunction::EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Func,
+RValueTy CodeGenFunction::EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Function,
                                                        ComplexValueTy Value) {
-  llvm::Value *FuncDecl = nullptr;
   auto ElementType = Value.Re->getType();
   auto ValueType = getTypes().GetComplexType(ElementType);
-  llvm::Type *ElementTypes[] = { ElementType, ElementType };
-  auto ArgType = llvm::makeArrayRef(ElementTypes, 2);
+  auto ResultType =  llvm::PointerType::get(ValueType, 0);
+  CGFunction Func;
+  CGType Arg1Types[] = { ElementType, ElementType, ResultType };
+  ArrayRef<CGType> Arg1(Arg1Types, 3);
 
-  switch(Func) {
+  switch(Function) {
   case intrinsic::ABS:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("cabs", ElementType),
-                                      ArgType, ElementType);
+    Func = CGM.GetRuntimeFunction2(MANGLE_MATH_FUNCTION("cabs", ElementType),
+                                   ElementType, ElementType, ElementType);
     break;
   case intrinsic::SQRT:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("csqrt", ElementType),
-                                      ArgType, ValueType);
+    Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("csqrt", ElementType),
+                                  Arg1);
     break;
   case intrinsic::EXP:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("cexp", ElementType),
-                                      ArgType, ValueType);
+    Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("cexp", ElementType),
+                                  Arg1);
     break;
   case intrinsic::LOG:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("clog", ElementType),
-                                      ArgType, ValueType);
+    Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("clog", ElementType),
+                                  Arg1);
     break;
   case intrinsic::SIN:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("csin", ElementType),
-                                      ArgType, ValueType);
+    Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("csin", ElementType),
+                                  Arg1);
     break;
   case intrinsic::COS:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("ccos", ElementType),
-                                      ArgType, ValueType);
+    Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("ccos", ElementType),
+                                  Arg1);
     break;
   case intrinsic::TAN:
-    FuncDecl = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("ctan", ElementType),
-                                      ArgType, ValueType);
+    Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("ctan", ElementType),
+                                  Arg1);
     break;
   default:
     llvm_unreachable("invalid complex math intrinsic");
   }
-  auto Result = EmitRuntimeCall2(FuncDecl, Value.Re, Value.Im);
-  if(Func == intrinsic::ABS)
-    return Result;
-  return ExtractComplexValue(Result);
+
+  CallArgList Args;
+  Args.add(Value.Re);Args.add(Value.Im);
+  if(Function != intrinsic::ABS) {
+    auto Result = CreateTempAlloca(ValueType, "libflang_complex_result");
+    Args.add(Result);
+    EmitCall(Func.getFunction(), Func.getInfo(), Args);
+    return EmitComplexLoad(Result);
+  }
+
+  return EmitCall(Func.getFunction(), Func.getInfo(), Args);
 }
 
 llvm::Value *CodeGenFunction::EmitIntrinsicNumericInquiry(intrinsic::FunctionKind Func,

@@ -224,6 +224,24 @@ public:
                               ReturnType, ABI);
   }
 
+  CGFunction GetRuntimeFunction4(StringRef Name,
+                                 CGType A1, CGType A2, CGType A3,
+                                 CGType A4, CGType ReturnType = CGType(),
+                                 FortranABI *ABI = nullptr) {
+    CGType ArgTypes[] = { A1, A2, A3, A4 };
+    return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 4),
+                              ReturnType, ABI);
+  }
+
+  CGFunction GetRuntimeFunction5(StringRef Name,
+                                 CGType A1, CGType A2, CGType A3,
+                                 CGType A4, CGType A5, CGType ReturnType = CGType(),
+                                 FortranABI *ABI = nullptr) {
+    CGType ArgTypes[] = { A1, A2, A3, A4, A5 };
+    return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 5),
+                              ReturnType, ABI);
+  }
+
   CGFunction GetFunction(const FunctionDecl *Function);
 
 };
