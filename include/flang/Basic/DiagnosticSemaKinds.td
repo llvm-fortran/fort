@@ -329,6 +329,11 @@ def err_duplicate_intent_spec : Error<
 def err_duplicate_access_spec : Error<
   "duplicate '%0' access specifier">;
 
+def err_duplicate_member : Error<
+  "duplicate member %0">;
+def err_invalid_type_field_array_shape : Error<
+  "invalid shape for an array type field">;
+
 }
 
 }

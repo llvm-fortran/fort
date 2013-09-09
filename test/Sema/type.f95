@@ -13,4 +13,10 @@ PROGRAM typetest
   type Bar ! expected-error {{redefinition of 'bar'}}
     real x
   endtype
+
+  type person
+    integer age ! expected-note {{previous declaration is here}}
+    real age ! expected-error {{duplicate member 'age'}}
+  endtype
+
 END PROGRAM typetest

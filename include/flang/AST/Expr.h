@@ -607,21 +607,6 @@ public:
   }
 };
 
-/// AssumedSizeSpec - An assumed-size array is a dummy argument array whose size
-/// is assumed from that of its effective argument.
-///
-///   [R521]:
-///     assumed-size-spec :=
-///         [ explicit-shape-spec , ]... [ lower-bound : ] *
-class AssumedSizeSpec : public ArraySpec {
-  // FIXME: Finish
-public:
-  static bool classof(const AssumedSizeSpec *) { return true; }
-  static bool classof(const ArraySpec *AS) {
-    return AS->getKind() == k_AssumedSize;
-  }
-};
-
 /// ImpliedShapeSpec - An implied-shape array is a named constant taht takes its
 /// shape from the constant-expr in its declaration.
 ///

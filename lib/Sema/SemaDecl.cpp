@@ -92,14 +92,26 @@ RecordDecl *Sema::ActOnDerivedTypeDecl(ASTContext &C, SourceLocation Loc,
 }
 
 FieldDecl *Sema::ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
-                                     const IdentifierInfo *IDInfo,
-                                     ExprResult Init) {
-  //FIXME: TODO same field name check
-  //FIXME: TODO init expression
-
+                                           const IdentifierInfo *IDInfo,
+                                           ExprResult Init) {
   QualType T = ActOnTypeName(C, DS);
+  if(auto ArrTy = T->asArrayType()) {
+    // FIXME: check deferred shape when pointer is used.
+    for(auto Dim : ArrTy->getDimensions()) {
+      if(!isa<ExplicitShapeSpec>(Dim)) {
+        Diags.Report(IDLoc, diag::err_invalid_type_field_array_shape);
+        break;
+      }
+    }
+  }
+
   FieldDecl* Field = FieldDecl::Create(C, CurContext, IDLoc, IDInfo, T);
-  CurContext->addDecl(Field);
+
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    Diags.Report(IDLoc, diag::err_duplicate_member) << IDInfo;
+    Diags.Report(Prev->getLocation(), diag::note_previous_declaration);
+  } else
+    CurContext->addDecl(Field);
 
   return Field;
 }
