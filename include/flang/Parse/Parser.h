@@ -378,6 +378,12 @@ private:
   StmtResult ParseExecutableConstruct();
 
   bool ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls);
+
+  /// ParseDimensionAttributeSpec - parses the DIMENSION attribute
+  /// for the given declaration and returns true if a parsing error
+  /// occurred.
+  bool ParseDimensionAttributeSpec(SourceLocation Loc, DeclSpec &DS);
+
   bool ParseProcedureDeclStmt();
   bool ParseSpecificationStmt();
   StmtResult ParseActionStmt();
@@ -523,7 +529,7 @@ private:
   // Declaration construct functions
   bool ParseDerivedTypeDefinitionStmt();
   void ParseEndTypeStmt();
-  bool ParseDerivedTypeComponent();
+  bool ParseDerivedTypeComponentStmt();
   bool ParseDerivedTypeComponentDeclarationList(DeclSpec &DS,
                                 SmallVectorImpl<DeclResult> &Decls);
 
@@ -535,10 +541,6 @@ private:
   bool ParseCharacterStarLengthSpec(DeclSpec &DS);
   bool ParseTypeDeclarationList(DeclSpec &DS,
                                 SmallVectorImpl<DeclResult> &Decls);
-
-  bool AssignAttrSpec(DeclSpec &DS, DeclSpec::AS Val);
-  bool AssignAccessSpec(DeclSpec &DS, DeclSpec::AC Val);
-  bool AssignIntentSpec(DeclSpec &DS, DeclSpec::IS Val);
 
   void SetKindSelector(ConstantExpr *E, StringRef Kind);
 

@@ -12,25 +12,13 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Sema/DeclSpec.h"
-#include "flang/Parse/ParseDiagnostic.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Type.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/ErrorHandling.h"
 
 namespace flang {
 
 DeclSpec::~DeclSpec() {}
-
-template <class T>
-static bool BadSpecifier(T TNew, T TPrev, const char *&PrevSpec,
-                         unsigned &DiagID) {
-  PrevSpec = DeclSpec::getSpecifierName(TPrev);
-  DiagID = (TNew == TPrev ? diag::err_duplicate_declspec
-            : diag::err_invalid_decl_spec_combination);
-  return true;
-}
 
 const char *DeclSpec::getSpecifierName(DeclSpec::TST I) {
   switch (I) {
@@ -48,21 +36,21 @@ const char *DeclSpec::getSpecifierName(DeclSpec::TST I) {
 const char *DeclSpec::getSpecifierName(DeclSpec::AS A) {
   switch (A) {
   case AS_unspecified:  return "unspecified";
-  case AS_allocatable:  return "ALLOCATABLE";
-  case AS_asynchronous: return "ASYNCHRONOUS";
-  case AS_codimension:  return "CODIMENSION";
-  case AS_contiguous:   return "CONTIGUOUS";
-  case AS_dimension:    return "DIMENSION";
-  case AS_external:     return "EXTERNAL";
-  case AS_intrinsic:    return "INTRINSIC";
-  case AS_optional:     return "OPTIONAL";
-  case AS_parameter:    return "PARAMETER";
-  case AS_pointer:      return "POINTER";
-  case AS_protected:    return "PROTECTED";
-  case AS_save:         return "SAVE";
-  case AS_target:       return "TARGET";
-  case AS_value:        return "VALUE";
-  case AS_volatile:     return "VOLATILE";
+  case AS_allocatable:  return "allocate";
+  case AS_asynchronous: return "asynchronous";
+  case AS_codimension:  return "codimension";
+  case AS_contiguous:   return "contiguous";
+  case AS_dimension:    return "dimension";
+  case AS_external:     return "external";
+  case AS_intrinsic:    return "intrinsic";
+  case AS_optional:     return "optinonal";
+  case AS_parameter:    return "parameter";
+  case AS_pointer:      return "pointer";
+  case AS_protected:    return "protected";
+  case AS_save:         return "save";
+  case AS_target:       return "target";
+  case AS_value:        return "value";
+  case AS_volatile:     return "volatile";
   }
   llvm_unreachable("Unknown typespec!");
 }
@@ -70,9 +58,18 @@ const char *DeclSpec::getSpecifierName(DeclSpec::AS A) {
 const char *DeclSpec::getSpecifierName(DeclSpec::IS I) {
   switch (I) {
   case IS_unspecified: return "unspecified";
-  case IS_in:          return "IN";
-  case IS_out:         return "OUT";
-  case IS_inout:       return "INOUT";
+  case IS_in:          return "in";
+  case IS_out:         return "out";
+  case IS_inout:       return "inout";
+  }
+  llvm_unreachable("Unknown typespec!");
+}
+
+const char *DeclSpec::getSpecifierName(DeclSpec::AC I) {
+  switch (I) {
+  case AC_unspecified: return "unspecified";
+  case AC_public:      return "public";
+  case AC_private:     return "private";
   }
   llvm_unreachable("Unknown typespec!");
 }

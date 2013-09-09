@@ -19,41 +19,6 @@
 
 namespace flang {
 
-/// AssignAttrSpec - Helper function that assigns the attribute specification to
-/// the list, but reports an error if that attribute was all ready assigned.
-bool Parser::AssignAttrSpec(DeclSpec &DS, DeclSpec::AS Val) {
-  if (DS.hasAttributeSpec(Val))
-    return Diag.ReportError(Tok.getLocation(),
-                            "attribute specification defined more than once");
-  DS.setAttributeSpec(Val);
-  Lex();
-  return false;
-}
-
-/// AssignAccessSpec - Helper function that assigns the access specification to
-/// the DeclSpec, but reports an error if that access spec was all ready
-/// assigned.
-bool Parser::AssignAccessSpec(DeclSpec &DS, DeclSpec::AC Val) {
-  if (DS.hasAccessSpec(Val))
-    return Diag.ReportError(Tok.getLocation(),
-                            "access specification defined more than once");
-  DS.setAccessSpec(Val);
-  Lex();
-  return false;
-}
-
-/// AssignIntentSpec - Helper function that assigns the intent specification to
-/// the DeclSpec, but reports an error if that intent spec was all ready
-/// assigned.
-bool Parser::AssignIntentSpec(DeclSpec &DS, DeclSpec::IS Val) {
-  if (DS.hasIntentSpec(Val))
-    return Diag.ReportError(Tok.getLocation(),
-                            "intent specification defined more than once");
-  DS.setIntentSpec(Val);
-  Lex();
-  return false;
-}
-
 bool Parser::ParseTypeDeclarationList(DeclSpec &DS,
                                       SmallVectorImpl<DeclResult> &Decls) {
   while (!Tok.isAtStartOfStatement()) {
@@ -117,8 +82,7 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
   if (ParseDeclarationTypeSpec(DS))
     return true;
 
-  llvm::SmallVector<ArraySpec*, 4> Dimensions;
-  while (EatIfPresent(tok::comma)) {
+  while (ConsumeIfPresent(tok::comma)) {
     // [R502]:
     //   attr-spec :=
     //       access-spec
@@ -139,22 +103,24 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
     //    or TARGET
     //    or VALUE
     //    or VOLATILE
-    switch (Tok.getKind()) {
+    auto Kind = Tok.getKind();
+    auto Loc = Tok.getLocation();
+    if(!ExpectAndConsume(tok::identifier)) {
+      goto error;
+    }
+    switch (Kind) {
     default:
-      Diag.ReportError(Tok.getLocation(),
+      Diag.ReportError(Loc,
                        "unknown attribute specification");
       goto error;
     case tok::kw_ALLOCATABLE:
-      if (AssignAttrSpec(DS, DeclSpec::AS_allocatable))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_allocatable);
       break;
     case tok::kw_ASYNCHRONOUS:
-      if (AssignAttrSpec(DS, DeclSpec::AS_asynchronous))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_asynchronous);
       break;
     case tok::kw_CODIMENSION:
-      if (AssignAttrSpec(DS, DeclSpec::AS_codimension))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_codimension);
       if (!EatIfPresent(tok::l_square)) {
         Diag.ReportError(Tok.getLocation(),
                          "expected '[' in CODIMENSION attribute");
@@ -171,27 +137,23 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
 
       break;
     case tok::kw_CONTIGUOUS:
-      if (AssignAttrSpec(DS, DeclSpec::AS_contiguous))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_contiguous);
       break;
     case tok::kw_DIMENSION:
-      if (AssignAttrSpec(DS, DeclSpec::AS_dimension))
+      if (ParseDimensionAttributeSpec(Loc, DS))
         goto error;
-      if (ParseArraySpec(Dimensions))
-        goto error;
-      DS.setDimensions(Dimensions);
       break;
     case tok::kw_EXTERNAL:
-      if (AssignAttrSpec(DS, DeclSpec::AS_external))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_external);
       break;
     case tok::kw_INTENT:
-      Lex();
+      // FIXME:
       if (!EatIfPresent(tok::l_paren)) {
         Diag.ReportError(Tok.getLocation(),
                          "expected '(' after 'INTENT' keyword");
         goto error;
       }
+
 
       switch (Tok.getKind()) {
       default:
@@ -199,16 +161,13 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
                          "invalid INTENT specifier");
         goto error;
       case tok::kw_IN:
-        if (AssignIntentSpec(DS, DeclSpec::IS_in))
-          goto error;
+        Actions.ActOnIntentSpec(Loc, DS, DeclSpec::IS_in);
         break;
       case tok::kw_OUT:
-        if (AssignIntentSpec(DS, DeclSpec::IS_out))
-          goto error;
+        Actions.ActOnIntentSpec(Loc, DS, DeclSpec::IS_out);
         break;
       case tok::kw_INOUT:
-        if (AssignIntentSpec(DS, DeclSpec::IS_inout))
-          goto error;
+        Actions.ActOnIntentSpec(Loc, DS, DeclSpec::IS_inout);
         break;
       }
       Lex();
@@ -221,55 +180,44 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
 
       break;
     case tok::kw_INTRINSIC:
-      if (AssignAttrSpec(DS, DeclSpec::AS_intrinsic))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_intrinsic);
       break;
     case tok::kw_OPTIONAL:
-      if (AssignAttrSpec(DS, DeclSpec::AS_optional))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_optional);
       break;
     case tok::kw_PARAMETER:
-      if (AssignAttrSpec(DS, DeclSpec::AS_parameter))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_parameter);
       break;
     case tok::kw_POINTER:
-      if (AssignAttrSpec(DS, DeclSpec::AS_pointer))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_pointer);
       break;
     case tok::kw_PROTECTED:
-      if (AssignAttrSpec(DS, DeclSpec::AS_protected))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_protected);
       break;
     case tok::kw_SAVE:
-      if (AssignAttrSpec(DS, DeclSpec::AS_save))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_save);
       break;
     case tok::kw_TARGET:
-      if (AssignAttrSpec(DS, DeclSpec::AS_target))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_target);
       break;
     case tok::kw_VALUE:
-      if (AssignAttrSpec(DS, DeclSpec::AS_value))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_value);
       break;
     case tok::kw_VOLATILE:
-      if (AssignAttrSpec(DS, DeclSpec::AS_volatile))
-        goto error;
+      Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_volatile);
       break;
 
     // Access Control Specifiers
     case tok::kw_PUBLIC:
-      if (AssignAccessSpec(DS, DeclSpec::AC_public))
-        goto error;
+      Actions.ActOnAccessSpec(Loc, DS, DeclSpec::AC_public);
       break;
     case tok::kw_PRIVATE:
-      if (AssignAccessSpec(DS, DeclSpec::AC_private))
-        goto error;
+      Actions.ActOnAccessSpec(Loc, DS, DeclSpec::AC_private);
       break;
     }
   }
 
-  EatIfPresent(tok::coloncolon);
+  ConsumeIfPresent(tok::coloncolon);
 
   if (Tok.isAtStartOfStatement()) {
     // A type without any identifiers.
@@ -283,6 +231,42 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
 
   return false;
  error:
+  return true;
+}
+
+bool Parser::ParseDimensionAttributeSpec(SourceLocation Loc, DeclSpec &DS) {
+  SmallVector<ArraySpec*, 8> Dimensions;
+  if (ParseArraySpec(Dimensions))
+    return true;
+  if (!Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_dimension))
+    DS.setDimensions(Dimensions);
+  return false;
+}
+
+static bool isAttributeSpec(tok::TokenKind Kind) {
+  switch (Kind) {
+  default:
+    return false;
+  case tok::kw_ALLOCATABLE:
+  case tok::kw_ASYNCHRONOUS:
+  case tok::kw_CODIMENSION:
+  case tok::kw_CONTIGUOUS:
+  case tok::kw_DIMENSION:
+  case tok::kw_EXTERNAL:
+  case tok::kw_INTENT:
+  case tok::kw_INTRINSIC:
+  case tok::kw_OPTIONAL:
+  case tok::kw_PARAMETER:
+  case tok::kw_POINTER:
+  case tok::kw_PROTECTED:
+  case tok::kw_SAVE:
+  case tok::kw_TARGET:
+  case tok::kw_VALUE:
+  case tok::kw_VOLATILE:
+  case tok::kw_PUBLIC:
+  case tok::kw_PRIVATE:
+    break;
+  }
   return true;
 }
 
@@ -649,17 +633,31 @@ bool Parser::ParseDerivedTypeDefinitionStmt() {
     ExpectStatementEnd();
 
   Actions.ActOnDerivedTypeDecl(Context, Loc, IDLoc, ID);
-  while(true) {
-    if(Tok.is(tok::kw_ENDTYPE) || Tok.is(tok::eof))
-      break;
+  // FIXME: private, sequence
 
-    ParseDerivedTypeComponent();
+  bool Done = false;
+  while(!Done) {
+    switch(Tok.getKind()) {
+    case tok::kw_TYPE:
+    case tok::kw_CLASS:
+    case tok::kw_INTEGER:
+    case tok::kw_REAL:
+    case tok::kw_COMPLEX:
+    case tok::kw_CHARACTER:
+    case tok::kw_LOGICAL:
+    case tok::kw_DOUBLEPRECISION:
+    case tok::kw_DOUBLECOMPLEX:
+      if(ParseDerivedTypeComponentStmt())
+        SkipUntilNextStatement();
+      else ExpectStatementEnd();
+      break;
+    default:
+      Done = true;
+      break;
+    }
   }
 
-  // ENDTYPE
-  if(Tok.isNot(tok::kw_ENDTYPE)) {
-
-  } else ParseEndTypeStmt();
+  ParseEndTypeStmt();
 
   Actions.ActOnEndDerivedTypeDecl(Context);
   return false;
@@ -668,6 +666,14 @@ error:
 }
 
 void Parser::ParseEndTypeStmt() {
+  if(Tok.isNot(tok::kw_ENDTYPE)) {
+    Diag.Report(Tok.getLocation(), diag::err_expected_kw)
+      << "end type";
+    Diag.Report(cast<NamedDecl>(Actions.CurContext)->getLocation(), diag::note_matching)
+      << "type";
+    return;
+  }
+
   auto Loc = ConsumeToken();
   if(IsPresent(tok::identifier)) {
     auto ID = Tok.getIdentifierInfo();
@@ -677,15 +683,45 @@ void Parser::ParseEndTypeStmt() {
   ExpectStatementEnd();
 }
 
-bool Parser::ParseDerivedTypeComponent() {
+bool Parser::ParseDerivedTypeComponentStmt() {
+  // type-spec
   DeclSpec DS;
   llvm::SmallVector<DeclResult, 4> Decls;
+  if(ParseDeclarationTypeSpec(DS))
+    return true;
 
-  ParseDeclarationTypeSpec(DS);
-  //FIXME: attributes.
-  bool HasColonColon = EatIfPresent(tok::coloncolon);
+  // component-attr-spec
+  if(ConsumeIfPresent(tok::comma)) {
+    do {
+      auto Kind = Tok.getKind();
+      auto Loc = Tok.getLocation();
+      auto ID = Tok.getIdentifierInfo();
+      if(!ExpectAndConsume(tok::identifier))
+        return true;
+      if(Kind == tok::kw_POINTER)
+        Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_pointer);
+      else if(Kind == tok::kw_DIMENSION) {
+        if(ParseDimensionAttributeSpec(Loc, DS))
+          return true;
+      } else {
+        if(isAttributeSpec(Kind))
+          Diag.Report(Loc, diag::err_use_of_attr_spec_in_type_decl)
+            << ID;
+        else
+          Diag.Report(Loc, diag::err_expected_attr_spec);
+        if(!SkipUntil(tok::coloncolon, true, true))
+          return true;
+        break;
+      }
+    } while(ConsumeIfPresent(tok::comma));
+    if(!ExpectAndConsume(tok::coloncolon))
+      return true;
+  } else
+    ConsumeIfPresent(tok::coloncolon);
 
-  return ParseDerivedTypeComponentDeclarationList(DS, Decls);
+  ParseDerivedTypeComponentDeclarationList(DS, Decls);
+
+  return false;
 }
 
 bool Parser::ParseDerivedTypeComponentDeclarationList(DeclSpec &DS,

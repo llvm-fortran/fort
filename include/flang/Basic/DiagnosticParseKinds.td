@@ -51,6 +51,7 @@ def err_expected_lsquare : Error<"expected '['">;
 def err_expected_rsquare : Error<"expected ']'">;
 def err_expected_rbrace : Error<"expected '}'">;
 def err_expected_colon : Error<"expected ':'">;
+def err_expected_coloncolon : Error<"expected '::'">;
 def err_expected_equal : Error<"expected '='">;
 def err_expected_comma : Error<"expected ','">;
 def err_expected_dot : Error<"expected '.'">;
@@ -68,6 +69,9 @@ def err_expected_member_name_or_semi : Error<
   "expected member name or ';' after declaration specifiers">;
 def err_expected_case_or_end_select : Error<
   "expected 'case' or 'end select' statement after 'select case' statement">;
+def err_expected_attr_spec : Error<
+  "expected attribute specifier">;
+
 
 def err_expected_end_statement_at_end_of_stmt : Error<
   "expected line break or ';' at end of statement">;
@@ -107,6 +111,9 @@ def err_format_desc_with_unparsed_end : Error<
 // Declarations
 def err_invalid_decl_spec_combination : Error<
   "cannot combine with previous '%0' declaration specifier">;
+
+def err_use_of_attr_spec_in_type_decl : Error<
+  "use of %0 attribute specifier in a type construct">;
 
 
 } // end of Parse Issue category.

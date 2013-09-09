@@ -322,6 +322,13 @@ def warn_deprecated_computed_goto_stmt : Warning<"computed goto statement is dep
 def warn_deprecated_arith_if_stmt : Warning<"arithmetic if statement is deprecated">,
     InGroup<Deprecated>;
 
+def err_duplicate_attr_spec : Error<
+  "duplicate '%0' attribute specifier">;
+def err_duplicate_intent_spec : Error<
+  "duplicate '%0' attribute specifier">;
+def err_duplicate_access_spec : Error<
+  "duplicate '%0' access specifier">;
+
 }
 
 }

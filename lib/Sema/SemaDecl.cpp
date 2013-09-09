@@ -19,6 +19,36 @@
 
 namespace flang {
 
+bool Sema::ActOnAttrSpec(SourceLocation Loc, DeclSpec &DS, DeclSpec::AS Val) {
+  if (DS.hasAttributeSpec(Val)) {
+    Diags.Report(Loc, diag::err_duplicate_attr_spec)
+      << DeclSpec::getSpecifierName(Val);
+    return true;
+  }
+  DS.setAttributeSpec(Val);
+  return false;
+}
+
+bool Sema::ActOnAccessSpec(SourceLocation Loc, DeclSpec &DS, DeclSpec::AC Val) {
+  if (DS.hasAccessSpec(Val)) {
+    Diags.Report(Loc, diag::err_duplicate_access_spec)
+      << DeclSpec::getSpecifierName(Val);
+    return true;
+  }
+  DS.setAccessSpec(Val);
+  return false;
+}
+
+bool Sema::ActOnIntentSpec(SourceLocation Loc, DeclSpec &DS, DeclSpec::IS Val) {
+  if (DS.hasIntentSpec(Val)) {
+    Diags.Report(Loc, diag::err_duplicate_intent_spec)
+      << DeclSpec::getSpecifierName(Val);
+    return true;
+  }
+  DS.setIntentSpec(Val);
+  return false;
+}
+
 bool Sema::CheckDeclaration(const IdentifierInfo *IDInfo, SourceLocation IDLoc) {
   if(!IDInfo) return false;
   if (auto Prev = LookupIdentifier(IDInfo)) {

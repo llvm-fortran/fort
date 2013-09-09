@@ -23,6 +23,7 @@
 #include "flang/AST/IOSpec.h"
 #include "flang/Sema/Ownership.h"
 #include "flang/Sema/Scope.h"
+#include "flang/Sema/DeclSpec.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SourceMgr.h"
 #include "flang/Basic/LLVM.h"
@@ -193,6 +194,21 @@ public:
   QualType ActOnTypeName(ASTContext &C, DeclSpec &DS);
   VarDecl *ActOnKindSelector(ASTContext &C, SourceLocation IDLoc,
                              const IdentifierInfo *IDInfo);
+
+  /// ActOnAttrSpec - Helper function that assigns the attribute specification to
+  /// the list, but reports an error if that attribute was all ready assigned.
+  /// Returns true if the attribute specification wasn't applied.
+  bool ActOnAttrSpec(SourceLocation Loc, DeclSpec &DS, DeclSpec::AS Val);
+
+  /// ActOnAccessSpec - Helper function that assigns the access specification to
+  /// the DeclSpec, but reports an error if that access spec was all ready
+  /// assigned.
+  bool ActOnAccessSpec(SourceLocation Loc, DeclSpec &DS, DeclSpec::AC Val);
+
+  /// ActOnIntentSpec - Helper function that assigns the intent specification to
+  /// the DeclSpec, but reports an error if that intent spec was all ready
+  /// assigned.
+  bool ActOnIntentSpec(SourceLocation Loc, DeclSpec &DS, DeclSpec::IS Val);
 
   Decl *ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDLoc,
                         const IdentifierInfo *IDInfo);

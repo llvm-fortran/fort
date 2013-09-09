@@ -129,6 +129,7 @@ public:
   static const char *getSpecifierName(DeclSpec::TST I);
   static const char *getSpecifierName(DeclSpec::AS A);
   static const char *getSpecifierName(DeclSpec::IS I);
+  static const char *getSpecifierName(DeclSpec::AC I);
 
   bool hasAttributeSpec(DeclSpec::AS A) const {
     return AttributeSpecs & A;

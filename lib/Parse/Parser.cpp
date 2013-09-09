@@ -356,6 +356,9 @@ bool Parser::ExpectAndConsume(tok::TokenKind ExpectedTok, unsigned Diag,
     case tok::colon:
       Diag = diag::err_expected_colon;
       break;
+    case tok::coloncolon:
+      Diag = diag::err_expected_coloncolon;
+      break;
     case tok::slash:
       Diag = diag::err_expected_slash;
       break;
