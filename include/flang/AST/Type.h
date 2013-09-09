@@ -69,6 +69,7 @@ namespace flang {
 
 class ASTContext;
 class Decl;
+class FieldDecl;
 class Expr;
 class ExtQualsTypeCommonBase;
 class IdentifierInfo;
@@ -706,24 +707,27 @@ public:
 
 /// RecordType - Record types.
 class RecordType : public Type, public llvm::FoldingSetNode {
-  std::vector<Decl*> Elems;
+  FieldDecl** Elems;
+  unsigned ElemCount;
+
 protected:
   friend class ASTContext;  // ASTContext creates these.
-  RecordType(llvm::ArrayRef<Decl*> Elements)
-    : Type(Record, QualType()), Elems(Elements.begin(), Elements.end()) {}
+  RecordType(ASTContext &C, ArrayRef<FieldDecl*> Elements);
 public:
-  Decl *getElement(unsigned Idx) const { return Elems[Idx]; }
+
+  FieldDecl *getElement(unsigned Idx) const { return Elems[Idx]; }
+
+  ArrayRef<FieldDecl*> getElements() const {
+    return ArrayRef<FieldDecl*>(Elems,ElemCount);
+  }
 
   void Profile(llvm::FoldingSetNodeID &ID) {
-    Profile(ID, Elems);
+    Profile(ID, getElements());
   }
-  static void Profile(llvm::FoldingSetNodeID &ID, llvm::ArrayRef<Decl*> Elems) {
-    for (llvm::ArrayRef<Decl*>::iterator
-           I = Elems.begin(), E = Elems.end(); I != E; ++I)
-      ID.AddPointer(*I);
+  static void Profile(llvm::FoldingSetNodeID &ID, ArrayRef<FieldDecl*> Elems) {
+    for (auto I : Elems)
+      ID.AddPointer(I);
   }
-
-  void print(llvm::raw_ostream &O) const {} // FIXME
 
   static bool classof(const Type *T) { return T->getTypeClass() == Record; }
   static bool classof(const RecordType *) { return true; }

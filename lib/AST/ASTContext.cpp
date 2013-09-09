@@ -205,7 +205,7 @@ QualType ASTContext::getFunctionType(QualType ResultType, const FunctionDecl *Pr
 
 /// getTypeDeclTypeSlow - Return the unique reference to the type for the
 /// specified type declaration.
-QualType ASTContext::getTypeDeclTypeSlow(const TypeDecl *Decl) const {
+QualType ASTContext::getTypeDeclTypeSlow(const TypeDecl *Decl) {
   assert(Decl && "Passed null for Decl param");
   assert(!Decl->TypeForDecl && "TypeForDecl present in slow case");
 
@@ -218,15 +218,15 @@ QualType ASTContext::getTypeDeclTypeSlow(const TypeDecl *Decl) const {
   return getRecordType(Record);
 }
 
-QualType ASTContext::getRecordType(const RecordDecl *Record) const {
+QualType ASTContext::getRecordType(const RecordDecl *Record) {
   if (Record->TypeForDecl) return QualType(Record->TypeForDecl, 0);
 
-  SmallVector<Decl*, 8> Fields;
+  SmallVector<FieldDecl*, 8> Fields;
   for(auto I = Record->decls_begin(), End = Record->decls_end(); I != End; ++I) {
     if(auto Field = dyn_cast<FieldDecl>(*I))
       Fields.push_back(Field);
   }
-  RecordType *newType = new (*this, TypeAlignment) RecordType(Fields);
+  RecordType *newType = new (*this, TypeAlignment) RecordType(*this, Fields);
   Record->TypeForDecl = newType;
   Types.push_back(newType);
   return QualType(newType, 0);

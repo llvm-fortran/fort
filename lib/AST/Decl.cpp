@@ -282,7 +282,6 @@ RecordDecl *RecordDecl::Create(const ASTContext &C, DeclContext *DC,
                                const IdentifierInfo *Id,
                                RecordDecl *PrevDecl) {
   auto R = new(C) RecordDecl(Record, DC, StartLoc, IdLoc, Id, PrevDecl);
-  C.getTypeDeclType(R, PrevDecl);
   return R;
 }
 

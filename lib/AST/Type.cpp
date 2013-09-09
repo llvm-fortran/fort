@@ -67,6 +67,14 @@ FunctionType *FunctionType::Create(ASTContext &C, QualType ResultType,
   return new(C, TypeAlignment) FunctionType(Function, QualType(), ResultType, Prototype);
 }
 
+RecordType::RecordType(ASTContext &C, ArrayRef<FieldDecl*> Elements)
+  : Type(Record, QualType()) {
+  ElemCount = Elements.size();
+  Elems = new(C) FieldDecl*[ElemCount];
+  for(size_t I = 0; I < Elements.size(); ++I)
+    Elems[I] = Elements[I];
+}
+
 static const char * TypeKindStrings[] = {
   #define INTEGER_KIND(NAME, VALUE) #VALUE ,
   #define FLOATING_POINT_KIND(NAME, VALUE) #VALUE ,

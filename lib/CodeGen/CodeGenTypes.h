@@ -102,6 +102,8 @@ public:
   llvm::ArrayType *GetFixedSizeArrayType(const ArrayType *T,
                                          uint64_t Size);
 
+  llvm::Type *ConvertRecordType(const RecordType *T);
+
   llvm::Type *ConvertFunctionType(const FunctionType *T);
 
   llvm::Type *ConvertReturnType(QualType T,

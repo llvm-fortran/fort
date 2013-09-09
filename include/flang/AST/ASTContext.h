@@ -151,7 +151,7 @@ public:
   unsigned getTypeKindBitWidth(BuiltinType::TypeKind Kind) const;
 
 private:
-  QualType getTypeDeclTypeSlow(const TypeDecl *Decl) const;
+  QualType getTypeDeclTypeSlow(const TypeDecl *Decl);
 
   void InitBuiltinTypes();
   void InitBuiltinType(QualType &R, BuiltinType::TypeSpec K);
@@ -206,12 +206,12 @@ public:
 
   /// getRecordType - Return the uniqued reference to the type for a structure
   /// of the specified type.
-  QualType getRecordType(const RecordDecl *Record) const;
+  QualType getRecordType(const RecordDecl *Record);
 
   /// getTypeDeclType - Return the unique reference to the type for
   /// the specified type declaration.
   QualType getTypeDeclType(const TypeDecl *Decl,
-                           const TypeDecl *PrevDecl = 0) const {
+                           const TypeDecl *PrevDecl = 0) {
     assert(Decl && "Passed null for Decl param");
     if (Decl->TypeForDecl) return QualType(Decl->TypeForDecl, 0);
 

@@ -44,6 +44,8 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     return ConvertArrayType(ATy);
   else if(const FunctionType *FTy = dyn_cast<FunctionType>(TPtr))
     return ConvertFunctionType(FTy);
+  else if(const RecordType *RTy = dyn_cast<RecordType>(TPtr))
+    return ConvertRecordType(RTy);
 
   return nullptr;
 }
@@ -130,6 +132,14 @@ llvm::Type *CodeGenTypes::GetComplexTypeAsVector(llvm::Type *ElementType) {
   return llvm::VectorType::get(ElementType, 2);
 }
 
+llvm::Type *CodeGenTypes::ConvertRecordType(const RecordType *T) {
+  SmallVector<llvm::Type*, 16> Fields;
+  for(auto I : T->getElements()) {
+    Fields.push_back(ConvertTypeForMem(I->getType()));
+  }
+  return llvm::StructType::get(CGM.getLLVMContext(), Fields);
+}
+
 llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {
   auto Ext = T.getExtQualsPtrOrNull();
   auto TPtr = T.getTypePtr();
@@ -137,6 +147,8 @@ llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {
     return ConvertBuiltInTypeForMem(BTy, Ext);
   else if(const ArrayType *ATy = dyn_cast<ArrayType>(TPtr))
     return ConvertArrayTypeForMem(ATy);
+  else if(const RecordType *RTy = dyn_cast<RecordType>(TPtr))
+    return ConvertRecordType(RTy);
 
   llvm_unreachable("invalid type");
   return nullptr;
