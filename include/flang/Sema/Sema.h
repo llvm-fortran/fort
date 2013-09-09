@@ -200,6 +200,12 @@ public:
   /// Returns true if the attribute specification wasn't applied.
   bool ActOnAttrSpec(SourceLocation Loc, DeclSpec &DS, DeclSpec::AS Val);
 
+  /// ActOnDimensionAttrSpec - returns true if the DIMENSION attribute
+  /// specification wasn't applied.
+  bool ActOnDimensionAttrSpec(ASTContext &C, SourceLocation Loc,
+                              DeclSpec &DS,
+                              ArrayRef<ArraySpec*> Dimensions);
+
   /// ActOnAccessSpec - Helper function that assigns the access specification to
   /// the DeclSpec, but reports an error if that access spec was all ready
   /// assigned.
@@ -209,6 +215,11 @@ public:
   /// the DeclSpec, but reports an error if that intent spec was all ready
   /// assigned.
   bool ActOnIntentSpec(SourceLocation Loc, DeclSpec &DS, DeclSpec::IS Val);
+
+  /// ActOnObjectArraySpec - returns true if the array specification wasn't
+  /// applied.
+  bool ActOnObjectArraySpec(ASTContext &C, SourceLocation Loc, DeclSpec &DS,
+                            ArrayRef<ArraySpec*> Dimensions);
 
   Decl *ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDLoc,
                         const IdentifierInfo *IDInfo);

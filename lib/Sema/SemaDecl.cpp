@@ -29,6 +29,19 @@ bool Sema::ActOnAttrSpec(SourceLocation Loc, DeclSpec &DS, DeclSpec::AS Val) {
   return false;
 }
 
+bool Sema::ActOnDimensionAttrSpec(ASTContext &C, SourceLocation Loc,
+                                  DeclSpec &DS,
+                                  ArrayRef<ArraySpec*> Dimensions) {
+  if (DS.hasAttributeSpec(DeclSpec::AS_dimension)) {
+    Diags.Report(Loc, diag::err_duplicate_attr_spec)
+      << DeclSpec::getSpecifierName(DeclSpec::AS_dimension);
+    return true;
+  }
+  DS.setAttributeSpec(DeclSpec::AS_dimension);
+  DS.setDimensions(Dimensions);
+  return false;
+}
+
 bool Sema::ActOnAccessSpec(SourceLocation Loc, DeclSpec &DS, DeclSpec::AC Val) {
   if (DS.hasAccessSpec(Val)) {
     Diags.Report(Loc, diag::err_duplicate_access_spec)
@@ -46,6 +59,15 @@ bool Sema::ActOnIntentSpec(SourceLocation Loc, DeclSpec &DS, DeclSpec::IS Val) {
     return true;
   }
   DS.setIntentSpec(Val);
+  return false;
+}
+
+bool Sema::ActOnObjectArraySpec(ASTContext &C, SourceLocation Loc,
+                                DeclSpec &DS,
+                                ArrayRef<ArraySpec*> Dimensions) {
+  if(!DS.hasAttributeSpec(DeclSpec::AS_dimension))
+    DS.setAttributeSpec(DeclSpec::AS_dimension);
+  DS.setDimensions(Dimensions);
   return false;
 }
 

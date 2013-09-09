@@ -9,8 +9,8 @@ PROGRAM typetest
   end type pair
 
   type person
-    ! FIXME: character*10 name(2)
-    ! FIXME: character*20, dimension(5:10) :: save, skills
+    character*10 name(2)
+    character*20, dimension(5:10) :: save, skills
     integer age
     real, dimension(2,2) :: personality
     integer, save :: id ! expected-error {{use of 'save' attribute specifier in a type construct}}
@@ -20,6 +20,14 @@ PROGRAM typetest
 
   type foo 22 ! expected-error {{expected line break or ';' at end of statement}}
     integer :: k
+    character(20) :: string
+    character(10) str
+  end type
+
+  type ping
+    integer, dimension(11) :: arr1, arr2(13)
+    character a(10)*(5), b*8, c(1)
+    character*10 :: p*10 ! expected-error {{duplicate character length declaration specifier}}
   end type
 
   type params ! expected-note {{to match this 'type'}}

@@ -1170,12 +1170,12 @@ bool Parser::ParseDeclarationConstruct() {
     if(ParseSpecificationStmt()) return true;
     break;
   case tok::kw_TYPE:
-  case tok::kw_CLASS: {
+  case tok::kw_CLASS:
     if(!IsNextToken(tok::l_paren)) {
       ParseDerivedTypeDefinitionStmt();
       break;
     }
-  }
+    // NB: fallthrough
   case tok::kw_INTEGER:
   case tok::kw_REAL:
   case tok::kw_COMPLEX:
@@ -1183,10 +1183,11 @@ bool Parser::ParseDeclarationConstruct() {
   case tok::kw_LOGICAL:
   case tok::kw_DOUBLEPRECISION:
   case tok::kw_DOUBLECOMPLEX: {
-    if (ParseTypeDeclarationStmt(Decls)) {
-      LexToEndOfStatement();
-      // FIXME:
-    }
+    if (ParseTypeDeclarationStmt(Decls))
+      SkipUntilNextStatement();
+    else
+      ExpectStatementEnd();
+    Decls.clear(); // NB: the declarations can be discarded.
     break;
   }
     // FIXME: And the rest?

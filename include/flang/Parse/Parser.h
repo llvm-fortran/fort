@@ -379,10 +379,30 @@ private:
 
   bool ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls);
 
+  /// ParseDeclarationTypeSpec - returns true if a parsing error
+  /// occurred.
+  bool ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors = true,
+                                bool AllowOptionalCommaAfterCharLength = true);
+
+  /// ParseEntityDeclarationList - returns true if a parsing error
+  /// occurred.
+  bool ParseEntityDeclarationList(DeclSpec &DS,
+                                SmallVectorImpl<DeclResult> &Decls);
+
   /// ParseDimensionAttributeSpec - parses the DIMENSION attribute
   /// for the given declaration and returns true if a parsing error
   /// occurred.
   bool ParseDimensionAttributeSpec(SourceLocation Loc, DeclSpec &DS);
+
+  /// ParseObjectArraySpec - parses the optional array specification
+  /// which comes after an object name and returns true if a parsing
+  /// error occurred.
+  bool ParseObjectArraySpec(SourceLocation Loc, DeclSpec &DS);
+
+  /// ParseObjectCharLength - parses the optional character length
+  /// specification which comes after an object name and returns
+  /// true if a parsing error occurred.
+  bool ParseObjectCharLength(SourceLocation Loc, DeclSpec &DS);
 
   bool ParseProcedureDeclStmt();
   bool ParseSpecificationStmt();
@@ -530,22 +550,14 @@ private:
   bool ParseDerivedTypeDefinitionStmt();
   void ParseEndTypeStmt();
   bool ParseDerivedTypeComponentStmt();
-  bool ParseDerivedTypeComponentDeclarationList(DeclSpec &DS,
-                                SmallVectorImpl<DeclResult> &Decls);
 
-  bool ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors = true);
   bool ParseTypeOrClassDeclTypeSpec(DeclSpec &DS);
   ExprResult ParseSelector(bool IsKindSel);
   bool ParseDerivedTypeSpec(DeclSpec &DS);
   bool ParseArraySpec(llvm::SmallVectorImpl<ArraySpec*> &Dims);
   bool ParseCharacterStarLengthSpec(DeclSpec &DS);
-  bool ParseTypeDeclarationList(DeclSpec &DS,
-                                SmallVectorImpl<DeclResult> &Decls);
 
   void SetKindSelector(ConstantExpr *E, StringRef Kind);
-
-  // Declaration Helper functions
-  bool ParseOptionalMatchingIdentifier(const IdentifierInfo*);
 
   /// Deprecated, do not use
   void LexToEndOfStatement();
