@@ -29,6 +29,7 @@ namespace flang {
 
 class Expr;
 class ArraySpec;
+class RecordDecl;
 
 //===----------------------------------------------------------------------===//
 /// DeclSpec - A declaration type specifier is the type -- intrinsic, TYPE, or
@@ -89,6 +90,7 @@ private:
   Expr *Kind;
   Expr *Len;
   SmallVector<ArraySpec*, 4> Dimensions;
+  RecordDecl *Record;
 
 public:
   explicit DeclSpec()
@@ -97,7 +99,8 @@ public:
       IntentSpec(IS_unspecified),
       AccessSpec(AC_unspecified),
       IsDoublePrecision(0), IsStarLength(0),
-      Kind(0), Len(0) {}
+      Kind(0), Len(0),
+      Record(nullptr) {}
   virtual ~DeclSpec();
 
   bool isDoublePrecision() const { return IsDoublePrecision == 1; }
@@ -116,6 +119,13 @@ public:
   bool hasDimensions() const { return !Dimensions.empty(); }
   void setDimensions(ArrayRef<ArraySpec*> Dims);
   ArrayRef<ArraySpec*> getDimensions() const { return Dimensions; }
+
+  RecordDecl *getRecord() const {
+    return Record;
+  }
+  void setRecord(RecordDecl *R) {
+    Record = R;
+  }
 
   typedef SmallVectorImpl<ArraySpec*>::iterator       dim_iterator;
   typedef SmallVectorImpl<ArraySpec*>::const_iterator const_dim_iterator;

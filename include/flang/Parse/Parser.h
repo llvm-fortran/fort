@@ -384,6 +384,10 @@ private:
   bool ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors = true,
                                 bool AllowOptionalCommaAfterCharLength = true);
 
+  /// ParseTypeOrClassDeclTypeSpec - parses a TYPE(..) or CLASS(..) type
+  /// specification. Returns true if a parsing error ocurred.
+  bool ParseTypeOrClassDeclTypeSpec(DeclSpec &DS);
+
   /// ParseEntityDeclarationList - returns true if a parsing error
   /// occurred.
   bool ParseEntityDeclarationList(DeclSpec &DS,
@@ -551,9 +555,7 @@ private:
   void ParseEndTypeStmt();
   bool ParseDerivedTypeComponentStmt();
 
-  bool ParseTypeOrClassDeclTypeSpec(DeclSpec &DS);
   ExprResult ParseSelector(bool IsKindSel);
-  bool ParseDerivedTypeSpec(DeclSpec &DS);
   bool ParseArraySpec(llvm::SmallVectorImpl<ArraySpec*> &Dims);
   bool ParseCharacterStarLengthSpec(DeclSpec &DS);
 

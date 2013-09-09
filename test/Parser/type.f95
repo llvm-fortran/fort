@@ -35,6 +35,12 @@ PROGRAM typetest
     character*10 :: p*10 ! expected-error {{duplicate character length declaration specifier}}
   end type
 
+  type(Point) p1, p2
+  type(sphere) sp
+
+  type( ! expected-error {{expected identifier}}
+  type(ping x ! expected-error {{expected ')'}}
+
   type params ! expected-note {{to match this 'type'}}
     integer i
   i = 22 ! expected-error {{expected 'end type'}}

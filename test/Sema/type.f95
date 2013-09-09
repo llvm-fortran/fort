@@ -19,4 +19,9 @@ PROGRAM typetest
     real age ! expected-error {{duplicate member 'age'}}
   endtype
 
+  type(Point) p
+
+  type(zzzzz) zvar ! expected-error {{use of undeclared identifier 'zzzzz'}}
+  type(Bar) barvar ! expected-error {{invalid type name 'bar'}}
+
 END PROGRAM typetest

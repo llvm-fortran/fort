@@ -221,6 +221,11 @@ public:
   bool ActOnObjectArraySpec(ASTContext &C, SourceLocation Loc, DeclSpec &DS,
                             ArrayRef<ArraySpec*> Dimensions);
 
+  /// AtOnTypeDeclSpec - returns true if the derived type specification wasn't
+  /// applied.
+  void ActOnTypeDeclSpec(ASTContext &C, SourceLocation Loc,
+                         const IdentifierInfo *IDInfo, DeclSpec &DS);
+
   Decl *ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDLoc,
                         const IdentifierInfo *IDInfo);
 
@@ -495,7 +500,6 @@ public:
   QualType ActOnCharacterBuiltinType(ASTContext *Ctx,
                                      Expr *Len,
                                      Expr *Kind) { return QualType(); }
-  DeclSpec *ActOnTypeDeclSpec(ASTContext *Ctx) { return 0; }
 
   ExprResult ActOnDataReference(llvm::ArrayRef<ExprResult> Exprs) {
     return ExprResult();

@@ -71,6 +71,24 @@ bool Sema::ActOnObjectArraySpec(ASTContext &C, SourceLocation Loc,
   return false;
 }
 
+void Sema::ActOnTypeDeclSpec(ASTContext &C, SourceLocation Loc,
+                             const IdentifierInfo *IDInfo, DeclSpec &DS) {
+  DS.SetTypeSpecType(DeclSpec::TST_struct);
+  auto D = ResolveIdentifier(IDInfo);
+  if(!D) {
+    Diags.Report(Loc, diag::err_undeclared_var_use)
+      << IDInfo;
+    return;
+  }
+  auto Record = dyn_cast<RecordDecl>(D);
+  if(!Record) {
+    Diags.Report(Loc, diag::err_use_of_not_typename)
+      << IDInfo;
+    return;
+  }
+  DS.setRecord(Record);
+}
+
 bool Sema::CheckDeclaration(const IdentifierInfo *IDInfo, SourceLocation IDLoc) {
   if(!IDInfo) return false;
   if (auto Prev = LookupIdentifier(IDInfo)) {

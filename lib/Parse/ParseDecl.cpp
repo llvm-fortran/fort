@@ -290,73 +290,6 @@ bool Parser::ParseCharacterStarLengthSpec(DeclSpec &DS) {
   return false;
 }
 
-/// ParseDerivedTypeSpec - Parse the type declaration specifier.
-///
-///   [R455]:
-///     derived-type-spec :=
-///         type-name [ ( type-param-spec-list ) ]
-///
-///   [R456]:
-///     type-param-spec :=
-///         [ keyword = ] type-param-value
-bool Parser::ParseDerivedTypeSpec(DeclSpec &DS) {
-  //  SourceLocation Loc = Tok.getLocation();
-  //  const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
-  Lex();
-
-  llvm::SmallVector<ExprResult, 4> ExprVec;
-  if (Tok.is(tok::l_paren)) {
-    // TODO: Parse "keyword =".
-    do {
-      Lex();
-      ExprResult E = ParseExpression();
-      if (E.isInvalid()) goto error;
-      ExprVec.push_back(E);
-    } while (Tok.is(tok::comma));
-
-    if (!EatIfPresent(tok::r_paren)) {
-      Diag.ReportError(Tok.getLocation(),
-                       "expected ')' after type parameter specifier list");
-      goto error;
-    }
-  }
-
-  //  DS = new DerivedDeclSpec(new VarExpr(Loc, VD), ExprVec);
-  return false;
-
- error:
-  return true;
-}
-
-/// ParseTypeOrClassDeclTypeSpec - Parse a TYPE(...) or CLASS(...) declaration
-/// type spec.
-/// 
-///   [R502]:
-///     declaration-type-spec :=
-///         TYPE ( derived-type-spec )
-///      or CLASS ( derived-type-spec )
-///      or CLASS ( * )
-bool Parser::ParseTypeOrClassDeclTypeSpec(DeclSpec &DS) {
-  if (EatIfPresent(tok::kw_TYPE)) {
-    if (!EatIfPresent(tok::l_paren))
-      return Diag.ReportError(Tok.getLocation(),
-                              "expected '(' in type specification");
-
-    if (ParseDerivedTypeSpec(DS))
-      return true;
-
-    if (!EatIfPresent(tok::r_paren))
-      return Diag.ReportError(Tok.getLocation(),
-                              "expected ')' in type specification");
-
-    return Actions.ActOnTypeDeclSpec(&Context);
-  }
-
-  // TODO: Handle CLASS.
-
-  return false;
-}
-
 /// ParseDeclarationTypeSpec - Parse a declaration type spec construct.
 /// 
 ///   [R502]:
@@ -414,6 +347,8 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
 
   // FIXME: no Kind for double complex and double precision
   switch (DS.getTypeSpecType()) {
+  case DeclSpec::TST_struct:
+    break;
   default:
     ConsumeToken();
     if (ConsumeIfPresent(tok::star)) {
@@ -520,6 +455,41 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
   if(Kind.isUsable()) DS.setKindSelector(Kind.get());
   if(Len.isUsable())  DS.setLengthSelector(Len.get());
   return false;
+}
+
+/// ParseTypeOrClassDeclTypeSpec - Parse a TYPE(...) or CLASS(...) declaration
+/// type spec.
+///
+///   [R502]:
+///     declaration-type-spec :=
+///         TYPE ( derived-type-spec )
+///      or CLASS ( derived-type-spec )
+///      or CLASS ( * )
+///
+///   [R455]:
+///     derived-type-spec :=
+///         type-name [ ( type-param-spec-list ) ]
+///
+///   [R456]:
+///     type-param-spec :=
+///         [ keyword = ] type-param-value
+bool Parser::ParseTypeOrClassDeclTypeSpec(DeclSpec &DS) {
+  if(Tok.is(tok::kw_TYPE)) {
+    ConsumeToken();
+    if(!ExpectAndConsume(tok::l_paren))
+      return true;
+    auto ID = Tok.getIdentifierInfo();
+    auto Loc = Tok.getLocation();
+    if(!ExpectAndConsume(tok::identifier))
+      return true;
+    if(!ExpectAndConsume(tok::r_paren))
+      return true;
+    Actions.ActOnTypeDeclSpec(Context, Loc, ID, DS);
+    return false;
+  }
+
+  // FIXME: Handle CLASS.
+  return true;
 }
 
 // FIXME: Fortran 2008 stuff.

@@ -333,6 +333,8 @@ def err_duplicate_member : Error<
   "duplicate member %0">;
 def err_invalid_type_field_array_shape : Error<
   "invalid shape for an array type field">;
+def err_use_of_not_typename : Error<
+  "invalid type name %0">;
 
 }
 
