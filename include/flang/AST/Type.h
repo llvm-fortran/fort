@@ -707,6 +707,7 @@ public:
 /// RecordType - Record types.
 class RecordType : public Type, public llvm::FoldingSetNode {
   std::vector<Decl*> Elems;
+protected:
   friend class ASTContext;  // ASTContext creates these.
   RecordType(llvm::ArrayRef<Decl*> Elements)
     : Type(Record, QualType()), Elems(Elements.begin(), Elements.end()) {}

@@ -206,7 +206,7 @@ public:
 
   /// getRecordType - Return the uniqued reference to the type for a structure
   /// of the specified type.
-  QualType getRecordType(const RecordDecl *Decl) const;
+  QualType getRecordType(const RecordDecl *Record) const;
 
   /// getTypeDeclType - Return the unique reference to the type for
   /// the specified type declaration.

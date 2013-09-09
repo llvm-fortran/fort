@@ -218,16 +218,18 @@ QualType ASTContext::getTypeDeclTypeSlow(const TypeDecl *Decl) const {
   return getRecordType(Record);
 }
 
-QualType ASTContext::getRecordType(const RecordDecl *Decl) const {
-  return QualType();
-#if 0
-  if (Decl->TypeForDecl) return QualType(Decl->TypeForDecl, 0);
+QualType ASTContext::getRecordType(const RecordDecl *Record) const {
+  if (Record->TypeForDecl) return QualType(Record->TypeForDecl, 0);
 
-  RecordType *newType = new (*this, TypeAlignment) RecordType(Decl);
-  Decl->TypeForDecl = newType;
+  SmallVector<Decl*, 8> Fields;
+  for(auto I = Record->decls_begin(), End = Record->decls_end(); I != End; ++I) {
+    if(auto Field = dyn_cast<FieldDecl>(*I))
+      Fields.push_back(Field);
+  }
+  RecordType *newType = new (*this, TypeAlignment) RecordType(Fields);
+  Record->TypeForDecl = newType;
   Types.push_back(newType);
   return QualType(newType, 0);
-#endif
 }
 
 } //namespace flang

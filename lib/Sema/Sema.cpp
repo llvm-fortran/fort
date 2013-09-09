@@ -481,7 +481,10 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
     Result = C.ComplexTy;
     break;
   case DeclSpec::TST_struct:
-    // FIXME: Finish this.
+    if(!DS.getRecord())
+      Result = C.RealTy;
+    else
+      Result = C.getRecordType(DS.getRecord());
     break;
   }
 

@@ -6,6 +6,10 @@ PROGRAM typetest
     REAL X, Y
   END TYPE Point
 
+  type Triangle
+    type(Point) vertices(3)
+  end type
+
   TYPE foo
     INTEGER K
   END TYPE bar ! expected-error {{expected type name 'foo'}}
