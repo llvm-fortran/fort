@@ -84,11 +84,15 @@ bool Sema::CheckDeclaration(const IdentifierInfo *IDInfo, SourceLocation IDLoc) 
 RecordDecl *Sema::ActOnDerivedTypeDecl(ASTContext &C, SourceLocation Loc,
                                        SourceLocation IDLoc,
                                        const IdentifierInfo* IDInfo) {
-  RecordDecl* Record = RecordDecl::Create(C, CurContext, Loc, IDLoc, IDInfo);
+  auto Record = RecordDecl::Create(C, CurContext, Loc, IDLoc, IDInfo);
   if(CheckDeclaration(IDInfo, IDLoc))
     CurContext->addDecl(Record);
   PushDeclContext(Record);
   return Record;
+}
+
+void Sema::ActOnDerivedTypeSequenceStmt(ASTContext &C, SourceLocation Loc) {
+  cast<RecordDecl>(CurContext)->setIsSequence(true);
 }
 
 FieldDecl *Sema::ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,

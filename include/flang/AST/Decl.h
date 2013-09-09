@@ -517,6 +517,9 @@ class RecordDecl : public TypeDecl, public DeclContext {
   /// IsBeingDefined - True if this is currently being defined.
   bool IsBeingDefined : 1;
 
+  /// IsSequence - True if the SEQUENCE statement was used.
+  bool IsSequence : 1;
+
   friend class DeclContext;
 protected:
   RecordDecl(Kind DK, DeclContext *DC, SourceLocation StartLoc, SourceLocation IdLoc,
@@ -524,6 +527,7 @@ protected:
     : TypeDecl(DK, DC, IdLoc, Id), DeclContext(Record) {
     IsDefinition = false;
     IsBeingDefined = false;
+    IsSequence = false;
   }
 public:
   static RecordDecl *Create(const ASTContext &C, DeclContext *DC,
@@ -577,6 +581,12 @@ public:
   }
 
   void setDefinition(bool V) { IsDefinition = V; }
+
+  bool isSequence() const {
+    return IsSequence;
+  }
+
+  bool setIsSequence(bool V) { IsSequence = V; }
 
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
   static bool classof(const RecordDecl *D) { return true; }

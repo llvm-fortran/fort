@@ -166,6 +166,7 @@ KEYWORD(RESULT                 , KEYNOTF77)
 
 KEYWORD(CLASS                  , KEYNOTF77) // [5.2]    declaration-type-spec
 KEYWORD(TYPE                   , KEYNOTF77) //   ''
+KEYWORD(SEQUENCE               , KEYNOTF77)
 
 KEYWORD(ACCESS                 , KEYALL)    // [5.2.1]  access-stmt
 KEYWORD(ALLOCATABLE            , KEYNOTF77) // [5.2.2]  allocatable-stmt
@@ -234,7 +235,7 @@ KEYWORD(REWIND                 , KEYALL)
 // BLOCK DATA:
 KEYWORD(BLOCKDATA              , KEYALL)
 // ELSE IF: 
-KEYWORD(ELSEIF       , KEYALL)
+KEYWORD(ELSEIF                 , KEYALL)
 // DO WHILE
 KEYWORD(DOWHILE                , KEYALL)
 // END ASSOCIATE:

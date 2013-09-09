@@ -279,8 +279,9 @@ SelfDecl *SelfDecl::Create(ASTContext &C, DeclContext *DC,
 
 RecordDecl *RecordDecl::Create(const ASTContext &C, DeclContext *DC,
                                SourceLocation StartLoc, SourceLocation IdLoc,
-                               const IdentifierInfo *Id, RecordDecl *PrevDecl) {
-  RecordDecl* R = new (C) RecordDecl(Record, DC, StartLoc, IdLoc, Id, PrevDecl);
+                               const IdentifierInfo *Id,
+                               RecordDecl *PrevDecl) {
+  auto R = new(C) RecordDecl(Record, DC, StartLoc, IdLoc, Id, PrevDecl);
   C.getTypeDeclType(R, PrevDecl);
   return R;
 }

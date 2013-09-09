@@ -269,6 +269,8 @@ public:
   RecordDecl *ActOnDerivedTypeDecl(ASTContext &C, SourceLocation Loc,
                                    SourceLocation IDLoc, const IdentifierInfo* IDInfo);
 
+  void ActOnDerivedTypeSequenceStmt(ASTContext &C, SourceLocation Loc);
+
   FieldDecl *ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
                                        const IdentifierInfo *IDInfo,
                                        ExprResult Init = ExprResult());

@@ -586,7 +586,12 @@ bool Parser::ParseDerivedTypeDefinitionStmt() {
     ExpectStatementEnd();
 
   Actions.ActOnDerivedTypeDecl(Context, Loc, IDLoc, ID);
-  // FIXME: private, sequence
+
+  // FIXME: private
+  if(Tok.is(tok::kw_SEQUENCE)) {
+    Actions.ActOnDerivedTypeSequenceStmt(Context, ConsumeToken());
+    ExpectStatementEnd();
+  }
 
   bool Done = false;
   while(!Done) {

@@ -24,6 +24,11 @@ PROGRAM typetest
     character(10) str
   end type
 
+  type sphere
+    sequence
+    real x, y, z, radius
+  end type
+
   type ping
     integer, dimension(11) :: arr1, arr2(13)
     character a(10)*(5), b*8, c(1)
