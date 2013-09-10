@@ -45,6 +45,10 @@ def err_typecheck_passing_incompatible_named_arg : Error<
   "passing %0 to parameter '%1' of incompatible type %2">;
 def err_typecheck_passing_incompatible_named_args : Error<
   "passing %0 to parameter '%1' of incompatible type %2 (or parameter '%3' of type %4)">;
+def note_typecheck_passing_argument_to_param_here : Note<
+  "passing argument to parameter %0 here">;
+def note_typecheck_passing_argument_to_field_here : Note<
+  "passing argument to field %0 declared here">;
 
 def err_typecheck_arith_invalid_operands : Error<
   "invalid operands to an arithmetic binary expression (%0 and %1)">;
@@ -217,7 +221,7 @@ def err_undeclared_var_use : Error<"use of undeclared identifier %0">;
 
 def err_typecheck_call_too_few_args : Error<
   "too few arguments to "
-  "%select{intrinsic function|function|subroutine}0 call, "
+  "%select{intrinsic function call|function call|subroutine call|type constructor}0, "
   "expected %1, have %2">;
 def err_typecheck_call_too_few_args_one : Error<
   "too few arguments to "
@@ -233,7 +237,7 @@ def err_typecheck_call_too_few_args_at_least_one : Error<
   "at least argument %1 must be specified">;
 def err_typecheck_call_too_many_args : Error<
   "too many arguments to "
-  "%select{intrinsic function|function|subroutine}0 call, "
+  "%select{intrinsic function call|function call|subroutine call|type constructor}0, "
   "expected %1, have %2">;
 def err_typecheck_call_too_many_args_one : Error<
   "too many arguments to "

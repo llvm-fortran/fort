@@ -201,9 +201,10 @@ static TypecheckAction TypecheckAssignment(ASTContext &Context,
   return Result;
 }
 
-ExprResult Sema::TypecheckAssignment(QualType LHSType, ExprResult RHS,
-                                     SourceLocation Loc, SourceRange LHSRange,
-                                     SourceRange RHSRange) {
+template<typename T>
+static ExprResult TypecheckAssignment(Sema &S, QualType LHSType, ExprResult RHS,
+                                      T& Handler, SourceLocation Loc,
+                                      SourceRange LHSRange, SourceRange RHSRange) {
   auto RHSType = RHS.get()->getType();
   if(LHSType->isArrayType()) {
     auto LHSElementType = LHSType->asArrayType()->getElementType();
@@ -211,48 +212,62 @@ ExprResult Sema::TypecheckAssignment(QualType LHSType, ExprResult RHS,
       auto RHSElementType = RHSType->asArrayType()->getElementType();
 
       // Check the array compabilities
-      if(!CheckArrayDimensionsCompability(LHSType->asArrayType(),
-                                          RHSType->asArrayType(),
-                                          Loc,
-                                          LHSRange,
-                                          RHSRange))
-        return ExprError();
+      if(!S.CheckArrayDimensionsCompability(LHSType->asArrayType(),
+                                            RHSType->asArrayType(),
+                                            Loc,
+                                            LHSRange,
+                                            RHSRange))
+        return S.ExprError();
 
       // cast an array to appropriate type.
-      auto Action = ::flang::TypecheckAssignment(Context, LHSElementType, RHSElementType);
+      auto Action = TypecheckAssignment(S.getContext(), LHSElementType, RHSElementType);
       if(Action == NoAction)
         return RHS;
       else if(Action == ImplicitCastAction)
-        return ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
-                                        Context.getArrayType(LHSElementType,
-                                                             RHSType->asArrayType()->getDimensions()),
+        return ImplicitCastExpr::Create(S.getContext(), RHS.get()->getLocation(),
+                                        S.getContext().getArrayType(LHSElementType,
+                                                                    RHSType->asArrayType()->getDimensions()),
                                         RHS.take());
-      auto Reporter = Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
-          << LHSElementType << RHSElementType;
-      if(LHSRange.isValid())
-        Reporter << LHSRange;
-      if(RHSRange.isValid())
-        Reporter << RHSRange;
-      return ExprError();
+
+      Handler.IncompatibleTypes(Loc, LHSElementType, RHSElementType);
+      return S.ExprError();
     }
     else
       LHSType = LHSElementType; // fallthrough
   }
 
-  auto Action = ::flang::TypecheckAssignment(Context, LHSType, RHSType);
+  auto Action = TypecheckAssignment(S.getContext(), LHSType, RHSType);
   if(Action == NoAction)
     return RHS;
   else if(Action == ImplicitCastAction)
-    return ImplicitCastExpr::Create(Context, RHS.get()->getLocation(),
+    return ImplicitCastExpr::Create(S.getContext(), RHS.get()->getLocation(),
                                     LHSType, RHS.take());
 
-  auto Reporter = Diags.Report(Loc,diag::err_typecheck_assign_incompatible)
-      << LHSType << RHS.get()->getType();
-  if(LHSRange.isValid())
-    Reporter << LHSRange;
-  if(RHSRange.isValid())
-    Reporter << RHSRange;
-  return ExprError();
+  Handler.IncompatibleTypes(Loc, LHSType, RHSType);
+  return S.ExprError();
+};
+
+ExprResult Sema::TypecheckAssignment(QualType LHSType, ExprResult RHS,
+                                     SourceLocation Loc, SourceRange LHSRange,
+                                     SourceRange RHSRange) {
+  struct Reporter {
+    DiagnosticsEngine &Diags;
+    SourceRange LHSRange, RHSRange;
+    Reporter(DiagnosticsEngine &Diag,
+             SourceRange LHS, SourceRange RHS)
+      : Diags(Diag), LHSRange(LHS), RHSRange(RHS) {}
+
+    void IncompatibleTypes(SourceLocation Loc, QualType LHSType, QualType RHSType) {
+      auto Reporter = Diags.Report(Loc, diag::err_typecheck_assign_incompatible)
+          << LHSType << RHSType;
+      if(LHSRange.isValid())
+        Reporter << LHSRange;
+      if(RHSRange.isValid())
+        Reporter << RHSRange;
+    }
+  };
+  Reporter Handler(Diags, LHSRange, RHSRange);
+  return ::flang::TypecheckAssignment(*this, LHSType, RHS, Handler, Loc, LHSRange, RHSRange);
 }
 
 
@@ -782,22 +797,57 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
 }
 
 ExprResult Sema::ActOnTypeConstructorExpr(ASTContext &C, SourceLocation Loc,
-                                          SourceLocation RParenLoc, RecordDecl *Record,
-                                          ArrayRef<Expr*> Arguments) {
-  // FIXME: add sema.
+                                          SourceLocation LParenLoc, SourceLocation RParenLoc,
+                                          RecordDecl *Record, ArrayRef<Expr*> Arguments) {
+  struct TypecheckReporter {
+    DiagnosticsEngine &Diags;
+    FieldDecl *Field;
+    Expr *Arg;
+
+    TypecheckReporter(DiagnosticsEngine &Diag, FieldDecl *F, Expr *E)
+      : Diags(Diag), Field(F), Arg(E) {}
+
+    void IncompatibleTypes(SourceLocation Loc, QualType FieldType, QualType ArgType) {
+      Diags.Report(Loc, diag::err_typecheck_passing_incompatible)
+        << ArgType << FieldType << Arg->getSourceRange();
+      Diags.Report(Field->getLocation(), diag::note_typecheck_passing_argument_to_field_here)
+        << Field->getIdentifier();
+    }
+  };
+
+  SmallVector<Expr*, 8> Args;
   auto ReturnType = C.getRecordType(Record);
   auto Fields = cast<RecordType>(ReturnType.getTypePtr())->getElements();
   size_t ArgumentId = 0;
   for(size_t I = 0; I < Fields.size(); ++I, ++ArgumentId) {
-    if(ArgumentId >= Arguments.size())
+    if(ArgumentId >= Arguments.size()) {
+      Diags.Report(LParenLoc, diag::err_typecheck_call_too_few_args)
+          << /* type constructor= */ 3
+          << unsigned(Fields.size())
+          << unsigned(Arguments.size())
+          << getTokenRange(Loc);
       break;
-
+    }
+    auto Arg = Arguments[ArgumentId];
+    TypecheckReporter Handler(Diags, Fields[I], Arg);
+    auto E = ::flang::TypecheckAssignment(*this, Fields[I]->getType(), Arg, Handler,
+                                          Arg->getLocation(), SourceRange(), Arg->getSourceRange());
+    if(E.isUsable())
+      Args.push_back(E.get());
   }
+
   if(ArgumentId < Arguments.size()) {
-
+    auto LocStart = Arguments[Fields.size()]?
+                      Arguments[Fields.size()]->getLocStart() : LParenLoc;
+    auto LocEnd   = RParenLoc;
+    Diags.Report(LocStart, diag::err_typecheck_call_too_many_args)
+        << /* type constructor= */ 3
+        << unsigned(Fields.size())
+        << unsigned(Arguments.size())
+        << getTokenRange(Loc) << SourceRange(LocStart, LocEnd);
   }
 
-  return TypeConstructorExpr::Create(C, Loc, Record, Arguments);
+  return TypeConstructorExpr::Create(C, Loc, Record, Args);
 }
 
 } // namespace flang

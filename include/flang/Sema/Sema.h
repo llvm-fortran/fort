@@ -534,7 +534,7 @@ public:
   ExprResult ActOnArrayConstructorExpr(ASTContext &C, SourceLocation Loc,
                                        SourceLocation RParenLoc, ArrayRef<Expr*> Elements);
 
-  ExprResult ActOnTypeConstructorExpr(ASTContext &C, SourceLocation Loc,
+  ExprResult ActOnTypeConstructorExpr(ASTContext &C, SourceLocation Loc, SourceLocation LParenLoc,
                                       SourceLocation RParenLoc, RecordDecl *Record,
                                       ArrayRef<Expr*> Arguments);
 
