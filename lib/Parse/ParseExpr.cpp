@@ -664,7 +664,8 @@ ExprResult Parser::ParseNameOrCall() {
     }
   } else if(isa<SelfDecl>(Declaration) && isa<FunctionDecl>(Actions.CurContext))
     return ParseRecursiveCallExpression(IDLoc);
-
+  else if(auto Record = dyn_cast<RecordDecl>(Declaration))
+    return ParseTypeConstructor(IDLoc, Record);
   Diag.Report(IDLoc, diag::err_expected_var);
   return ExprError();
 }
@@ -961,6 +962,16 @@ error:
   EndLoc = Tok.getLocation();
   SkipUntil(tok::slashr_paren);
   return Actions.ActOnArrayConstructorExpr(Context, Loc, EndLoc, ExprList);
+}
+
+/// ParseTypeConstructorExpression - Parses a type constructor.
+ExprResult Parser::ParseTypeConstructor(SourceLocation IDLoc, RecordDecl *Record) {
+  SmallVector<Expr*, 8> Arguments;
+  SourceLocation RParenLoc = IDLoc;
+  auto E = ParseFunctionCallArgumentList(Arguments, RParenLoc);
+  if(E.isInvalid())
+    return ExprError();
+  return Actions.ActOnTypeConstructorExpr(Context, IDLoc, RParenLoc, Record, Arguments);
 }
 
 } //namespace flang

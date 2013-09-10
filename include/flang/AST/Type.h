@@ -37,6 +37,7 @@ namespace flang {
   class ExtQuals;
   class QualType;
   class FunctionType;
+  class RecordType;
 }
 
 namespace llvm {
@@ -531,6 +532,9 @@ public:
   bool isFunctionType() const;
   const FunctionType *asFunctionType() const;
 
+  bool isRecordType() const;
+  const RecordType *asRecordType() const;
+
   static bool classof(const Type *) { return true; }
 };
 
@@ -919,6 +923,14 @@ inline bool Type::isFunctionType() const {
 
 inline const FunctionType *Type::asFunctionType() const {
   return dyn_cast<FunctionType>(CanonicalType);
+}
+
+inline bool Type::isRecordType() const {
+  return isa<RecordType>(CanonicalType);
+}
+
+inline const RecordType *Type::asRecordType() const {
+  return dyn_cast<RecordType>(CanonicalType);
 }
 
 inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB,

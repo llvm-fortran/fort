@@ -528,6 +528,7 @@ private:
   ExprResult ParseRecursiveCallExpression(SourceLocation IDLoc);
   ExprResult ParseCallExpression(SourceLocation IDLoc, FunctionDecl *Function);
   ExprResult ParseArrayConstructor();
+  ExprResult ParseTypeConstructor(SourceLocation IDLoc, RecordDecl *Record);
 
   /// \brief Looks at the next token to see if it's an expression
   /// and calls ParseExpression if it is, or reports an expected expression

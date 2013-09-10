@@ -440,6 +440,24 @@ SourceLocation ArrayConstructorExpr::getLocEnd() const {
   return getItems().back()->getLocEnd();
 }
 
+TypeConstructorExpr::TypeConstructorExpr(ASTContext &C, SourceLocation Loc,
+                                         const RecordDecl *record,
+                                         ArrayRef<Expr*> Arguments, QualType T)
+  : Expr(TypeConstructorExprClass, T, Loc),
+    MultiArgumentExpr(C, Arguments), Record(record) { }
+
+TypeConstructorExpr *TypeConstructorExpr::Create(ASTContext &C, SourceLocation Loc,
+                                                 const RecordDecl *Record,
+                                                 ArrayRef<Expr*> Arguments) {
+  return new(C) TypeConstructorExpr(C, Loc, Record, Arguments, C.getRecordType(Record));
+}
+
+SourceLocation TypeConstructorExpr::getLocEnd() const {
+  if(getArguments().empty())
+    return getLocation();
+  return getArguments().back()->getLocEnd();
+}
+
 RangeExpr::RangeExpr(ExprClass Class, SourceLocation Loc,
                      Expr *First, Expr *Second)
   : Expr(Class, QualType(), Loc), E1(First), E2(Second) {

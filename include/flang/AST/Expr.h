@@ -32,6 +32,7 @@ class Decl;
 class VarDecl;
 class FunctionDecl;
 class SubroutineDecl;
+class RecordDecl;
 
 /// Expr - Top-level class for expressions.
 class Expr {
@@ -939,6 +940,29 @@ public:
     return E->getExprClass() == ArrayConstructorExprClass;
   }
   static bool classof(const ArrayConstructorExpr *) { return true; }
+};
+
+/// TypeConstructorExpr - Record(args)
+class TypeConstructorExpr : public Expr, public MultiArgumentExpr {
+  const RecordDecl *Record;
+  TypeConstructorExpr(ASTContext &C, SourceLocation Loc,
+                      const RecordDecl *record,
+                      ArrayRef<Expr*> Arguments, QualType T);
+public:
+  static TypeConstructorExpr *Create(ASTContext &C, SourceLocation Loc,
+                                     const RecordDecl *Record,
+                                     ArrayRef<Expr*> Arguments);
+
+  const RecordDecl *getRecord() const {
+    return Record;
+  }
+
+  SourceLocation getLocEnd() const;
+
+  static bool classof(const Expr *E) {
+    return E->getExprClass() == TypeConstructorExprClass;
+  }
+  static bool classof(const TypeConstructorExpr*) { return true; }
 };
 
 /// RangeExpr - [E1] : [E2]

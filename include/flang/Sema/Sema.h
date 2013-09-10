@@ -534,6 +534,11 @@ public:
   ExprResult ActOnArrayConstructorExpr(ASTContext &C, SourceLocation Loc,
                                        SourceLocation RParenLoc, ArrayRef<Expr*> Elements);
 
+  ExprResult ActOnTypeConstructorExpr(ASTContext &C, SourceLocation Loc,
+                                      SourceLocation RParenLoc, RecordDecl *Record,
+                                      ArrayRef<Expr*> Arguments);
+
+
   // Format
   StmtResult ActOnFORMAT(ASTContext &C, SourceLocation Loc,
                          FormatItemResult Items,

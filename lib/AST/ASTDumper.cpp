@@ -53,6 +53,7 @@ public:
   void VisitBuiltinType(const BuiltinType *T, const ExtQuals *E);
   void VisitArrayType(const ArrayType *T, const ExtQuals *E);
   void VisitFunctionType(const FunctionType *T, const ExtQuals *E);
+  void VisitRecordType(const RecordType *T, const ExtQuals *E);
 
   // statements
   void dumpStmt(const Stmt *S);
@@ -125,6 +126,7 @@ public:
   void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
   void VisitImpliedDoExpr(const ImpliedDoExpr *E);
   void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
+  void VisitTypeConstructorExpr(const TypeConstructorExpr *E);
   void VisitRangeExpr(const RangeExpr *E);
   void VisitStridedRangeExpr(const StridedRangeExpr *E);
 
@@ -323,6 +325,11 @@ void ASTDumper::VisitFunctionType(const FunctionType *T, const ExtQuals *E) {
   if(T->hasPrototype())
     OS << T->getPrototype()->getName();
   OS << ")";
+}
+
+void ASTDumper::VisitRecordType(const RecordType *T, const ExtQuals *E) {
+  auto Record = T->getElement(0)->getParent();
+  OS << "type " << Record->getName();
 }
 
 // statements
@@ -850,6 +857,12 @@ void ASTDumper::VisitArrayConstructorExpr(const ArrayConstructorExpr *E) {
   OS << "(/";
   dumpExprList(E->getItems());
   OS << " /)";
+}
+
+void ASTDumper::VisitTypeConstructorExpr(const TypeConstructorExpr *E) {
+  OS << E->getRecord()->getName() << "(";
+  dumpExprList(E->getArguments());
+  OS << ")";
 }
 
 void ASTDumper::VisitRangeExpr(const RangeExpr *E) {

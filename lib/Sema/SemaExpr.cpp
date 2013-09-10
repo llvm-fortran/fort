@@ -188,6 +188,13 @@ static TypecheckAction TypecheckAssignment(ASTContext &Context,
     if(!RHSType->isCharacterType()) Result = ErrorAction;
   }
 
+  else if(LHSType->isRecordType()) {
+    if(!RHSType->isRecordType()) Result = ErrorAction;
+    else if(LHSType->asRecordType() !=
+            RHSType->asRecordType())
+      Result = ErrorAction;
+  }
+
   // Invalid assignment
   else return ErrorAction;
 
@@ -772,6 +779,25 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
 
   return IntrinsicCallExpr::Create(C, Loc, Function,
                                    Arguments, ReturnType);
+}
+
+ExprResult Sema::ActOnTypeConstructorExpr(ASTContext &C, SourceLocation Loc,
+                                          SourceLocation RParenLoc, RecordDecl *Record,
+                                          ArrayRef<Expr*> Arguments) {
+  // FIXME: add sema.
+  auto ReturnType = C.getRecordType(Record);
+  auto Fields = cast<RecordType>(ReturnType.getTypePtr())->getElements();
+  size_t ArgumentId = 0;
+  for(size_t I = 0; I < Fields.size(); ++I, ++ArgumentId) {
+    if(ArgumentId >= Arguments.size())
+      break;
+
+  }
+  if(ArgumentId < Arguments.size()) {
+
+  }
+
+  return TypeConstructorExpr::Create(C, Loc, Record, Arguments);
 }
 
 } // namespace flang

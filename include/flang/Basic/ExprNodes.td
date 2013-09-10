@@ -43,5 +43,6 @@ def IntrinsicCallExpr : Expr;
 //Other
 def ImpliedDoExpr : Expr;
 def ArrayConstructorExpr : Expr; // (/ /)
+def TypeConstructorExpr : Expr;
 def RangeExpr : Expr; // a : b
 def StridedRangeExpr : DExpr<RangeExpr>;

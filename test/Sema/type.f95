@@ -24,8 +24,20 @@ PROGRAM typetest
   endtype
 
   type(Point) p
+  type(Triangle) tri
+  integer i
 
   type(zzzzz) zvar ! expected-error {{use of undeclared identifier 'zzzzz'}}
   type(Bar) barvar ! expected-error {{invalid type name 'bar'}}
+
+  p = Point(1.0, 2.0)
+
+  p = i ! expected-error {{assigning to 'type point' from incompatible type 'integer'}}
+  i = p ! expected-error {{assigning to 'integer' from incompatible type 'type point'}}
+  tri = p ! expected-error {{assigning to 'type triangle' from incompatible type 'type point'}}
+
+  p = Point(.true., .false.)
+  p = Point(0.0)
+  p = Point(0.0, 1.0, 2.0)
 
 END PROGRAM typetest
