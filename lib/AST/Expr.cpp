@@ -181,6 +181,17 @@ SourceLocation DesignatorExpr::getLocStart() const {
   return Target->getLocStart();
 }
 
+MemberExpr::MemberExpr(ASTContext &C, SourceLocation Loc, Expr *E,
+                       const FieldDecl *F, QualType T)
+  : DesignatorExpr(MemberExprClass, T, Loc, E), Field(F) {
+}
+
+MemberExpr *MemberExpr::Create(ASTContext &C, SourceLocation Loc,
+                               Expr *Target, const FieldDecl *Field,
+                               QualType T) {
+  return new(C) MemberExpr(C, Loc, Target, Field, T);
+}
+
 SubstringExpr::SubstringExpr(ASTContext &C, SourceLocation Loc, Expr *E,
                              Expr *Start, Expr *End)
   : DesignatorExpr(SubstringExprClass, C.CharacterTy, Loc, E),

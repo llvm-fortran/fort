@@ -1137,7 +1137,8 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
                                      ExprResult RHS, Expr *StmtLabel) {
   if(!isa<VarExpr>(LHS.get()) && !isa<ArrayElementExpr>(LHS.get()) &&
      !isa<ArraySectionExpr>(LHS.get()) &&
-     !isa<SubstringExpr>(LHS.get())) {
+     !isa<SubstringExpr>(LHS.get()) &&
+     !isa<MemberExpr>(LHS.get())) {
     Diags.Report(Loc,diag::err_expr_not_assignable) << LHS.get()->getSourceRange();
     return StmtError();
   }

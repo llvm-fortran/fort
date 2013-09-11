@@ -117,6 +117,7 @@ public:
   void VisitImplicitCastExpr(const ImplicitCastExpr *E);
   void VisitBinaryExpr(const BinaryExpr *E);
   void VisitDefinedBinaryOperatorExpr(const DefinedBinaryOperatorExpr *E);
+  void VisitMemberExpr(const MemberExpr *E);
   void VisitSubstringExpr(const SubstringExpr *E);
   void VisitArrayElementExpr(const ArrayElementExpr *E);
   void VisitArraySectionExpr(const ArraySectionExpr *E);
@@ -789,6 +790,11 @@ void ASTDumper::VisitDefinedBinaryOperatorExpr(const DefinedBinaryOperatorExpr *
   OS << E->getIdentifierInfo()->getName();
   dumpExpr(E->getRHS());
   OS << ')';
+}
+
+void ASTDumper::VisitMemberExpr(const MemberExpr *E) {
+  dumpExpr(E->getTarget());
+  OS << " % " << E->getField()->getName();
 }
 
 void ASTDumper::VisitSubstringExpr(const SubstringExpr *E) {

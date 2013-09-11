@@ -850,4 +850,23 @@ ExprResult Sema::ActOnTypeConstructorExpr(ASTContext &C, SourceLocation Loc,
   return TypeConstructorExpr::Create(C, Loc, Record, Args);
 }
 
+ExprResult Sema::ActOnStructureComponentExpr(ASTContext &C, SourceLocation Loc,
+                                             SourceLocation IDLoc,
+                                             const IdentifierInfo *IDInfo,
+                                             Expr *Target) {
+  auto RecordTy = Target->getType().getSelfOrArrayElementType()->asRecordType();
+  auto Record = RecordTy->getElement(0)->getParent();
+  auto PrevContext = CurContext;
+  CurContext = Record;
+  auto Field = dyn_cast_or_null<FieldDecl>(LookupIdentifier(IDInfo));
+  CurContext = PrevContext;
+  if(!Field) {
+    Diags.Report(IDLoc, diag::err_no_member)
+      << IDInfo << Target->getType().getSelfOrArrayElementType()
+      << Target->getSourceRange();
+    return ExprError();
+  }
+  return MemberExpr::Create(C, Loc, Target, Field, Field->getType());
+}
+
 } // namespace flang

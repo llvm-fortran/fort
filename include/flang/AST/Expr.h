@@ -366,6 +366,27 @@ public:
 };
 
 //===----------------------------------------------------------------------===//
+/// MemberExpr - structure component.
+class MemberExpr : public DesignatorExpr {
+  const FieldDecl *Field;
+  MemberExpr(ASTContext &C, SourceLocation Loc, Expr *E,
+             const FieldDecl *F, QualType T);
+public:
+  static MemberExpr *Create(ASTContext &C, SourceLocation Loc,
+                            Expr *Target, const FieldDecl *Field,
+                            QualType T);
+
+  const FieldDecl *getField() const {
+    return Field;
+  }
+
+  static bool classof(const Expr *E) {
+    return E->getExprClass() == Expr::MemberExprClass;
+  }
+  static bool classof(const MemberExpr *) { return true; }
+};
+
+//===----------------------------------------------------------------------===//
 /// SubstringExpr - Returns a substring.
 class SubstringExpr : public DesignatorExpr {
 private:

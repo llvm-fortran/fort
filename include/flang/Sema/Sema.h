@@ -539,6 +539,11 @@ public:
                                       ArrayRef<Expr*> Arguments);
 
 
+  ExprResult ActOnStructureComponentExpr(ASTContext &C, SourceLocation Loc,
+                                         SourceLocation IDLoc,
+                                         const IdentifierInfo *IDInfo, Expr *Target);
+
+
   // Format
   StmtResult ActOnFORMAT(ASTContext &C, SourceLocation Loc,
                          FormatItemResult Items,

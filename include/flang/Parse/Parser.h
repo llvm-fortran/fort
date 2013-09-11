@@ -419,7 +419,7 @@ private:
   ExprResult ParseArraySection();
   ExprResult ParseCoindexedNamedObject();
   ExprResult ParseComplexPartDesignator();
-  ExprResult ParseStructureComponent();
+  ExprResult ParseStructureComponent(ExprResult Target);
   ExprResult ParseSubstring(ExprResult Target);
   ExprResult ParseArraySubscript(ExprResult Target);
   ExprResult ParseArraySection(const char *PunctuationTok);

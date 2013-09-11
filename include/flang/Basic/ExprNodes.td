@@ -29,6 +29,7 @@ def BinaryExpr : Expr;
 def DefinedBinaryOperatorExpr : DExpr<BinaryExpr>;
 
 def DesignatorExpr : Expr<1>;
+def MemberExpr : DExpr<DesignatorExpr>;
 def SubstringExpr : DExpr<DesignatorExpr>;
 def ArrayElementExpr : DExpr<DesignatorExpr>;
 def ArraySectionExpr : DExpr<DesignatorExpr>;

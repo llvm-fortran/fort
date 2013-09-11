@@ -341,6 +341,8 @@ def err_use_of_not_typename : Error<
   "invalid type name %0">;
 def err_record_member_not_sequence : Error<
   "member %0 requires a type with a 'sequence' attribute (%1 invalid)">;
+def err_no_member : Error<
+  "no member named %0 in %1">;
 
 }
 

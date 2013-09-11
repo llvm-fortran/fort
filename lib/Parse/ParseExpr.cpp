@@ -592,17 +592,26 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
   while(true) {
     if(!E.isUsable())
       break;
-    if(!IsPresent(tok::l_paren))
-      break;
-    auto EType = E.get()->getType();
-    if(EType->isArrayType())
-      E = ParseArraySubscript(E);
-    else if(EType->isCharacterType())
-      E = ParseSubstring(E);
-    else {
-      Diag.Report(Tok.getLocation(), diag::err_unexpected_lparen);
-      return ExprError();
+    if(IsPresent(tok::l_paren)) {
+      auto EType = E.get()->getType();
+      if(EType->isArrayType())
+        E = ParseArraySubscript(E);
+      else if(EType->isCharacterType())
+        E = ParseSubstring(E);
+      else {
+        Diag.Report(Tok.getLocation(), diag::err_unexpected_lparen);
+        return ExprError();
+      }
+    } else if(IsPresent(tok::percent)) {
+      auto EType = E.get()->getType();
+      if(EType->isRecordType())
+        E = ParseStructureComponent(E);
+      else {
+        Diag.Report(Tok.getLocation(), diag::err_unexpected_percent);
+        return ExprError();
+      }
     }
+    else break;
   }
 
   return E;
@@ -776,10 +785,15 @@ ExprResult Parser::ParseComplexPartDesignator() {
 ///
 ///   R613:
 ///     structure-component :=
-///         data-ref
-ExprResult Parser::ParseStructureComponent() {
-  ExprResult E;
-  return E;
+///        designator % data-ref
+ExprResult Parser::ParseStructureComponent(ExprResult Target) {
+  auto Loc = ConsumeToken();
+  auto ID = Tok.getIdentifierInfo();
+  auto IDLoc = Tok.getLocation();
+  if(!ExpectAndConsume(tok::identifier))
+    return ExprError();
+  return Actions.ActOnStructureComponentExpr(Context, Loc, IDLoc, ID,
+                                             Target.get());
 }
 
 /// ParseSubstring - Parse a substring.
