@@ -23,6 +23,12 @@ PROGRAM typetest
     real age ! expected-error {{duplicate member 'age'}}
   endtype
 
+  type seq
+    sequence
+    type(Point) p1 ! expected-error {{member 'p1' requires a type with a 'sequence' attribute ('type point' invalid)}}
+    integer x
+  end type
+
   type(Point) p
   type(Triangle) tri
   integer i

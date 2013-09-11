@@ -125,6 +125,14 @@ FieldDecl *Sema::ActOnDerivedTypeFieldDecl(ASTContext &C, DeclSpec &DS, SourceLo
         break;
       }
     }
+  } else if(auto RecordTy = T->asRecordType()) {
+    if(cast<RecordDecl>(CurContext)->isSequence()) {
+      auto Record = RecordTy->getElement(0)->getParent();
+      if(!Record->isSequence()) {
+        Diags.Report(IDLoc, diag::err_record_member_not_sequence)
+          << IDInfo << T;
+      }
+    }
   }
 
   FieldDecl* Field = FieldDecl::Create(C, CurContext, IDLoc, IDInfo, T);
