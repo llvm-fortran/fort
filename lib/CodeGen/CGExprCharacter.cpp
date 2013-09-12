@@ -57,6 +57,7 @@ public:
   CharacterValueTy VisitCallExpr(const CallExpr *E);
   CharacterValueTy VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
   CharacterValueTy VisitArrayElementExpr(const ArrayElementExpr *E);
+  CharacterValueTy VisitMemberExpr(const MemberExpr *E);
 };
 
 CharacterExprEmitter::CharacterExprEmitter(CodeGenFunction &cgf)
@@ -157,6 +158,12 @@ CharacterValueTy CharacterExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCal
 
 CharacterValueTy CharacterExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
   return CGF.GetCharacterValueFromPtr(CGF.EmitArrayElementPtr(E), E->getType());
+}
+
+CharacterValueTy CharacterExprEmitter::VisitMemberExpr(const MemberExpr *E) {
+  auto Val = CGF.EmitAggregateExpr(E->getTarget());
+  return CGF.GetCharacterValueFromPtr(CGF.EmitAggregateMember(Val.getAggregateAddr(), E->getField()),
+                                      E->getType());
 }
 
 void CodeGenFunction::EmitCharacterAssignment(const Expr *LHS, const Expr *RHS) {

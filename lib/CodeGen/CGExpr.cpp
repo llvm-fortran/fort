@@ -40,6 +40,8 @@ RValueTy CodeGenFunction::EmitRValue(const Expr *E) {
     return EmitCharacterExpr(E);
   else if(EType->isLogicalType())
     return EmitLogicalValueExpr(E);
+  else if(EType->isRecordType())
+    return EmitAggregateExpr(E);
   else
     return EmitScalarExpr(E);
 }
@@ -51,17 +53,19 @@ RValueTy CodeGenFunction::EmitLoad(llvm::Value *Ptr, QualType T, bool IsVolatile
     return Builder.CreateLoad(Ptr, IsVolatile);
 }
 
-void CodeGenFunction::EmitStore(RValueTy Val, LValueTy Dest, QualType T, bool IsVolatile) {
+void CodeGenFunction::EmitStore(RValueTy Val, LValueTy Dest, QualType T) {
   auto Ptr = Dest.getPointer();
+  auto IsVolatile = Dest.isVolatileQualifier();
   if(Val.isScalar()) {
     if(Val.asScalar()->getType() == CGM.Int1Ty)
       Val = ConvertLogicalValueToLogicalMemoryValue(Val.asScalar(),
                                                     T->isArrayType()? T->asArrayType()->getElementType() : T);
     Builder.CreateStore(Val.asScalar(), Ptr, IsVolatile);
-    return;
-  } else if(Val.isComplex()) {
+  } else if(Val.isComplex())
     EmitComplexStore(Val.asComplex(), Ptr, IsVolatile);
-    return;
+  else if(Val.isAggregate()) {
+    Builder.CreateStore(Builder.CreateLoad(Val.getAggregateAddr(), Val.isVolatileQualifier()),
+                        Ptr, IsVolatile);
   }
 }
 
@@ -128,6 +132,7 @@ public:
 
   LValueTy VisitVarExpr(const VarExpr *E);
   LValueTy VisitArrayElementExpr(const ArrayElementExpr *E);
+  LValueTy VisitMemberExpr(const MemberExpr *E);
 };
 
 LValueExprEmitter::LValueExprEmitter(CodeGenFunction &cgf)
@@ -141,6 +146,11 @@ LValueTy LValueExprEmitter::VisitVarExpr(const VarExpr *E) {
 
 LValueTy LValueExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
   return CGF.EmitArrayElementPtr(E->getTarget(), E->getSubscripts());
+}
+
+LValueTy LValueExprEmitter::VisitMemberExpr(const MemberExpr *E) {
+  return CGF.EmitAggregateMember(Visit(E->getTarget()).getPointer(),
+                                 E->getField());
 }
 
 LValueTy CodeGenFunction::EmitLValue(const Expr *E) {

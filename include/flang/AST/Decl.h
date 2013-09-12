@@ -871,10 +871,11 @@ public:
 /// FieldDecl - An instance of this class is created by Sema::ActOnField to
 /// represent a member of a struct.
 class FieldDecl : public DeclaratorDecl {
+  unsigned Idx;
 protected:
   FieldDecl(Kind DK, DeclContext *DC, SourceLocation IdLoc, const IdentifierInfo *Id,
             QualType T)
-    : DeclaratorDecl(DK, DC, IdLoc, Id, T) {}
+    : DeclaratorDecl(DK, DC, IdLoc, Id, T), Idx(0) {}
 public:
   static FieldDecl *Create(const ASTContext &C, DeclContext *DC,
                            SourceLocation IdLoc, const IdentifierInfo *Id, QualType T);
@@ -886,6 +887,13 @@ public:
   }
   RecordDecl *getParent() {
     return RecordDecl::castFromDeclContext(getDeclContext());
+  }
+
+  unsigned getIndex() const {
+    return Idx;
+  }
+  void setIndex(unsigned I) {
+    Idx = I;
   }
 
   SourceRange getSourceRange() const {

@@ -11,6 +11,7 @@ add_flang_library(flangCodeGen
   CGExprScalar.cpp
   CGExprComplex.cpp
   CGExprCharacter.cpp
+  CGExprAgg.cpp
   CGArray.cpp
   CGIntrinsic.cpp
   CGArrayIntrinsic.cpp

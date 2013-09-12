@@ -44,7 +44,7 @@ public:
   ComplexValueTy VisitCallExpr(const CallExpr *E);
   ComplexValueTy VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
   ComplexValueTy VisitArrayElementExpr(const ArrayElementExpr *E);
-
+  ComplexValueTy VisitMemberExpr(const MemberExpr *E);
 };
 
 ComplexExprEmitter::ComplexExprEmitter(CodeGenFunction &cgf)
@@ -220,6 +220,12 @@ ComplexValueTy ComplexExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExp
 
 ComplexValueTy ComplexExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
   return CGF.EmitComplexLoad(CGF.EmitArrayElementPtr(E));
+}
+
+ComplexValueTy ComplexExprEmitter::VisitMemberExpr(const MemberExpr *E) {
+  auto Val = CGF.EmitAggregateExpr(E->getTarget());
+  return CGF.EmitComplexLoad(CGF.EmitAggregateMember(Val.getAggregateAddr(), E->getField()),
+                             Val.isVolatileQualifier());
 }
 
 ComplexValueTy CodeGenFunction::EmitComplexExpr(const Expr *E) {

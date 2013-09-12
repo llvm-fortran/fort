@@ -222,9 +222,12 @@ QualType ASTContext::getRecordType(const RecordDecl *Record) {
   if (Record->TypeForDecl) return QualType(Record->TypeForDecl, 0);
 
   SmallVector<FieldDecl*, 8> Fields;
-  for(auto I = Record->decls_begin(), End = Record->decls_end(); I != End; ++I) {
-    if(auto Field = dyn_cast<FieldDecl>(*I))
+  unsigned Idx = 0;
+  for(auto I = Record->decls_begin(), End = Record->decls_end(); I != End; ++I, ++Idx) {
+    if(auto Field = dyn_cast<FieldDecl>(*I)) {
       Fields.push_back(Field);
+      Field->setIndex(Idx);
+    }
   }
   RecordType *newType = new (*this, TypeAlignment) RecordType(*this, Fields);
   Record->TypeForDecl = newType;

@@ -117,6 +117,10 @@ public:
   QualType getType() const {
     return Type;
   }
+
+  bool isVolatileQualifier() const {
+    return false;// NB: to be used in the future
+  }
 };
 
 class RValueTy {
@@ -125,12 +129,17 @@ public:
     None,
     Scalar,
     Complex,
-    Character
+    Character,
+    Aggregate
   };
-
+private:
   Kind ValueType;
   llvm::Value *V1;
   llvm::Value *V2;
+
+  RValueTy(llvm::Value *V, Kind Type)
+    : V1(V), ValueType(Type) {}
+public:
 
   RValueTy() : ValueType(None) {}
   RValueTy(llvm::Value *V)
@@ -152,8 +161,15 @@ public:
   bool isCharacter() const {
     return getType() == Character;
   }
+  bool isAggregate() const {
+    return getType() == Aggregate;
+  }
   bool isNothing() const {
     return getType() == None;
+  }
+
+  bool isVolatileQualifier() const {
+    return false;// NB: to be used in the future
   }
 
   llvm::Value *asScalar() const {
@@ -165,7 +181,14 @@ public:
   CharacterValueTy asCharacter() const {
     return CharacterValueTy(V1, V2);
   }
+  llvm::Value *getAggregateAddr() const {
+    assert(isAggregate());
+    return V1;
+  }
 
+  static RValueTy getAggregate(llvm::Value *Ptr, bool isVolatile = false) {
+    return RValueTy(Ptr, Aggregate);
+  }
 };
 
 }  // end namespace CodeGen

@@ -267,7 +267,7 @@ public:
 
   /// Generic value operations for scalar/complex/character values.
   RValueTy EmitLoad (llvm::Value *Ptr, QualType T, bool IsVolatile = false);
-  void     EmitStore(RValueTy Val, LValueTy Dest, QualType T, bool IsVolatile = false);
+  void     EmitStore(RValueTy Val, LValueTy Dest, QualType T);
   RValueTy EmitBinaryExpr(BinaryExpr::Operator Op, RValueTy LHS, RValueTy RHS);
   RValueTy EmitUnaryExpr(UnaryExpr::Operator Op, RValueTy Val);
   RValueTy EmitImplicitConversion(RValueTy Val, QualType T);
@@ -333,7 +333,7 @@ public:
   llvm::Value *EmitComplexRelationalExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
                                          ComplexValueTy RHS);
 
-  // character expressesions
+  // character expressions
   CharacterValueTy ExtractCharacterValue(llvm::Value *Agg);
   llvm::Value   *CreateCharacterAggregate(CharacterValueTy Value);
   void EmitCharacterAssignment(const Expr *LHS, const Expr *RHS);
@@ -349,6 +349,13 @@ public:
   RValueTy EmitIntrinsicCallCharacter(intrinsic::FunctionKind Func,
                                       CharacterValueTy A1, CharacterValueTy A2);
   llvm::Value *EmitCharacterDereference(CharacterValueTy Value);
+
+  // aggregate expressions
+
+  RValueTy EmitAggregateExpr(const Expr *E);
+  void EmitAggregateAssignment(const Expr *LHS, const Expr *RHS);
+  llvm::Value *EmitAggregateMember(llvm::Value *Agg, const FieldDecl *Field);
+  RValueTy EmitAggregateMember(const Expr *E, const FieldDecl *Field);
 
   // intrinsic calls
   RValueTy EmitIntrinsicCall(const IntrinsicCallExpr *E);
