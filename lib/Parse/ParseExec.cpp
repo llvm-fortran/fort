@@ -336,17 +336,13 @@ Parser::StmtResult Parser::ParseGotoStmt() {
 ///       IF(scalar-logic-expr) action-stmt
 
 ExprResult Parser::ParseExpectedConditionExpression(const char *DiagAfter) {
-  if (!EatIfPresent(tok::l_paren)) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_lparen_after)
-        << DiagAfter;
+  if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after,
+      DiagAfter))
     return ExprError();
-  }
   ExprResult Condition = ParseExpectedFollowupExpression("(");
   if(Condition.isInvalid()) return Condition;
-  if (!EatIfPresent(tok::r_paren)) {
-    Diag.Report(Tok.getLocation(), diag::err_expected_rparen);
+  if (!ExpectAndConsume(tok::r_paren))
     return ExprError();
-  }
   return Condition;
 }
 
@@ -710,30 +706,25 @@ Parser::StmtResult Parser::ParseWriteStmt() {
   SourceLocation Loc = ConsumeToken();
 
   // clist
-  if(!EatIfPresentInSameStmt(tok::l_paren)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
-  }
+  if(!ExpectAndConsume(tok::l_paren))
+    return StmtError();
 
   UnitSpec *US = nullptr;
   FormatSpec *FS = nullptr;
 
   US = ParseUNITSpec(false);
-  if(EatIfPresentInSameStmt(tok::comma)) {
+  if(ConsumeIfPresent(tok::comma)) {
     bool IsFormatLabeled = false;
-    if(EatIfPresentInSameStmt(tok::kw_FMT)) {
-      if(!EatIfPresentInSameStmt(tok::equal)) {
-        Diag.Report(getExpectedLoc(), diag::err_expected_equal);
+    if(ConsumeIfPresent(tok::kw_FMT)) {
+      if(!ExpectAndConsume(tok::equal))
         return StmtError();
-      }
       IsFormatLabeled = true;
     }
     FS = ParseFMTSpec(IsFormatLabeled);
-
   }
 
-  if(!EatIfPresentInSameStmt(tok::r_paren)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_rparen);
-  }
+  if(!ExpectAndConsume(tok::r_paren))
+    return StmtError();
 
   // iolist
   SmallVector<ExprResult, 4> OutputItemList;
@@ -744,7 +735,7 @@ Parser::StmtResult Parser::ParseWriteStmt() {
 
 UnitSpec *Parser::ParseUNITSpec(bool IsLabeled) {
   auto Loc = Tok.getLocation();
-  if(!EatIfPresentInSameStmt(tok::star)) {
+  if(!ConsumeIfPresent(tok::star)) {
     auto E = ParseExpression();
     if(!E.isInvalid())
       return Actions.ActOnUnitSpec(Context, E, Loc, IsLabeled);
@@ -774,7 +765,7 @@ void Parser::ParseIOList(SmallVectorImpl<ExprResult> &List) {
   while(!Tok.isAtStartOfStatement()) {
     auto E = ParseExpression();
     if(E.isUsable()) List.push_back(E);
-    if(!EatIfPresentInSameStmt(tok::comma))
+    if(!ConsumeIfPresent(tok::comma))
       break;
   }
 }

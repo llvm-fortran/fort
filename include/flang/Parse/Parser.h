@@ -562,11 +562,6 @@ private:
 
   void SetKindSelector(ConstantExpr *E, StringRef Kind);
 
-  /// Deprecated, do not use
-  void LexToEndOfStatement();
-  bool EatIfPresent(tok::TokenKind);
-  bool EatIfPresentInSameStmt(tok::TokenKind);
-  bool Expect(tok::TokenKind,const llvm::Twine&);
 };
 
 } // end flang namespace

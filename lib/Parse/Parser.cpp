@@ -182,7 +182,7 @@ void Parser::Lex() {
     Tok = NextTok;
     NextTok.setKind(tok::unknown);
     if(hadErrors)
-      LexToEndOfStatement();
+      SkipUntilNextStatement();
     else Lex();
     return;
   }
@@ -462,46 +462,6 @@ bool Parser::SkipUntilNextStatement() {
   while(!Tok.isAtStartOfStatement())
     ConsumeAnyToken();
   return true;
-}
-
-/// EatIfPresent - Eat the token if it's present. Return 'true' if it was
-/// delicious.
-bool Parser::EatIfPresent(tok::TokenKind Kind) {
-  if (Tok.is(Kind)) {
-    Lex();
-    return true;
-  }
-
-  return false;
-}
-
-/// EatIfPresentInSameStmt - Eat the token if it's present and isn't a part of a new statement.
-/// Return 'true' if it was delicious.
-bool Parser::EatIfPresentInSameStmt(tok::TokenKind Kind) {
-  if (!Tok.isAtStartOfStatement() && Tok.is(Kind)) {
-    Lex();
-    return true;
-  }
-
-  return false;
-}
-
-/// Expect - Eat the token if it's present. Return 'true' if it was
-/// delicious. Reports error if it wasn't.
-bool Parser::Expect(tok::TokenKind Kind,const llvm::Twine &Msg){
-  if (!EatIfPresent(Kind)) {
-    Diag.ReportError(Tok.getLocation(),Msg);
-    return false;
-  }
-  return true;
-}
-
-/// LexToEndOfStatement - Lex to the end of a statement. Done in an
-/// unrecoverable error situation.
-void Parser::LexToEndOfStatement() {
-  // Eat the rest of the statment.
-  while (!Tok.isAtStartOfStatement())
-    Lex();
 }
 
 /// ParseInclude - parses the include statement and loads the included file.
@@ -784,7 +744,7 @@ bool Parser::ParseSpecificationPart() {
     if (S.isUsable()) {
       Actions.getCurrentBody()->Append(S.take());
     } else if (S.isInvalid()) {
-      LexToEndOfStatement();
+      SkipUntilNextStatement();
       HasErrors = true;
     } else {
       break;
@@ -799,7 +759,7 @@ bool Parser::ParseSpecificationPart() {
     if (S.isUsable()) {
       Actions.getCurrentBody()->Append(S.take());
     } else if (S.isInvalid()) {
-      LexToEndOfStatement();
+      SkipUntilNextStatement();
       HasErrors = true;
     } else {
       break;
@@ -814,7 +774,7 @@ bool Parser::ParseSpecificationPart() {
 
 
   if (ParseDeclarationConstructList()) {
-    LexToEndOfStatement();
+    SkipUntilNextStatement();
     HasErrors = true;
   }
 
@@ -903,67 +863,55 @@ err:
 
 bool Parser::ParseExternalSubprogram(DeclSpec &ReturnType, int Attr) {
   bool IsSubroutine = Tok.is(tok::kw_SUBROUTINE);
-  Lex();
-
-  if (Tok.isAtStartOfStatement() ||
-      !(Tok.is(tok::identifier) ||
-       (Tok.getIdentifierInfo() &&
-        isaKeyword(Tok.getIdentifierInfo()->getName()))
-      )) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_ident);
-    return true;
-  }
+  ConsumeToken();
 
   auto IDLoc = Tok.getLocation();
   auto II = Tok.getIdentifierInfo();
-  Lex();
+  if(!ExpectAndConsume(tok::identifier))
+    return true;
 
   SubProgramScope Scope;
   Actions.ActOnSubProgram(Context, Scope, IsSubroutine, IDLoc, II, ReturnType, Attr);
   SmallVector<VarDecl* ,8> ArgumentList;
+  bool HadErrorsInDeclStmt = false;
 
-  if(EatIfPresentInSameStmt(tok::l_paren)) {
-
+  if(ConsumeIfPresent(tok::l_paren)) {
     // argument list
-    if(!Tok.isAtStartOfStatement() && Tok.isNot(tok::r_paren)) {
+    if(!IsPresent(tok::r_paren) && !Tok.isAtStartOfStatement()) {
       do {
-        if(Tok.isAtStartOfStatement()) break;
-        if(IsSubroutine && Tok.is(tok::star)) {
-          Actions.ActOnSubProgramStarArgument(Context, Tok.getLocation());
-          Lex();
+        if(IsSubroutine && IsPresent(tok::star)) {
+          Actions.ActOnSubProgramStarArgument(Context, ConsumeToken());
           continue;
-        } else if(!(Tok.is(tok::identifier) ||
-                  (Tok.getIdentifierInfo() &&
-                   isaKeyword(Tok.getIdentifierInfo()->getName()))
-                 )) {
-          Diag.Report(getExpectedLoc(), diag::err_expected_ident);
+        }
+        auto IDLoc = Tok.getLocation();
+        auto IDInfo = Tok.getIdentifierInfo();
+        if(!ExpectAndConsume(tok::identifier)) {
+          HadErrorsInDeclStmt = true;
           break;
         }
-
-        auto Arg = Actions.ActOnSubProgramArgument(Context, Tok.getLocation(),
-                                                   Tok.getIdentifierInfo());
+        auto Arg = Actions.ActOnSubProgramArgument(Context, IDLoc, IDInfo);
         if(Arg)
           ArgumentList.push_back(Arg);
-        Lex();
       } while(ConsumeIfPresent(tok::comma));
     }
 
     // closing ')'
-    if(!EatIfPresentInSameStmt(tok::r_paren)) {
-      Diag.Report(getExpectedLoc(), diag::err_expected_rparen)
-        << FixItHint(getExpectedLocForFixIt(),")");
-      if(!Tok.isAtStartOfStatement())
-        LexToEndOfStatement();
+    if(!HadErrorsInDeclStmt) {
+      if(!ExpectAndConsume(tok::r_paren)) {
+        HadErrorsInDeclStmt = true;
+      }
     }
   } else if(!IsSubroutine) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_lparen);
-    if(!Tok.isAtStartOfStatement())
-      LexToEndOfStatement();
+    Diag.Report(getExpectedLoc(), diag::err_expected_lparen)
+      << FixItHint(getExpectedLocForFixIt(), "(");
+    HadErrorsInDeclStmt = true;
   }
 
   Actions.ActOnSubProgramArgumentList(Context, ArgumentList);
 
-  if(!IsSubroutine) {
+  if(HadErrorsInDeclStmt)
+    SkipUntilNextStatement();
+  else if(!IsSubroutine) {
     if(IsPresent(tok::kw_RESULT)) {
       if(ParseRESULT())
         SkipUntilNextStatement();
@@ -1308,10 +1256,10 @@ Parser::StmtResult Parser::ParseUSEStmt() {
   //     INTRINSIC
   //  or NON INTRINSIC
   UseStmt::ModuleNature MN = UseStmt::None;
-  if (EatIfPresent(tok::comma)) {
-    if (EatIfPresent(tok::kw_INTRINSIC)) {
+  if (ConsumeIfPresent(tok::comma)) {
+    if (ConsumeIfPresent(tok::kw_INTRINSIC)) {
       MN = UseStmt::IntrinsicStmtClass;
-    } else if (EatIfPresent(tok::kw_NONINTRINSIC)) {
+    } else if (ConsumeIfPresent(tok::kw_NONINTRINSIC)) {
       MN = UseStmt::NonIntrinsic;
     } else {
       Diag.ReportError(Tok.getLocation(),
@@ -1319,26 +1267,18 @@ Parser::StmtResult Parser::ParseUSEStmt() {
       return StmtResult(true);
     }
 
-    if (!EatIfPresent(tok::coloncolon)) {
-      Diag.ReportError(Tok.getLocation(),
-                       "expected a '::' after the module nature");
-      return StmtResult(true);
-    }
+    if (!ExpectAndConsume(tok::coloncolon))
+      return StmtError();
   }
 
   // Eat optional '::'.
-  EatIfPresent(tok::coloncolon);
-
-  if (Tok.isNot(tok::identifier)) {
-    Diag.ReportError(Tok.getLocation(),
-                     "missing module name in USE statement");
-    return StmtResult(true);
-  }
+  ConsumeIfPresent(tok::coloncolon);
 
   const IdentifierInfo *ModuleName = Tok.getIdentifierInfo();
-  Lex();
+  if (!ExpectAndConsume(tok::identifier))
+    return StmtError();
 
-  if (!EatIfPresent(tok::comma)) {
+  if (!ConsumeIfPresent(tok::comma)) {
     if (!Tok.isAtStartOfStatement()) {
       Diag.ReportError(Tok.getLocation(),
                        "expected a ',' in USE statement");
@@ -1353,7 +1293,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
   if (Tok.is(tok::kw_ONLY)) {
     UseListFirstVar = Tok.getIdentifierInfo();
     Lex(); // Eat 'ONLY'
-    if (!EatIfPresent(tok::colon)) {
+    if (!ConsumeIfPresent(tok::colon)) {
       if (Tok.isNot(tok::equalgreater)) {
         Diag.ReportError(Tok.getLocation(),
                          "expected a ':' after the ONLY keyword");
@@ -1380,7 +1320,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
     RenameNames.push_back(UseStmt::RenamePair(UseListFirstVar,
                                               Tok.getIdentifierInfo()));
     Lex();
-    EatIfPresent(tok::comma);
+    ConsumeIfPresent(tok::comma);
   }
 
   while (!Tok.isAtStartOfStatement()) {
@@ -1388,14 +1328,14 @@ Parser::StmtResult Parser::ParseUSEStmt() {
     const IdentifierInfo *UseName = 0;
     Lex();
 
-    if (EatIfPresent(tok::equalgreater)) {
+    if (ConsumeIfPresent(tok::equalgreater)) {
       UseName = Tok.getIdentifierInfo();
       Lex();
     }
 
     RenameNames.push_back(UseStmt::RenamePair(LocalName, UseName));
 
-    if (!EatIfPresent(tok::comma))
+    if (!ConsumeIfPresent(tok::comma))
       break;
   }
 
@@ -1415,7 +1355,7 @@ Parser::StmtResult Parser::ParseIMPORTStmt() {
 
   SourceLocation Loc = Tok.getLocation();
   Lex();
-  EatIfPresent(tok::coloncolon);
+  ConsumeIfPresent(tok::coloncolon);
 
   SmallVector<const IdentifierInfo*, 4> ImportNameList;
   while (!Tok.isAtStartOfStatement()) {
@@ -1427,14 +1367,14 @@ Parser::StmtResult Parser::ParseIMPORTStmt() {
 
     ImportNameList.push_back(Tok.getIdentifierInfo());
     Lex();
-    if (!EatIfPresent(tok::comma))
+    if (!ConsumeIfPresent(tok::comma))
       break;
   }
 
   if (!Tok.isAtStartOfStatement()) {
     Diag.ReportError(Tok.getLocation(),
                      "missing comma before import name in IMPORT statement");
-    LexToEndOfStatement();
+    SkipUntilNextStatement();
   }
 
   return Actions.ActOnIMPORT(Context, Loc, ImportNameList, StmtLabel);
@@ -1608,7 +1548,7 @@ Parser::StmtResult Parser::ParseALLOCATABLEStmt() {
 Parser::StmtResult Parser::ParseASYNCHRONOUSStmt() {
   SourceLocation Loc = Tok.getLocation();
   Lex();
-  EatIfPresent(tok::coloncolon);
+  ConsumeIfPresent(tok::coloncolon);
 
   SmallVector<const IdentifierInfo*, 8> ObjNameList;
   while (!Tok.isAtStartOfStatement()) {
@@ -1620,7 +1560,8 @@ Parser::StmtResult Parser::ParseASYNCHRONOUSStmt() {
 
     ObjNameList.push_back(Tok.getIdentifierInfo());
     Lex();
-    if (!EatIfPresent(tok::comma)) {
+
+    if (!ConsumeIfPresent(tok::comma)) {
       if (!Tok.isAtStartOfStatement()) {
         Diag.ReportError(Tok.getLocation(),
                          "expected ',' in ASYNCHRONOUS statement");
@@ -1699,13 +1640,11 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
      if(E.isInvalid())
        return StmtError();
      Names.push_back(E);
-  } while(EatIfPresentInSameStmt(tok::comma));
+  } while(ConsumeIfPresent(tok::comma));
 
   // clist
-  if(!EatIfPresentInSameStmt(tok::slash)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_slash);
+  if(!ExpectAndConsume(tok::slash))
     return StmtError();
-  }
 
   do {
     if(Tok.isAtStartOfStatement()) {
@@ -1719,7 +1658,7 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
        && IsNextToken(tok::star)) {
       Repeat = ParsePrimaryExpr();
       RepeatLoc = Tok.getLocation();
-      EatIfPresentInSameStmt(tok::star);
+      ConsumeIfPresent(tok::star);
       if(Tok.isAtStartOfStatement()) {
         Diag.Report(getExpectedLoc(), diag::err_expected_expression);
         return StmtError();
@@ -1732,12 +1671,10 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
     if(Value.isUsable())
       Values.push_back(Value);
     else HadSemaErrors = true;
-  } while(EatIfPresentInSameStmt(tok::comma));
+  } while(ConsumeIfPresent(tok::comma));
 
-  if(!EatIfPresentInSameStmt(tok::slash)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_slash);
+  if(!ExpectAndConsume(tok::slash))
     return StmtError();
-  }
 
   if(HadSemaErrors)
     return StmtError();
@@ -1772,7 +1709,7 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
     if(E.isInvalid()) return ExprError();
     DList.push_back(E);
 
-    if(EatIfPresentInSameStmt(tok::comma)) {
+    if(ConsumeIfPresent(tok::comma)) {
       if(Tok.isAtStartOfStatement()) {
         Diag.Report(getExpectedLoc(), diag::err_expected_expression);
         return ExprError();
@@ -1784,42 +1721,35 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
     }
   }
 
-  if(!(Tok.is(tok::identifier) ||
-     (Tok.getIdentifierInfo() &&
-      isaKeyword(Tok.getIdentifierInfo()->getName())))) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_ident);
-    return ExprError();
-  }
   auto IDLoc = Tok.getLocation();
   auto IDInfo = Tok.getIdentifierInfo();
-  Lex();
-
-  if(!EatIfPresentInSameStmt(tok::equal)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_equal);
+  if(!ExpectAndConsume(tok::identifier))
     return ExprError();
-  }
+
+  if(!ExpectAndConsume(tok::equal))
+    return ExprError();
 
   auto PrevDontResolveIdentifiers = DontResolveIdentifiers;
   DontResolveIdentifiers = true;
 
   E1 = ParseExpectedFollowupExpression("=");
-  if(!EatIfPresentInSameStmt(tok::comma)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_comma);
+  if(E1.isInvalid()) return E1;
+  if(!ExpectAndConsume(tok::comma)) {
     // NB: don't forget
     DontResolveIdentifiers = PrevDontResolveIdentifiers;
     return ExprError();
   }
   E2 = ParseExpectedFollowupExpression(",");
-  if(EatIfPresentInSameStmt(tok::comma)) {
+  if(E2.isInvalid()) return E2;
+  if(ConsumeIfPresent(tok::comma)) {
     E3 = ParseExpectedFollowupExpression(",");
   }
+  if(E3.isInvalid()) return E3;
 
   DontResolveIdentifiers = PrevDontResolveIdentifiers;
 
-  if(!EatIfPresentInSameStmt(tok::r_paren)) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_rparen);
+  if(!ExpectAndConsume(tok::r_paren))
     return ExprError();
-  }
 
   return Actions.ActOnDATAImpliedDoExpr(Context, Loc, IDLoc, IDInfo,
                                         DList, E1, E2, E3);

@@ -42,10 +42,8 @@ Parser::StmtResult Parser::ParseFORMATStmt() {
 ///         ( [ format-items ] )
 ///      or ( [ format-items, ] unlimited-format-item )
 Parser::StmtResult Parser::ParseFORMATSpec(SourceLocation Loc) {
-  if (!EatIfPresentInSameStmt(tok::l_paren)) {
-    Diag.Report(getExpectedLoc(),diag::err_expected_lparen);
+  if (!ExpectAndConsume(tok::l_paren))
     return StmtError();
-  }
 
   auto Items = ParseFORMATItems(true);
   FormatItemResult UnlimitedItems;
@@ -55,10 +53,8 @@ Parser::StmtResult Parser::ParseFORMATSpec(SourceLocation Loc) {
     // FIXME: Act on unlimited
     // Parse unlimited-format-item
     Lex(); // eat '*'
-    if (!EatIfPresentInSameStmt(tok::l_paren)) {
-      Diag.Report(getExpectedLoc(),diag::err_expected_lparen);
+    if (!ExpectAndConsume(tok::l_paren))
       return StmtError();
-    }
     UnlimitedItems = ParseFORMATItems(false);
   }
   return Actions.ActOnFORMAT(Context, Loc,
@@ -84,13 +80,10 @@ Parser::FormatItemResult Parser::ParseFORMATItems(bool IsOuter) {
       // Fixme: add error recovery
     }
     if(Item.isUsable()) FormatList.push_back(Item.take());
-  } while(EatIfPresentInSameStmt(tok::comma));
+  } while(ConsumeIfPresent(tok::comma));
 
-  if (!EatIfPresentInSameStmt(tok::r_paren)) {
-    Diag.Report(getExpectedLoc(),diag::err_expected_rparen)
-      << FixItHint(getExpectedLocForFixIt(),")");
+  if (!ExpectAndConsume(tok::r_paren))
     return FormatItemResult(true);
-  }
 
   return Actions.ActOnFORMATFormatItemList(Context, Loc,
                                            nullptr, FormatList);
@@ -135,7 +128,7 @@ public:
 
 /// ParseFORMATItem - Parses the FORMAT item.
 Parser::FormatItemResult Parser::ParseFORMATItem() {
-  if(EatIfPresent(tok::l_paren))
+  if(ConsumeIfPresent(tok::l_paren))
     return ParseFORMATItems();
 
   // char-string-edit-desc

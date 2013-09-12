@@ -68,20 +68,7 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
       break;
     case tok::kw_CODIMENSION:
       Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_codimension);
-      if (!EatIfPresent(tok::l_square)) {
-        Diag.ReportError(Tok.getLocation(),
-                         "expected '[' in CODIMENSION attribute");
-        goto error;
-      }
-
       // FIXME: Parse the coarray-spec.
-
-      if (!EatIfPresent(tok::r_square)) {
-        Diag.ReportError(Tok.getLocation(),
-                         "expected ']' in CODIMENSION attribute");
-        goto error;
-      }
-
       break;
     case tok::kw_CONTIGUOUS:
       Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_contiguous);
@@ -95,12 +82,8 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
       break;
     case tok::kw_INTENT:
       // FIXME:
-      if (!EatIfPresent(tok::l_paren)) {
-        Diag.ReportError(Tok.getLocation(),
-                         "expected '(' after 'INTENT' keyword");
+      if(!ExpectAndConsume(tok::l_paren))
         goto error;
-      }
-
 
       switch (Tok.getKind()) {
       default:
@@ -119,11 +102,8 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
       }
       Lex();
 
-      if (!EatIfPresent(tok::r_paren)) {
-        Diag.ReportError(Tok.getLocation(),
-                         "expected ')' after INTENT specifier");
+      if(!ExpectAndConsume(tok::r_paren))
         goto error;
-      }
 
       break;
     case tok::kw_INTRINSIC:
@@ -256,17 +236,10 @@ bool Parser::ParseObjectCharLength(SourceLocation Loc, DeclSpec &DS) {
 ///     length-selector :=
 ///         ( [ LEN = ] type-param-value )
 ExprResult Parser::ParseSelector(bool IsKindSel) {
-  if (EatIfPresent(IsKindSel ? tok::kw_KIND : tok::kw_LEN)) {
-    if (!EatIfPresent(tok::equal)) {
-      if (Tok.isNot(tok::l_paren))
-        return Diag.ReportError(Tok.getLocation(),
-                                IsKindSel ? 
-                                "invalid kind selector" :
-                                "invalid length selector");
-
-      // TODO: We have a "REAL (KIND(10D0)) :: x" situation.
-      return false;
-    }
+  if (ConsumeIfPresent(IsKindSel ? tok::kw_KIND : tok::kw_LEN)) {
+    if (!ExpectAndConsume(tok::equal))
+      return ExprError();
+    // TODO: We have a "REAL (KIND(10D0)) :: x" situation.
   }
 
   return ParseExpression();
@@ -274,17 +247,15 @@ ExprResult Parser::ParseSelector(bool IsKindSel) {
 
 bool Parser::ParseCharacterStarLengthSpec(DeclSpec &DS) {
   ExprResult Len;
-  if(EatIfPresentInSameStmt(tok::l_paren)) {
-    if(EatIfPresentInSameStmt(tok::star)) {
+  if(ConsumeIfPresent(tok::l_paren)) {
+    if(ConsumeIfPresent(tok::star)) {
       DS.setStartLengthSelector();
-    } else Len = ParseExpectedFollowupExpression("*");
-    if(!EatIfPresentInSameStmt(tok::r_paren)) {
-      Diag.Report(getExpectedLoc(), diag::err_expected_rparen)
-        << FixItHint(getExpectedLocForFixIt(), ")");
+    } else Len = ParseExpectedFollowupExpression("(");
+    if(!ExpectAndConsume(tok::r_paren))
       return true;
-    }
   }
   else Len = ParseExpectedFollowupExpression("*");
+
   if(Len.isInvalid()) return true;
   if(Len.isUsable())  DS.setLengthSelector(Len.take());
   return false;
