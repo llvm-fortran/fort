@@ -151,7 +151,7 @@ Expr *ImpliedDoInliner::Process(Expr *E) {
 /// FIXME report source ranges for diagnostics (ArrayElement and Substring)
 class DataValueAssigner : public ExprVisitor<DataValueAssigner> {
   DataValueIterator &Values;
-  flang::Sema &Sema;
+  flang::Sema &Sem;
   DiagnosticsEngine &Diags;
   SourceLocation DataStmtLoc;
 
@@ -162,7 +162,7 @@ class DataValueAssigner : public ExprVisitor<DataValueAssigner> {
 public:
   DataValueAssigner(DataValueIterator &Vals, flang::Sema &S,
                     DiagnosticsEngine &Diag, SourceLocation Loc)
-    : Values(Vals), Sema(S), Diags(Diag),
+    : Values(Vals), Sem(S), Diags(Diag),
       DataStmtLoc(Loc), Done(false),
       ImpliedDoEvaluator(S.getContext()) {
   }
@@ -194,7 +194,7 @@ void DataValueAssigner::Emit(Stmt *S) {
 bool DataValueAssigner::HasValues(const Expr *Where) {
   if(Values.isEmpty()) {
     // more items than values.
-    Diags.Report(DataStmtLoc, diag::err_data_stmt_not_enought_values)
+    Diags.Report(DataStmtLoc, diag::err_data_stmt_not_enough_values)
       << Where->getSourceRange();
     Done = true;
     return false;
@@ -222,7 +222,7 @@ void DataValueAssigner::VisitVarExpr(VarExpr *E) {
   Expr *Value = nullptr;
 
   if(auto ATy = dyn_cast<ArrayType>(Type.getTypePtr())) {
-    ASTContext &C = Sema.getContext();
+    ASTContext &C = Sem.getContext();
 
     uint64_t ArraySize;
     if(!ATy->EvaluateSize(ArraySize, C)) {
@@ -234,12 +234,12 @@ void DataValueAssigner::VisitVarExpr(VarExpr *E) {
       if(!HasValues(E)) return;
       auto Value = Values.getValue();
       Values.advance();
-      Value = Sema.TypecheckAssignment(ElementType, Value,
-                                       E->getLocation(),
-                                       Value->getSourceRange(),
-                                       E->getSourceRange()).get();
-      if(Value)
-        Items.push_back(Value);
+      auto RHS = Sem.CheckAndApplyAssignmentConstraints(Value->getLocation(),
+                                                        ElementType, Value,
+                                                        Sema::AssignmentAction::Initializing,
+                                                        E);
+      if(RHS.isUsable())
+        Items.push_back(RHS.get());
     }
 
     Value = ArrayConstructorExpr::Create(C, SourceLocation(),
@@ -249,15 +249,16 @@ void DataValueAssigner::VisitVarExpr(VarExpr *E) {
     if(!HasValues(E)) return;
     Value = Values.getValue();
     Values.advance();
-    Value = Sema.TypecheckAssignment(Type, Value,
-                                     E->getLocation(),
-                                     Value->getSourceRange(),
-                                     E->getSourceRange()).get();
+    auto RHS = Sem.CheckAndApplyAssignmentConstraints(Value->getLocation(),
+                                                      Type, Value,
+                                                      Sema::AssignmentAction::Initializing,
+                                                      E);
+    Value = RHS.get();
   }
 
   if(Value) {
     VD->setInit(Value);
-    Emit(AssignmentStmt::Create(Sema.getContext(), Value->getLocation(),
+    Emit(AssignmentStmt::Create(Sem.getContext(), Value->getLocation(),
                                 E, Value, nullptr));
   }
 }
@@ -268,11 +269,12 @@ void DataValueAssigner::EmitAssignment(Expr *LHS) {
   Values.advance();
 
   LHS = ImpliedDoEvaluator.Process(LHS);
-  auto RHS = Sema.TypecheckAssignment(LHS->getType(), Value,
-                                      Value->getLocation(), LHS->getSourceRange(),
-                                      Value->getSourceRange());
+  auto RHS = Sem.CheckAndApplyAssignmentConstraints(Value->getLocation(),
+                                                    LHS->getType(), Value,
+                                                    Sema::AssignmentAction::Initializing,
+                                                    LHS);
   if(RHS.isUsable())
-    Emit(AssignmentStmt::Create(Sema.getContext(), Value->getLocation(),
+    Emit(AssignmentStmt::Create(Sem.getContext(), Value->getLocation(),
                                 LHS, RHS.get(), nullptr));
 }
 
@@ -285,35 +287,27 @@ void DataValueAssigner::VisitSubstringExpr(SubstringExpr *E) {
 }
 
 void DataValueAssigner::VisitImpliedDoExpr(ImpliedDoExpr *E) {
-  auto Start = Sema.EvalAndCheckIntExpr(E->getInitialParameter(), 1);
-  auto End = Sema.EvalAndCheckIntExpr(E->getTerminalParameter(), 1);
+  auto Start = Sem.EvalAndCheckIntExpr(E->getInitialParameter(), 1);
+  auto End = Sem.EvalAndCheckIntExpr(E->getTerminalParameter(), 1);
   int64_t Inc = 1;
   if(E->hasIncrementationParameter())
-    Inc = Sema.EvalAndCheckIntExpr(E->getIncrementationParameter(), 1);
+    Inc = Sem.EvalAndCheckIntExpr(E->getIncrementationParameter(), 1);
   for(; Start <= End; Start+=Inc) {
-    ImpliedDoEvaluator.Assign(E->getVarDecl(), IntegerConstantExpr::Create(Sema.getContext(),
+    ImpliedDoEvaluator.Assign(E->getVarDecl(), IntegerConstantExpr::Create(Sem.getContext(),
                                                                            Start));
     for(auto I : E->getBody())
       Visit(I);
   }
 }
 
-/// FIXME add checking for implied do
 StmtResult Sema::ActOnDATA(ASTContext &C, SourceLocation Loc,
-                           ArrayRef<ExprResult> LHS,
-                           ArrayRef<ExprResult> RHS,
+                           ArrayRef<Expr*> Objects,
+                           ArrayRef<Expr*> Values,
                            Expr *StmtLabel) {
-  SmallVector<Expr*, 8> Items  (LHS.size());
-  SmallVector<Expr*, 8> Values (RHS.size());
-  for(size_t I = 0; I < LHS.size(); ++I)
-    Items[I] = LHS[I].take();
-  for(size_t I = 0; I < RHS.size(); ++I)
-    Values[I] = RHS[I].take();
-
   DataValueIterator ValuesIt(Values);
   DataValueAssigner LHSVisitor(ValuesIt, *this, Diags, Loc);
-  for(size_t I = 0; I < Items.size(); ++I) {
-    LHSVisitor.Visit(Items[I]);
+  for(auto I : Objects) {
+    LHSVisitor.Visit(I);
     if(LHSVisitor.IsDone()) break;
   }
 
@@ -333,7 +327,7 @@ StmtResult Sema::ActOnDATA(ASTContext &C, SourceLocation Loc,
     ResultStmt = ResultStmts[0];
   else ResultStmt = nullptr;
 
-  auto Result = DataStmt::Create(C, Loc, Items, Values,
+  auto Result = DataStmt::Create(C, Loc, Objects, Values,
                                  ResultStmt, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;

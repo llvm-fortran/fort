@@ -369,8 +369,7 @@ public:
 
   // DATA statement:
   StmtResult ActOnDATA(ASTContext &C, SourceLocation Loc,
-                       ArrayRef<ExprResult> LHS,
-                       ArrayRef<ExprResult> RHS,
+                       ArrayRef<Expr*> LHS, ArrayRef<Expr*> Values,
                        Expr *StmtLabel);
 
   ExprResult ActOnDATAConstantExpr(ASTContext &C, SourceLocation RepeatLoc,
@@ -542,6 +541,63 @@ public:
   ExprResult ActOnStructureComponentExpr(ASTContext &C, SourceLocation Loc,
                                          SourceLocation IDLoc,
                                          const IdentifierInfo *IDInfo, Expr *Target);
+
+  /// AssignmentAction - This is used by all the assignment diagnostic functions
+  /// to represent what is actually causing the operation
+  class AssignmentAction {
+  public:
+    enum Type {
+      Assigning,
+      Passing,
+      Returning,
+      Converting,
+      Initializing
+    };
+  private:
+    Type ActTy;
+  public:
+
+    AssignmentAction(Type Ty)
+      : ActTy(Ty) {}
+
+    Type getType() const  {
+      return ActTy;
+    }
+  };
+
+  /// AssignConvertType - All of the 'assignment' semantic checks return this
+  /// enum to indicate whether the assignment was allowed. These checks are
+  /// done for simple assignments, as well as initialization, return from
+  /// function, argument passing, etc. The query is phrased in terms of a
+  /// source and destination type.
+  enum AssignConvertType {
+    /// Compatible - the types are compatible according to the standard.
+    Compatible,
+
+    /// Incompatible - We reject this conversion outright, it is invalid to
+    /// represent it in the AST.
+    Incompatible,
+
+    /// IncompatibleDimensions - We reject this conversion outright because
+    /// of array dimension incompability, it is invalid to
+    /// represent it in the AST.
+    IncompatibleDimensions
+  };
+
+  /// DiagnoseAssignmentResult - Emit a diagnostic, if required, for the
+  /// assignment conversion type specified by ConvTy. This returns true if the
+  /// conversion was invalid or false if the conversion was accepted.
+  bool DiagnoseAssignmentResult(AssignConvertType ConvTy,
+                                SourceLocation Loc,
+                                QualType DstType, QualType SrcType,
+                                const Expr *SrcExpr, AssignmentAction Action,
+                                const Expr *DstExpr = nullptr);
+
+  ExprResult
+  CheckAndApplyAssignmentConstraints(SourceLocation Loc, QualType LHSType,
+                                     Expr *RHS,
+                                     AssignmentAction AAction,
+                                     const Expr *LHS = nullptr);
 
 
   // Format

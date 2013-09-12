@@ -39,6 +39,8 @@ def err_expr_not_assignable : Error<
   "expression is not assignable">;
 def err_typecheck_assign_incompatible : Error<
   "assigning to %0 from incompatible type %1">;
+def err_typecheck_initialization_incompatible : Error<
+  "initializing %0 with an expression of incompatible type %1">;
 def err_typecheck_passing_incompatible : Error<
   "passing %0 to parameter of incompatible type %1">;
 def err_typecheck_passing_incompatible_named_arg : Error<
@@ -312,11 +314,11 @@ def err_invalid_kind_selector : Error<
   "invalid kind selector '%0' for type %1">;
 
 def err_data_stmt_too_many_values : Error<
-  "excess values in a 'DATA' statement">;
-def err_data_stmt_not_enought_values : Error<
-  "not enough values in a 'DATA' statement">;
+  "excess values in a 'data' statement">;
+def err_data_stmt_not_enough_values : Error<
+  "not enough values in a 'data' statement">;
 def err_data_stmt_invalid_item : Error<
-  "invalid item for a 'DATA' statement">;
+  "invalid item for a 'data' statement">;
 
 def err_multiple_default_case_stmt : Error<
   "multiple default cases in one select case construct">;

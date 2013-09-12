@@ -1617,8 +1617,8 @@ Parser::StmtResult Parser::ParseDATAStmt() {
 }
 
 Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
-  SmallVector<ExprResult, 8> Names;
-  SmallVector<ExprResult, 8> Values;
+  SmallVector<Expr*, 8> Objects;
+  SmallVector<Expr*, 8> Values;
   bool HadSemaErrors = false;
 
   // nlist
@@ -1639,7 +1639,8 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
 
      if(E.isInvalid())
        return StmtError();
-     Names.push_back(E);
+     if(E.isUsable())
+       Objects.push_back(E.get());
   } while(ConsumeIfPresent(tok::comma));
 
   // clist
@@ -1669,7 +1670,7 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
 
     Value = Actions.ActOnDATAConstantExpr(Context, RepeatLoc, Repeat, Value);
     if(Value.isUsable())
-      Values.push_back(Value);
+      Values.push_back(Value.get());
     else HadSemaErrors = true;
   } while(ConsumeIfPresent(tok::comma));
 
@@ -1678,7 +1679,7 @@ Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
 
   if(HadSemaErrors)
     return StmtError();
-  return Actions.ActOnDATA(Context, Loc, Names, Values, nullptr);
+  return Actions.ActOnDATA(Context, Loc, Objects, Values, nullptr);
 }
 
 Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {

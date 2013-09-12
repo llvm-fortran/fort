@@ -247,6 +247,96 @@ static ExprResult TypecheckAssignment(Sema &S, QualType LHSType, ExprResult RHS,
   return S.ExprError();
 };
 
+bool Sema::DiagnoseAssignmentResult(AssignConvertType ConvTy,
+                                    SourceLocation Loc,
+                                    QualType DstType, QualType SrcType,
+                                    const Expr *SrcExpr, AssignmentAction Action,
+                                    const Expr *DstExpr) {
+  unsigned Diag;
+  switch(ConvTy) {
+  case Compatible:
+    return false;
+  case Incompatible: {
+    switch(Action.getType()) {
+    case AssignmentAction::Assigning:
+      Diag = diag::err_typecheck_assign_incompatible;
+      break;
+    case AssignmentAction::Initializing:
+      Diag = diag::err_typecheck_initialization_incompatible;
+      break;
+    case AssignmentAction::Passing:
+      Diag = diag::err_typecheck_passing_incompatible;
+      break;
+    default:
+      llvm_unreachable("invalid assignment action");
+      return true;
+    }
+
+    auto Reporter = Diags.Report(Loc, Diag);
+    Reporter << SrcExpr->getSourceRange();
+    if(DstExpr)
+      Reporter << DstExpr->getSourceRange();
+    if(Action.getType() == AssignmentAction::Assigning ||
+       Action.getType() == AssignmentAction::Initializing) {
+      Reporter << DstType << SrcType;
+    }
+    break;
+  }
+  case IncompatibleDimensions:
+    break;
+  }
+  return true;
+}
+
+ExprResult Sema::
+CheckAndApplyAssignmentConstraints(SourceLocation Loc, QualType LHSType,
+                                   Expr *RHS, AssignmentAction AAction, const Expr *LHS) {
+
+  auto RHSType = RHS->getType();
+  if(LHSType->isArrayType()) {
+    auto LHSElementType = LHSType->asArrayType()->getElementType();
+    if(RHSType->isArrayType()) {
+      auto RHSElementType = RHSType->asArrayType()->getElementType();
+
+      // Check the array compabilities
+      if(!CheckArrayDimensionsCompability(LHSType->asArrayType(),
+                                          RHSType->asArrayType(),
+                                          Loc,
+                                          LHS? LHS->getSourceRange() : SourceRange(),
+                                          RHS->getSourceRange())) {
+        return ExprError();
+      }
+
+      // cast an array to appropriate type.
+      auto Action = ::flang::TypecheckAssignment(Context, LHSElementType, RHSElementType);
+      if(Action == NoAction)
+        return RHS;
+      else if(Action == ImplicitCastAction)
+        return ImplicitCastExpr::Create(Context, RHS->getLocation(),
+                                        Context.getArrayType(LHSElementType,
+                                                             RHSType->asArrayType()->getDimensions()),
+                                        RHS);
+      DiagnoseAssignmentResult(Incompatible, Loc,
+                               LHSElementType, RHSElementType, RHS,
+                               AAction, LHS);
+      return ExprError();
+    }
+    else
+      LHSType = LHSElementType; // fallthrough
+  }
+
+  auto Action = ::flang::TypecheckAssignment(Context, LHSType, RHSType);
+  if(Action == NoAction)
+    return RHS;
+  else if(Action == ImplicitCastAction)
+    return ImplicitCastExpr::Create(Context, RHS->getLocation(),
+                                    LHSType, RHS);
+  DiagnoseAssignmentResult(Incompatible, Loc,
+                           LHSType, RHSType, RHS,
+                           AAction, LHS);
+  return ExprError();
+}
+
 ExprResult Sema::TypecheckAssignment(QualType LHSType, ExprResult RHS,
                                      SourceLocation Loc, SourceRange LHSRange,
                                      SourceRange RHSRange) {
