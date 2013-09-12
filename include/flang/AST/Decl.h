@@ -920,7 +920,7 @@ public:
   };
 private:
   /// \brief The initializer for this variable.
-  mutable Expr *Init; // FIXME: This should be a different type?
+  mutable Expr *Init;
 
   /// \brief The equivalence set for this variable.
   EquivalenceSet *EquivSet;
@@ -952,9 +952,7 @@ public:
   bool hasInit() const {
     return Init != nullptr;
   }
-  void setInit(Expr *E) const {
-    Init = E;
-  }
+  void setInit(Expr *E) const;
 
   inline bool isUnusedSymbol() const {
     return SubDeclKind == UnusedSymbol;

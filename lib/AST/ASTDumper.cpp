@@ -215,7 +215,12 @@ void ASTDumper::VisitVarDecl(const VarDecl *D) {
     D->getType().print(OS);
     OS << ' ';
   }
-  OS << D->getName() << "\n";
+  OS << D->getName();
+  if(D->hasInit()) {
+    OS << " = ";
+    dumpExpr(D->getInit());
+  }
+  OS << "\n";
 }
 
 // types
@@ -666,7 +671,8 @@ void ASTDumper::dumpExpr(const Expr *E) {
 void ASTDumper::dumpExprList(ArrayRef<Expr*> List) {
   for(size_t I = 0; I < List.size(); ++I) {
     if(I) OS << ", ";
-    dumpExpr(List[I]);
+    if(List[I])
+      dumpExpr(List[I]);
   }
 }
 

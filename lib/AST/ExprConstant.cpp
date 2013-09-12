@@ -14,9 +14,30 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/ExprVisitor.h"
+#include "flang/AST/ExprConstant.h"
 #include <limits>
 
 namespace flang {
+
+ExprEvalScope::ExprEvalScope(ASTContext &C)
+  : Context(C) {}
+
+std::pair<int64_t, bool> ExprEvalScope::get(const Expr *E) const {
+  if(auto VE = dyn_cast<VarExpr>(E)) {
+    auto Substitute = InlinedVars.find(VE->getVarDecl());
+    if(Substitute != InlinedVars.end())
+      return std::make_pair(Substitute->second, true);
+  }
+  return std::make_pair(int64_t(0), false);
+}
+
+void ExprEvalScope::Assign(const VarDecl *Var, int64_t Value) {
+  auto I = InlinedVars.find(Var);
+  if(I != InlinedVars.end())
+    I->second = Value;
+  else
+    InlinedVars.insert(std::make_pair(Var, Value));
+}
 
 class ConstExprVerifier: public ConstExprVisitor<ConstExprVerifier,
                                                  bool> {
@@ -111,8 +132,10 @@ struct IntValueTy : public llvm::APInt {
 class IntExprEvaluator: public ConstExprVisitor<IntExprEvaluator,
                                                 bool> {
   IntValueTy Result;
+  const ExprEvalScope *Scope;
 public:
-  IntExprEvaluator() {}
+  IntExprEvaluator(const ExprEvalScope *S)
+    : Scope(S) {}
 
   bool CheckResult(bool Overflow);
 
@@ -206,11 +229,19 @@ bool IntExprEvaluator::VisitVarExpr(const VarExpr *E) {
   auto VD = E->getVarDecl();
   if(VD->isParameter())
     return Eval(VD->getInit());
+  if(Scope) {
+    auto Val = Scope->get(E);
+    if(Val.second) {
+      Result.Assign(llvm::APInt(64, Val.first, true));
+      return true;
+    }
+  }
   return false;
 }
 
-bool Expr::EvaluateAsInt(int64_t &Result, const ASTContext &Ctx) const {
-  IntExprEvaluator EV;
+bool Expr::EvaluateAsInt(int64_t &Result, const ASTContext &Ctx,
+                         const ExprEvalScope *Scope) const {
+  IntExprEvaluator EV(Scope);
   auto Success = EV.Eval(this);
   Result = EV.getResult();
   return Success;
@@ -265,7 +296,8 @@ bool EvaluateDimensions(const ArrayType *T,
   return true;
 }
 
-bool ArrayElementExpr::EvaluateOffset(ASTContext &Ctx, uint64_t &Offset) const {
+bool ArrayElementExpr::EvaluateOffset(ASTContext &Ctx, uint64_t &Offset,
+                                      const ExprEvalScope *Scope) const {
   auto ATy = getTarget()->getType()->asArrayType();
   SmallVector<EvaluatedArraySpec, 8> Dims(ATy->getDimensionCount());
   if(!EvaluateDimensions(ATy, Dims, Ctx))
@@ -275,7 +307,7 @@ bool ArrayElementExpr::EvaluateOffset(ASTContext &Ctx, uint64_t &Offset) const {
   uint64_t DimSizes = 0;
   for(size_t I = 0; I < Dims.size(); ++I) {
     int64_t Index;
-    if(!Subscripts[I]->EvaluateAsInt(Index, Ctx))
+    if(!Subscripts[I]->EvaluateAsInt(Index, Ctx, Scope))
       return false;
     if(I == 0) {
       Offset = Dims[I].EvaluateOffset(Index);
@@ -285,6 +317,26 @@ bool ArrayElementExpr::EvaluateOffset(ASTContext &Ctx, uint64_t &Offset) const {
       DimSizes *= Dims[I].Size;
     }
   }
+  return true;
+}
+
+bool SubstringExpr::EvaluateRange(ASTContext &Ctx, uint64_t Len,
+                                  uint64_t &Start, uint64_t &End,
+                                  const ExprEvalScope *Scope) const {
+  if(StartingPoint) {
+    int64_t I;
+    if(!StartingPoint->EvaluateAsInt(I, Ctx, Scope))
+      return false;
+    if(I < 1) return false;
+    Start = I - 1;
+  } else Start = 0;
+  if(EndPoint) {
+    int64_t I;
+    if(!EndPoint->EvaluateAsInt(I, Ctx, Scope))
+      return false;
+    if(I < 1 || I > Len) return false;
+    End = I;
+  } else End = Len;
   return true;
 }
 

@@ -33,6 +33,7 @@ class VarDecl;
 class FunctionDecl;
 class SubroutineDecl;
 class RecordDecl;
+class ExprEvalScope;
 
 /// Expr - Top-level class for expressions.
 class Expr {
@@ -73,7 +74,8 @@ public:
 
   /// EvaluateAsInt - Return true if this is a constant which we can fold and
   /// convert to an integer, using any crazy technique that we want to.
-  bool EvaluateAsInt(int64_t &Result, const ASTContext &Ctx) const;
+  bool EvaluateAsInt(int64_t &Result, const ASTContext &Ctx,
+                     const ExprEvalScope *Scope = nullptr) const;
 
   /// isEvaluatable - Returns true if this is a constant which can be folded.
   bool isEvaluatable(const ASTContext &Ctx) const;
@@ -401,6 +403,11 @@ public:
   Expr *getStartingPoint() const { return StartingPoint; }
   Expr *getEndPoint() const { return EndPoint; }
 
+  /// Returns true if the range of the substring can be evaluated.
+  bool EvaluateRange(ASTContext &Ctx, uint64_t Len,
+                     uint64_t &Start, uint64_t &End,
+                     const ExprEvalScope *Scope = nullptr) const;
+
   SourceLocation getLocEnd() const;
 
   static bool classof(const Expr *E) {
@@ -425,7 +432,8 @@ public:
   }
 
   /// Returns true if the offset of the given element can be evaluated.
-  bool EvaluateOffset(ASTContext &Ctx, uint64_t &Offset) const;
+  bool EvaluateOffset(ASTContext &Ctx, uint64_t &Offset,
+                      const ExprEvalScope *Scope = nullptr) const;
 
   SourceLocation getLocEnd() const;
 

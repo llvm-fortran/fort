@@ -20,7 +20,9 @@
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
 #include "flang/AST/ExprVisitor.h"
+#include "flang/AST/ExprConstant.h"
 #include "flang/Basic/Diagnostic.h"
+#include "llvm/ADT/SmallString.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace flang {
@@ -81,93 +83,29 @@ void DataValueIterator::advance() {
   }
 }
 
-class ImpliedDoInliner : public ExprVisitor<ImpliedDoInliner, Expr *> {
-  llvm::SmallDenseMap<const VarDecl*, Expr*, 16> InlinedVars;
-  ASTContext &Context;
-
-public:
-
-  ImpliedDoInliner(ASTContext &C);
-
-  Expr *VisitOptional(Expr *E);
-  Expr *VisitVarExpr(VarExpr *E);
-  Expr *VisitExpr(Expr *E);
-  Expr *VisitArrayElementExpr(ArrayElementExpr *E);
-  Expr *VisitSubstringExpr(SubstringExpr *E);
-
-  Expr *Process(Expr *E);
-
-  void Assign(const VarDecl *Var, Expr* Value);
-};
-
-ImpliedDoInliner::ImpliedDoInliner(ASTContext &C)
-  : Context(C) {}
-
-Expr *ImpliedDoInliner::VisitOptional(Expr *E) {
-  if(E) return Visit(E);
-  return nullptr;
-}
-
-Expr *ImpliedDoInliner::VisitVarExpr(VarExpr *E) {
-  auto Substitute = InlinedVars.find(E->getVarDecl());
-  if(Substitute != InlinedVars.end())
-    return Substitute->second;
-  return E;
-}
-
-Expr *ImpliedDoInliner::VisitExpr(Expr *E) {
-  return E;
-}
-
-Expr *ImpliedDoInliner::VisitArrayElementExpr(ArrayElementExpr *E) {
-  SmallVector<Expr*, 8> Subscripts;
-  for(auto I : E->getSubscripts())
-    Subscripts.push_back(Visit(I));
-  return ArrayElementExpr::Create(Context, E->getLocation(), E->getTarget(), Subscripts);
-}
-
-Expr *ImpliedDoInliner::VisitSubstringExpr(SubstringExpr *E) {
-  return SubstringExpr::Create(Context, E->getLocation(), E->getTarget(),
-                               VisitOptional(E->getStartingPoint()),
-                               VisitOptional(E->getEndPoint()));
-}
-
-void ImpliedDoInliner::Assign(const VarDecl *Var, Expr* Value) {
-  auto I = InlinedVars.find(Var);
-  if(I != InlinedVars.end())
-    I->second = Value;
-  else
-    InlinedVars.insert(std::make_pair(Var, Value));
-}
-
-Expr *ImpliedDoInliner::Process(Expr *E) {
-  if(InlinedVars.empty())
-    return E;
-  return Visit(E);
-}
-
 /// Iterates over the items in a DATA statent and emits corresponding
 /// assignment AST nodes.
-/// FIXME report source ranges for diagnostics (ArrayElement and Substring)
 class DataValueAssigner : public ExprVisitor<DataValueAssigner> {
   DataValueIterator &Values;
   flang::Sema &Sem;
+  ASTContext &Context;
   DiagnosticsEngine &Diags;
   SourceLocation DataStmtLoc;
 
-  ImpliedDoInliner ImpliedDoEvaluator;
+  ExprEvalScope ImpliedDoEvaluator;
   SmallVector<Stmt*, 16> ResultingAST;
 
   bool Done;
 public:
   DataValueAssigner(DataValueIterator &Vals, flang::Sema &S,
                     DiagnosticsEngine &Diag, SourceLocation Loc)
-    : Values(Vals), Sem(S), Diags(Diag),
-      DataStmtLoc(Loc), Done(false),
+    : Values(Vals), Sem(S), Context(S.getContext()),
+      Diags(Diag), DataStmtLoc(Loc), Done(false),
       ImpliedDoEvaluator(S.getContext()) {
   }
 
   bool HasValues(const Expr *Where);
+  ExprResult getAndCheckValue(QualType LHSType, Expr *LHS);
 
   bool IsDone() const {
     return Done;
@@ -179,12 +117,12 @@ public:
   void VisitSubstringExpr(SubstringExpr *E);
   void VisitImpliedDoExpr(ImpliedDoExpr *E);
 
-  void EmitAssignment(Expr *LHS);
-
   void Emit(Stmt *S);
   ArrayRef<Stmt*> getEmittedStmtList() const {
     return ResultingAST;
   }
+
+  bool CheckVar(VarExpr *E);
 };
 
 void DataValueAssigner::Emit(Stmt *S) {
@@ -207,83 +145,147 @@ void DataValueAssigner::VisitExpr(Expr *E) {
     << E->getSourceRange();
 }
 
-void DataValueAssigner::VisitVarExpr(VarExpr *E) {
+bool DataValueAssigner::CheckVar(VarExpr *E) {
   auto VD = E->getVarDecl();
-  if(VD->isArgument()) {
+  if(VD->isArgument() || VD->isParameter()) {
     VisitExpr(E);
-    return;
+    return true;
   }
-  else if(VD->isParameter()) {
-    VisitExpr(E);
-    return;
-  }
+  if(VD->isUnusedSymbol())
+    const_cast<VarDecl*>(VD)->MarkUsedAsVariable(E->getLocation());
+  return false;
+}
 
+ExprResult DataValueAssigner::getAndCheckValue(QualType LHSType,
+                                               Expr *LHS) {
+  if(!HasValues(LHS)) return ExprResult(true);
+  auto Value = Values.getValue();
+  Values.advance();
+  return Sem.CheckAndApplyAssignmentConstraints(Value->getLocation(),
+                                                LHSType, Value,
+                                                Sema::AssignmentAction::Initializing,
+                                                LHS);
+}
+
+void DataValueAssigner::VisitVarExpr(VarExpr *E) {
+  if(CheckVar(E))
+    return;
+  auto VD = E->getVarDecl();
   auto Type = VD->getType();
-  Expr *Value = nullptr;
-
-  if(auto ATy = dyn_cast<ArrayType>(Type.getTypePtr())) {
-    ASTContext &C = Sem.getContext();
-
+  if(auto ATy = Type->asArrayType()) {
     uint64_t ArraySize;
-    if(!ATy->EvaluateSize(ArraySize, C)) {
+    if(!ATy->EvaluateSize(ArraySize, Context)) {
       VisitExpr(E);
+      return;
     }
-    SmallVector<Expr*, 32> Items;
+
+    // Construct an array constructor expression for initializer
+    SmallVector<Expr*, 32> Items(ArraySize);
+    bool IsUsable = true;
+    SourceLocation Loc;
     auto ElementType = ATy->getElementType();
     for(uint64_t I = 0; I < ArraySize; ++I) {
       if(!HasValues(E)) return;
-      auto Value = Values.getValue();
-      Values.advance();
-      auto RHS = Sem.CheckAndApplyAssignmentConstraints(Value->getLocation(),
-                                                        ElementType, Value,
-                                                        Sema::AssignmentAction::Initializing,
-                                                        E);
-      if(RHS.isUsable())
-        Items.push_back(RHS.get());
+      auto Val = getAndCheckValue(ElementType, E);
+      if(Val.isUsable()) {
+        Items[I] = Val.get();
+        if(!Loc.isValid())
+          Loc = Val.get()->getLocation();
+      }
+      else IsUsable = false;
     }
 
-    Value = ArrayConstructorExpr::Create(C, SourceLocation(),
-                                         Items, Type);
-  } else {
-    // single item
-    if(!HasValues(E)) return;
-    Value = Values.getValue();
-    Values.advance();
-    auto RHS = Sem.CheckAndApplyAssignmentConstraints(Value->getLocation(),
-                                                      Type, Value,
-                                                      Sema::AssignmentAction::Initializing,
-                                                      E);
-    Value = RHS.get();
+    if(IsUsable) {
+      VD->setInit(ArrayConstructorExpr::Create(Context, Loc,
+                                               Items, Type));
+    }
+    return;
   }
 
-  if(Value) {
-    VD->setInit(Value);
-    Emit(AssignmentStmt::Create(Sem.getContext(), Value->getLocation(),
-                                E, Value, nullptr));
-  }
-}
-
-void DataValueAssigner::EmitAssignment(Expr *LHS) {
-  if(!HasValues(LHS)) return;
-  auto Value = Values.getValue();
-  Values.advance();
-
-  LHS = ImpliedDoEvaluator.Process(LHS);
-  auto RHS = Sem.CheckAndApplyAssignmentConstraints(Value->getLocation(),
-                                                    LHS->getType(), Value,
-                                                    Sema::AssignmentAction::Initializing,
-                                                    LHS);
-  if(RHS.isUsable())
-    Emit(AssignmentStmt::Create(Sem.getContext(), Value->getLocation(),
-                                LHS, RHS.get(), nullptr));
+  // single item
+  auto Val = getAndCheckValue(Type, E);
+  if(Val.isUsable())
+    VD->setInit(Val.get());
 }
 
 void DataValueAssigner::VisitArrayElementExpr(ArrayElementExpr *E) {
-  EmitAssignment(E);
+  auto Target = dyn_cast<VarExpr>(E->getTarget());
+  if(!Target)
+    return VisitExpr(E);
+  if(CheckVar(Target))
+    return;
+
+  auto VD = Target->getVarDecl();
+  auto ATy = VD->getType()->asArrayType();
+  auto ElementType = ATy->getElementType();
+
+  uint64_t ArraySize;
+  if(!ATy->EvaluateSize(ArraySize, Context))
+    return VisitExpr(E);
+
+  SmallVector<Expr*, 32> Items(ArraySize);
+  if(VD->hasInit()) {
+    assert(isa<ArrayConstructorExpr>(VD->getInit()));
+    auto InsertPoint = cast<ArrayConstructorExpr>(VD->getInit())->getItems();
+    for(uint64_t I = 0; I < ArraySize; ++I)
+      Items[I] = InsertPoint[I];
+  } else {
+    for(uint64_t I = 0; I < ArraySize; ++I)
+      Items[I] = nullptr;
+  }
+
+  uint64_t Offset;
+  if(!E->EvaluateOffset(Context, Offset, &ImpliedDoEvaluator))
+    return VisitExpr(E);
+  auto Val = getAndCheckValue(ElementType, E);
+  if(Val.isUsable() && Offset < Items.size()) {
+    Items[Offset] = Val.get();
+    VD->setInit(ArrayConstructorExpr::Create(Context, Val.get()->getLocation(),
+                                             Items, VD->getType()));
+  }
 }
 
 void DataValueAssigner::VisitSubstringExpr(SubstringExpr *E) {
-  EmitAssignment(E);
+  if(isa<DesignatorExpr>(E->getTarget())) {
+    // FIXME: todo.
+    return VisitExpr(E);
+  }
+
+  auto Target = dyn_cast<VarExpr>(E->getTarget());
+  if(!Target)
+    return VisitExpr(E);
+  if(CheckVar(Target))
+    return;
+
+  auto VD = Target->getVarDecl();
+
+  uint64_t Len = 1;
+  auto CharTy = VD->getType().getSelfOrArrayElementType();
+  if(auto Ext = CharTy.getExtQualsPtrOrNull()) {
+    if(Ext->hasLengthSelector())
+      Len = Ext->getLengthSelector();
+  }
+
+  uint64_t Begin, End;
+  if(!E->EvaluateRange(Context, Len, Begin, End, &ImpliedDoEvaluator))
+    return VisitExpr(E);
+
+  auto Val = getAndCheckValue(E->getType(), E);
+  if(!Val.isUsable())
+    return;
+  auto StrVal = StringRef(cast<CharacterConstantExpr>(Val.get())->getValue());
+
+  llvm::SmallString<64> Str;
+  Str.resize(Len, ' ');
+  uint64_t I;
+  for(I = Begin; I < End; ++I) {
+    if((I - Begin) >= StrVal.size())
+      break;
+    Str[I] = StrVal[I - Begin];
+  }
+  for(; I < End; ++I) Str[I] = ' ';
+  VD->setInit(CharacterConstantExpr::Create(Context, Val.get()->getLocation(),
+                                            Val.get()->getLocation(), Str));
 }
 
 void DataValueAssigner::VisitImpliedDoExpr(ImpliedDoExpr *E) {
@@ -293,8 +295,7 @@ void DataValueAssigner::VisitImpliedDoExpr(ImpliedDoExpr *E) {
   if(E->hasIncrementationParameter())
     Inc = Sem.EvalAndCheckIntExpr(E->getIncrementationParameter(), 1);
   for(; Start <= End; Start+=Inc) {
-    ImpliedDoEvaluator.Assign(E->getVarDecl(), IntegerConstantExpr::Create(Sem.getContext(),
-                                                                           Start));
+    ImpliedDoEvaluator.Assign(E->getVarDecl(), Start);
     for(auto I : E->getBody())
       Visit(I);
   }

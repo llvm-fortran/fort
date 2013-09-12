@@ -351,6 +351,10 @@ VarDecl *VarDecl::CreateFunctionResult(ASTContext &C, DeclContext *DC,
   return Result;
 }
 
+void VarDecl::setInit(Expr *E) const {
+  Init = E;
+}
+
 void VarDecl::MutateIntoParameter(Expr *Value) {
   assert(!isParameter());
   assert(!Init);
