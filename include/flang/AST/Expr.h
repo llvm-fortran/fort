@@ -263,11 +263,18 @@ public:
 
 class CharacterConstantExpr : public ConstantExpr {
   char *Data;
+
+  CharacterConstantExpr(char *Str, SourceLocation Loc, QualType T);
   CharacterConstantExpr(ASTContext &C, SourceLocation Loc,
                         SourceLocation MaxLoc, llvm::StringRef Data);
 public:
   static CharacterConstantExpr *Create(ASTContext &C, SourceLocation Loc,
                                        SourceLocation MaxLoc, llvm::StringRef Data);
+
+  /// CreateCopyWithCompatibleLength - if the 'this' string has the same length
+  /// as the type, it returns 'this'. Otherwise it creates a new CharacterConstantExpr
+  /// which has the length adjusted to match the length of the character type.
+  CharacterConstantExpr *CreateCopyWithCompatibleLength(ASTContext &C, QualType T);
 
   const char *getValue() const { return Data; }
 

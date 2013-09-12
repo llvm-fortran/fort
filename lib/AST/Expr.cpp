@@ -95,10 +95,37 @@ CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, SourceLocation Loc,
   Data[data.size()] = '\0';
 }
 
+CharacterConstantExpr::CharacterConstantExpr(char *Str, SourceLocation Loc, QualType T)
+  : ConstantExpr(CharacterConstantExprClass, T, Loc, Loc), Data(Str) {
+}
+
 CharacterConstantExpr *CharacterConstantExpr::Create(ASTContext &C, SourceLocation Loc,
                                                      SourceLocation MaxLoc,
                                                      llvm::StringRef Data) {
   return new (C) CharacterConstantExpr(C, Loc, MaxLoc, Data);
+}
+
+CharacterConstantExpr *CharacterConstantExpr::
+CreateCopyWithCompatibleLength(ASTContext &C, QualType T) {
+  uint64_t Len = 1;
+  if(auto Ext = T.getExtQualsPtrOrNull()) {
+    if(Ext->hasLengthSelector())
+      Len = Ext->getLengthSelector();
+  }
+
+  StringRef Str(Data);
+  if(Str.size() == Len)
+    return this;
+  else if(Str.size() > Len)
+    // FIXME: the existing memory can be reused.
+    return Create(C, getLocation(), getLocation(), Str.slice(0, Len));
+  else {
+    auto NewData = new (C) char[Len + 1];
+    std::strncpy(NewData, Str.data(), Str.size());
+    std::memset(NewData + Str.size(), ' ', (Len - Str.size()));
+    NewData[Len] = '\0';
+    return new (C) CharacterConstantExpr(NewData, getLocation(), T);
+  }
 }
 
 BOZConstantExpr::BOZConstantExpr(ASTContext &C, SourceLocation Loc,

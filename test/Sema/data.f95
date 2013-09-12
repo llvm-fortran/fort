@@ -33,7 +33,7 @@ PROGRAM datatest
   DATA R_ARR(4) / .false. / ! expected-error {{initializing 'real' with an expression of incompatible type 'logical'}}
 
   DATA STR / 'Hello' / STR_ARR(1)(:), STR_ARR(2) / 2*'World' /
-  DATA STR_ARR(3)(2:4) / 'STR' /
+  DATA STR_ARR(3)(2:5) / 'STR' /
 
   DATA STR_ARR(4)(:4) / 1 / ! expected-error {{initializing 'character' with an expression of incompatible type 'integer'}}
 

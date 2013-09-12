@@ -23,7 +23,6 @@
 #include "flang/AST/ExprConstant.h"
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/ADT/SmallString.h"
-#include "llvm/Support/raw_ostream.h"
 
 namespace flang {
 
@@ -83,9 +82,10 @@ void DataValueIterator::advance() {
   }
 }
 
-/// Iterates over the items in a DATA statent and emits corresponding
-/// assignment AST nodes.
-class DataValueAssigner : public ExprVisitor<DataValueAssigner> {
+/// Iterates over the items in a DATA statent, verifies the
+/// initialization action and creates or modifies initilization
+/// expressions.
+class DataStmtEngine : public ExprVisitor<DataStmtEngine> {
   DataValueIterator &Values;
   flang::Sema &Sem;
   ASTContext &Context;
@@ -96,16 +96,18 @@ class DataValueAssigner : public ExprVisitor<DataValueAssigner> {
   SmallVector<Stmt*, 16> ResultingAST;
 
   bool Done;
+
+  ExprResult getAndCheckValue(QualType LHSType, Expr *LHS);
+  ExprResult getAndCheckAnyValue(QualType LHSType, Expr *LHS);
 public:
-  DataValueAssigner(DataValueIterator &Vals, flang::Sema &S,
-                    DiagnosticsEngine &Diag, SourceLocation Loc)
+  DataStmtEngine(DataValueIterator &Vals, flang::Sema &S,
+                 DiagnosticsEngine &Diag, SourceLocation Loc)
     : Values(Vals), Sem(S), Context(S.getContext()),
       Diags(Diag), DataStmtLoc(Loc), Done(false),
       ImpliedDoEvaluator(S.getContext()) {
   }
 
   bool HasValues(const Expr *Where);
-  ExprResult getAndCheckValue(QualType LHSType, Expr *LHS);
 
   bool IsDone() const {
     return Done;
@@ -113,7 +115,9 @@ public:
 
   void VisitExpr(Expr *E);
   void VisitVarExpr(VarExpr *E);
+  void CreateArrayElementExprInitializer(ArrayElementExpr *E, Expr *Parent = nullptr);
   void VisitArrayElementExpr(ArrayElementExpr *E);
+  ExprResult CreateSubstringExprInitializer(SubstringExpr *E, QualType CharTy);
   void VisitSubstringExpr(SubstringExpr *E);
   void VisitImpliedDoExpr(ImpliedDoExpr *E);
 
@@ -125,11 +129,11 @@ public:
   bool CheckVar(VarExpr *E);
 };
 
-void DataValueAssigner::Emit(Stmt *S) {
+void DataStmtEngine::Emit(Stmt *S) {
   ResultingAST.push_back(S);
 }
 
-bool DataValueAssigner::HasValues(const Expr *Where) {
+bool DataStmtEngine::HasValues(const Expr *Where) {
   if(Values.isEmpty()) {
     // more items than values.
     Diags.Report(DataStmtLoc, diag::err_data_stmt_not_enough_values)
@@ -140,12 +144,12 @@ bool DataValueAssigner::HasValues(const Expr *Where) {
   return true;
 }
 
-void DataValueAssigner::VisitExpr(Expr *E) {
+void DataStmtEngine::VisitExpr(Expr *E) {
   Diags.Report(E->getLocation(), diag::err_data_stmt_invalid_item)
     << E->getSourceRange();
 }
 
-bool DataValueAssigner::CheckVar(VarExpr *E) {
+bool DataStmtEngine::CheckVar(VarExpr *E) {
   auto VD = E->getVarDecl();
   if(VD->isArgument() || VD->isParameter()) {
     VisitExpr(E);
@@ -156,8 +160,8 @@ bool DataValueAssigner::CheckVar(VarExpr *E) {
   return false;
 }
 
-ExprResult DataValueAssigner::getAndCheckValue(QualType LHSType,
-                                               Expr *LHS) {
+ExprResult DataStmtEngine::getAndCheckValue(QualType LHSType,
+                                            Expr *LHS) {
   if(!HasValues(LHS)) return ExprResult(true);
   auto Value = Values.getValue();
   Values.advance();
@@ -167,7 +171,18 @@ ExprResult DataValueAssigner::getAndCheckValue(QualType LHSType,
                                                 LHS);
 }
 
-void DataValueAssigner::VisitVarExpr(VarExpr *E) {
+ExprResult DataStmtEngine::getAndCheckAnyValue(QualType LHSType, Expr *LHS) {
+  auto Val = getAndCheckValue(LHSType, LHS);
+  auto ET = LHSType.getSelfOrArrayElementType();
+  if(ET->isCharacterType() && Val.isUsable()) {
+    assert(isa<CharacterConstantExpr>(Val.get()));
+    return cast<CharacterConstantExpr>(Val.get())->CreateCopyWithCompatibleLength(Context,
+                                                                                  ET);
+  }
+  return Val;
+}
+
+void DataStmtEngine::VisitVarExpr(VarExpr *E) {
   if(CheckVar(E))
     return;
   auto VD = E->getVarDecl();
@@ -186,7 +201,7 @@ void DataValueAssigner::VisitVarExpr(VarExpr *E) {
     auto ElementType = ATy->getElementType();
     for(uint64_t I = 0; I < ArraySize; ++I) {
       if(!HasValues(E)) return;
-      auto Val = getAndCheckValue(ElementType, E);
+      auto Val = getAndCheckAnyValue(ElementType, E);
       if(Val.isUsable()) {
         Items[I] = Val.get();
         if(!Loc.isValid())
@@ -203,12 +218,13 @@ void DataValueAssigner::VisitVarExpr(VarExpr *E) {
   }
 
   // single item
-  auto Val = getAndCheckValue(Type, E);
+  auto Val = getAndCheckAnyValue(Type, E);
   if(Val.isUsable())
     VD->setInit(Val.get());
 }
 
-void DataValueAssigner::VisitArrayElementExpr(ArrayElementExpr *E) {
+void DataStmtEngine::CreateArrayElementExprInitializer(ArrayElementExpr *E,
+                                                       Expr *Parent) {
   auto Target = dyn_cast<VarExpr>(E->getTarget());
   if(!Target)
     return VisitExpr(E);
@@ -237,7 +253,14 @@ void DataValueAssigner::VisitArrayElementExpr(ArrayElementExpr *E) {
   uint64_t Offset;
   if(!E->EvaluateOffset(Context, Offset, &ImpliedDoEvaluator))
     return VisitExpr(E);
-  auto Val = getAndCheckValue(ElementType, E);
+
+  ExprResult Val;
+  if(Parent) {
+    if(auto SE = dyn_cast<SubstringExpr>(Parent)) {
+       Val = CreateSubstringExprInitializer(SE, ElementType);
+    } else llvm_unreachable("invalid expression");
+  } else Val = getAndCheckAnyValue(ElementType, E);
+
   if(Val.isUsable() && Offset < Items.size()) {
     Items[Offset] = Val.get();
     VD->setInit(ArrayConstructorExpr::Create(Context, Val.get()->getLocation(),
@@ -245,36 +268,28 @@ void DataValueAssigner::VisitArrayElementExpr(ArrayElementExpr *E) {
   }
 }
 
-void DataValueAssigner::VisitSubstringExpr(SubstringExpr *E) {
-  if(isa<DesignatorExpr>(E->getTarget())) {
-    // FIXME: todo.
-    return VisitExpr(E);
-  }
+void DataStmtEngine::VisitArrayElementExpr(ArrayElementExpr *E) {
+  CreateArrayElementExprInitializer(E);
+}
 
-  auto Target = dyn_cast<VarExpr>(E->getTarget());
-  if(!Target)
-    return VisitExpr(E);
-  if(CheckVar(Target))
-    return;
-
-  auto VD = Target->getVarDecl();
-
+ExprResult DataStmtEngine::CreateSubstringExprInitializer(SubstringExpr *E,
+                                                          QualType CharTy) {
   uint64_t Len = 1;
-  auto CharTy = VD->getType().getSelfOrArrayElementType();
   if(auto Ext = CharTy.getExtQualsPtrOrNull()) {
     if(Ext->hasLengthSelector())
       Len = Ext->getLengthSelector();
   }
 
   uint64_t Begin, End;
-  if(!E->EvaluateRange(Context, Len, Begin, End, &ImpliedDoEvaluator))
-    return VisitExpr(E);
+  if(!E->EvaluateRange(Context, Len, Begin, End, &ImpliedDoEvaluator)) {
+    VisitExpr(E);
+    return Sem.ExprError();
+  }
 
   auto Val = getAndCheckValue(E->getType(), E);
   if(!Val.isUsable())
-    return;
+    return Sem.ExprError();
   auto StrVal = StringRef(cast<CharacterConstantExpr>(Val.get())->getValue());
-
   llvm::SmallString<64> Str;
   Str.resize(Len, ' ');
   uint64_t I;
@@ -284,11 +299,30 @@ void DataValueAssigner::VisitSubstringExpr(SubstringExpr *E) {
     Str[I] = StrVal[I - Begin];
   }
   for(; I < End; ++I) Str[I] = ' ';
-  VD->setInit(CharacterConstantExpr::Create(Context, Val.get()->getLocation(),
-                                            Val.get()->getLocation(), Str));
+  return CharacterConstantExpr::Create(Context, Val.get()->getLocation(),
+                                       Val.get()->getLocation(), Str);
 }
 
-void DataValueAssigner::VisitImpliedDoExpr(ImpliedDoExpr *E) {
+void DataStmtEngine::VisitSubstringExpr(SubstringExpr *E) {
+  if(auto AE = dyn_cast<ArrayElementExpr>(E->getTarget())) {
+    CreateArrayElementExprInitializer(AE, E);
+    return;
+  }
+
+  auto Target = dyn_cast<VarExpr>(E->getTarget());
+  if(!Target)
+    return VisitExpr(E);
+  if(CheckVar(Target))
+    return;
+
+  auto VD = Target->getVarDecl();
+  auto CharTy = VD->getType().getSelfOrArrayElementType();
+  auto Val = CreateSubstringExprInitializer(E, CharTy);
+  if(Val.isUsable())
+    VD->setInit(Val.get());
+}
+
+void DataStmtEngine::VisitImpliedDoExpr(ImpliedDoExpr *E) {
   auto Start = Sem.EvalAndCheckIntExpr(E->getInitialParameter(), 1);
   auto End = Sem.EvalAndCheckIntExpr(E->getTerminalParameter(), 1);
   int64_t Inc = 1;
@@ -306,7 +340,7 @@ StmtResult Sema::ActOnDATA(ASTContext &C, SourceLocation Loc,
                            ArrayRef<Expr*> Values,
                            Expr *StmtLabel) {
   DataValueIterator ValuesIt(Values);
-  DataValueAssigner LHSVisitor(ValuesIt, *this, Diags, Loc);
+  DataStmtEngine LHSVisitor(ValuesIt, *this, Diags, Loc);
   for(auto I : Objects) {
     LHSVisitor.Visit(I);
     if(LHSVisitor.IsDone()) break;
