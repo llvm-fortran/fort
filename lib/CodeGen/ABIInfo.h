@@ -12,6 +12,12 @@
 
 #include "flang/AST/Type.h"
 
+namespace llvm {
+
+class Type;
+
+}
+
 namespace flang {
 
 /// ABIArgInfo - Helper class to encapsulate information about how a
@@ -74,16 +80,37 @@ public:
     Value,
 
     /// Returns a character value using an argument
-    CharacterValueAsArg
+    CharacterValueAsArg,
+
+    /// Returns an aggregate value(complex or struct) using an argument
+    AggregateValueAsArg
   };
 private:
-  Kind TheKind;
+  Kind  TheKind;
+  llvm::Type *AggT;
 public:
 
   ABIRetInfo(Kind K = Nothing) :
-    TheKind(K) {}
+    TheKind(K), AggT(nullptr) {}
+  ABIRetInfo(Kind K, llvm::Type *T) :
+    TheKind(K), AggT(T) {}
 
   Kind getKind() const { return TheKind; }
+
+  llvm::Type *getAggregateReturnType() const {
+    return AggT;
+  }
+
+  bool hasAggregateReturnType() const {
+    return AggT != nullptr;
+  }
+};
+
+/// ABIInfo - Target specific hooks for defining how a type should be
+/// passed or returned from functions.
+class ABIInfo {
+public:
+  virtual void computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const = 0;
 };
 
 }  // end namespace flang

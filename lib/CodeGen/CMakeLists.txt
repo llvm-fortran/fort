@@ -5,6 +5,7 @@ add_flang_library(flangCodeGen
   CodeGenTypes.cpp
   CodeGenAction.cpp
   BackendUtil.cpp
+  TargetInfo.cpp
   CGABI.cpp
   CGDecl.cpp
   CGStmt.cpp

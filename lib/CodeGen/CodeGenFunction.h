@@ -200,6 +200,7 @@ public:
   void EmitFunctionBody(const DeclContext *DC, const Stmt *S);
   void EmitFunctionEpilogue(const FunctionDecl *Func,
                             const CGFunctionInfo *Info);
+  void EmitAggregateReturn(const CGFunctionInfo::RetInfo &Info, llvm::Value *Ptr);
   void EmitCleanup();
 
   void EmitVarDecl(const VarDecl *D);
@@ -318,6 +319,7 @@ public:
 
   // complex expressions.
   ComplexValueTy ExtractComplexValue(llvm::Value *Agg);
+  ComplexValueTy ExtractComplexVectorValue(llvm::Value *Agg);
   llvm::Value   *CreateComplexAggregate(ComplexValueTy Value);
   llvm::Value   *CreateComplexVector(ComplexValueTy Value);
   llvm::Constant *CreateComplexConstant(ComplexValueTy Value);

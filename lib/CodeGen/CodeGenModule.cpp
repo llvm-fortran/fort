@@ -40,7 +40,8 @@ CodeGenModule::CodeGenModule(ASTContext &C, const CodeGenOptions &CGO,
                              llvm::Module &M, const llvm::DataLayout &TD,
                              DiagnosticsEngine &diags)
   : Context(C), LangOpts(C.getLangOpts()), CodeGenOpts(CGO), TheModule(M),
-    Diags(diags), TheDataLayout(TD), VMContext(M.getContext()), Types(*this) {
+    Diags(diags), TheDataLayout(TD), VMContext(M.getContext()), Types(*this),
+    TheTargetCodeGenInfo(nullptr) {
 
   llvm::LLVMContext &LLVMContext = M.getContext();
   VoidTy = llvm::Type::getVoidTy(LLVMContext);

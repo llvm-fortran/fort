@@ -165,8 +165,7 @@ void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func,
         Builder.CreateRet(Builder.CreateLoad(RetVar));
         break;
       case CGFunctionInfo::RetInfo::ComplexValue:
-        Builder.CreateRet(CreateComplexAggregate(
-                            EmitComplexLoad(RetVar)));
+        EmitAggregateReturn(ReturnInfo, RetVar);
         break;
       }
     }

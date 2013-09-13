@@ -49,6 +49,7 @@ namespace flang {
   class VarDecl;
   class LangOptions;
   class DiagnosticsEngine;
+  class TargetCodeGenInfo;
 
 namespace CodeGen {
 
@@ -120,6 +121,7 @@ class CodeGenModule : public CodeGenTypeCache {
 
   CodeGenTypes Types;
   LibflangABI RuntimeABI;
+  const TargetCodeGenInfo *TheTargetCodeGenInfo;
   CGIORuntime *IORuntime;
   CGSystemRuntime *SystemRuntime;
 
@@ -128,6 +130,8 @@ class CodeGenModule : public CodeGenTypeCache {
   llvm::StringMap<CGFunction> RuntimeFunctions;
 
   llvm::DenseMap<const FunctionDecl*, CGFunction> Functions;
+
+
 
 public:
   CodeGenModule(ASTContext &C, const CodeGenOptions &CodeGenOpts,
@@ -167,6 +171,10 @@ public:
   CGSystemRuntime &getSystemRuntime() {
     return *SystemRuntime;
   }
+
+  /// getTargetCodeGenInfo - Retun a reference to the configured
+  /// target code gen information.
+  const TargetCodeGenInfo &getTargetCodeGenInfo();
 
   /// Release - Finalize LLVM code generation.
   void Release();

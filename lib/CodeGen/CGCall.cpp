@@ -15,6 +15,8 @@
 #include "CGCall.h"
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
+#include "ABIInfo.h"
+#include "TargetInfo.h"
 #include "flang/AST/Decl.h"
 #include "flang/Frontend/CodeGenOptions.h"
 #include "llvm/ADT/StringExtras.h"
@@ -44,6 +46,13 @@ llvm::Type *CodeGenTypes::ConvertReturnType(QualType T,
 
   ReturnInfo.Kind = T->isComplexType()? CGFunctionInfo::RetInfo::ComplexValue :
                                         CGFunctionInfo::RetInfo::ScalarValue;
+
+  if(T->isComplexType()) {
+    CGM.getTargetCodeGenInfo().getABIInfo().computeReturnTypeInfo(T, ReturnInfo.ABIInfo);
+    if(ReturnInfo.ABIInfo.hasAggregateReturnType())
+      return ReturnInfo.ABIInfo.getAggregateReturnType();
+  }
+
   return ConvertType(T);
 }
 
@@ -161,8 +170,8 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
   for(size_t I = 0; I < Arguments.size(); ++I)
     EmitCallArg(FType->getParamType(ArgList.getOffset()),
                 ArgList, Arguments[I], ArgumentInfo[I]);
-  auto ReturnInfo = FuncInfo->getReturnInfo().ABIInfo.getKind();
-  if(ReturnInfo == ABIRetInfo::CharacterValueAsArg)
+  auto RetABIKind = FuncInfo->getReturnInfo().ABIInfo.getKind();
+  if(RetABIKind == ABIRetInfo::CharacterValueAsArg)
     EmitCallArg(ArgList, ArgList.getReturnValueArg().asCharacter(),
                 FuncInfo->getReturnInfo().ReturnArgInfo);
 
@@ -171,12 +180,20 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
   Result->setCallingConv(FuncInfo->getCallingConv());
 
   if(ReturnsNothing ||
-     ReturnInfo == ABIRetInfo::Nothing)
+     RetABIKind == ABIRetInfo::Nothing)
     return RValueTy();
-  else if(ReturnInfo == ABIRetInfo::Value &&
-          FuncInfo->getReturnInfo().Kind == CGFunctionInfo::RetInfo::ComplexValue)
+  else if(RetABIKind == ABIRetInfo::Value &&
+          FuncInfo->getReturnInfo().Kind == CGFunctionInfo::RetInfo::ComplexValue) {
+    auto RetInfo = FuncInfo->getReturnInfo();
+    if(RetInfo.ABIInfo.hasAggregateReturnType()) {
+      auto T = RetInfo.ABIInfo.getAggregateReturnType();
+      if(T->isVectorTy())
+        return ExtractComplexVectorValue(Result);
+      else llvm_unreachable("unsupported aggregate return ABI");
+    }
     return ExtractComplexValue(Result);
-  else if(ReturnInfo == ABIRetInfo::CharacterValueAsArg)
+  }
+  else if(RetABIKind == ABIRetInfo::CharacterValueAsArg)
     return ArgList.getReturnValueArg();
   return Result;
 }

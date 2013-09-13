@@ -107,6 +107,9 @@ namespace {
   cl::opt<bool>
   Interpret("interpret", cl::desc("run the code from the given input"), cl::init(false));
 
+  cl::opt<std::string>
+  TargetTriple("triple", cl::desc("target triple"), cl::init(""));
+
 } // end anonymous namespace
 
 
@@ -322,9 +325,14 @@ static bool ParseFile(const std::string &Filename,
   }
 
   // Emit
-  if(!SyntaxOnly && !Diag.hadErrors()) {
+  if(!SyntaxOnly && !Diag.hadErrors()) {    
+    flang::TargetOptions TargetOptions;
+    TargetOptions.Triple = TargetTriple.empty()? llvm::sys::getDefaultTargetTriple() :
+                                                 TargetTriple;
+    TargetOptions.CPU = llvm::sys::getHostCPUName();
+
     auto CG = CreateLLVMCodeGen(Diag, Filename == ""? std::string("module") : Filename,
-                                CodeGenOptions(), flang::TargetOptions(), llvm::getGlobalContext());
+                                CodeGenOptions(), TargetOptions, llvm::getGlobalContext());
     CG->Initialize(Context);
     CG->HandleTranslationUnit(Context);
 
@@ -332,12 +340,9 @@ static bool ParseFile(const std::string &Filename,
     if(EmitASM)   BA = Backend_EmitAssembly;
     if(EmitLLVM)  BA = Backend_EmitLL;
 
-    llvm::Triple TheTriple(llvm::sys::getDefaultTargetTriple());
-    auto CPU = llvm::sys::getHostCPUName();
     const llvm::Target *TheTarget = 0;
     std::string Err;
-    TheTarget = llvm::TargetRegistry::lookupTarget(TheTriple.str(), Err);
-
+    TheTarget = llvm::TargetRegistry::lookupTarget(TargetOptions.Triple, Err);
 
     CodeGenOpt::Level TMOptLevel = CodeGenOpt::Default;
     switch(OptLevel) {
@@ -347,7 +352,7 @@ static bool ParseFile(const std::string &Filename,
 
     llvm::TargetOptions Options;
 
-    auto TM = TheTarget->createTargetMachine(TheTriple.getTriple(), CPU, "", Options,
+    auto TM = TheTarget->createTargetMachine(TargetOptions.Triple, TargetOptions.CPU, "", Options,
                                              Reloc::Default, CodeModel::Default,
                                              TMOptLevel);
 

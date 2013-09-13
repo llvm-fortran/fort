@@ -31,9 +31,6 @@ COMPLEX FUNCTION DOUBLE(C)
 
   CONTINUE ! CHECK: load float*
   CONTINUE ! CHECK: load float*
-  CONTINUE ! CHECK: insertvalue { float, float } undef
-  CONTINUE ! CHECK: insertvalue { float, float }
-  CONTINUE ! CHECK: ret { float, float }
 END
 
 PROGRAM test
@@ -55,10 +52,7 @@ PROGRAM test
 
   C = DOUBLE((1.0, 2.0)) ! CHECK: store float 1
   CONTINUE               ! CHECK: store float 2
-  CONTINUE               ! CHECK: call { float, float } @double_
-  CONTINUE               ! CHECK: extractvalue { float, float }
-  CONTINUE               ! CHECK: extractvalue { float, float }
-
+  CONTINUE               ! CHECK: call {{.*}} @double_
   C = DOUBLE(DOUBLE(C))
 
   C = DOUBLE(CMPLX(SQUARE(R)))

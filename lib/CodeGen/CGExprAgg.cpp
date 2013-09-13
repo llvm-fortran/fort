@@ -91,5 +91,17 @@ llvm::Value *CodeGenFunction::EmitAggregateMember(llvm::Value *Agg, const FieldD
   return Builder.CreateStructGEP(Agg, Field->getIndex());
 }
 
+void CodeGenFunction::EmitAggregateReturn(const CGFunctionInfo::RetInfo &Info, llvm::Value *Ptr) {
+  if(Info.Kind == CGFunctionInfo::RetInfo::ComplexValue) {
+    if(Info.ABIInfo.hasAggregateReturnType()) {
+      Builder.CreateRet(Builder.CreateLoad(
+        Builder.CreateBitCast(Ptr, llvm::PointerType::get(Info.ABIInfo.getAggregateReturnType(), 0))));
+      return;
+    }
+    Builder.CreateRet(CreateComplexAggregate(
+                        EmitComplexLoad(Ptr)));
+  }
+}
+
 }
 }

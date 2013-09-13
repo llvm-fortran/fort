@@ -238,6 +238,11 @@ ComplexValueTy CodeGenFunction::ExtractComplexValue(llvm::Value *Agg) {
                         Builder.CreateExtractValue(Agg, 1, "im"));
 }
 
+ComplexValueTy CodeGenFunction::ExtractComplexVectorValue(llvm::Value *Agg) {
+  return ComplexValueTy(Builder.CreateExtractElement(Agg, Builder.getInt32(0), "re"),
+                        Builder.CreateExtractElement(Agg, Builder.getInt32(1), "im"));
+}
+
 llvm::Value   *CodeGenFunction::CreateComplexAggregate(ComplexValueTy Value) {
   llvm::Value *Result = llvm::UndefValue::get(
                           getTypes().GetComplexType(Value.Re->getType()));
