@@ -16,10 +16,8 @@
 #include "CGSystemRuntime.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
-#include "flang/AST/DeclVisitor.h"
 #include "flang/AST/Stmt.h"
 #include "flang/AST/Expr.h"
-#include "flang/AST/EquivalenceSet.h"
 #include "flang/Frontend/CodeGenOptions.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Intrinsics.h"
@@ -40,21 +38,6 @@ CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn)
 }
 
 CodeGenFunction::~CodeGenFunction() {
-}
-
-void CodeGenFunction::EmitFunctionDecls(const DeclContext *DC) {
-  class Visitor : public ConstDeclVisitor<Visitor> {
-  public:
-    CodeGenFunction *CG;
-
-    Visitor(CodeGenFunction *P) : CG(P) {}
-
-    void VisitVarDecl(const VarDecl *D) {
-      CG->EmitVarDecl(D);
-    }
-  };
-  Visitor DV(this);
-  DV.Visit(DC);
 }
 
 void CodeGenFunction::EmitMainProgramBody(const DeclContext *DC, const Stmt *S) {
@@ -143,14 +126,14 @@ void CodeGenFunction::EmitFunctionBody(const DeclContext *DC, const Stmt *S) {
   AllocaInsertPt = Builder.CreateBr(BodyBB);
   EmitBlock(BodyBB);
   if(HasSavedVariables)
-    EmitFirstInvocationBlock(S);
-  if(S) {
-    EmitDataStmts(S);
+    EmitFirstInvocationBlock(DC, S);
+  EmitVarInitializers(DC);
+  if(S)
     EmitStmt(S);
-  }
 }
 
-void CodeGenFunction::EmitFirstInvocationBlock(const Stmt *S) {
+void CodeGenFunction::EmitFirstInvocationBlock(const DeclContext *DC,
+                                               const Stmt *S) {
   auto GlobalFirstInvocationFlag = CGM.EmitGlobalVariable(CurFn->getName(), "FIRST_INVOCATION",
                                                           CGM.Int1Ty, Builder.getTrue());
   auto FirstInvocationBB = createBasicBlock("first-invocation");
@@ -158,7 +141,7 @@ void CodeGenFunction::EmitFirstInvocationBlock(const Stmt *S) {
   Builder.CreateCondBr(Builder.CreateLoad(GlobalFirstInvocationFlag), FirstInvocationBB,
                        EndBB);
   EmitBlock(FirstInvocationBB);
-  if(S) EmitDataStmts(S, true);
+  EmitSavedVarInitializers(DC);
   Builder.CreateStore(Builder.getFalse(), GlobalFirstInvocationFlag);
   EmitBlock(EndBB);
 }
@@ -192,81 +175,6 @@ void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func,
     Builder.CreateRetVoid();
   if(AssignedGotoDispatchBlock)
     EmitAssignedGotoDispatcher();
-}
-
-void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
-  if(D->isParameter() ||
-     D->isArgument()  ||
-     D->isFunctionResult()) return;
-
-  if(D->hasEquivalenceSet()) {
-    auto Set = EmitEquivalenceSet(D->getEquivalenceSet());
-    auto Ptr = EmitEquivalenceSetObject(Set, D);
-    LocalVariables.insert(std::make_pair(D, Ptr));
-    return;
-  }
-
-  llvm::Value *Ptr;
-  auto Type = D->getType();
-  auto Quals = Type.getExtQualsPtrOrNull();
-  if(Quals && Quals->getQualifiers().hasAttributeSpec(Qualifiers::AS_save) &&
-     !IsMainProgram) {
-    Ptr = CGM.EmitGlobalVariable(CurFn->getName(), D);
-    HasSavedVariables = true;
-  } else {
-    if(Type->isArrayType())
-      Ptr = CreateArrayAlloca(Type, D->getName());
-    else Ptr = Builder.CreateAlloca(ConvertTypeForMem(Type),
-                                    nullptr, D->getName());
-  }
-  LocalVariables.insert(std::make_pair(D, Ptr));
-}
-
-// FIXME: support substrings.
-std::pair<int64_t, int64_t> CodeGenFunction::GetObjectBounds(const VarDecl *Var, const Expr *E) {
-  auto Size = CGM.getDataLayout().getTypeStoreSize(ConvertTypeForMem(Var->getType()));
-  uint64_t Offset = 0;
-  if(auto Arr = dyn_cast<ArrayElementExpr>(E)) {
-    Arr->EvaluateOffset(getContext(), Offset);
-    Offset = Offset * CGM.getDataLayout().getTypeStoreSize(ConvertTypeForMem(E->getType()));
-  } else
-    Offset = 0;
-
-  return std::make_pair(-int64_t(Offset), -int64_t(Offset) + int64_t(Size));
-}
-
-CodeGenFunction::EquivSet CodeGenFunction::EmitEquivalenceSet(const EquivalenceSet *S) {
-  auto Result = EquivSets.find(S);
-  if(Result != EquivSets.end())
-    return Result->second;
-
-  // Find the bounds of the set
-  int64_t LowestBound = 0;
-  int64_t HighestBound = 0;
-  for(auto I : S->getObjects()) {
-    auto Bounds  = GetObjectBounds(I.Var, I.E);
-    LowestBound  = std::min(Bounds.first, LowestBound);
-    HighestBound = std::max(Bounds.second, HighestBound);
-    LocalVariablesInEquivSets.insert(std::make_pair(I.Var, Bounds.first));
-  }
-  EquivSet Set;
-  // FIXME: more accurate alignment?
-  Set.Ptr= Builder.Insert(new llvm::AllocaInst(CGM.Int8Ty,
-                          llvm::ConstantInt::get(CGM.SizeTy, HighestBound - LowestBound),
-                          CGM.getDataLayout().getTypeStoreSize(CGM.DoubleTy)),
-                          "equivalence-set");
-  Set.LowestBound = LowestBound;
-  EquivSets.insert(std::make_pair(S, Set));
-  return Set;
-}
-
-llvm::Value *CodeGenFunction::EmitEquivalenceSetObject(EquivSet Set, const VarDecl *Var) {
-  // Compute the pointer to the object.
-  auto ObjLowBound = LocalVariablesInEquivSets.find(Var)->second;
-  auto Ptr = Builder.CreateConstInBoundsGEP1_64(Set.Ptr,
-                                                uint64_t(ObjLowBound - Set.LowestBound));
-  auto T = Var->getType();
-  return Builder.CreatePointerCast(Ptr, llvm::PointerType::get(ConvertTypeForMem(T), 0));
 }
 
 llvm::Value *CodeGenFunction::GetVarPtr(const VarDecl *D) {

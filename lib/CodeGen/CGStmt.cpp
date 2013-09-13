@@ -24,41 +24,6 @@
 namespace flang {
 namespace CodeGen {
 
-class DataStmtEmmitter : public ConstStmtVisitor<DataStmtEmmitter> {
-  bool InData, Saved;
-  CodeGenFunction &CGF;
-public:
-  DataStmtEmmitter(CodeGenFunction &cgf, bool SavedOnly)
-    : CGF(cgf), InData(false), Saved(SavedOnly) {}
-
-  void VisitCompoundStmt(const CompoundStmt *S) {
-    for(auto I : S->getBody())
-      Visit(I);
-  }
-  void VisitDataStmt(const DataStmt *S) {
-    assert(!InData);
-    InData = true;
-    Visit(S->getBody());
-    InData = false;
-  }
-  void VisitBlockStmt(const BlockStmt *S) {
-    for(auto I : S->getStatements())
-      Visit(I);
-  }
-  void VisitAssignmentStmt(const AssignmentStmt *S) {
-    if(!InData || CGF.IsAssignmentStmtAssignmentToSaved(S) != Saved)
-      return;
-    CGF.EmitAssignmentStmt(S);
-  }
-};
-
-void CodeGenFunction::EmitDataStmts(const Stmt *S, bool Saved) {
-  DataStmtEmmitter SV(*this, Saved);
-  if(S->getStmtLabel())
-    EmitStmtLabel(S);
-  SV.Visit(S);
-}
-
 class StmtEmmitter : public ConstStmtVisitor<StmtEmmitter> {
   CodeGenFunction &CGF;
 public:

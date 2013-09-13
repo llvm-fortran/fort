@@ -203,8 +203,10 @@ public:
   void EmitCleanup();
 
   void EmitVarDecl(const VarDecl *D);
-  void EmitDataStmts(const Stmt *S, bool Saved = false);
-  void EmitFirstInvocationBlock(const Stmt *S);
+  void EmitVarInitializers(const DeclContext *DC);
+  void EmitSavedVarInitializers(const DeclContext *DC);
+  void EmitVarInitializer(const VarDecl *D);
+  void EmitFirstInvocationBlock(const DeclContext *DC, const Stmt *S);
 
   std::pair<int64_t, int64_t> GetObjectBounds(const VarDecl *Var, const Expr *E);
   EquivSet EmitEquivalenceSet(const EquivalenceSet *S);
@@ -268,6 +270,7 @@ public:
   /// Generic value operations for scalar/complex/character values.
   RValueTy EmitLoad (llvm::Value *Ptr, QualType T, bool IsVolatile = false);
   void     EmitStore(RValueTy Val, LValueTy Dest, QualType T);
+  void     EmitStoreCharSameLength(RValueTy Val, LValueTy Dest, QualType T);
   RValueTy EmitBinaryExpr(BinaryExpr::Operator Op, RValueTy LHS, RValueTy RHS);
   RValueTy EmitUnaryExpr(UnaryExpr::Operator Op, RValueTy Val);
   RValueTy EmitImplicitConversion(RValueTy Val, QualType T);

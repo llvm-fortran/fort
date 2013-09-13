@@ -93,7 +93,6 @@ class DataStmtEngine : public ExprVisitor<DataStmtEngine> {
   SourceLocation DataStmtLoc;
 
   ExprEvalScope ImpliedDoEvaluator;
-  SmallVector<Stmt*, 16> ResultingAST;
 
   bool Done;
 
@@ -124,17 +123,8 @@ public:
   void VisitMemberExpr(MemberExpr *E);
   void VisitImpliedDoExpr(ImpliedDoExpr *E);
 
-  void Emit(Stmt *S);
-  ArrayRef<Stmt*> getEmittedStmtList() const {
-    return ResultingAST;
-  }
-
   bool CheckVar(VarExpr *E);
 };
-
-void DataStmtEngine::Emit(Stmt *S) {
-  ResultingAST.push_back(S);
-}
 
 bool DataStmtEngine::HasValues(const Expr *Where) {
   if(Values.isEmpty()) {
@@ -401,16 +391,8 @@ StmtResult Sema::ActOnDATA(ASTContext &C, SourceLocation Loc,
       << SourceRange(FirstVal->getLocStart(), LastVal->getLocEnd());
   }
 
-  Stmt *ResultStmt;
-  auto ResultStmts = LHSVisitor.getEmittedStmtList();
-  if(ResultStmts.size() > 1)
-    ResultStmt = BlockStmt::Create(Context, Loc, ResultStmts);
-  else if(ResultStmts.size() == 1)
-    ResultStmt = ResultStmts[0];
-  else ResultStmt = nullptr;
-
   auto Result = DataStmt::Create(C, Loc, Objects, Values,
-                                 ResultStmt, StmtLabel);
+                                 StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }

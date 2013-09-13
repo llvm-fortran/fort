@@ -69,6 +69,13 @@ void CodeGenFunction::EmitStore(RValueTy Val, LValueTy Dest, QualType T) {
   }
 }
 
+void CodeGenFunction::EmitStoreCharSameLength(RValueTy Val, LValueTy Dest, QualType T) {
+  if(!Val.isCharacter())
+    return EmitStore(Val, Dest, T);
+  auto CharVal = Val.asCharacter();
+  Builder.CreateMemCpy(Dest.getPointer(), CharVal.Ptr, CharVal.Len, 1, Dest.isVolatileQualifier());
+}
+
 RValueTy CodeGenFunction::EmitBinaryExpr(BinaryExpr::Operator Op, RValueTy LHS, RValueTy RHS) {
   if(LHS.isScalar())
     return EmitScalarBinaryExpr(Op, LHS.asScalar(), RHS.asScalar());

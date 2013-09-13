@@ -461,12 +461,10 @@ void ASTDumper::VisitEquivalenceStmt(const EquivalenceStmt *S) {
 
 void ASTDumper::VisitDataStmt(const DataStmt *S) {
   OS << "data ";
-  dumpExprList(S->getNames());
+  dumpExprList(S->getObjects());
   OS << " / ";
   dumpExprList(S->getValues());
   OS << " / \n";
-  if(S->getBody())
-    dumpSubStmt(S->getBody());
 }
 
 void ASTDumper::VisitBlockStmt(const BlockStmt *S) {

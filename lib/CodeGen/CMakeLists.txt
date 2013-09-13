@@ -6,6 +6,7 @@ add_flang_library(flangCodeGen
   CodeGenAction.cpp
   BackendUtil.cpp
   CGABI.cpp
+  CGDecl.cpp
   CGStmt.cpp
   CGExpr.cpp
   CGExprScalar.cpp

@@ -302,15 +302,14 @@ EquivalenceSet *EquivalenceSet::Create(ASTContext &C, ArrayRef<Object> Objects) 
 //===----------------------------------------------------------------------===//
 
 DataStmt::DataStmt(ASTContext &C, SourceLocation Loc,
-                   ArrayRef<Expr*> Names,
+                   ArrayRef<Expr*> Objects,
                    ArrayRef<Expr*> Values,
-                   Stmt *BodyStmt,
                    Expr *StmtLabel)
-  : Stmt(DataStmtClass, Loc, StmtLabel), Body(BodyStmt) {
-  NumNames = Names.size();
+  : Stmt(DataStmtClass, Loc, StmtLabel) {
+  NumNames = Objects.size();
   NameList = new (C) Expr* [NumNames];
-  for(size_t I = 0; I < Names.size(); ++I)
-    NameList[I] = Names[I];
+  for(size_t I = 0; I < Objects.size(); ++I)
+    NameList[I] = Objects[I];
 
   NumValues = Values.size();
   ValueList = new (C) Expr* [NumValues];
@@ -319,10 +318,9 @@ DataStmt::DataStmt(ASTContext &C, SourceLocation Loc,
 }
 
 DataStmt *DataStmt::Create(ASTContext &C, SourceLocation Loc,
-                           ArrayRef<Expr*> Names,
-                           ArrayRef<Expr*> Values, Stmt *Body,
-                           Expr *StmtLabel) {
-  return new(C) DataStmt(C, Loc, Names, Values, Body, StmtLabel);
+                           ArrayRef<Expr*> Objects,
+                           ArrayRef<Expr*> Values, Expr *StmtLabel) {
+  return new(C) DataStmt(C, Loc, Objects, Values, StmtLabel);
 }
 
 //===----------------------------------------------------------------------===//
