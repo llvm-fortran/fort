@@ -28,3 +28,16 @@ program typeTest
   t%color = 0
 
 end program
+
+subroutine foo
+
+  type Point
+    real x,y
+  end type
+
+  type(Point) p1, p2
+
+  data p1 / Point(1, 2) /      ! CHECK: store { float, float }
+  data p2%x, p2%y / 2.0, 4.0 / ! CHECK: store { float, float }
+
+end

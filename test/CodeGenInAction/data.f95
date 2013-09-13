@@ -22,6 +22,12 @@ program datatest
   data strArr2(2)(2:4) / '+' /
   data (strArr2(i), i = 3,3) / 'funke' /
 
+  type point
+    integer x,y
+  end type
+  type(point) p1, p2
+
+  data p1 / Point(-1,1) / p2%x, p2%y / 13, 42 /
 
   print *, 'START' ! CHECK: START
   print *, i       ! CHECK-NEXT: 1
@@ -44,5 +50,8 @@ program datatest
   print *, strArr2(1) ! CHECK-NEXT: Hello
   print *, strArr2(2) ! CHECK-NEXT:  +
   print *, strArr2(3) ! CHECK-NEXT: funke
+
+  print *, p1%x, ', ', p1%y ! CHECK-NEXT: -1, 1
+  print *, p2%x, ', ', p2%y ! CHECK-NEXT: 13, 42
 
 end program
