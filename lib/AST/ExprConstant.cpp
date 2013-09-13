@@ -53,6 +53,7 @@ public:
   bool VisitImplicitCastExpr(const ImplicitCastExpr *E);
   bool VisitVarExpr(const VarExpr *E);
   bool VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
+  bool VisitTypeConstructorExpr(const TypeConstructorExpr *E);
 };
 
 bool ConstExprVerifier::Eval(const Expr *E) {
@@ -97,11 +98,19 @@ bool ConstExprVerifier::VisitArrayConstructorExpr(const ArrayConstructorExpr *E)
   return true;
 }
 
+bool ConstExprVerifier::VisitTypeConstructorExpr(const TypeConstructorExpr *E) {
+  for(auto I : E->getArguments()) {
+    if(!Eval(I))
+      return false;
+  }
+  return true;
+}
+
 struct IntValueTy : public llvm::APInt {
 
   IntValueTy() {}
   IntValueTy(uint64_t I) :
-    llvm::APInt(64, I) {}
+    llvm::APInt(64, I, true) {}
 
   template<typename T = int64_t>
   bool IsProperSignedInt() const {
@@ -151,8 +160,10 @@ public:
 };
 
 int64_t IntExprEvaluator::getResult() const {
-  if(Result.IsProperSignedInt())
-    return int64_t(Result.getLimitedValue());
+  if(Result.IsProperSignedInt()) {
+    auto val = Result.getLimitedValue();
+    return int64_t(val);
+  }
   return 1;
 }
 

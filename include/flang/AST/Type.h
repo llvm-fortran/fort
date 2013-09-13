@@ -725,6 +725,10 @@ public:
     return ArrayRef<FieldDecl*>(Elems,ElemCount);
   }
 
+  unsigned getElementCount() const {
+    return ElemCount;
+  }
+
   void Profile(llvm::FoldingSetNodeID &ID) {
     Profile(ID, getElements());
   }

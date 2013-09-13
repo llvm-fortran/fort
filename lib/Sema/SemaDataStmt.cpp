@@ -97,8 +97,8 @@ class DataStmtEngine : public ExprVisitor<DataStmtEngine> {
 
   bool Done;
 
-  ExprResult getAndCheckValue(QualType LHSType, Expr *LHS);
-  ExprResult getAndCheckAnyValue(QualType LHSType, Expr *LHS);
+  ExprResult getAndCheckValue(QualType LHSType, const Expr *LHS);
+  ExprResult getAndCheckAnyValue(QualType LHSType, const Expr *LHS);
 public:
   DataStmtEngine(DataValueIterator &Vals, flang::Sema &S,
                  DiagnosticsEngine &Diag, SourceLocation Loc)
@@ -119,6 +119,9 @@ public:
   void VisitArrayElementExpr(ArrayElementExpr *E);
   ExprResult CreateSubstringExprInitializer(SubstringExpr *E, QualType CharTy);
   void VisitSubstringExpr(SubstringExpr *E);
+  ExprResult CreateMemberExprInitializer(const MemberExpr *E,
+                                         const TypeConstructorExpr *Init = nullptr);
+  void VisitMemberExpr(MemberExpr *E);
   void VisitImpliedDoExpr(ImpliedDoExpr *E);
 
   void Emit(Stmt *S);
@@ -161,7 +164,7 @@ bool DataStmtEngine::CheckVar(VarExpr *E) {
 }
 
 ExprResult DataStmtEngine::getAndCheckValue(QualType LHSType,
-                                            Expr *LHS) {
+                                            const Expr *LHS) {
   if(!HasValues(LHS)) return ExprResult(true);
   auto Value = Values.getValue();
   Values.advance();
@@ -171,7 +174,7 @@ ExprResult DataStmtEngine::getAndCheckValue(QualType LHSType,
                                                 LHS);
 }
 
-ExprResult DataStmtEngine::getAndCheckAnyValue(QualType LHSType, Expr *LHS) {
+ExprResult DataStmtEngine::getAndCheckAnyValue(QualType LHSType, const Expr *LHS) {
   auto Val = getAndCheckValue(LHSType, LHS);
   auto ET = LHSType.getSelfOrArrayElementType();
   if(ET->isCharacterType() && Val.isUsable()) {
@@ -258,6 +261,11 @@ void DataStmtEngine::CreateArrayElementExprInitializer(ArrayElementExpr *E,
   if(Parent) {
     if(auto SE = dyn_cast<SubstringExpr>(Parent)) {
        Val = CreateSubstringExprInitializer(SE, ElementType);
+    } else if(auto ME = dyn_cast<MemberExpr>(Parent)) {
+      if(Offset < Items.size()) {
+        const TypeConstructorExpr *Init = Items[Offset]? cast<TypeConstructorExpr>(Items[Offset]) : nullptr;
+        Val = CreateMemberExprInitializer(ME, Init);
+      }
     } else llvm_unreachable("invalid expression");
   } else Val = getAndCheckAnyValue(ElementType, E);
 
@@ -318,6 +326,45 @@ void DataStmtEngine::VisitSubstringExpr(SubstringExpr *E) {
   auto VD = Target->getVarDecl();
   auto CharTy = VD->getType().getSelfOrArrayElementType();
   auto Val = CreateSubstringExprInitializer(E, CharTy);
+  if(Val.isUsable())
+    VD->setInit(Val.get());
+}
+
+ExprResult DataStmtEngine::CreateMemberExprInitializer(const MemberExpr *E,
+                                                       const TypeConstructorExpr *Init) {
+  auto Field = E->getField();
+  auto Val = getAndCheckAnyValue(E->getType(), E);
+  if(!Val.isUsable())
+    return Sem.ExprError();
+
+  auto FieldCount = E->getTarget()->getType().getSelfOrArrayElementType()->asRecordType()->getElementCount();
+  SmallVector<Expr*, 16> Items(FieldCount);
+  if(Init) {
+    auto Args = Init->getArguments();
+    for(unsigned I = 0; I < FieldCount; ++I) Items[I] = Args[I];
+  } else {
+    for(unsigned I = 0; I < FieldCount; ++I) Items[I] = nullptr;
+  }
+  Items[Field->getIndex()] = Val.get();
+  return TypeConstructorExpr::Create(Context, Val.get()->getLocation(),
+                                     Field->getParent(), Items);
+}
+
+void DataStmtEngine::VisitMemberExpr(MemberExpr *E) {
+  if(auto AE = dyn_cast<ArrayElementExpr>(E->getTarget())) {
+    CreateArrayElementExprInitializer(AE, E);
+    return;
+  }
+
+  auto Target = dyn_cast<VarExpr>(E->getTarget());
+  if(!Target)
+    return VisitExpr(E);
+  if(CheckVar(Target))
+    return;
+
+  auto VD = Target->getVarDecl();
+  const TypeConstructorExpr *Init = VD->hasInit()? cast<TypeConstructorExpr>(VD->getInit()) : nullptr;
+  auto Val = CreateMemberExprInitializer(E, Init);
   if(Val.isUsable())
     VD->setInit(Val.get());
 }
