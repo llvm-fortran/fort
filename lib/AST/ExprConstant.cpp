@@ -128,12 +128,8 @@ struct IntValueTy : public llvm::APInt {
   template<typename T = int64_t>
   bool Assign(const llvm::APInt &I) {
     auto u64 = I.getLimitedValue();
-    if(u64 <= uint64_t(std::numeric_limits<T>::max())) {
-      *this = IntValueTy(u64);
-      return true;
-    }
-    *this = IntValueTy(1);
-    return false;
+    *this = IntValueTy(u64);
+    return true;
   }
 };
 

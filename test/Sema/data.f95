@@ -107,7 +107,7 @@ subroutine sub3
 
   data ((i_mat(i,j), j = 1,two), i = 1,2) / 4*3 /    ! CHECK: i_mat = (/3, 3, 3, 3 /)
   data (i_arr(i), i = 1,3), i_arr(4) / 11,12,13,14 / ! CHECK: i_arr = (/11, 12, 13, 14 /)
-  data i_arr(-2), (i_arr2(i), i = -1,2) / 100, 101, &
+  data i_arr2(-2), (i_arr2(i), i = -1,2) / 100, 101, &
          102, 103, 104 /                             ! CHECK: i_arr2 = (/100, 101, 102, 103, 104 /)
 end
 
@@ -132,8 +132,8 @@ subroutine sub5
   type(point) pArr2(3)
 
   data p1 / Point(-1,1) / p2%x, p2%y / 13, 42 / ! CHECK: p2 = point(13, 42)
-  data pArr / 2*Point(0,7), Point(1,1) /  ! CHECK: pArr = (/point(0,7), point(0,7), point(1,1) /)
-  data pArr2(1)%x, pArr2(1)%y / 2*16 / ! CHECK: pArr2 = (/point(16,16), point(1,2), point(3,4) /)
+  data pArr / 2*Point(0,7), Point(1,1) /  ! CHECK: parr = (/point(0, 7), point(0, 7), point(1, 1) /)
+  data pArr2(1)%x, pArr2(1)%y / 2*16 / ! CHECK: parr2 = (/point(16, 16), point(1, 2), point(3, 4) /)
   data pArr2(2), parr2(3) / point(1,2), point(3,4) /
   ! FIXME: TODO: data (pArr2(i)%x, pArr2(i)%y, i = 2,3) /  1, 2, 3, 4 /
 

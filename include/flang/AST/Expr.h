@@ -211,7 +211,7 @@ public:
   static IntegerConstantExpr *Create(ASTContext &C, SourceLocation Loc,
                                      SourceLocation MaxLoc, APInt Value);
   static IntegerConstantExpr *Create(ASTContext &C, int64_t Value) {
-    return Create(C, SourceLocation(), SourceLocation(), APInt(64, Value));
+    return Create(C, SourceLocation(), SourceLocation(), APInt(64, Value, true));
   }
 
   APInt getValue() const { return Num.getValue(); }

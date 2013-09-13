@@ -276,9 +276,9 @@ add_subdirectory(tools)
 add_subdirectory(test)
 
 if( LLVM_INCLUDE_TESTS )
-  if( NOT FLANG_BUILT_STANDALONE )
-#    add_subdirectory(unittests)
-  endif()
+  # if( NOT FLANG_BUILT_STANDALONE )
+    add_subdirectory(unittests)
+  #endif()
 endif()
 
 # Workaround for MSVS10 to avoid the Dialog Hell
