@@ -319,6 +319,9 @@ def err_data_stmt_not_enough_values : Error<
   "not enough values in a 'data' statement">;
 def err_data_stmt_invalid_item : Error<
   "invalid item for a 'data' statement">;
+def err_data_stmt_invalid_var : Error<
+  "%select{parameter constant|function argument|function result variable}0 "
+  "can't be initialized by a 'data' statement">;
 
 def err_multiple_default_case_stmt : Error<
   "multiple default cases in one select case construct">;

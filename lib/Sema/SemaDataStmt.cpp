@@ -98,6 +98,7 @@ class DataStmtEngine : public ExprVisitor<DataStmtEngine> {
 
   ExprResult getAndCheckValue(QualType LHSType, const Expr *LHS);
   ExprResult getAndCheckAnyValue(QualType LHSType, const Expr *LHS);
+  void getValueOnError();
 public:
   DataStmtEngine(DataValueIterator &Vals, flang::Sema &S,
                  DiagnosticsEngine &Diag, SourceLocation Loc)
@@ -140,12 +141,17 @@ bool DataStmtEngine::HasValues(const Expr *Where) {
 void DataStmtEngine::VisitExpr(Expr *E) {
   Diags.Report(E->getLocation(), diag::err_data_stmt_invalid_item)
     << E->getSourceRange();
+  getValueOnError();
 }
 
 bool DataStmtEngine::CheckVar(VarExpr *E) {
   auto VD = E->getVarDecl();
-  if(VD->isArgument() || VD->isParameter()) {
-    VisitExpr(E);
+  if(VD->isArgument() || VD->isParameter() ||
+     VD->isFunctionResult()) {
+    Diags.Report(E->getLocation(), diag::err_data_stmt_invalid_var)
+      << (VD->isParameter()? 0 : VD->isArgument()? 1 : 2)
+      << VD->getIdentifier() << E->getSourceRange();
+    getValueOnError();
     return true;
   }
   if(VD->isUnusedSymbol())
@@ -173,6 +179,11 @@ ExprResult DataStmtEngine::getAndCheckAnyValue(QualType LHSType, const Expr *LHS
                                                                                   ET);
   }
   return Val;
+}
+
+void DataStmtEngine::getValueOnError() {
+  if(!Values.isEmpty())
+    Values.advance();
 }
 
 void DataStmtEngine::VisitVarExpr(VarExpr *E) {

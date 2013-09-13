@@ -138,3 +138,8 @@ subroutine sub5
   ! FIXME: TODO: data (pArr2(i)%x, pArr2(i)%y, i = 2,3) /  1, 2, 3, 4 /
 
 end
+
+integer function func(i)
+  data i / 0 /     ! expected-error {{function argument can't be initialized by a 'data' statement}}
+  data func / 12 / ! expected-error {{function result variable can't be initialized by a 'data' statement}}
+end
