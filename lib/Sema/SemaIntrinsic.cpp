@@ -159,7 +159,6 @@ bool Sema::CheckIntrinsicComplexFunc(intrinsic::FunctionKind Function,
     break;
   case CONJG:
     ReturnType = Arg->getType();
-    ReturnType.dump();
     break;
   }
   return false;
