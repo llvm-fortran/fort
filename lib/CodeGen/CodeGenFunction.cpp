@@ -88,7 +88,9 @@ void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func,
   }
 
   // Extra argument for the returned data.
-  if(Info->getReturnInfo().ABIInfo.getKind() == ABIRetInfo::CharacterValueAsArg) {
+  auto RetABIKind = Info->getReturnInfo().ABIInfo.getKind();
+  if(RetABIKind == ABIRetInfo::CharacterValueAsArg ||
+     RetABIKind == ABIRetInfo::AggregateValueAsArg) {
     Arg->setName(Func->getName());
     ReturnValuePtr = Arg;
     ++Arg;
@@ -160,14 +162,11 @@ void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func,
     auto ReturnInfo = Info->getReturnInfo();
 
     if(ReturnInfo.ABIInfo.getKind() == ABIRetInfo::Value) {
-      switch(ReturnInfo.Kind) {
-      case CGFunctionInfo::RetInfo::ScalarValue:
-        Builder.CreateRet(Builder.CreateLoad(RetVar));
-        break;
-      case CGFunctionInfo::RetInfo::ComplexValue:
+      if(ReturnInfo.Type->isComplexType() ||
+         ReturnInfo.Type->isRecordType()) {
         EmitAggregateReturn(ReturnInfo, RetVar);
-        break;
-      }
+      } else
+        Builder.CreateRet(Builder.CreateLoad(RetVar));
     }
     else Builder.CreateRetVoid();
   } else

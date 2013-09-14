@@ -44,13 +44,15 @@ llvm::Type *CodeGenTypes::ConvertReturnType(QualType T,
     break;
   }
 
-  ReturnInfo.Kind = T->isComplexType()? CGFunctionInfo::RetInfo::ComplexValue :
-                                        CGFunctionInfo::RetInfo::ScalarValue;
-
+  ReturnInfo.Type = T;
   if(T->isComplexType()) {
     CGM.getTargetCodeGenInfo().getABIInfo().computeReturnTypeInfo(T, ReturnInfo.ABIInfo);
     if(ReturnInfo.ABIInfo.hasAggregateReturnType())
       return ReturnInfo.ABIInfo.getAggregateReturnType();
+    if(ReturnInfo.ABIInfo.getKind() == ABIRetInfo::AggregateValueAsArg) {
+      ReturnInfo.ReturnArgInfo.ABIInfo = ABIArgInfo(ABIArgInfo::Reference);
+      return CGM.VoidTy;
+    }
   }
 
   return ConvertType(T);
@@ -108,7 +110,8 @@ void CodeGenTypes::ConvertArgumentTypeForReturnValue(SmallVectorImpl<CGFunctionI
                                                      SmallVectorImpl<llvm::Type *> &AdditionalArgTypes,
                                                      QualType T,
                                                      const CGFunctionInfo::RetInfo &ReturnInfo) {
-  if(ReturnInfo.ABIInfo.getKind() == ABIRetInfo::CharacterValueAsArg) {
+  if(ReturnInfo.ABIInfo.getKind() == ABIRetInfo::CharacterValueAsArg ||
+     ReturnInfo.ABIInfo.getKind() == ABIRetInfo::AggregateValueAsArg) {
     ArgInfo.push_back(ReturnInfo.ReturnArgInfo);
     ConvertArgumentType(ArgTypes, AdditionalArgTypes,
                         T, ReturnInfo.ReturnArgInfo);
@@ -163,17 +166,26 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
                                    CallArgList &ArgList,
                                    ArrayRef<Expr*> Arguments,
                                    bool ReturnsNothing) {
-  llvm::Value *ResultTemp;
+  // arguments
   auto ArgumentInfo = FuncInfo->getArguments();
   auto FType = Callee->getType()->isFunctionTy()? cast<llvm::FunctionType>(Callee->getType())
                  : dyn_cast<llvm::FunctionType>(cast<llvm::PointerType>(Callee->getType())->getPointerElementType());
   for(size_t I = 0; I < Arguments.size(); ++I)
     EmitCallArg(FType->getParamType(ArgList.getOffset()),
                 ArgList, Arguments[I], ArgumentInfo[I]);
+
+  // return value
   auto RetABIKind = FuncInfo->getReturnInfo().ABIInfo.getKind();
+  auto RetType = FuncInfo->getReturnInfo().Type;
   if(RetABIKind == ABIRetInfo::CharacterValueAsArg)
     EmitCallArg(ArgList, ArgList.getReturnValueArg().asCharacter(),
                 FuncInfo->getReturnInfo().ReturnArgInfo);
+  else if(RetABIKind == ABIRetInfo::AggregateValueAsArg) {
+    auto ResultTemp = CreateTempAlloca(ConvertTypeForMem(RetType),
+                                       "complex-return");
+    ArgList.addReturnValueArg(ResultTemp);
+    ArgList.add(ResultTemp);
+  }
 
   auto Result = Builder.CreateCall(Callee,
                                    ArgList.createValues(), "call");
@@ -183,7 +195,7 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
      RetABIKind == ABIRetInfo::Nothing)
     return RValueTy();
   else if(RetABIKind == ABIRetInfo::Value &&
-          FuncInfo->getReturnInfo().Kind == CGFunctionInfo::RetInfo::ComplexValue) {
+          !RetType.isNull() && RetType->isComplexType()) {
     auto RetInfo = FuncInfo->getReturnInfo();
     if(RetInfo.ABIInfo.hasAggregateReturnType()) {
       auto T = RetInfo.ABIInfo.getAggregateReturnType();
@@ -193,7 +205,12 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
     }
     return ExtractComplexValue(Result);
   }
-  else if(RetABIKind == ABIRetInfo::CharacterValueAsArg)
+  else if(RetABIKind == ABIRetInfo::AggregateValueAsArg) {
+    if(RetType->isComplexType())
+      return EmitComplexLoad(ArgList.getReturnValueArg().asScalar());
+    else
+      llvm_unreachable("unsupported aggregate return ABI");
+  } else if(RetABIKind == ABIRetInfo::CharacterValueAsArg)
     return ArgList.getReturnValueArg();
   return Result;
 }
@@ -216,7 +233,8 @@ RValueTy CodeGenFunction::EmitCall(CGFunction Func,
   auto Result = Builder.CreateCall(Func.getFunction(),
                                    ArgList.createValues(), "call");
   Result->setCallingConv(FuncInfo->getCallingConv());
-  if(FuncInfo->getReturnInfo().Kind == CGFunctionInfo::RetInfo::ComplexValue)
+  if(!FuncInfo->getReturnInfo().Type.isNull() &&
+     FuncInfo->getReturnInfo().Type->isComplexType())
     return ExtractComplexValue(Result);
   return Result;
 }

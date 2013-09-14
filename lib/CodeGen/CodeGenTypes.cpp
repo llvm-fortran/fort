@@ -198,7 +198,6 @@ CodeGenTypes::GetFunctionType(FortranABI &ABI,
   }
   else {
     ReturnInfo.ABIInfo = ABIRetInfo(ABIRetInfo::Value);
-    ReturnInfo.Kind = CGFunctionInfo::RetInfo::ScalarValue;
     RetType = ReturnType.asLLVMType();
   }
 

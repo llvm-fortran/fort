@@ -30,8 +30,28 @@ namespace CodeGen {
 
 class DefaultABIInfo : public ABIInfo {
 public:
-  void computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const {}
+  void computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const;
 };
+
+void DefaultABIInfo::computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const {
+  if(!T->isComplexType())
+    return;
+
+  Info = ABIRetInfo(ABIRetInfo::AggregateValueAsArg);
+}
+
+/// ABI Info for x86_32
+class X86_32ABIInfo : public ABIInfo {
+public:
+  void computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const;
+};
+
+void X86_32ABIInfo::computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const {
+  if(!T->isComplexType())
+    return;
+
+  Info = ABIRetInfo(ABIRetInfo::AggregateValueAsArg);
+}
 
 /// ABI Info for x86_64
 /// NB: works only with x86_64-pc-{linux,darwin}
@@ -73,6 +93,10 @@ const TargetCodeGenInfo &CodeGenModule::getTargetCodeGenInfo() {
   switch (Triple.getArch()) {
   default:
     TheTargetCodeGenInfo = new TargetCodeGenInfo(new DefaultABIInfo());
+    break;
+
+  case llvm::Triple::x86:
+    TheTargetCodeGenInfo = new TargetCodeGenInfo(new X86_32ABIInfo());
     break;
 
   case llvm::Triple::x86_64:

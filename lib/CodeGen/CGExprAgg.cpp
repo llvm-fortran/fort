@@ -1,4 +1,4 @@
-//===--- CGExprAgg.cpp - Emit LLVM Code from Aggregate Expressions --------===//
+﻿//===--- CGExprAgg.cpp - Emit LLVM Code from Aggregate Expressions --------===//
 //
 // The LLVM Compiler Infrastructure
 //
@@ -92,7 +92,7 @@ llvm::Value *CodeGenFunction::EmitAggregateMember(llvm::Value *Agg, const FieldD
 }
 
 void CodeGenFunction::EmitAggregateReturn(const CGFunctionInfo::RetInfo &Info, llvm::Value *Ptr) {
-  if(Info.Kind == CGFunctionInfo::RetInfo::ComplexValue) {
+  if(Info.Type->isComplexType()) {
     if(Info.ABIInfo.hasAggregateReturnType()) {
       Builder.CreateRet(Builder.CreateLoad(
         Builder.CreateBitCast(Ptr, llvm::PointerType::get(Info.ABIInfo.getAggregateReturnType(), 0))));

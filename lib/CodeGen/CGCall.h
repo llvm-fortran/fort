@@ -75,9 +75,9 @@ public:
 
     ABIRetInfo ABIInfo;
     ArgInfo    ReturnArgInfo;
-    ValueKind  Kind;
+    QualType   Type;
 
-    RetInfo() : ABIInfo(ABIRetInfo::Nothing), Kind(ScalarValue) {}
+    RetInfo() : ABIInfo(ABIRetInfo::Nothing) {}
   };
 private:
   llvm::FunctionType *Type;
