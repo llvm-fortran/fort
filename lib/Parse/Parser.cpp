@@ -600,7 +600,8 @@ bool Parser::ParseProgramUnit() {
   case tok::kw_LOGICAL:
   case tok::kw_DOUBLEPRECISION:
   case tok::kw_DOUBLECOMPLEX:
-    ParseTypedExternalSubprogram(FunctionDecl::NoAttributes);
+    if(ParseTypedExternalSubprogram(FunctionDecl::NoAttributes))
+      ParseMainProgram();
     break;
   case tok::kw_RECURSIVE:
     ParseRecursiveExternalSubprogram();
@@ -809,12 +810,14 @@ bool Parser::ParseExternalSubprogram() {
 }
 
 bool Parser::ParseTypedExternalSubprogram(int Attr) {
+  auto ReparseLoc = LocFirstStmtToken;
   DeclSpec ReturnType;
   ParseDeclarationTypeSpec(ReturnType);
+  bool IsRecursive = (Attr & FunctionDecl::Recursive) != 0;
 
   if(Tok.isAtStartOfStatement())
     goto err;
-  if(!(Attr & FunctionDecl::Recursive)) {
+  if(!IsRecursive) {
     if(Features.FixedForm)
       ReLexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_RECURSIVE,
                                                                                   tok::kw_FUNCTION)));
@@ -828,11 +831,16 @@ bool Parser::ParseTypedExternalSubprogram(int Attr) {
     goto err;
   if(Features.FixedForm)
     ReLexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_FUNCTION)));
-  if(Tok.is(tok::kw_FUNCTION))
-    return ParseExternalSubprogram(ReturnType, Attr);
+  if(Tok.is(tok::kw_FUNCTION)) {
+    ParseExternalSubprogram(ReturnType, Attr);
+    return false;
+  }
 err:
-  Diag.Report(getExpectedLoc(), diag::err_expected_kw)
-    << "function";
+  if(IsRecursive) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_kw)
+      << "function";
+    SkipUntilNextStatement();
+  } else StartStatementReparse(ReparseLoc);
   return true;
 }
 
