@@ -58,8 +58,8 @@ using namespace flang;
 
 namespace {
 
-  cl::opt<std::string>
-  InputFiles(cl::Positional, cl::desc("<input file>"), cl::init("-"));
+  cl::list<std::string>
+  InputFiles(cl::Positional, cl::desc("<input file>"));
 
   cl::list<std::string>
   IncludeDirs("I", cl::desc("Directory of include files"),
@@ -299,7 +299,7 @@ static bool ParseFile(const std::string &Filename,
   LangOptions Opts;
   Opts.ReturnComments = ReturnComments;
   llvm::StringRef Ext = llvm::sys::path::extension(Filename);
-  if(Ext.equals(".f") || Ext.equals(".F")) {
+  if(Ext.equals_lower(".f")) {
     Opts.FixedForm = 1;
     Opts.FreeForm = 0;
   }
@@ -417,8 +417,15 @@ int main(int argc, char **argv) {
   SmallVector <std::string, 32> OutputFiles;
   OutputFiles.reserve(1);
 
-  if(ParseFile(InputFiles, IncludeDirs, OutputFiles)) {
-    HadErrors = true;
+  if(InputFiles.empty())
+    InputFiles.push_back("-");
+  for(auto I : InputFiles) {
+    llvm::StringRef Ext = llvm::sys::path::extension(I);
+    if(Ext.equals_lower(".o") || Ext.equals_lower(".obj") ||
+       Ext.equals_lower(".a") || Ext.equals_lower(".lib"))
+      OutputFiles.push_back(I);
+    else if(ParseFile(I, IncludeDirs, OutputFiles))
+      HadErrors = true;
   }
   if(OutputFiles.size() && !HadErrors && !CompileOnly && !EmitLLVM && !EmitASM)
     LinkFiles(OutputFiles);
