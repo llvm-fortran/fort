@@ -565,13 +565,19 @@ public:
     };
   private:
     Type ActTy;
+    const Decl *D;
   public:
 
     AssignmentAction(Type Ty)
-      : ActTy(Ty) {}
+      : ActTy(Ty), D(nullptr) {}
+    AssignmentAction(Type Ty, const Decl *d)
+      : ActTy(Ty), D(d) {}
 
     Type getType() const  {
       return ActTy;
+    }
+    const Decl *getDecl() const {
+      return D;
     }
   };
 
@@ -891,14 +897,6 @@ public:
 
   /// Returns true if the given character length can be applied to a declaration.
   bool CheckCharacterLengthDeclarationCompability(QualType T, VarDecl *VD);
-
-
-
-  /// Performs assignment typechecking.
-  ExprResult TypecheckAssignment(QualType LHSType, ExprResult RHS,
-                                 SourceLocation Loc = SourceLocation(),
-                                 SourceRange LHSRange = SourceRange(),
-                                 SourceRange RHSRange = SourceRange());
 
   /// Returns true if the subscript expression has the
   /// right amount of dimensions.

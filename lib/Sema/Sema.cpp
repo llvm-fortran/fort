@@ -957,9 +957,9 @@ StmtResult Sema::ActOnAssignmentStmt(ASTContext &C, SourceLocation Loc,
   if(LHS.get()->getType().isNull() ||
      RHS.get()->getType().isNull())
     return StmtError();
-  RHS = TypecheckAssignment(LHS.get()->getType(), RHS,
-                            Loc, LHS.get()->getSourceRange(),
-                            RHS.get()->getSourceRange());
+  RHS = CheckAndApplyAssignmentConstraints(Loc, LHS.get()->getType(),
+                                           RHS.get(), AssignmentAction::Assigning,
+                                           LHS.get());
   if(RHS.isInvalid()) return StmtError();
 
   auto Result = AssignmentStmt::Create(C, Loc, LHS.take(), RHS.take(), StmtLabel);

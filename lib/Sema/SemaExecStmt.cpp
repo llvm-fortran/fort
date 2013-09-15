@@ -177,15 +177,15 @@ StmtResult Sema::ActOnDoStmt(ASTContext &C, SourceLocation Loc, SourceLocation E
     auto DoVarType = DoVar->getType();
     if(E1.isUsable()) {
       if(CheckScalarNumericExpression(E1.get()))
-        E1 = TypecheckAssignment(DoVarType, E1);
+        E1 = CheckAndApplyAssignmentConstraints(Loc, DoVarType, E1.get(), AssignmentAction::Converting);
     } else AddToBody = false;
     if(E2.isUsable()) {
       if(CheckScalarNumericExpression(E2.get()))
-        E2 = TypecheckAssignment(DoVarType, E2);
+        E2 = CheckAndApplyAssignmentConstraints(Loc, DoVarType, E2.get(), AssignmentAction::Converting);
     } else AddToBody = false;
     if(E3.isUsable()) {
       if(CheckScalarNumericExpression(E3.get()))
-        E3 = TypecheckAssignment(DoVarType, E3);
+        E3 = CheckAndApplyAssignmentConstraints(Loc, DoVarType, E3.get(), AssignmentAction::Converting);
     }
   } else AddToBody = false;
 
