@@ -451,10 +451,11 @@ FunctionDecl *Sema::ActOnStatementFunction(ASTContext &C,
 void Sema::ActOnStatementFunctionBody(SourceLocation Loc, ExprResult Body) {
   auto Func = CurrentContextAsFunction();
   auto Type = Func->getType();
-  Body = TypecheckAssignment(Type, Body, Loc,
-                             getTokenRange(Func->getLocation()),
-                             Body.get()->getSourceRange());
-  CurrentContextAsFunction()->setBody(Body.get());
+  Body = CheckAndApplyAssignmentConstraints(Loc,
+                                            Type, Body.get(),
+                                            Sema::AssignmentAction::Returning);
+  if(Body.isUsable())
+    CurrentContextAsFunction()->setBody(Body.get());
 }
 
 void Sema::ActOnEndStatementFunction(ASTContext &C) {

@@ -272,6 +272,9 @@ bool Sema::DiagnoseAssignmentResult(AssignConvertType ConvTy,
     case AssignmentAction::Passing:
       Diag = diag::err_typecheck_passing_incompatible;
       break;
+    case AssignmentAction::Returning:
+      Diag = diag::err_typecheck_return_incompatible;
+      break;
     default:
       llvm_unreachable("invalid assignment action");
       return true;
@@ -282,9 +285,10 @@ bool Sema::DiagnoseAssignmentResult(AssignConvertType ConvTy,
     if(DstExpr)
       Reporter << DstExpr->getSourceRange();
     if(Action.getType() == AssignmentAction::Assigning ||
-       Action.getType() == AssignmentAction::Initializing) {
+       Action.getType() == AssignmentAction::Initializing)
       Reporter << DstType << SrcType;
-    }
+    else if(Action.getType() == AssignmentAction::Returning)
+      Reporter << SrcType << DstType;
     break;
   }
   case IncompatibleDimensions:

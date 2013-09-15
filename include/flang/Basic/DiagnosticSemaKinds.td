@@ -41,6 +41,8 @@ def err_typecheck_assign_incompatible : Error<
   "assigning to %0 from incompatible type %1">;
 def err_typecheck_initialization_incompatible : Error<
   "initializing %0 with an expression of incompatible type %1">;
+def err_typecheck_return_incompatible : Error<
+  "returning %0 from a function with incompatible result type %1">;
 def err_typecheck_passing_incompatible : Error<
   "passing %0 to parameter of incompatible type %1">;
 def err_typecheck_passing_incompatible_named_arg : Error<

@@ -261,7 +261,6 @@ Decl *Sema::ActOnParameterEntityDecl(ASTContext &C, QualType T,
     Value = CheckAndApplyAssignmentConstraints(EqualLoc,
                                                VD->getType(), Value.get(),
                                                Sema::AssignmentAction::Initializing);
-
     if(Value.isInvalid()) return nullptr;
     // FIXME: if value is invalid, mutate into parameter givin a zero value
     VD->MutateIntoParameter(Value.get());

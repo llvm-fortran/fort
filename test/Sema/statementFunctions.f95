@@ -16,7 +16,7 @@ PROGRAM test
   INTEGER FOO ! expected-note@+1 {{previous definition is here}}
   FOO(I,I) = 1 ! expected-error {{redefinition of 'i'}}
 
-  Z(A) = 'Hello' ! expected-error {{assigning to 'real' from incompatible type 'character'}}
+  Z(A) = 'Hello' ! expected-error {{returning 'character' from a function with incompatible result type 'real'}}
 
   I = X(2) ! CHECK: i = int(x(2))
   I = X() ! expected-error {{too few arguments to function call, expected 1, have 0}}
