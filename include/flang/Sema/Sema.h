@@ -226,11 +226,21 @@ public:
   void ActOnTypeDeclSpec(ASTContext &C, SourceLocation Loc,
                          const IdentifierInfo *IDInfo, DeclSpec &DS);
 
-  Decl *ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDLoc,
-                        const IdentifierInfo *IDInfo);
+  Decl *ActOnExternalEntityDecl(ASTContext &C, QualType T,
+                                SourceLocation IDLoc, const IdentifierInfo *IDInfo);
 
-  Decl *ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
-                        const IdentifierInfo *IDInfo);
+  Decl *ActOnIntrinsicEntityDecl(ASTContext &C, QualType T,
+                                 SourceLocation IDLoc, const IdentifierInfo *IDInfo);
+
+  Decl *ActOnParameterEntityDecl(ASTContext &C, QualType T,
+                                 SourceLocation IDLoc, const IdentifierInfo *IDInfo,
+                                 SourceLocation EqualLoc, ExprResult Value);
+
+  Decl *ActOnEntityDecl(ASTContext &C, const QualType &T,
+                        SourceLocation IDLoc, const IdentifierInfo *IDInfo);
+
+  Decl *ActOnEntityDecl(ASTContext &C, DeclSpec &DS,
+                        SourceLocation IDLoc, const IdentifierInfo *IDInfo);
 
   QualType ResolveImplicitType(const IdentifierInfo *IDInfo);
 
@@ -645,6 +655,9 @@ public:
 
   /// Returns true if the declaration with the given name is valid.
   bool CheckDeclaration(const IdentifierInfo *IDInfo, SourceLocation IDLoc);
+
+  void DiagnoseRedefinition(SourceLocation Loc, const IdentifierInfo *IDInfo,
+                            Decl *Prev);
 
   /// Returns evaluated integer,
   /// or an ErrorValue if the expression couldn't

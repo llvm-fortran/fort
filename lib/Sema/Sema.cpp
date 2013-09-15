@@ -461,64 +461,6 @@ void Sema::ActOnEndStatementFunction(ASTContext &C) {
   PopDeclContext();
 }
 
-/// \brief Convert the specified DeclSpec to the appropriate type object.
-QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
-  QualType Result;
-  switch (DS.getTypeSpecType()) {
-  case DeclSpec::TST_integer:
-    Result = C.IntegerTy;
-    break;
-  case DeclSpec::TST_unspecified: // FIXME: Correct?
-  case DeclSpec::TST_real:
-    Result = C.RealTy;
-    break;
-  case DeclSpec::TST_character:
-    Result = C.CharacterTy;
-    break;
-  case DeclSpec::TST_logical:
-    Result = C.LogicalTy;
-    break;
-  case DeclSpec::TST_complex:
-    Result = C.ComplexTy;
-    break;
-  case DeclSpec::TST_struct:
-    if(!DS.getRecord())
-      Result = C.RealTy;
-    else
-      Result = C.getRecordType(DS.getRecord());
-    break;
-  }
-
-  if (!DS.hasAttributes())
-    return Result;
-
-  const Type *TypeNode = Result.getTypePtr();
-  Qualifiers Quals = Qualifiers::fromOpaqueValue(DS.getAttributeSpecs());
-  Quals.setIntentAttr(DS.getIntentSpec());
-  Quals.setAccessAttr(DS.getAccessSpec());
-
-  unsigned Kind = BuiltinType::NoKind;
-  if(DS.isDoublePrecision()) {
-    assert(!DS.getKindSelector());
-    Kind = BuiltinType::Real8;
-  } else if(DS.hasKindSelector())
-    Kind = EvalAndCheckTypeKind(Result, DS.getKindSelector());
-
-  unsigned LengthSelector = 0;
-  if(DS.hasLengthSelector() && !DS.isStarLengthSelector())
-    LengthSelector = EvalAndCheckCharacterLength(DS.getLengthSelector());
-
-  Result = C.getExtQualType(TypeNode, Quals, Kind,
-                            DS.isDoublePrecision(),
-                            DS.isStarLengthSelector(),
-                            LengthSelector);
-
-  if (!Quals.hasAttributeSpec(Qualifiers::AS_dimension))
-    return Result;
-
-  return ActOnArraySpec(C, Result, DS.getDimensions());
-}
-
 VarDecl *Sema::ActOnKindSelector(ASTContext &C, SourceLocation IDLoc,
                                  const IdentifierInfo *IDInfo) {
   VarDecl *VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, QualType());
@@ -527,55 +469,6 @@ VarDecl *Sema::ActOnKindSelector(ASTContext &C, SourceLocation IDLoc,
   // Store the Decl in the IdentifierInfo for easy access.
   const_cast<IdentifierInfo*>(IDInfo)->setFETokenInfo(VD);
   return VD;
-}
-
-Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T, SourceLocation IDLoc,
-                            const IdentifierInfo *IDInfo) {
-  if (auto Prev = LookupIdentifier(IDInfo)) {
-    FunctionDecl *FD = dyn_cast<FunctionDecl>(Prev);
-    if(auto VD = dyn_cast<VarDecl>(Prev)) {
-      if(VD->isArgument() && VD->getType().isNull()) {
-        VD->setType(T);
-        return VD;
-      } else if(VD->isFunctionResult())
-         FD = CurrentContextAsFunction();
-    }
-
-    if(FD && (FD->isNormalFunction() || FD->isExternal())) {
-      if(FD->getType().isNull()) {
-        SetFunctionType(FD, T, IDLoc, SourceRange()); //Fixme: proper loc and range
-        return FD;
-      } else {
-        Diags.Report(IDLoc, diag::err_func_return_type_already_specified) << IDInfo;
-        return nullptr;
-      }
-    }
-    Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
-    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
-    return nullptr;
-  }
-
-  VarDecl *VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, T);
-  CurContext->addDecl(VD);
-
-  if(!T.isNull()) {
-    auto SubT = T;
-    if(T->isArrayType()) {
-      CheckArrayTypeDeclarationCompability(T->asArrayType(), VD);
-      SubT = T->asArrayType()->getElementType();
-      VD->MarkUsedAsVariable(IDLoc);
-    }
-    else if(SubT->isCharacterType())
-      CheckCharacterLengthDeclarationCompability(SubT, VD);
-  }
-
-  return VD;
-}
-
-Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
-                            const IdentifierInfo *IDInfo) {
-  QualType T = ActOnTypeName(C, DS);
-  return ActOnEntityDecl(C, T, IDLoc, IDInfo);
 }
 
 QualType Sema::ResolveImplicitType(const IdentifierInfo *IDInfo) {
@@ -844,44 +737,8 @@ StmtResult Sema::ActOnPARAMETER(ASTContext &C, SourceLocation Loc,
                                 SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo, ExprResult Value,
                                 Expr *StmtLabel) {
-  VarDecl *VD = nullptr;
 
-  if (auto Prev = LookupIdentifier(IDInfo)) {
-    VD = dyn_cast<VarDecl>(Prev);
-    if(!VD || VD->isParameter()) {
-      Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
-      Diags.Report(Prev->getLocation(), diag::note_previous_definition);
-      return StmtError();
-    }
-  }
-
-  // Make sure the value is a constant expression.
-  if(!Value.get()->isEvaluatable(C)) {
-    llvm::SmallVector<const Expr*, 16> Results;
-    Value.get()->GatherNonEvaluatableExpressions(C, Results);
-    Diags.Report(IDLoc, diag::err_parameter_requires_const_init)
-        << IDInfo << Value.get()->getSourceRange();
-    for(auto E : Results) {
-      Diags.Report(E->getLocation(), diag::note_parameter_value_invalid_expr)
-          << E->getSourceRange();
-    }
-    return StmtError();
-  }
-
-  if(VD) {
-    Value = TypecheckAssignment(VD->getType(), Value,
-                                EqualLoc,
-                                getTokenRange(IDLoc),
-                                Value.get()->getSourceRange());
-    if(Value.isInvalid()) return StmtError();
-    // FIXME: if value is invalid, mutate into parameter givin a zero value
-    VD->MutateIntoParameter(Value.get());
-  } else {
-    QualType T = Value.get()->getType();
-    VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, T);
-    VD->MutateIntoParameter(Value.get());
-    CurContext->addDecl(VD);
-  }
+  ActOnParameterEntityDecl(C, QualType(), IDLoc, IDInfo, EqualLoc, Value);
 
   auto Result = ParameterStmt::Create(C, Loc, IDInfo, Value.get(), StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
@@ -909,33 +766,7 @@ StmtResult Sema::ActOnDIMENSION(ASTContext &C, SourceLocation Loc,
 StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
                                SourceLocation IDLoc, const IdentifierInfo *IDInfo,
                                Expr *StmtLabel) {
-  QualType Type;
-  SourceLocation TypeLoc;
-  VarDecl *ArgumentExternal = nullptr;
-  if (auto Prev = LookupIdentifier(IDInfo)) {
-    auto VD = dyn_cast<VarDecl>(Prev);
-    if(VD && (VD->isUnusedSymbol() || VD->isArgument()) ) {
-      Type = VD->getType();
-      TypeLoc = VD->getLocation();
-      CurContext->removeDecl(VD);
-      if(VD->isArgument())
-        ArgumentExternal = VD;
-    } else {
-      Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
-      Diags.Report(Prev->getLocation(), diag::note_previous_definition);
-      return StmtError();
-    }
-  }
-
-  DeclarationNameInfo DeclName(IDInfo,IDLoc);
-  auto Decl = FunctionDecl::Create(C, ArgumentExternal? FunctionDecl::ExternalArgument :
-                                                        FunctionDecl::External,
-                                   CurContext, DeclName, Type);
-  if(!Type.isNull())
-    SetFunctionType(Decl, Type, TypeLoc, SourceRange()); //FIXME: proper loc, and range
-  CurContext->addDecl(Decl);
-  if(ArgumentExternal)
-    ArgumentExternal->setType(C.getFunctionType(Decl));
+  ActOnExternalEntityDecl(C, QualType(), IDLoc, IDInfo);
 
   auto Result = ExternalStmt::Create(C, IDLoc, IDInfo, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
@@ -946,32 +777,7 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
                                 SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo,
                                 Expr *StmtLabel) {
-  auto FuncResult = IntrinsicFunctionMapping.Resolve(IDInfo);
-  if(FuncResult.IsInvalid) {
-    Diags.Report(IDLoc, diag::err_intrinsic_invalid_func)
-      << IDInfo
-      << SourceRange(IDLoc,
-                     SourceLocation::getFromPointer(
-                       IDLoc.getPointer() + IDInfo->getLength()));
-    return StmtError();
-  }
-
-  QualType Type = C.IntegerTy;
-  if (auto Prev = LookupIdentifier(IDInfo)) {
-    auto VD = dyn_cast<VarDecl>(Prev);
-    if(VD && VD->isUnusedSymbol()) {
-      Type = VD->getType();
-      CurContext->removeDecl(VD);
-    } else {
-      Diags.Report(IDLoc, diag::err_redefinition) << IDInfo;
-      Diags.Report(Prev->getLocation(), diag::note_previous_definition);
-      return StmtError();
-    }
-  }
-
-  auto Decl = IntrinsicFunctionDecl::Create(C, CurContext, IDLoc, IDInfo,
-                                            Type, FuncResult.Function);
-  CurContext->addDecl(Decl);
+  ActOnIntrinsicEntityDecl(C, QualType(), IDLoc, IDInfo);
 
   auto Result = IntrinsicStmt::Create(C, IDLoc, IDInfo, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
