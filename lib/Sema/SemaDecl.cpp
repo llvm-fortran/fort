@@ -171,11 +171,47 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
 // Entity declarations.
 //
 
+static Qualifiers getDeclQualifiers(const Decl *D) {
+  if(auto Value = dyn_cast<ValueDecl>(D))
+    return Value->getType().split().second;
+  return Qualifiers();
+}
+
+static QualType getTypeWithAttribute(ASTContext &C, QualType T, Qualifiers::AS AS) {
+  auto Split = T.split();
+  if(Split.second.hasAttributeSpec(AS))
+    return T;
+  QualifierCollector QC(Split.second);
+  QC.addAttributeSpecs(AS);
+  return C.getQualifiedType(T, QC);
+}
+
+void Sema::SetFunctionType(FunctionDecl *Function, QualType Type,
+                           SourceLocation DiagLoc, SourceRange DiagRange) {
+  if(Function->isExternal())
+    Type = getTypeWithAttribute(Context, Type, Qualifiers::AS_external);
+  if(!IsValidFunctionType(Type)) {
+    Diags.Report(DiagLoc, diag::err_func_invalid_type)
+      << Function->getIdentifier(); // FIXME: add diag range.
+    return;
+  }
+  Function->setType(Type);
+  if(Function->hasResult())
+    Function->getResult()->setType(Type);
+}
+
 Decl *Sema::ActOnExternalEntityDecl(ASTContext &C, QualType T,
                                     SourceLocation IDLoc, const IdentifierInfo *IDInfo) {
   SourceLocation TypeLoc;
   VarDecl *ArgumentExternal = nullptr;
   if (auto Prev = LookupIdentifier(IDInfo)) {
+    auto Quals = getDeclQualifiers(Prev);
+    if(Quals.hasAttributeSpec(Qualifiers::AS_external)) {
+      Diags.Report(IDLoc, diag::err_duplicate_attr_spec)
+        << DeclSpec::getSpecifierName(Qualifiers::AS_external);
+      return Prev;
+    }
+
     // apply EXTERNAL to an unused symbol or an argument.
     auto VD = dyn_cast<VarDecl>(Prev);
     if(VD && (VD->isUnusedSymbol() || VD->isArgument()) ) {
@@ -189,13 +225,14 @@ Decl *Sema::ActOnExternalEntityDecl(ASTContext &C, QualType T,
       return nullptr;
     }
   }
+  if(T.isNull())
+    T = C.VoidTy;
 
   DeclarationNameInfo DeclName(IDInfo,IDLoc);
   auto Decl = FunctionDecl::Create(C, ArgumentExternal? FunctionDecl::ExternalArgument :
                                                         FunctionDecl::External,
                                    CurContext, DeclName, T);
-  if(!T.isNull())
-    SetFunctionType(Decl, T, TypeLoc, SourceRange()); //FIXME: proper loc, and range
+  SetFunctionType(Decl, T, TypeLoc, SourceRange()); //FIXME: proper loc, and range
   CurContext->addDecl(Decl);
   if(ArgumentExternal)
     ArgumentExternal->setType(C.getFunctionType(Decl));
@@ -213,6 +250,13 @@ Decl *Sema::ActOnIntrinsicEntityDecl(ASTContext &C, QualType T,
 
   QualType Type = T.isNull()? C.RealTy : T;
   if (auto Prev = LookupIdentifier(IDInfo)) {
+    auto Quals = getDeclQualifiers(Prev);
+    if(Quals.hasAttributeSpec(Qualifiers::AS_intrinsic)) {
+      Diags.Report(IDLoc, diag::err_duplicate_attr_spec)
+        << DeclSpec::getSpecifierName(Qualifiers::AS_intrinsic);
+      return Prev;
+    }
+
     auto VD = dyn_cast<VarDecl>(Prev);
     if(VD && VD->isUnusedSymbol()) {
       Type = VD->getType();
@@ -294,7 +338,7 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T,
     }
 
     if(FD && (FD->isNormalFunction() || FD->isExternal())) {
-      if(FD->getType().isNull()) {
+      if(FD->getType().isNull() || FD->getType()->isVoidType()) {
         SetFunctionType(FD, T, IDLoc, SourceRange()); //Fixme: proper loc and range
         return FD;
       } else {

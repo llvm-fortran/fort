@@ -15,6 +15,7 @@
   #define BUILTIN_TYPE(Name)
 #endif
 
+TYPE(Void, Type)
 TYPE(Builtin, Type)
 BUILTIN_TYPE(Integer)
 BUILTIN_TYPE(Real)

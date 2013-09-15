@@ -39,6 +39,7 @@ void ASTContext::InitBuiltinType(QualType &R, BuiltinType::TypeSpec K) {
 
 void ASTContext::InitBuiltinTypes() {
   // [R404]
+  VoidTy = QualType(new (*this, TypeAlignment) VoidType(), 0);
   InitBuiltinType(IntegerTy,         BuiltinType::Integer);
   InitBuiltinType(RealTy,            BuiltinType::Real);
   DoublePrecisionTy = getExtQualType(RealTy.getTypePtr(), Qualifiers(),

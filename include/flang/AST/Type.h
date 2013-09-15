@@ -518,6 +518,8 @@ public:
   /// Helper methods to distinguish type categories. All type predicates
   /// operate on the canonical type ignoring qualifiers.
 
+  bool isVoidType() const;
+
   /// isBuiltinType - returns true if the type is a builtin type.
   bool isBuiltinType() const;
   bool isIntegerType() const;
@@ -537,6 +539,18 @@ public:
   const RecordType *asRecordType() const;
 
   static bool classof(const Type *) { return true; }
+};
+
+/// VoidType
+class VoidType : public Type {
+protected:
+  friend class ASTContext;      // ASTContext creates these.
+  VoidType()
+    : Type(Void, QualType()) {}
+
+public:
+  static bool classof(const Type *T) { return T->getTypeClass() == Void; }
+  static bool classof(const VoidType *) { return true; }
 };
 
 /// BuiltinType - Intrinsic Fortran types.
@@ -885,6 +899,9 @@ inline QualType QualType::getSelfOrArrayElementType() const {
   return *this;
 }
 
+inline bool Type::isVoidType() const {
+  return isa<VoidType>(CanonicalType);
+}
 inline bool Type::isBuiltinType() const {
   return isa<BuiltinType>(CanonicalType);
 }

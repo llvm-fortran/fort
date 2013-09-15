@@ -22,7 +22,7 @@ ABIArgInfo FortranABI::GetArgABI(QualType ArgType) {
 }
 
 ABIRetInfo FortranABI::GetRetABI(QualType RetType) {
-  if(RetType.isNull())
+  if(RetType.isNull() || RetType->isVoidType())
     return ABIRetInfo(ABIRetInfo::Nothing);
   if(RetType->isCharacterType())
     return ABIRetInfo(ABIRetInfo::CharacterValueAsArg);

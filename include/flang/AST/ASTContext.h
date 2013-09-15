@@ -177,6 +177,7 @@ public:
   }
 
   // Builtin Types: [R404]
+  QualType VoidTy;
   QualType IntegerTy;
   QualType RealTy;
   QualType DoublePrecisionTy;

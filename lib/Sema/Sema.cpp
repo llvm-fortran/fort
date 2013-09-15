@@ -279,21 +279,10 @@ void Sema::ActOnEndMainProgram(SourceLocation Loc) {
 
 bool Sema::IsValidFunctionType(QualType Type) {
   if(Type->isIntegerType() || Type->isRealType() || Type->isComplexType() ||
-     Type->isCharacterType() || Type->isLogicalType() || Type->isRecordType())
+     Type->isCharacterType() || Type->isLogicalType() || Type->isRecordType() ||
+     Type->isVoidType())
     return true;
   return false;
-}
-
-void Sema::SetFunctionType(FunctionDecl *Function, QualType Type,
-                           SourceLocation DiagLoc, SourceRange DiagRange) {
-  if(!IsValidFunctionType(Type)) {
-    Diags.Report(DiagLoc, diag::err_func_invalid_type)
-      << Function->getIdentifier(); // FIXME: add diag range.
-    return;
-  }
-  Function->setType(Type);
-  if(Function->hasResult())
-    Function->getResult()->setType(Type);
 }
 
 FunctionDecl *Sema::ActOnSubProgram(ASTContext &C, SubProgramScope &Scope,

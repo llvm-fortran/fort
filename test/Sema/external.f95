@@ -24,3 +24,31 @@ PROGRAM exttest
   C = F4(I) ! CHECK: c = f4(i)
 
 END PROGRAM
+
+subroutine abc1()
+   external a
+   external a ! expected-error {{duplicate 'external' attribute specifier}}
+end
+
+subroutine abc2()
+   integer, external :: a
+   external a ! expected-error {{duplicate 'external' attribute specifier}}
+end
+
+subroutine abc3()
+   external a
+   integer a
+   external a ! expected-error {{duplicate 'external' attribute specifier}}
+end
+
+subroutine abc4()
+  external a
+  integer, external :: a ! expected-error {{duplicate 'external' attribute specifier}}
+end
+
+subroutine abc5()
+  integer, external :: a
+  integer, external :: a ! expected-error {{duplicate 'external' attribute specifier}}
+end
+
+
