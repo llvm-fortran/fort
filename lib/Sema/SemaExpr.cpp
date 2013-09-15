@@ -189,10 +189,15 @@ static TypecheckAction TypecheckAssignment(ASTContext &Context,
   }
 
   else if(LHSType->isRecordType()) {
-    if(!RHSType->isRecordType()) Result = ErrorAction;
-    else if(LHSType->asRecordType() !=
-            RHSType->asRecordType())
-      Result = ErrorAction;
+    auto LHSRec = LHSType->asRecordType();
+    auto RHSRec = RHSType->asRecordType();
+    if(!RHSRec) Result = ErrorAction;
+    else if(LHSRec != RHSRec) {
+      // FIXME: add field checks
+      if(!(LHSRec->getDecl()->getIdentifier() == RHSRec->getDecl()->getIdentifier() &&
+           LHSRec->getDecl()->isSequence() && RHSRec->getDecl()->isSequence()))
+        Result = ErrorAction;
+    }
   }
 
   // Invalid assignment
@@ -945,11 +950,13 @@ ExprResult Sema::ActOnStructureComponentExpr(ASTContext &C, SourceLocation Loc,
                                              const IdentifierInfo *IDInfo,
                                              Expr *Target) {
   auto RecordTy = Target->getType().getSelfOrArrayElementType()->asRecordType();
-  auto Record = RecordTy->getElement(0)->getParent();
-  auto PrevContext = CurContext;
-  CurContext = Record;
-  auto Field = dyn_cast_or_null<FieldDecl>(LookupIdentifier(IDInfo));
-  CurContext = PrevContext;
+  auto Record = RecordTy->getDecl();
+
+  FieldDecl *Field;
+  auto Result = Record->lookup(IDInfo);
+  if(Result.first >= Result.second) Field = nullptr;
+  else Field = dyn_cast<FieldDecl>(*Result.first);
+
   if(!Field) {
     Diags.Report(IDLoc, diag::err_no_member)
       << IDInfo << Target->getType().getSelfOrArrayElementType()

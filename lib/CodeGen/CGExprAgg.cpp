@@ -31,6 +31,7 @@ public:
   RValueTy VisitVarExpr(const VarExpr *E);
   RValueTy VisitArrayElementExpr(const ArrayElementExpr *E);
   RValueTy VisitMemberExpr(const MemberExpr *E);
+  RValueTy VisitCallExpr(const CallExpr *E);
   RValueTy VisitTypeConstructorExpr(const TypeConstructorExpr *E);
 };
 
@@ -60,6 +61,10 @@ RValueTy AggregateExprEmitter::VisitMemberExpr(const MemberExpr *E) {
   auto Val = EmitExpr(E->getTarget());
   return RValueTy::getAggregate(CGF.EmitAggregateMember(Val.getAggregateAddr(), E->getField()),
                                 Val.isVolatileQualifier());
+}
+
+RValueTy AggregateExprEmitter::VisitCallExpr(const CallExpr *E) {
+  return CGF.EmitCall(E);
 }
 
 RValueTy AggregateExprEmitter::VisitTypeConstructorExpr(const TypeConstructorExpr *E) {
@@ -100,6 +105,8 @@ void CodeGenFunction::EmitAggregateReturn(const CGFunctionInfo::RetInfo &Info, l
     }
     Builder.CreateRet(CreateComplexAggregate(
                         EmitComplexLoad(Ptr)));
+  } else {
+    Builder.CreateRet(Builder.CreateLoad(Ptr));
   }
 }
 

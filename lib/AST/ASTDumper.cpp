@@ -334,7 +334,7 @@ void ASTDumper::VisitFunctionType(const FunctionType *T, const ExtQuals *E) {
 }
 
 void ASTDumper::VisitRecordType(const RecordType *T, const ExtQuals *E) {
-  auto Record = T->getElement(0)->getParent();
+  auto Record = T->getDecl();
   OS << "type " << Record->getName();
 }
 

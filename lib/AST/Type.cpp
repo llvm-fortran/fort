@@ -67,8 +67,8 @@ FunctionType *FunctionType::Create(ASTContext &C, QualType ResultType,
   return new(C, TypeAlignment) FunctionType(Function, QualType(), ResultType, Prototype);
 }
 
-RecordType::RecordType(ASTContext &C, ArrayRef<FieldDecl*> Elements)
-  : Type(Record, QualType()) {
+RecordType::RecordType(ASTContext &C, const RecordDecl *RD, ArrayRef<FieldDecl*> Elements)
+  : Type(Record, QualType()), RecDecl(RD) {
   ElemCount = Elements.size();
   Elems = new(C) FieldDecl*[ElemCount];
   for(size_t I = 0; I < Elements.size(); ++I)

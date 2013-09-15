@@ -70,6 +70,7 @@ namespace flang {
 
 class ASTContext;
 class Decl;
+class RecordDecl;
 class FieldDecl;
 class Expr;
 class ExtQualsTypeCommonBase;
@@ -711,12 +712,13 @@ public:
 
 /// RecordType - Record types.
 class RecordType : public Type, public llvm::FoldingSetNode {
+  const RecordDecl *RecDecl;
   FieldDecl** Elems;
   unsigned ElemCount;
 
 protected:
   friend class ASTContext;  // ASTContext creates these.
-  RecordType(ASTContext &C, ArrayRef<FieldDecl*> Elements);
+  RecordType(ASTContext &C, const RecordDecl *RD, ArrayRef<FieldDecl*> Elements);
 public:
 
   FieldDecl *getElement(unsigned Idx) const { return Elems[Idx]; }
@@ -729,10 +731,16 @@ public:
     return ElemCount;
   }
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
-    Profile(ID, getElements());
+  const RecordDecl *getDecl() const {
+    return RecDecl;
   }
-  static void Profile(llvm::FoldingSetNodeID &ID, ArrayRef<FieldDecl*> Elems) {
+
+  void Profile(llvm::FoldingSetNodeID &ID) {
+    Profile(ID, RecDecl, getElements());
+  }
+  static void Profile(llvm::FoldingSetNodeID &ID, const RecordDecl *RecDecl,
+                      ArrayRef<FieldDecl*> Elems) {
+    ID.AddPointer(RecDecl);
     for (auto I : Elems)
       ID.AddPointer(I);
   }

@@ -229,7 +229,7 @@ QualType ASTContext::getRecordType(const RecordDecl *Record) {
       Field->setIndex(Idx);
     }
   }
-  RecordType *newType = new (*this, TypeAlignment) RecordType(*this, Fields);
+  RecordType *newType = new (*this, TypeAlignment) RecordType(*this, Record, Fields);
   Record->TypeForDecl = newType;
   Types.push_back(newType);
   return QualType(newType, 0);

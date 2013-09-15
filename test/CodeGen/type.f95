@@ -3,6 +3,7 @@
 program typeTest
 
   type Point
+    sequence
     real x,y
   end type
 
@@ -14,6 +15,10 @@ program typeTest
   type(Point) p    ! CHECK: alloca { float, float }
   type(Triangle) t ! CHECK: alloca { [3 x { float, float }], i32 }
   type(Point) pa(3)
+
+  type(Point) gen
+  external gen
+
 
   p = Point(1.0,0.0)
   p = p ! CHECK: store { float, float } {{.*}}, { float, float }*
@@ -27,7 +32,28 @@ program typeTest
   ! FIXME: t%vertices(1) = p
   t%color = 0
 
+  p = gen()
+
 end program
+
+subroutine sub(p) ! CHECK: define void @sub_({ float, float }* noalias
+  type Point
+    sequence
+    real x,y
+  end type
+  type(Point) p
+  p%x= 1.0
+end
+
+function func(i) ! CHECK: define {{.*}} @func_(i32* noalias
+  integer i
+  type Point
+    sequence
+    real x,y
+  end type
+  type(Point) func
+  func = Point(i, 4.25)
+end
 
 subroutine foo
 

@@ -194,16 +194,21 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
   if(ReturnsNothing ||
      RetABIKind == ABIRetInfo::Nothing)
     return RValueTy();
-  else if(RetABIKind == ABIRetInfo::Value &&
-          !RetType.isNull() && RetType->isComplexType()) {
-    auto RetInfo = FuncInfo->getReturnInfo();
-    if(RetInfo.ABIInfo.hasAggregateReturnType()) {
-      auto T = RetInfo.ABIInfo.getAggregateReturnType();
-      if(T->isVectorTy())
-        return ExtractComplexVectorValue(Result);
-      else llvm_unreachable("unsupported aggregate return ABI");
+  else if(RetABIKind == ABIRetInfo::Value && !RetType.isNull()) {
+    if(RetType->isComplexType()) {
+      auto RetInfo = FuncInfo->getReturnInfo();
+      if(RetInfo.ABIInfo.hasAggregateReturnType()) {
+        auto T = RetInfo.ABIInfo.getAggregateReturnType();
+        if(T->isVectorTy())
+          return ExtractComplexVectorValue(Result);
+        else llvm_unreachable("unsupported aggregate return ABI");
+      }
+      return ExtractComplexValue(Result);
+    } else if(RetType->isRecordType()) {
+      auto ResultTemp = CreateTempAlloca(ConvertTypeForMem(RetType), "agg-return");
+      Builder.CreateStore(Result, ResultTemp);
+      return RValueTy::getAggregate(ResultTemp);
     }
-    return ExtractComplexValue(Result);
   }
   else if(RetABIKind == ABIRetInfo::AggregateValueAsArg) {
     if(RetType->isComplexType())
@@ -385,6 +390,8 @@ llvm::Value *CodeGenFunction::EmitCallArgPtr(const Expr *E) {
     return EmitArrayElementPtr(ArrEl->getTarget(), ArrEl->getSubscripts());
 
   auto Value = EmitRValue(E);
+  if(Value.isAggregate())
+    return Value.getAggregateAddr();
   auto Temp  = CreateTempAlloca(ConvertType(E->getType()));
   EmitAssignment(Temp, Value);
   return Temp;

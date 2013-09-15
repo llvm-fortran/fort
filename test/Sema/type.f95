@@ -1,6 +1,17 @@
 ! RUN: %flang -verify -fsyntax-only < %s
 ! RUN: %flang -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
 
+function swap(p)
+  type ipoint
+    sequence
+    integer x,y
+  end type
+
+  type(ipoint) swap, p
+  swap%x = p%y
+  swap%y = p%x
+end
+
 PROGRAM typetest
 
   INTEGER Bar ! expected-note {{previous definition is here}}
@@ -31,10 +42,16 @@ PROGRAM typetest
     integer x
   end type
 
+  type ipoint
+    sequence
+    integer x, y
+  end type
+
   type(Point) p
   type(Triangle) tri
   integer i
   character c
+  type(ipoint) ip
 
   type(zzzzz) zvar ! expected-error {{use of undeclared identifier 'zzzzz'}}
   type(Bar) barvar ! expected-error {{invalid type name 'bar'}}
@@ -62,4 +79,15 @@ PROGRAM typetest
   i = p%z ! expected-error {{no member named 'z' in 'type point'}}
   c = p%x ! expected-error {{assigning to 'character' from incompatible type 'real'}}
 
+  ip = swap(ipoint(1,2))
+  p = swap(ipoint(1,2)) ! expected-error {{assigning to 'type point' from incompatible type 'type ipoint'}}
+
 END PROGRAM typetest
+
+function func(p)
+  type Point
+    real x,y
+  end type
+  type(Point) func, p
+  func = Point(p%y, p%x)
+end

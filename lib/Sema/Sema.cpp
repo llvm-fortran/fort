@@ -279,7 +279,8 @@ void Sema::ActOnEndMainProgram(SourceLocation Loc) {
 
 bool Sema::IsValidFunctionType(QualType Type) {
   if(Type->isIntegerType() || Type->isRealType() || Type->isComplexType() ||
-     Type->isCharacterType() || Type->isLogicalType()) return true;
+     Type->isCharacterType() || Type->isLogicalType() || Type->isRecordType())
+    return true;
   return false;
 }
 
