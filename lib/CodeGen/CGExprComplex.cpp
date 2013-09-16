@@ -130,6 +130,9 @@ ComplexValueTy CodeGenFunction::EmitComplexBinaryExpr(BinaryExpr::Operator Op, C
   }
 
   case BinaryExpr::Divide: {
+    // FIXME: if (not fast maths)
+    return EmitComplexDivSmiths(LHS, RHS);
+
     // (a+ib) / (c+id) = ((ac+bd)/(cc+dd)) + i((bc-ad)/(cc+dd))
     auto Tmp1 = Builder.CreateFMul(LHS.Re, RHS.Re); // a*c
     auto Tmp2 = Builder.CreateFMul(LHS.Im, RHS.Im); // b*d
@@ -149,6 +152,57 @@ ComplexValueTy CodeGenFunction::EmitComplexBinaryExpr(BinaryExpr::Operator Op, C
   }
   }
   return Result;
+}
+
+ComplexValueTy CodeGenFunction::EmitComplexDivSmiths(ComplexValueTy LHS, ComplexValueTy RHS) {
+  auto ElemTy = RHS.Re->getType();
+
+  // if(abs(d) <= abs(c)) then
+  auto FabsIntrinsic = GetIntrinsicFunction(llvm::Intrinsic::fabs, ElemTy);
+  auto Predicate = Builder.CreateFCmpOLE(Builder.CreateCall(FabsIntrinsic, RHS.Im),
+                                         Builder.CreateCall(FabsIntrinsic, RHS.Re));
+  auto ThenBlock = createBasicBlock("compdiv-then");
+  auto ElseBlock = createBasicBlock("compdiv-else");
+  auto MergeBlock = createBasicBlock("compdiv-done");
+  Builder.CreateCondBr(Predicate, ThenBlock, ElseBlock);
+  llvm::Value *R, *Den, *E, *F;
+  auto ResultRe = llvm::PHINode::Create(ElemTy, 2, "compdiv-re");
+  auto ResultIm = llvm::PHINode::Create(ElemTy, 2, "compdiv-im");
+
+  // r = d / c
+  // den = c + d * r
+  // e = (a + b * r) / den
+  // f = (b - a * r) / den
+  EmitBlock(ThenBlock);
+  R = Builder.CreateFDiv(RHS.Im, RHS.Re);
+  Den = Builder.CreateFAdd(RHS.Re, Builder.CreateFMul(RHS.Im, R));
+  E = Builder.CreateFDiv(Builder.CreateFAdd(LHS.Re,
+                         Builder.CreateFMul(LHS.Im, R)), Den);
+  F = Builder.CreateFDiv(Builder.CreateFSub(LHS.Im,
+                         Builder.CreateFMul(LHS.Re, R)), Den);
+  ResultRe->addIncoming(E, ThenBlock);
+  ResultIm->addIncoming(F, ThenBlock);
+  EmitBranch(MergeBlock);
+
+  // r = c / d
+  // den = c * r + d
+  // e = (a * r + b) / den
+  // f = (b * r - a) / den
+  EmitBlock(ElseBlock);
+  R = Builder.CreateFDiv(RHS.Re, RHS.Im);
+  Den = Builder.CreateFAdd(Builder.CreateFMul(RHS.Re, R), RHS.Im);
+  E = Builder.CreateFDiv(Builder.CreateFAdd(
+                         Builder.CreateFMul(LHS.Re, R), LHS.Im), Den);
+  F = Builder.CreateFDiv(Builder.CreateFSub(
+                         Builder.CreateFMul(LHS.Im, R), LHS.Re), Den);
+  ResultRe->addIncoming(E, ElseBlock);
+  ResultIm->addIncoming(F, ElseBlock);
+  EmitBranch(MergeBlock);
+  EmitBlock(MergeBlock);
+  Builder.Insert(ResultRe);
+  Builder.Insert(ResultIm);
+
+  return ComplexValueTy(ResultRe, ResultIm);
 }
 
 ComplexValueTy ComplexExprEmitter::VisitBinaryExprPow(const BinaryExpr *E) {

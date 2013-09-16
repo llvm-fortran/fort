@@ -330,6 +330,7 @@ public:
   ComplexValueTy EmitComplexUnaryMinus(ComplexValueTy Val);
   ComplexValueTy EmitComplexBinaryExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
                                        ComplexValueTy RHS);
+  ComplexValueTy EmitComplexDivSmiths(ComplexValueTy LHS, ComplexValueTy RHS);
   ComplexValueTy EmitComplexPowi(ComplexValueTy LHS, llvm::Value *RHS);
   ComplexValueTy EmitComplexPow(ComplexValueTy LHS, ComplexValueTy RHS);
   ComplexValueTy EmitComplexToComplexConversion(ComplexValueTy Value, QualType Target);
