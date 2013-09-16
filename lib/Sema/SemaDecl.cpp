@@ -183,7 +183,7 @@ static QualType getTypeWithAttribute(ASTContext &C, QualType T, Qualifiers::AS A
     return T;
   QualifierCollector QC(Split.second);
   QC.addAttributeSpecs(AS);
-  return C.getQualifiedType(T, QC);
+  return C.getTypeWithQualifers(T, QC);
 }
 
 void Sema::SetFunctionType(FunctionDecl *Function, QualType Type,
