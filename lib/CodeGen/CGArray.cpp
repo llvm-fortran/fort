@@ -396,6 +396,7 @@ public:
   void VisitBinaryExpr(const BinaryExpr *E);
   void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
   void VisitArraySectionExpr(const ArraySectionExpr *E);
+  void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
 
   const Expr *getLastEmmittedArray() const {
     return LastArrayEmmitted;
@@ -435,6 +436,11 @@ void ScalarEmitterAndSectionGatherer::VisitArraySectionExpr(const ArraySectionEx
   //FIXME
   ArrayOp.EmitArraySections(CGF, E);
   LastArrayEmmitted = E;
+}
+
+void ScalarEmitterAndSectionGatherer::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
+  for(auto I : E->getArguments())
+    Emit(I);
 }
 
 void ArrayOperation::EmitAllScalarValuesAndArraySections(CodeGenFunction &CGF, const Expr *E) {
@@ -559,6 +565,38 @@ RValueTy ArrayOperationEmitter::VisitArrayConstructorExpr(const ArrayConstructor
 
 RValueTy ArrayOperationEmitter::VisitArraySectionExpr(const ArraySectionExpr *E) {
   return CGF.EmitLoad(Looper.EmitElementPointer(Operation.getArrayValue(E)), ElementType(E));
+}
+
+RValueTy ArrayOperationEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
+  using namespace intrinsic;
+  auto Func = getGenericFunctionKind(E->getIntrinsicFunction());
+  auto Group = getFunctionGroup(Func);
+  auto Args = E->getArguments();
+
+  switch(Group) {
+  case GROUP_CONVERSION: {
+    auto FirstVal = Emit(Args[0]);
+
+    if(Func == INT || Func == REAL)
+      return CGF.EmitImplicitConversion(FirstVal, E->getType());
+    else if(Func == CMPLX) {
+      if(FirstVal.isComplex())
+        return CGF.EmitComplexToComplexConversion(FirstVal.asComplex(),
+                                                  E->getType());
+      if(Args.size() >= 2) {
+        auto ElementType = CGF.getContext().getComplexTypeElementType(E->getType());
+        return ComplexValueTy(CGF.EmitScalarToScalarConversion(FirstVal.asScalar(), ElementType),
+                              CGF.EmitScalarToScalarConversion(Emit(Args[1]).asScalar(), ElementType));
+      }
+      else return CGF.EmitScalarToComplexConversion(FirstVal.asScalar(),
+                                                    E->getType());
+    }
+    break;
+  }
+  default:
+    llvm_unreachable("invalid intrinsic group");
+  }
+  return RValueTy();
 }
 
 LValueTy ArrayOperationEmitter::EmitLValue(const Expr *E) {

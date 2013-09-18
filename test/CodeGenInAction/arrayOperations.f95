@@ -47,4 +47,11 @@ program arrayops
            i_mat(1,3), ', ', i_mat(2,3), ', ', i_mat(3,3)
   continue ! CHECK-NEXT: 2, 2, 2, 2, 2, 2, 2, 2, 1
 
+  r_mat = 5.5
+  i_mat = int(r_mat)
+  print *, i_mat(1,1), ', ', i_mat(2,1), ', ', i_mat(3,1), ', ', &
+           i_mat(1,2), ', ', i_mat(2,2), ', ', i_mat(3,2), ', ', &
+           i_mat(1,3), ', ', i_mat(2,3), ', ', i_mat(3,3)
+  continue ! CHECK-NEXT: 5, 5, 5, 5, 5, 5, 5, 5, 5
+
 end

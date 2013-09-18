@@ -193,6 +193,7 @@ public:
   RValueTy VisitBinaryExpr(const BinaryExpr *E);
   RValueTy VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
   RValueTy VisitArraySectionExpr(const ArraySectionExpr *E);
+  RValueTy VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
 
   static QualType ElementType(const Expr *E) {
     return cast<ArrayType>(E->getType().getTypePtr())->getElementType();

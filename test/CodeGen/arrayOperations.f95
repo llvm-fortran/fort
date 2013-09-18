@@ -25,4 +25,9 @@ PROGRAM test
 
   l_mat = i_mat <= i_mat2
 
+  i_mat = int(r_mat)
+  r_mat = real(i_mat)
+  c_mat = cmplx(c_mat2)
+  c_mat = cmplx(i_mat,r_mat)
+
 END
