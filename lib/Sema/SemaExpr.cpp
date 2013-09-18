@@ -367,6 +367,13 @@ static TypecheckAction TypecheckUnaryExpr(UnaryExpr::Operator Op,
   return NoAction;
 }
 
+QualType Sema::GetUnaryReturnType(const Expr *E, QualType T) {
+  auto EType = E->getType();
+  if(auto ATy = EType->asArrayType())
+    return Context.getArrayType(T, ATy->getDimensions());
+  return T;
+}
+
 ExprResult Sema::ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,
                                 UnaryExpr::Operator Op, ExprResult E) {
   unsigned Diagnostic = 0;

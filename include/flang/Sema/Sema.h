@@ -518,8 +518,13 @@ public:
                                       SourceLocation MaxLoc,
                                       ExprResult RealPart, ExprResult ImPart);
 
+  /// GetUnaryReturnType - Returns the type T with the
+  /// requires qualifiers and array type from the given expression.
+  QualType GetUnaryReturnType(const Expr *E, QualType T);
+
   ExprResult ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,
                             UnaryExpr::Operator Op, ExprResult E);
+
 
   ExprResult ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
                              BinaryExpr::Operator Op,
@@ -761,7 +766,7 @@ public:
 
   /// Checks that all of the expressions have the same type
   /// class and kind.
-  void CheckExpressionListSameTypeKind(ArrayRef<Expr*> Expressions);
+  void CheckExpressionListSameTypeKind(ArrayRef<Expr*> Expressions, bool AllowArrays = false);
 
   /// Returns true if the argument count doesn't match to the function
   /// count
@@ -816,44 +821,51 @@ public:
                                 ArrayRef<Expr*> Args,
                                 QualType &ReturnType);
 
+  /// Reports an incompatible argument error and returns true.
+  bool DiagnoseIncompatiblePassing(const Expr *E, QualType T,
+                                   bool AllowArrays,
+                                   StringRef ArgName = StringRef());
+  bool DiagnoseIncompatiblePassing(const Expr *E, StringRef T,
+                                   bool AllowArrays,
+                                   StringRef ArgName = StringRef());
 
   /// Returns false if the argument's type is integer.
-  bool CheckIntegerArgument(const Expr *E);
+  bool CheckIntegerArgument(const Expr *E, bool AllowArrays = false);
 
   /// Returns false if the argument's type is real.
-  bool CheckRealArgument(const Expr *E);
+  bool CheckRealArgument(const Expr *E, bool AllowArrays = false);
 
   /// Returns false if the argument's type is complex.
-  bool CheckComplexArgument(const Expr *E);
+  bool CheckComplexArgument(const Expr *E, bool AllowArrays = false);
 
   /// Returns false if the argument's type is real but isn't double precision.
-  bool CheckStrictlyRealArgument(const Expr *E);
+  bool CheckStrictlyRealArgument(const Expr *E, bool AllowArrays = false);
 
   /// Returns false if the argument's type is real array.
   bool CheckStrictlyRealArrayArgument(const Expr *E, StringRef ArgName);
 
   /// Returns false if the argument's type is real and is double precision.
-  bool CheckDoublePrecisionRealArgument(const Expr *E);
+  bool CheckDoublePrecisionRealArgument(const Expr *E, bool AllowArrays = false);
 
   /// Returns false if the argument's type is complex and is double complex.
-  bool CheckDoubleComplexArgument(const Expr *E);
+  bool CheckDoubleComplexArgument(const Expr *E, bool AllowArrays = false);
 
   /// Returns false if the argument's type is character.
   bool CheckCharacterArgument(const Expr *E);
 
   /// Returns false if the argument has an integer or a real type.
-  bool CheckIntegerOrRealArgument(const Expr *E);
+  bool CheckIntegerOrRealArgument(const Expr *E, bool AllowArrays = false);
 
   /// Returns false if the argument has an integer or a real array type.
   bool CheckIntegerOrRealArrayArgument(const Expr *E, StringRef ArgName);
 
   /// Returns false if the argument has an integer or a real or
   /// a complex argument.
-  bool CheckIntegerOrRealOrComplexArgument(const Expr *E);
+  bool CheckIntegerOrRealOrComplexArgument(const Expr *E, bool AllowArrays = false);
 
   /// Returns false if the argument has a real or
   /// a complex argument.
-  bool CheckRealOrComplexArgument(const Expr *E);
+  bool CheckRealOrComplexArgument(const Expr *E, bool AllowArrays = false);
 
   /// Returns true if the given expression is a logical array.
   bool IsLogicalArray(const Expr *E);

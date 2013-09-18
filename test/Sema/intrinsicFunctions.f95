@@ -58,9 +58,12 @@ PROGRAM intrinfuntest
   c = cmplx(2.0)
   c = CMPLX(33)
   c = CMPLX(1,2)
+  c = cmplx(1.0, i)
+  c = cmplx(1, c) ! expected-error {{passing 'complex' to parameter of incompatible type 'integer' or 'real'}}
+  c = cmplx( (1.0, 2.0 ) )
   c = CMPLX() ! expected-error {{too few arguments to intrinsic function call, expected 1 or 2, have 0}}
   c = CMPLX(1,2,3,4) ! expected-error {{too many arguments to intrinsic function call, expected 1 or 2, have 4}}
-  c = CMPLX(1.0, .false.) ! expected-error {{passing 'logical' to parameter of incompatible type 'integer' or 'real' or 'complex'}}
+  c = CMPLX(1.0, .false.) ! expected-error {{passing 'logical' to parameter of incompatible type 'integer' or 'real'}}
 
   i = ICHAR('HELLO')
   i = ichar(.false.) ! expected-error {{passing 'logical' to parameter of incompatible type 'character'}}

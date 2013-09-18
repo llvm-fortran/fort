@@ -377,7 +377,7 @@ bool Sema::CheckDefaultBuiltinOrDoublePrecisionExpression(const Expr *E) {
   return false;
 }
 
-void Sema::CheckExpressionListSameTypeKind(ArrayRef<Expr*> Expressions) {
+void Sema::CheckExpressionListSameTypeKind(ArrayRef<Expr*> Expressions, bool AllowArrays) {
   assert(!Expressions.empty());
   auto T = Expressions.front()->getType();
   for(size_t I = 0; I < Expressions.size(); ++I) {
@@ -389,8 +389,14 @@ void Sema::CheckExpressionListSameTypeKind(ArrayRef<Expr*> Expressions) {
   }
 }
 
-static const BuiltinType *getBuiltinType(const Expr *E) {
-  return dyn_cast<BuiltinType>(E->getType().getTypePtr());
+static QualType ScalarizeType(const QualType &T, bool AllowArrays) {
+  if(AllowArrays)
+    return T.getSelfOrArrayElementType();
+  return T;
+}
+
+static const BuiltinType *getBuiltinType(const Expr *E, bool AllowArrays = false) {
+  return dyn_cast<BuiltinType>(ScalarizeType(E->getType(), AllowArrays).getTypePtr());
 }
 
 static const BuiltinType *getBuiltinType(QualType T) {
@@ -418,46 +424,58 @@ static bool IsTypeDoublePrecisionComplex(QualType T) {
            Ext && Ext->getKindSelector() == BuiltinType::Real8? true : false;
 }
 
-bool Sema::CheckIntegerArgument(const Expr *E) {
-  auto Type = getBuiltinType(E);
-  if(!Type || !Type->isIntegerType()) {
+bool Sema::DiagnoseIncompatiblePassing(const Expr *E, QualType T,
+                                       bool AllowArrays,
+                                       StringRef ArgName) {
+  QualType ET = AllowArrays? E->getType().getSelfOrArrayElementType() :
+                             E->getType();
+  if(ArgName.empty())
     Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << Context.IntegerTy
-      << E->getSourceRange();
-    return true;
-  }
+      << ET << T << E->getSourceRange();
+  else
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible_named_arg)
+      << ET << ArgName << T << E->getSourceRange();
+  return true;
+}
+
+bool Sema::DiagnoseIncompatiblePassing(const Expr *E, StringRef T,
+                                       bool AllowArrays,
+                                       StringRef ArgName) {
+  QualType ET = AllowArrays? E->getType().getSelfOrArrayElementType() :
+                             E->getType();
+  if(ArgName.empty())
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
+      << ET << T << E->getSourceRange();
+  else
+    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible_named_arg)
+      << ET << ArgName << T << E->getSourceRange();
+  return true;
+}
+
+bool Sema::CheckIntegerArgument(const Expr *E, bool AllowArrays) {
+  auto Type = getBuiltinType(E, AllowArrays);
+  if(!Type || !Type->isIntegerType())
+    return DiagnoseIncompatiblePassing(E, Context.IntegerTy, AllowArrays);
   return false;
 }
 
-bool Sema::CheckRealArgument(const Expr *E) {
-  auto Type = getBuiltinType(E);
-  if(!Type || !Type->isRealType()) {
-    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << Context.RealTy
-      << E->getSourceRange();
-    return true;
-  }
+bool Sema::CheckRealArgument(const Expr *E, bool AllowArrays) {
+  auto Type = getBuiltinType(E, AllowArrays);
+  if(!Type || !Type->isRealType())
+    return DiagnoseIncompatiblePassing(E, Context.RealTy, AllowArrays);
   return false;
 }
 
-bool Sema::CheckComplexArgument(const Expr *E) {
-  auto Type = getBuiltinType(E);
-  if(!Type || !Type->isComplexType()) {
-    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << Context.ComplexTy
-      << E->getSourceRange();
-    return true;
-  }
+bool Sema::CheckComplexArgument(const Expr *E, bool AllowArrays) {
+  auto Type = getBuiltinType(E, AllowArrays);
+  if(!Type || !Type->isComplexType())
+    return DiagnoseIncompatiblePassing(E, Context.ComplexTy, AllowArrays);
   return false;
 }
 
-bool Sema::CheckStrictlyRealArgument(const Expr *E) {
-  if(!IsTypeSinglePrecisionReal(E->getType())) {
-    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << Context.RealTy
-      << E->getSourceRange();
-    return true;
-  }
+bool Sema::CheckStrictlyRealArgument(const Expr *E, bool AllowArrays) {
+  if(!IsTypeSinglePrecisionReal(ScalarizeType(E->getType(), AllowArrays)))
+    return DiagnoseIncompatiblePassing(E, Context.RealTy, AllowArrays);
   return false;
 }
 
@@ -467,51 +485,32 @@ bool Sema::CheckStrictlyRealArrayArgument(const Expr *E, StringRef ArgName) {
     if(IsTypeSinglePrecisionReal(T->getElementType()))
       return false;
   }
-
-  Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible_named_arg)
-    << E->getType() << ArgName << "'real array'"
-    << E->getSourceRange();
-  return true;
+  return DiagnoseIncompatiblePassing(E, "'real array'", false, ArgName);
 }
 
-bool Sema::CheckDoublePrecisionRealArgument(const Expr *E) {
-  if(!IsTypeDoublePrecisionReal(E->getType())) {
-    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << Context.DoublePrecisionTy
-      << E->getSourceRange();
-    return true;
-  }
+bool Sema::CheckDoublePrecisionRealArgument(const Expr *E, bool AllowArrays) {
+  if(!IsTypeDoublePrecisionReal(ScalarizeType(E->getType(), AllowArrays)))
+    return DiagnoseIncompatiblePassing(E, Context.DoublePrecisionTy, AllowArrays);
   return false;
 }
 
-bool Sema::CheckDoubleComplexArgument(const Expr *E) {
-  if(!IsTypeDoublePrecisionComplex(E->getType())) {
-    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << Context.DoubleComplexTy
-      << E->getSourceRange();
-    return true;
-  }
+bool Sema::CheckDoubleComplexArgument(const Expr *E, bool AllowArrays) {
+  if(!IsTypeDoublePrecisionComplex(ScalarizeType(E->getType(), AllowArrays)))
+    return DiagnoseIncompatiblePassing(E, Context.DoubleComplexTy, AllowArrays);
   return false;
 }
 
 bool Sema::CheckCharacterArgument(const Expr *E) {
   auto Type = getBuiltinType(E);
-  if(!Type || !Type->isCharacterType()) {
-    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << Context.CharacterTy
-      << E->getSourceRange();
-  }
+  if(!Type || !Type->isCharacterType())
+    return DiagnoseIncompatiblePassing(E, Context.CharacterTy, false);
   return false;
 }
 
-bool Sema::CheckIntegerOrRealArgument(const Expr *E) {
-  auto Type = getBuiltinType(E);
-  if(!Type || !Type->isIntegerOrRealType()) {
-    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << "'integer' or 'real'"
-      << E->getSourceRange();
-    return true;
-  }
+bool Sema::CheckIntegerOrRealArgument(const Expr *E, bool AllowArrays) {
+  auto Type = getBuiltinType(E, AllowArrays);
+  if(!Type || !Type->isIntegerOrRealType())
+    return DiagnoseIncompatiblePassing(E, "'integer' or 'real'", AllowArrays);
   return false;
 }
 
@@ -529,25 +528,17 @@ bool Sema::CheckIntegerOrRealArrayArgument(const Expr *E, StringRef ArgName) {
   return true;
 }
 
-bool Sema::CheckIntegerOrRealOrComplexArgument(const Expr *E) {
-  auto Type = getBuiltinType(E);
-  if(!Type || !Type->isIntegerOrRealOrComplexType()) {
-    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << "'integer' or 'real' or 'complex'"
-      << E->getSourceRange();
-    return true;
-  }
+bool Sema::CheckIntegerOrRealOrComplexArgument(const Expr *E, bool AllowArrays) {
+  auto Type = getBuiltinType(E, AllowArrays);
+  if(!Type || !Type->isIntegerOrRealOrComplexType())
+    return DiagnoseIncompatiblePassing(E, "'integer' or 'real' or 'complex'", AllowArrays);
   return false;
 }
 
-bool Sema::CheckRealOrComplexArgument(const Expr *E) {
-  auto Type = getBuiltinType(E);
-  if(!Type || !Type->isRealOrComplexType()) {
-    Diags.Report(E->getLocation(), diag::err_typecheck_passing_incompatible)
-      << E->getType() << "'real' or 'complex'"
-      << E->getSourceRange();
-    return true;
-  }
+bool Sema::CheckRealOrComplexArgument(const Expr *E, bool AllowArrays) {
+  auto Type = getBuiltinType(E, AllowArrays);
+  if(!Type || !Type->isRealOrComplexType())
+    return DiagnoseIncompatiblePassing(E, "'real' or 'complex'", AllowArrays);
   return false;
 }
 

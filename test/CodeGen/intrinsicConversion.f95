@@ -30,6 +30,8 @@ PROGRAM intrinsicconv
   c = cmplx(d) ! CHECK: fptrunc
   c = cmplx(r, r)
   c = cmplx(1.0, r)
+  c = cmplx(i, r)
+  c = cmplx( (1.0, 2.0 ) )
 
   i = ichar('A') ! CHECK: zext i8
   str = char(i)  ! CHECK: trunc i32

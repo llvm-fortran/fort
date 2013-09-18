@@ -51,7 +51,7 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
         return EmitComplexToComplexConversion(EmitComplexExpr(Args[0]),
                                               E->getType());
       else {
-        if(Args.size() == 2) {
+        if(Args.size() >= 2) {
           auto ElementType = getContext().getComplexTypeElementType(E->getType());
           return ComplexValueTy(EmitScalarToScalarConversion(EmitScalarExpr(Args[0]), ElementType),
                                 EmitScalarToScalarConversion(EmitScalarExpr(Args[1]), ElementType));

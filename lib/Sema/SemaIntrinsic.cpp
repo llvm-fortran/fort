@@ -77,35 +77,38 @@ bool Sema::CheckIntrinsicConversionFunc(intrinsic::FunctionKind Function,
   auto FirstArg = Args[0];
   switch(Function) {
   case INT: case IFIX: case IDINT:
-    if(Function == IFIX) CheckStrictlyRealArgument(FirstArg);
-    else if(Function == IDINT) CheckDoublePrecisionRealArgument(FirstArg);
-    else CheckIntegerOrRealOrComplexArgument(FirstArg);
-    ReturnType = Context.IntegerTy;
+    if(Function == IFIX) CheckStrictlyRealArgument(FirstArg, true);
+    else if(Function == IDINT) CheckDoublePrecisionRealArgument(FirstArg, true);
+    else CheckIntegerOrRealOrComplexArgument(FirstArg, true);
+    ReturnType = GetUnaryReturnType(FirstArg, Context.IntegerTy);
     break;
 
   case REAL: case FLOAT: case SNGL:
-    if(Function == FLOAT) CheckIntegerArgument(FirstArg);
-    else if(Function == SNGL) CheckDoublePrecisionRealArgument(FirstArg);
-    else CheckIntegerOrRealOrComplexArgument(FirstArg);
-    ReturnType = Context.RealTy;
+    if(Function == FLOAT) CheckIntegerArgument(FirstArg, true);
+    else if(Function == SNGL) CheckDoublePrecisionRealArgument(FirstArg, true);
+    else CheckIntegerOrRealOrComplexArgument(FirstArg, true);
+    ReturnType = GetUnaryReturnType(FirstArg, Context.RealTy);
     break;
 
   case DBLE:
-    CheckIntegerOrRealOrComplexArgument(FirstArg);
-    ReturnType = Context.DoublePrecisionTy;
+    CheckIntegerOrRealOrComplexArgument(FirstArg, true);
+    ReturnType = GetUnaryReturnType(FirstArg, Context.DoublePrecisionTy);
     break;
 
   case CMPLX:
   case DCMPLX:
-    CheckIntegerOrRealOrComplexArgument(FirstArg);
+    CheckIntegerOrRealOrComplexArgument(FirstArg, true);
     if(Args.size() > 1) {
-      if(!CheckIntegerOrRealOrComplexArgument(Args[1]))
-        CheckExpressionListSameTypeKind(Args);
+      if(FirstArg->getType().getSelfOrArrayElementType()->isComplexType()) {
+        // FIXME: error.
+      }
+      else CheckIntegerOrRealArgument(Args[1], true);
     }
-    ReturnType = Function == CMPLX? Context.ComplexTy :
-                                    Context.DoubleComplexTy;
+    ReturnType = GetUnaryReturnType(FirstArg, Function == CMPLX? Context.ComplexTy :
+                                                                 Context.DoubleComplexTy);
     break;
 
+    // FIXME: array support
   case ICHAR:
     CheckCharacterArgument(FirstArg);
     ReturnType = Context.IntegerTy;
