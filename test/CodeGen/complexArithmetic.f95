@@ -24,17 +24,7 @@ PROGRAM test
   CONTINUE    ! CHECK: fmul float
   CONTINUE    ! CHECK: fadd float
 
-  C = C / C   ! CHECK: fmul float
-  CONTINUE    ! CHECK: fmul float
-  CONTINUE    ! CHECK: fadd float
-  CONTINUE    ! CHECK: fmul float
-  CONTINUE    ! CHECK: fmul float
-  CONTINUE    ! CHECK: fadd float
-  CONTINUE    ! CHECK: fmul float
-  CONTINUE    ! CHECK: fmul float
-  CONTINUE    ! CHECK: fsub float
-  CONTINUE    ! CHECK: fdiv float
-  CONTINUE    ! CHECK: fdiv float
+  C = C / C   ! CHECK: br i1
 
   C = (1, 2) + C ! CHECK: fadd float 1
   CONTINUE       ! CHECK: fadd float 2
