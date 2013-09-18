@@ -841,6 +841,10 @@ public:
                                    bool AllowArrays,
                                    StringRef ArgName = StringRef());
 
+  bool CheckArgumentsTypeCompability(const Expr *E1, const Expr *E2,
+                                     StringRef ArgName1, StringRef ArgName2,
+                                     bool AllowArrays = false);
+
   /// Returns false if the argument's type is built in.
   bool CheckBuiltinTypeArgument(const Expr *E, bool AllowArrays = false);
 

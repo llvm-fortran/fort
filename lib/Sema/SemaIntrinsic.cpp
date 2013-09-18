@@ -125,8 +125,10 @@ bool Sema::CheckIntrinsicConversionFunc(intrinsic::FunctionKind Function,
   case DCMPLX:
     CheckIntegerOrRealOrComplexArgument(Item , true);
     if(Args.size() > 1) {
-      if(!Item->getType().getSelfOrArrayElementType()->isComplexType())
+      if(!Item->getType().getSelfOrArrayElementType()->isComplexType()) {
         CheckIntegerOrRealArgument(Args[1], true);
+        CheckArrayArgumentsDimensionCompability(Item, Args[1], "x", "y");
+      }
     }
     ReturnType = GetUnaryReturnType(Item, Kind? ApplyTypeKind(Context.ComplexTy, Kind) :
                                      (Function == CMPLX? Context.ComplexTy :
@@ -238,37 +240,32 @@ bool Sema::CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
     if(GenericFunction != Function) {
       switch(Function) {
       case ISIGN: case IDIM:
-        CheckIntegerArgument(FirstArg);
-        CheckIntegerArgument(SecondArg);
+        CheckIntegerArgument(FirstArg, true);
         break;
       case AMOD:
-        CheckRealArgument(FirstArg);
-        CheckRealArgument(SecondArg);
+        CheckRealArgument(FirstArg, true);
         break;
       case DMOD: case DSIGN: case DDIM:
       case DATAN2:
-        CheckDoublePrecisionRealArgument(FirstArg);
-        CheckDoublePrecisionRealArgument(SecondArg);
+        CheckDoublePrecisionRealArgument(FirstArg, true);
         break;
       }
     }
     else {
-      if(GenericFunction == ATAN2) {
-        CheckRealArgument(FirstArg);
-        CheckRealArgument(SecondArg);
-      } else {
-        CheckIntegerOrRealArgument(FirstArg);
-        CheckIntegerOrRealArgument(SecondArg);
-      }
+      if(GenericFunction == ATAN2)
+        CheckRealArgument(FirstArg, true);
+     else
+        CheckIntegerOrRealArgument(FirstArg, true);
     }
-    CheckExpressionListSameTypeKind(Args);
-    ReturnType = FirstArg->getType();
+    CheckArgumentsTypeCompability(FirstArg, SecondArg, "x", "y", true);
+    CheckArrayArgumentsDimensionCompability(FirstArg, SecondArg, "x", "y");
+    ReturnType = FirstArg->getType(); // FIXME: Binary type
     break;
 
   case DPROD:
     CheckStrictlyRealArgument(FirstArg, true);
     CheckStrictlyRealArgument(SecondArg, true);
-    // FIXME: compability
+    CheckArrayArgumentsDimensionCompability(FirstArg, SecondArg, "x", "y");
     ReturnType = GetBinaryReturnType(FirstArg, SecondArg, Context.DoublePrecisionTy);
     break;
 

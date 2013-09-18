@@ -114,6 +114,9 @@ PROGRAM intrinfuntest
   r = max(1.0, r)  ! CHECK: r = max(1, r)
   i = min(i, 11)
 
+  i = mod(i64, 4) ! expected-error {{conflicting types in arguments 'x' and 'y' ('integer (Kind=8)' and 'integer')}}
+  i = sign(i64, i) ! expected-error {{conflicting types in arguments 'x' and 'y' ('integer (Kind=8)' and 'integer')}}
+
   i = LEN(string) ! CHECK: i = len(string)
   i = len_trim(string) ! CHECK: i = len_trim(string)
   i = LEN(22) ! expected-error {{passing 'integer' to parameter of incompatible type 'character'}}
@@ -154,6 +157,7 @@ PROGRAM intrinfuntest
 
   r = ATAN2(r, 1.0) ! CHECK: r = atan2(r, 1)
   d = ATAN2(d, 1D0) ! CHECK: d = atan2(d, 1)
+  r = atan2(r, i) ! expected-error {{conflicting types in arguments 'x' and 'y' ('real' and 'integer')}}
 
 !! lexical comparison functions
 

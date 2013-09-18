@@ -578,18 +578,18 @@ RValueTy ArrayOperationEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *
     auto FirstVal = Emit(Args[0]);
 
     if(Func == INT || Func == REAL)
-      return CGF.EmitImplicitConversion(FirstVal, E->getType());
+      return CGF.EmitImplicitConversion(FirstVal, E->getType().getSelfOrArrayElementType());
     else if(Func == CMPLX) {
       if(FirstVal.isComplex())
         return CGF.EmitComplexToComplexConversion(FirstVal.asComplex(),
-                                                  E->getType());
+                                                  E->getType().getSelfOrArrayElementType());
       if(Args.size() >= 2) {
-        auto ElementType = CGF.getContext().getComplexTypeElementType(E->getType());
+        auto ElementType = CGF.getContext().getComplexTypeElementType(E->getType().getSelfOrArrayElementType());
         return ComplexValueTy(CGF.EmitScalarToScalarConversion(FirstVal.asScalar(), ElementType),
                               CGF.EmitScalarToScalarConversion(Emit(Args[1]).asScalar(), ElementType));
       }
       else return CGF.EmitScalarToComplexConversion(FirstVal.asScalar(),
-                                                    E->getType());
+                                                    E->getType().getSelfOrArrayElementType());
     }
     break;
   }

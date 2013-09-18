@@ -51,6 +51,8 @@ def err_typecheck_passing_incompatible_named_args : Error<
   "passing %0 to parameter '%1' of incompatible type %2 (or parameter '%3' of type %4)">;
 def note_typecheck_passing_argument_to_param_here : Note<
   "passing argument to parameter %0 here">;
+def err_typecheck_arg_conflict_type : Error<
+  "conflicting types in arguments '%0' and '%1' (%2 and %3)">;
 def note_typecheck_initializing_member_here : Note<
   "initializing member %0 declared here">;
 

@@ -458,6 +458,27 @@ bool Sema::DiagnoseIncompatiblePassing(const Expr *E, StringRef T,
   return true;
 }
 
+bool Sema::CheckArgumentsTypeCompability(const Expr *E1, const Expr *E2,
+                                         StringRef ArgName1, StringRef ArgName2,
+                                         bool AllowArrays) {
+  // assume builtin type
+  auto Type1 = getBuiltinType(E1, AllowArrays);
+  auto Type2 = getBuiltinType(E2, AllowArrays);
+  auto T1 = AllowArrays? E1->getType().getSelfOrArrayElementType() : E1->getType();
+  auto T2 = AllowArrays? E2->getType().getSelfOrArrayElementType() : E2->getType();
+  auto Ext1 = T1.getExtQualsPtrOrNull();
+  auto Ext2 = T2.getExtQualsPtrOrNull();
+  if(!Type2 || Type1->getTypeSpec() != Type2->getTypeSpec() ||
+     Context.getArithmeticOrLogicalTypeKind(Ext1,T1) != Context.getArithmeticOrLogicalTypeKind(Ext2, T2)) {
+    Diags.Report(E2->getLocation(), diag::err_typecheck_arg_conflict_type)
+     << ArgName1 << ArgName2
+     << T1 << T2
+     << E1->getSourceRange() << E2->getSourceRange();
+    return true;
+  }
+  return false;
+}
+
 bool Sema::CheckBuiltinTypeArgument(const Expr *E, bool AllowArrays) {
   auto Type = getBuiltinType(E, AllowArrays);
   if(!Type)
