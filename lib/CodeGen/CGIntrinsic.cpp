@@ -103,6 +103,13 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
   case GROUP_SYSTEM:
     return EmitSystemIntrinsic(Func, Args);
 
+  case GROUP_INQUIRY: {
+    int64_t Val;
+    if(E->EvaluateAsInt(Val, getContext()))
+      return llvm::ConstantInt::get(ConvertType(E->getType()), Val);
+    return EmitInquiryIntrinsic(Func, Args);
+  }
+
   default:
     llvm_unreachable("invalid intrinsic");
     break;
@@ -500,6 +507,25 @@ RValueTy CodeGenFunction::EmitSystemIntrinsic(intrinsic::FunctionKind Func,
   }
 
   return RValueTy();
+}
+
+llvm::Value *CodeGenFunction::EmitInquiryIntrinsic(intrinsic::FunctionKind Func,
+                                                   ArrayRef<Expr*> Arguments) {
+  using namespace intrinsic;
+
+  switch(Func) {
+  case SELECTED_INT_KIND: {
+    auto Func = CGM.GetRuntimeFunction1("selected_int_kind", CGM.Int32Ty, CGM.Int32Ty);
+    CallArgList Args;
+    Args.add(Builder.CreateSExtOrTrunc(EmitScalarExpr(Arguments[0]), CGM.Int32Ty));
+    return EmitCall(Func.getFunction(), Func.getInfo(), Args).asScalar();
+  }
+  default:
+    llvm_unreachable("invalid intrinsic");
+    break;
+  }
+
+  return nullptr;
 }
 
 }

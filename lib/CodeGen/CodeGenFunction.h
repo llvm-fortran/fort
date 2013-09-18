@@ -384,6 +384,9 @@ public:
   RValueTy EmitSystemIntrinsic(intrinsic::FunctionKind Func,
                                ArrayRef<Expr*> Arguments);
 
+  llvm::Value *EmitInquiryIntrinsic(intrinsic::FunctionKind Func,
+                                    ArrayRef<Expr*> Arguments);
+
   RValueTy EmitArrayIntrinsic(intrinsic::FunctionKind Func,
                               ArrayRef<Expr*> Arguments);
 
