@@ -63,6 +63,7 @@ static void InitFunctionGroups() {
 static FunctionArgumentCountKind FunctionArgCounts[] = {
   #define NUM_ARGS_1 ArgumentCount1
   #define NUM_ARGS_2 ArgumentCount2
+  #define NUM_ARGS_3 ArgumentCount3
   #define NUM_ARGS_1_OR_2 ArgumentCount1or2
   #define NUM_ARGS_2_OR_MORE ArgumentCount2orMore
   #define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) NUMARGS,

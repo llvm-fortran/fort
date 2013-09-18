@@ -833,6 +833,12 @@ public:
                                  ArrayRef<Expr*> Args,
                                  QualType &ReturnType);
 
+  /// Returns false if the call to a function from the
+  /// bit operations group is valid.
+  bool CheckIntrinsicBitFunc(intrinsic::FunctionKind Function,
+                             ArrayRef<Expr*> Args,
+                             QualType &ReturnType);
+
   /// Reports an incompatible argument error and returns true.
   bool DiagnoseIncompatiblePassing(const Expr *E, QualType T,
                                    bool AllowArrays,

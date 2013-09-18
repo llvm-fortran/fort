@@ -24,6 +24,7 @@ namespace intrinsic {
 enum FunctionArgumentCountKind {
   ArgumentCount1,
   ArgumentCount2,
+  ArgumentCount3,
   ArgumentCount1or2,
   ArgumentCount2orMore
 };

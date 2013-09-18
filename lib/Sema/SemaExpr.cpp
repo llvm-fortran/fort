@@ -841,6 +841,10 @@ ExprResult Sema::ActOnIntrinsicFunctionCallExpr(ASTContext &C, SourceLocation Lo
     CheckIntrinsicInquiryFunc(Function, Arguments, ReturnType);
     break;
 
+  case GROUP_BITOPS:
+    CheckIntrinsicBitFunc(Function, Arguments, ReturnType);
+    break;
+
   default:
     llvm_unreachable("invalid intrinsic function");
   }

@@ -42,6 +42,13 @@ bool Sema::CheckIntrinsicCallArgumentCount(intrinsic::FunctionKind Function,
     else if(Args.size() > 2)
       ArgCountDiag = diag::err_typecheck_call_too_many_args;
     break;
+  case ArgumentCount3:
+    ExpectedCount = 3;
+    if(Args.size() < 3)
+      ArgCountDiag = diag::err_typecheck_call_too_few_args;
+    else if(Args.size() > 3)
+      ArgCountDiag = diag::err_typecheck_call_too_many_args;
+    break;
   case ArgumentCount1or2:
     ExpectedString = "1 or 2";
     if(Args.size() < 1)
@@ -517,6 +524,62 @@ bool Sema::CheckIntrinsicInquiryFunc(intrinsic::FunctionKind Function,
     }
     break;
   }
+  return false;
+}
+
+// FIXME: apply constant arguments constraints (e.g. 0 .. BIT_SIZE range)
+bool Sema::CheckIntrinsicBitFunc(intrinsic::FunctionKind Function,
+                                 ArrayRef<Expr*> Args,
+                                 QualType &ReturnType) {
+  if(Function == NOT) {
+    CheckIntegerArgument(Args[0], true);
+    ReturnType = Args[0]->getType();
+    return false;
+  }
+
+  auto FirstArg = Args[0];
+  auto SecondArg = Args[1];
+  if(CheckIntegerArgument(FirstArg,true)) {
+    ReturnType = Context.IntegerTy;
+    return true;
+  }
+
+  switch(Function) {
+  case BTEST:
+    CheckIntegerArgument(SecondArg,true);
+    CheckArrayArgumentsDimensionCompability(FirstArg, SecondArg, "i", "pos");
+    ReturnType = GetBinaryReturnType(FirstArg, SecondArg, Context.LogicalTy);
+    break;
+  case IBCLR:
+  case IBSET:
+    CheckIntegerArgument(SecondArg,true);
+    CheckArrayArgumentsDimensionCompability(FirstArg, SecondArg, "i", "pos");
+    ReturnType = FirstArg->getType();
+    break;
+  case IBITS: {
+    auto ThirdArg = Args[2];
+    CheckIntegerArgument(SecondArg, true);
+    CheckArrayArgumentsDimensionCompability(FirstArg, SecondArg, "i", "pos");
+    CheckIntegerArgument(ThirdArg, true);
+    CheckArrayArgumentsDimensionCompability(FirstArg, ThirdArg, "i", "len");
+    ReturnType = FirstArg->getType();
+    break;
+  }
+  case ISHFT:
+  case ISHFTC: // FIXME: optional size
+    CheckIntegerArgument(SecondArg, true);
+    CheckArrayArgumentsDimensionCompability(FirstArg, SecondArg, "i", "shift");
+    ReturnType = FirstArg->getType();
+    break;
+  case IAND:
+  case IEOR:
+  case IOR:
+    CheckArgumentsTypeCompability(FirstArg, SecondArg, "i", "j", true);
+    CheckArrayArgumentsDimensionCompability(FirstArg, SecondArg, "i", "j");
+    ReturnType = FirstArg->getType();
+    break;
+  }
+
   return false;
 }
 
