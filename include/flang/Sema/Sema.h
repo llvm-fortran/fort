@@ -519,12 +519,16 @@ public:
                                       ExprResult RealPart, ExprResult ImPart);
 
   /// GetUnaryReturnType - Returns the type T with the
-  /// requires qualifiers and array type from the given expression.
+  /// required qualifiers and array type from the given expression.
   QualType GetUnaryReturnType(const Expr *E, QualType T);
 
   ExprResult ActOnUnaryExpr(ASTContext &C, SourceLocation Loc,
                             UnaryExpr::Operator Op, ExprResult E);
 
+  /// GetBinaryReturnType - Returns the type T with the
+  /// required qualifiers and array type from the given expression.
+  QualType GetBinaryReturnType(const Expr *LHS, const Expr *RHS,
+                               QualType T);
 
   ExprResult ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
                              BinaryExpr::Operator Op,

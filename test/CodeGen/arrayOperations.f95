@@ -30,4 +30,10 @@ PROGRAM test
   c_mat = cmplx(c_mat2)
   c_mat = cmplx(i_mat,r_mat)
 
+  r_mat = aimag(c_mat)
+  c_mat = conjg(c_mat)
+  i_mat = abs(i_mat) + sqrt(r_mat)
+  r_mat = sin(r_mat) * cos(r_mat) + tan(r_mat)
+  c_mat = exp(c_mat) + sin(c_mat)
+
 END

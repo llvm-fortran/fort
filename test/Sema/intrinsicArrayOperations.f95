@@ -39,4 +39,14 @@ program intrinfuntest
   r_arr = real( (/ i_arr, 6,7,8,9,10 /) )
   r_mat = int(c_mat) ! CHECK: r_mat = real(int(c_mat))
   r_mat = real(i_arr) ! expected-error {{conflicting shapes in an array expression (2 dimensions and 1 dimension)}}
+
+!! misc and maths functions
+
+  r_mat = aimag(c_mat)
+  i_arr = aimag(c_mat) ! expected-error {{conflicting shapes in an array expression (1 dimension and 2 dimensions)}}
+  c_mat = conjg(c_mat)
+  i_mat = abs(i_mat) + sqrt(r_mat)
+  r_mat = sin(r_mat) * cos(r_mat) + tan(r_mat)
+  c_mat = exp(c_mat) + sin(c_mat)
+  r_mat = log(r_mat) * log10(r_arr) ! expected-error {{conflicting shapes in an array expression (2 dimensions and 1 dimension)}}
 end

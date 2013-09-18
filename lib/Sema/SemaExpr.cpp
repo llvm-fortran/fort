@@ -457,6 +457,17 @@ static void AdjustArrayImplicitCast(ASTContext &C, Expr *E) {
   }
 }
 
+QualType Sema::GetBinaryReturnType(const Expr *LHS, const Expr *RHS,
+                                   QualType T) {
+  auto LHSType = LHS->getType();
+  auto RHSType = RHS->getType();
+  if(auto ATy = LHSType->asArrayType())
+    return Context.getArrayType(T, ATy->getDimensions());
+  if(auto ATy = RHSType->asArrayType())
+    return Context.getArrayType(T, ATy->getDimensions());
+  return T;
+}
+
 ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
                                  BinaryExpr::Operator Op,
                                  ExprResult LHS, ExprResult RHS) {

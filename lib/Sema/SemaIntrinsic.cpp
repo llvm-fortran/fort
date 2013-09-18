@@ -151,14 +151,15 @@ bool Sema::CheckIntrinsicComplexFunc(intrinsic::FunctionKind Function,
   auto GenericFunction = getGenericFunctionKind(Function);
 
   if(GenericFunction != Function) {
-    if(CheckDoubleComplexArgument(Arg)) return true;
+    if(CheckDoubleComplexArgument(Arg, true)) return true;
   } else {
-    if(CheckComplexArgument(Arg)) return true;
+    if(CheckComplexArgument(Arg, true)) return true;
   }
 
   switch(GenericFunction) {
   case AIMAG:
-    ReturnType = Context.getComplexTypeElementType(Arg->getType());
+    ReturnType = GetUnaryReturnType(Arg,
+                   Context.getComplexTypeElementType(Arg->getType().getSelfOrArrayElementType()));
     break;
   case CONJG:
     ReturnType = Arg->getType();
@@ -187,19 +188,19 @@ bool Sema::CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
   case ABS:
     if(GenericFunction != Function) {
       switch(Function) {
-      case IABS: CheckIntegerArgument(FirstArg); break;
-      case DABS: CheckDoublePrecisionRealArgument(FirstArg); break;
-      case CABS: CheckComplexArgument(FirstArg); break;
+      case IABS: CheckIntegerArgument(FirstArg, true); break;
+      case DABS: CheckDoublePrecisionRealArgument(FirstArg, true); break;
+      case CABS: CheckComplexArgument(FirstArg, true); break;
       case CDABS:
-        CheckDoubleComplexArgument(FirstArg);
-        ReturnType = Context.DoublePrecisionTy;
+        CheckDoubleComplexArgument(FirstArg, true);
+        ReturnType = GetUnaryReturnType(FirstArg, Context.DoublePrecisionTy);
         return false;
       }
     }
-    else CheckIntegerOrRealOrComplexArgument(FirstArg);
+    else CheckIntegerOrRealOrComplexArgument(FirstArg, true);
     if(FirstArg->getType()->isComplexType()) {
-      ReturnType = TypeWithKind(Context, Context.RealTy,
-                                FirstArg->getType());
+      ReturnType = GetUnaryReturnType(FirstArg, TypeWithKind(Context, Context.RealTy,
+                                      FirstArg->getType()));
     } else
       ReturnType = FirstArg->getType();
     break;
@@ -240,9 +241,10 @@ bool Sema::CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
     break;
 
   case DPROD:
-    CheckStrictlyRealArgument(FirstArg);
-    CheckStrictlyRealArgument(SecondArg);
-    ReturnType = Context.DoublePrecisionTy;
+    CheckStrictlyRealArgument(FirstArg, true);
+    CheckStrictlyRealArgument(SecondArg, true);
+    // FIXME: compability
+    ReturnType = GetBinaryReturnType(FirstArg, SecondArg, Context.DoublePrecisionTy);
     break;
 
   case MAX:
@@ -292,22 +294,22 @@ bool Sema::CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
     if(GenericFunction != Function) {
       switch(Function) {
       case ALOG:
-        if(CheckStrictlyRealArgument(FirstArg))
+        if(CheckStrictlyRealArgument(FirstArg, true))
           return true;
         break;
       case DSQRT: case DEXP: case DLOG:
       case DSIN: case DCOS: case DTAN:
-        if(CheckDoublePrecisionRealArgument(FirstArg))
+        if(CheckDoublePrecisionRealArgument(FirstArg, true))
           return true;
         break;
       case CSQRT: case CEXP: case CLOG:
       case CSIN:  case CCOS: case CTAN:
-        if(CheckComplexArgument(FirstArg))
+        if(CheckComplexArgument(FirstArg, true))
           return true;
         break;
       }
     }
-    else if(CheckRealOrComplexArgument(FirstArg))
+    else if(CheckRealOrComplexArgument(FirstArg, true))
       return true;
     ReturnType = FirstArg->getType();
     break;
@@ -323,15 +325,15 @@ bool Sema::CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
     if(GenericFunction != Function) {
       switch(Function) {
       case ALOG10:
-        if(CheckStrictlyRealArgument(FirstArg))
+        if(CheckStrictlyRealArgument(FirstArg, true))
           return true;
         break;
       default:
-        if(CheckDoublePrecisionRealArgument(FirstArg))
+        if(CheckDoublePrecisionRealArgument(FirstArg, true))
           return true;
       }
     }
-    else if(CheckRealArgument(FirstArg))
+    else if(CheckRealArgument(FirstArg, true))
       return true;
     ReturnType = FirstArg->getType();
     break;

@@ -593,6 +593,18 @@ RValueTy ArrayOperationEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *
     }
     break;
   }
+  case GROUP_COMPLEX:
+    return CGF.EmitIntrinsicCallComplex(Func, Emit(Args[0]).asComplex());
+
+  case GROUP_MATHS: {
+    auto FirstVal = Emit(Args[0]);
+    if(FirstVal.isComplex())
+      return CGF.EmitIntrinsicCallComplexMath(Func, FirstVal.asComplex());
+    return CGF.EmitIntrinsicCallScalarMath(Func, FirstVal.asScalar(),
+                                           Args.size() == 2?
+                                             Emit(Args[1]).asScalar() : nullptr);
+    break;
+  }
   default:
     llvm_unreachable("invalid intrinsic group");
   }
