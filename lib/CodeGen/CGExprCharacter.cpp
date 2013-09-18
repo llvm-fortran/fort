@@ -264,10 +264,10 @@ RValueTy CodeGenFunction::EmitIntrinsicCallCharacter(intrinsic::FunctionKind Fun
   CGFunction RuntimeFunc;
   switch(Func) {
   case intrinsic::INDEX: {
-    auto Diff = Builder.CreatePtrDiff(A2.Ptr, A1.Ptr);
-    Diff = EmitSizeIntToIntConversion(Diff);
-    return Builder.CreateAdd(Diff, GetConstantOne(getContext().IntegerTy));
-    break;
+    RuntimeFunc = CGM.GetRuntimeFunction3(MANGLE_CHAR_FUNCTION("index", CharType),
+                                          CharType, CharType, CGM.Int32Ty, CGM.SizeTy);
+    return EmitScalarToScalarConversion(EmitCall3(RuntimeFunc, A1, A2, Builder.getInt32(0)).asScalar(),
+                                        getContext().IntegerTy);
   }
 
   case intrinsic::LLE:

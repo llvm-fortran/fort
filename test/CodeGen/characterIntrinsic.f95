@@ -12,7 +12,7 @@ PROGRAM test
 
   STR = 'Hello'
 
-  I = index(STR, STR(:)) ! CHECK: sub
+  I = index(STR, STR(:)) ! CHECK: call i{{.*}} @libflang_index_char1
 
   L = lle(STR, 'Hello')
   L = lgt(STR, 'World') ! CHECK: call i32 @libflang_lexcompare_char1
