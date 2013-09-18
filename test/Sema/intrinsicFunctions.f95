@@ -58,6 +58,8 @@ PROGRAM intrinfuntest
   d = DBLE(i) ! CHECK: d = dble(i)
   d = DBLE(r) ! CHECK: d = dble(r)
   r = DBLE(i) ! CHECK: r = real(dble(i))
+  r = real(c8) ! CHECK: r = real(real(c8))
+  r8 = real(c8) ! CHECK: r8 = real(c8)
 
   c = cmplx(2.0)
   c = CMPLX(33)

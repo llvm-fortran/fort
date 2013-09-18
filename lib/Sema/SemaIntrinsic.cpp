@@ -114,15 +114,20 @@ bool Sema::CheckIntrinsicConversionFunc(intrinsic::FunctionKind Function,
                                                 Context.IntegerTy);
     break;
 
-  case REAL: case FLOAT: case SNGL:
+  case REAL: case FLOAT: case SNGL: {
     if(Function == FLOAT) CheckIntegerArgument(Item , true);
     else if(Function == SNGL) CheckDoublePrecisionRealArgument(Item , true);
     else CheckIntegerOrRealOrComplexArgument(Item , true);
 
+    auto ItemType = Item->getType().getSelfOrArrayElementType();
+    if(!Kind && ItemType->isComplexType()) {
+      ReturnType = GetUnaryReturnType(Item, Context.getComplexTypeElementType(ItemType));
+      break;
+    }
     ReturnType = GetUnaryReturnType(Item, Kind? ApplyTypeKind(Context.RealTy, Kind) :
                                                 Context.RealTy);
     break;
-
+  }
   case DBLE:
     CheckIntegerOrRealOrComplexArgument(Item , true);
     ReturnType = GetUnaryReturnType(Item , Context.DoublePrecisionTy);
