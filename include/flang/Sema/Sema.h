@@ -689,6 +689,8 @@ public:
   BuiltinType::TypeKind EvalAndCheckTypeKind(QualType T,
                                              const Expr *E);
 
+  QualType ApplyTypeKind(QualType T, const Expr *E);
+
   /// Returns evaluated length specification
   /// fot the character type.
   unsigned EvalAndCheckCharacterLength(const Expr *E);
@@ -843,7 +845,8 @@ public:
   bool CheckBuiltinTypeArgument(const Expr *E, bool AllowArrays = false);
 
   /// Returns false if the argument's type is integer.
-  bool CheckIntegerArgument(const Expr *E, bool AllowArrays = false);
+  bool CheckIntegerArgument(const Expr *E, bool AllowArrays = false,
+                            StringRef ArgName = StringRef());
 
   /// Returns false if the argument's type is real.
   bool CheckRealArgument(const Expr *E, bool AllowArrays = false);

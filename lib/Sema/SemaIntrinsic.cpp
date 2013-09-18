@@ -70,52 +70,77 @@ bool Sema::CheckIntrinsicCallArgumentCount(intrinsic::FunctionKind Function,
   return false;
 }
 
+static QualType ApplyKind(Sema &S, QualType T, const Expr *E) {
+
+}
+
 // FIXME: add support for kind parameter
 bool Sema::CheckIntrinsicConversionFunc(intrinsic::FunctionKind Function,
                                         ArrayRef<Expr*> Args,
                                         QualType &ReturnType) {
-  auto FirstArg = Args[0];
+  const Expr *Item = Args[0];
+  const Expr *Kind = nullptr;
+
+  if(Function == INT || Function == REAL) {
+    if(Args.size() >= 2)
+      Kind = Args[1];
+  } else if(Function == CMPLX) {
+    if(Args.size() >= 2) {
+      if(Item->getType().getSelfOrArrayElementType()->isComplexType())
+        Kind = Args[1];
+      else if(Args.size() == 3) {
+        Kind = Args[2];
+      }
+    }
+  }
+  if(Kind) {
+    if(CheckIntegerArgument(Kind, false, "kind"))
+      Kind = nullptr;
+  }
+
   switch(Function) {
   case INT: case IFIX: case IDINT:
-    if(Function == IFIX) CheckStrictlyRealArgument(FirstArg, true);
-    else if(Function == IDINT) CheckDoublePrecisionRealArgument(FirstArg, true);
-    else CheckIntegerOrRealOrComplexArgument(FirstArg, true);
-    ReturnType = GetUnaryReturnType(FirstArg, Context.IntegerTy);
+    if(Function == IFIX) CheckStrictlyRealArgument(Item, true);
+    else if(Function == IDINT) CheckDoublePrecisionRealArgument(Item, true);
+    else CheckIntegerOrRealOrComplexArgument(Item, true);
+    ReturnType = GetUnaryReturnType(Item, Kind? ApplyTypeKind(Context.IntegerTy, Kind) :
+                                                Context.IntegerTy);
     break;
 
   case REAL: case FLOAT: case SNGL:
-    if(Function == FLOAT) CheckIntegerArgument(FirstArg, true);
-    else if(Function == SNGL) CheckDoublePrecisionRealArgument(FirstArg, true);
-    else CheckIntegerOrRealOrComplexArgument(FirstArg, true);
-    ReturnType = GetUnaryReturnType(FirstArg, Context.RealTy);
+    if(Function == FLOAT) CheckIntegerArgument(Item , true);
+    else if(Function == SNGL) CheckDoublePrecisionRealArgument(Item , true);
+    else CheckIntegerOrRealOrComplexArgument(Item , true);
+
+    ReturnType = GetUnaryReturnType(Item, Kind? ApplyTypeKind(Context.RealTy, Kind) :
+                                                Context.RealTy);
     break;
 
   case DBLE:
-    CheckIntegerOrRealOrComplexArgument(FirstArg, true);
-    ReturnType = GetUnaryReturnType(FirstArg, Context.DoublePrecisionTy);
+    CheckIntegerOrRealOrComplexArgument(Item , true);
+    ReturnType = GetUnaryReturnType(Item , Context.DoublePrecisionTy);
     break;
 
   case CMPLX:
   case DCMPLX:
-    CheckIntegerOrRealOrComplexArgument(FirstArg, true);
+    CheckIntegerOrRealOrComplexArgument(Item , true);
     if(Args.size() > 1) {
-      if(FirstArg->getType().getSelfOrArrayElementType()->isComplexType()) {
-        // FIXME: error.
-      }
-      else CheckIntegerOrRealArgument(Args[1], true);
+      if(!Item->getType().getSelfOrArrayElementType()->isComplexType())
+        CheckIntegerOrRealArgument(Args[1], true);
     }
-    ReturnType = GetUnaryReturnType(FirstArg, Function == CMPLX? Context.ComplexTy :
-                                                                 Context.DoubleComplexTy);
+    ReturnType = GetUnaryReturnType(Item, Kind? ApplyTypeKind(Context.ComplexTy, Kind) :
+                                     (Function == CMPLX? Context.ComplexTy :
+                                                         Context.DoubleComplexTy));
     break;
 
-    // FIXME: array support
+    // FIXME: array and kind support
   case ICHAR:
-    CheckCharacterArgument(FirstArg);
+    CheckCharacterArgument(Item);
     ReturnType = Context.IntegerTy;
     break;
 
   case CHAR:
-    CheckIntegerArgument(FirstArg);
+    CheckIntegerArgument(Item);
     ReturnType = Context.CharacterTy;
     break;
   }

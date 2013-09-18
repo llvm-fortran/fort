@@ -8,6 +8,10 @@ PROGRAM intrinfuntest
   CHARACTER (LEN=100) string
   LOGICAL logicalResult
 
+  integer (kind=8) i64
+  real (kind =8) r8
+  complex(kind = 8) c8
+
   INTRINSIC INT, IFIX, IDINT
   INTRINSIC REAL, FLOAT, sngl
   INTRINSIC DBLE, cmplx
@@ -36,8 +40,8 @@ PROGRAM intrinfuntest
   i = IDINT(4.25D1) ! CHECK: i = idint(42.5)
   r = INT(22) ! CHECK: r = real(int(22))
 
-  i = INT() ! expected-error {{too few arguments to intrinsic function call, expected 1, have 0}}
-  i = INT(1,2) ! expected-error {{too many arguments to intrinsic function call, expected 1, have 2}}
+  i = INT() ! expected-error {{too few arguments to intrinsic function call, expected 1 or 2, have 0}}
+  i = INT(1,2,3) ! expected-error {{too many arguments to intrinsic function call, expected 1 or 2, have 3}}
 
   i = IFIX(22) ! expected-error {{passing 'integer' to parameter of incompatible type 'real'}}
   i = idint(22) ! expected-error {{passing 'integer' to parameter of incompatible type 'double precision'}}
@@ -70,6 +74,13 @@ PROGRAM intrinfuntest
 
   string = CHAR(65)
   string = char('TRUTH') ! expected-error {{passing 'character' to parameter of incompatible type 'integer'}}
+
+  i64 = int(i,8)
+  r8 = real(r,8)
+  c8 = complex(c,8)
+  i = int(i,1.0) ! expected-error {{passing 'real' to parameter 'kind' of incompatible type 'integer'}}
+  i = int(i,22) ! expected-error {{invalid kind selector '22' for type 'integer'}}
+  i = int(i,kind(i))
 
 !! misc and maths functions
 

@@ -75,6 +75,12 @@ BuiltinType::TypeKind Sema::EvalAndCheckTypeKind(QualType T,
   return BuiltinType::NoKind;
 }
 
+QualType Sema::ApplyTypeKind(QualType T, const Expr *E) {
+  auto Kind = EvalAndCheckTypeKind(T, E);
+  return Kind != BuiltinType::NoKind?
+           Context.getExtQualType(T.getTypePtr(), Qualifiers(), Kind) : T;
+}
+
 unsigned Sema::EvalAndCheckCharacterLength(const Expr *E) {
   auto Result = CheckIntGT0(E, EvalAndCheckIntExpr(E, 1));
   if(Result > int64_t(std::numeric_limits<unsigned>::max())) {
@@ -459,10 +465,10 @@ bool Sema::CheckBuiltinTypeArgument(const Expr *E, bool AllowArrays) {
   return false;
 }
 
-bool Sema::CheckIntegerArgument(const Expr *E, bool AllowArrays) {
+bool Sema::CheckIntegerArgument(const Expr *E, bool AllowArrays, StringRef ArgName) {
   auto Type = getBuiltinType(E, AllowArrays);
   if(!Type || !Type->isIntegerType())
-    return DiagnoseIncompatiblePassing(E, Context.IntegerTy, AllowArrays);
+    return DiagnoseIncompatiblePassing(E, Context.IntegerTy, AllowArrays, ArgName);
   return false;
 }
 
