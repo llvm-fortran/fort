@@ -821,6 +821,12 @@ public:
                                 ArrayRef<Expr*> Args,
                                 QualType &ReturnType);
 
+  /// Returns false if the call to a function from the inquiry group
+  /// is valid.
+  bool CheckIntrinsicInquiryFunc(intrinsic::FunctionKind Function,
+                                 ArrayRef<Expr*> Args,
+                                 QualType &ReturnType);
+
   /// Reports an incompatible argument error and returns true.
   bool DiagnoseIncompatiblePassing(const Expr *E, QualType T,
                                    bool AllowArrays,
@@ -828,6 +834,9 @@ public:
   bool DiagnoseIncompatiblePassing(const Expr *E, StringRef T,
                                    bool AllowArrays,
                                    StringRef ArgName = StringRef());
+
+  /// Returns false if the argument's type is built in.
+  bool CheckBuiltinTypeArgument(const Expr *E, bool AllowArrays = false);
 
   /// Returns false if the argument's type is integer.
   bool CheckIntegerArgument(const Expr *E, bool AllowArrays = false);

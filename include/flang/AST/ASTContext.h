@@ -150,6 +150,11 @@ public:
   /// \brief Returns the amount of bits that an arithmetic type kind occupies
   unsigned getTypeKindBitWidth(BuiltinType::TypeKind Kind) const;
 
+  /// \brief Returns a type kind big enough to store a value
+  /// ranging from -10^Range to 10^Range, or
+  /// NoKind if such value can't be stored.
+  BuiltinType::TypeKind getSelectedIntKind(int64_t Range) const;
+
 private:
   QualType getTypeDeclTypeSlow(const TypeDecl *Decl);
 

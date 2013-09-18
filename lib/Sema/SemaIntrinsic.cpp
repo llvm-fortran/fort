@@ -465,4 +465,35 @@ bool Sema::CheckIntrinsicSystemFunc(intrinsic::FunctionKind Function,
   return false;
 }
 
+bool Sema::CheckIntrinsicInquiryFunc(intrinsic::FunctionKind Function,
+                                     ArrayRef<Expr*> Args,
+                                     QualType &ReturnType) {
+  switch(Function) {
+  case KIND:
+    CheckBuiltinTypeArgument(Args[0], true);
+    ReturnType = Context.IntegerTy;
+    break;
+  case SELECTED_INT_KIND:
+    CheckIntegerArgument(Args[0]);
+    ReturnType = Context.IntegerTy;
+    break;
+  case SELECTED_REAL_KIND:
+    CheckIntegerArgument(Args[0]);
+    if(Args.size() > 1)
+      CheckIntegerArgument(Args[1]);
+    ReturnType = Context.IntegerTy;
+    break;
+  case BIT_SIZE:
+    if(CheckIntegerArgument(Args[0], true))
+      ReturnType = Context.IntegerTy;
+    else {
+      auto Kind = Context.getIntTypeKind(Args[0]->getType().getSelfOrArrayElementType()
+                                         .getExtQualsPtrOrNull());
+      ReturnType = Context.getExtQualType(Context.IntegerTy.getTypePtr(), Qualifiers(), Kind);
+    }
+    break;
+  }
+  return false;
+}
+
 } // end namespace flang

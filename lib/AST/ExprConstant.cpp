@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/ExprVisitor.h"
@@ -54,6 +55,7 @@ public:
   bool VisitVarExpr(const VarExpr *E);
   bool VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
   bool VisitTypeConstructorExpr(const TypeConstructorExpr *E);
+  bool VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
 };
 
 bool ConstExprVerifier::Eval(const Expr *E) {
@@ -106,6 +108,23 @@ bool ConstExprVerifier::VisitTypeConstructorExpr(const TypeConstructorExpr *E) {
   return true;
 }
 
+bool ConstExprVerifier::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
+  switch(E->getIntrinsicFunction()) {
+  case intrinsic::SELECTED_REAL_KIND:
+    //FIXME
+    return false;
+  case intrinsic::SELECTED_INT_KIND:
+    for(auto I : E->getArguments()) {
+      if(!Eval(I))
+        return false;
+    }
+  case intrinsic::KIND:
+  case intrinsic::BIT_SIZE:
+    return true;
+  }
+  return VisitExpr(E);
+}
+
 struct IntValueTy : public llvm::APInt {
 
   IntValueTy() {}
@@ -137,10 +156,12 @@ struct IntValueTy : public llvm::APInt {
 class IntExprEvaluator: public ConstExprVisitor<IntExprEvaluator,
                                                 bool> {
   IntValueTy Result;
+  const ASTContext &Context;
   const ExprEvalScope *Scope;
 public:
-  IntExprEvaluator(const ExprEvalScope *S)
-    : Scope(S) {}
+  IntExprEvaluator(const ASTContext &C,
+                   const ExprEvalScope *S)
+    : Context(C), Scope(S) {}
 
   bool CheckResult(bool Overflow);
 
@@ -151,6 +172,7 @@ public:
   bool VisitUnaryExprPlus(const UnaryExpr *E);
   bool VisitBinaryExpr(const BinaryExpr *E);
   bool VisitVarExpr(const VarExpr *E);
+  bool VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
 
   int64_t getResult() const;
 };
@@ -246,9 +268,49 @@ bool IntExprEvaluator::VisitVarExpr(const VarExpr *E) {
   return false;
 }
 
+bool IntExprEvaluator::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
+  auto Args = E->getArguments();
+  if(Args.empty())
+    return VisitExpr(E);
+
+  switch(E->getIntrinsicFunction()) {
+  case intrinsic::SELECTED_INT_KIND: {
+    //FIXME
+    if(!Eval(Args[0]))
+      return false;
+    auto Kind = Context.getSelectedIntKind(getResult());
+    Result.Assign(llvm::APInt(64, Kind == BuiltinType::NoKind? -1 :
+                    Context.getTypeKindBitWidth(Kind)/8, true));
+    return true;
+  }
+  case intrinsic::SELECTED_REAL_KIND:
+    return false;
+  case intrinsic::KIND: {
+    auto T = Args[0]->getType().getSelfOrArrayElementType();
+    if(!T->isBuiltinType()) {
+      Result.Assign(llvm::APInt(64, 4, true));
+      return true;
+    }
+    auto Kind = T->isCharacterType()? BuiltinType::Int1 :
+                  Context.getArithmeticOrLogicalTypeKind(T.getExtQualsPtrOrNull(), T);
+    Result.Assign(llvm::APInt(64, Context.getTypeKindBitWidth(Kind)/8, true));
+    return true;
+  }
+  case intrinsic::BIT_SIZE: {
+    auto T = Args[0]->getType().getSelfOrArrayElementType();
+    auto Val = T->isIntegerType()?
+                 Context.getTypeKindBitWidth(Context.getIntTypeKind(T.getExtQualsPtrOrNull())) : 1;
+    Result.Assign(llvm::APInt(64, Val, true));
+    return true;
+  }
+  }
+
+  return VisitExpr(E);
+}
+
 bool Expr::EvaluateAsInt(int64_t &Result, const ASTContext &Ctx,
                          const ExprEvalScope *Scope) const {
-  IntExprEvaluator EV(Scope);
+  IntExprEvaluator EV(Ctx, Scope);
   auto Success = EV.Eval(this);
   Result = EV.getResult();
   return Success;

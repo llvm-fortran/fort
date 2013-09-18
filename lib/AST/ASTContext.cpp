@@ -86,6 +86,19 @@ unsigned ASTContext::getTypeKindBitWidth(BuiltinType::TypeKind Kind) const {
   return 0;
 }
 
+BuiltinType::TypeKind ASTContext::getSelectedIntKind(int64_t Range) const {
+  if(Range <= 2)
+    return BuiltinType::Int1;
+  else if(Range <= 4)
+    return BuiltinType::Int2;
+  else if(Range <= 9)
+    return BuiltinType::Int4;
+  else if(Range <= 18)
+    return BuiltinType::Int8;
+  // NB: add Range <= 38 for Int16
+  return BuiltinType::NoKind;
+}
+
 //===----------------------------------------------------------------------===//
 //                   Type creation/memoization methods
 //===----------------------------------------------------------------------===//

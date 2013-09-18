@@ -452,6 +452,13 @@ bool Sema::DiagnoseIncompatiblePassing(const Expr *E, StringRef T,
   return true;
 }
 
+bool Sema::CheckBuiltinTypeArgument(const Expr *E, bool AllowArrays) {
+  auto Type = getBuiltinType(E, AllowArrays);
+  if(!Type)
+    return DiagnoseIncompatiblePassing(E, "'intrinsic type'", AllowArrays);
+  return false;
+}
+
 bool Sema::CheckIntegerArgument(const Expr *E, bool AllowArrays) {
   auto Type = getBuiltinType(E, AllowArrays);
   if(!Type || !Type->isIntegerType())
