@@ -37,6 +37,11 @@ public:
 
   unsigned SpellChecking     : 1; // Whether to perform spell-checking for error
                                   // recovery.
+
+  unsigned DefaultReal8      : 1; // Sets the default real type to be 8 bytes wide
+  unsigned DefaultDouble8    : 1; // Sets the default double precision type to be 8 bytes wide
+  unsigned DefaultInt8       : 1; // Sets the default integer type to be 8 bytes wide
+
   LangOptions() {
     Fortran77 = 0;
     Fortran90 = Fortran95 = Fortran2000 = Fortran2003 = 1;
@@ -44,6 +49,7 @@ public:
     FreeForm = 1;
     ReturnComments = 0;
     SpellChecking = 1;
+    DefaultReal8 = DefaultDouble8 = DefaultInt8 = 0;
   }
 };
 

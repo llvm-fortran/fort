@@ -35,14 +35,24 @@ void ASTContext::InitBuiltinTypes() {
   // [R404]
   VoidTy = QualType(new (*this, TypeAlignment) VoidType(), 0);
 
-  IntegerTy = QualType(getBuiltinType(BuiltinType::Integer, BuiltinType::Int4), 0);
-  RealTy = QualType(getBuiltinType(BuiltinType::Real, BuiltinType::Real4), 0);
-  DoublePrecisionTy = QualType(getBuiltinType(BuiltinType::Real, BuiltinType::Real8,
+  auto Opts = getLangOpts();
+  auto IntKind = Opts.DefaultInt8? Type::Int8 : Type::Int4;
+  auto RealKind = Opts.DefaultReal8? Type::Real8 : Type::Real4;
+  auto DblKind = Type::Real8;
+  if(Opts.DefaultReal8 && !Opts.DefaultDouble8)
+    DblKind = Type::Real16;
+
+  IntegerTy = QualType(getBuiltinType(BuiltinType::Integer, IntKind), 0);
+
+  RealTy = QualType(getBuiltinType(BuiltinType::Real, RealKind), 0);
+  DoublePrecisionTy = QualType(getBuiltinType(BuiltinType::Real, DblKind,
                                               false, true), 0);
-  ComplexTy = QualType(getBuiltinType(BuiltinType::Complex, BuiltinType::Real4), 0);
-  DoubleComplexTy = QualType(getBuiltinType(BuiltinType::Complex, BuiltinType::Real8,
+
+  ComplexTy = QualType(getBuiltinType(BuiltinType::Complex, RealKind), 0);
+  DoubleComplexTy = QualType(getBuiltinType(BuiltinType::Complex, DblKind,
                                             false, true), 0);
-  LogicalTy = QualType(getBuiltinType(BuiltinType::Logical, BuiltinType::Int4), 0);
+
+  LogicalTy = QualType(getBuiltinType(BuiltinType::Logical, IntKind), 0);
 
   CharacterTy = QualType(getCharacterType(1), 0);
   NoLengthCharacterTy = QualType(getCharacterType(0), 0);

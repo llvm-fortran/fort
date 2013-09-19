@@ -110,6 +110,15 @@ namespace {
   cl::opt<std::string>
   TargetTriple("triple", cl::desc("target triple"), cl::init(""));
 
+  cl::opt<bool>
+  DefaultReal8("fdefault-real-8", cl::desc("set the kind of the default real type to 8"), cl::init(false));
+
+  cl::opt<bool>
+  DefaultDouble8("fdefault-double-8", cl::desc("set the kind of the default double type to 8"), cl::init(false));
+
+  cl::opt<bool>
+  DefaultInt8("fdefault-integer-8", cl::desc("set the kind of the default integer type to 8"), cl::init(false));
+
 } // end anonymous namespace
 
 
@@ -297,6 +306,9 @@ static bool ParseFile(const std::string &Filename,
   SrcMgr.AddNewSourceBuffer(MB.take(), llvm::SMLoc());
 
   LangOptions Opts;
+  Opts.DefaultReal8 = DefaultReal8;
+  Opts.DefaultDouble8 = DefaultDouble8;
+  Opts.DefaultInt8 = DefaultInt8;
   Opts.ReturnComments = ReturnComments;
   llvm::StringRef Ext = llvm::sys::path::extension(Filename);
   if(Ext.equals_lower(".f")) {
