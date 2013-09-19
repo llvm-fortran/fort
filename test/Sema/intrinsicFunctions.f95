@@ -17,7 +17,7 @@ PROGRAM intrinfuntest
   INTRINSIC DBLE, cmplx
   INTRINSIC char, ICHAR
 
-  INTRINSIC AINT, dint, anint, DNINT, nint, IDNINT
+  INTRINSIC AINT, dint, anint, DNINT, nint, IDNINT, ceiling, floor
   INTRINSIC abs, iabs, dabs, cabs
   INTRINSIC mod, sign, dim, dprod, max, min
   INTRINSIC len, len_trim, index
@@ -100,6 +100,8 @@ PROGRAM intrinfuntest
   i = NINT(d) ! CHECK: i = nint(d)
   i = IDNINT(d) ! CHECK: i = idnint(d)
   i = IDNINT(r) ! expected-error {{passing 'real' to parameter of incompatible type 'double precision'}}
+
+  i = ceiling(r) + floor(d) ! CHECK: i = (ceiling(r)+floor(d))
 
   i = ABS(i) ! CHECK: i = abs(i)
   r = ABS(r) ! CHECK: r = abs(r)

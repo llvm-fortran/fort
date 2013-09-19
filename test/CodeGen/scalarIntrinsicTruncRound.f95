@@ -3,7 +3,7 @@ PROGRAM testscalartruncround
   INTEGER i
   REAL x
 
-  INTRINSIC aint, anint, nint
+  INTRINSIC aint, anint, nint, ceiling, floor
 
   x = 2.25
 
@@ -14,5 +14,8 @@ PROGRAM testscalartruncround
   i = nint(x)  ! CHECK: call float @llvm.rint.f32
   CONTINUE     ! CHECK: fptosi
   CONTINUE     ! CHECK: store i32
+
+  i = ceiling(x) ! CHECK: call float @llvm.ceil.f32
+  i = floor(x)   ! CHECK: call float @llvm.floor.f32
 
 END PROGRAM

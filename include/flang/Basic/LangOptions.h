@@ -41,6 +41,7 @@ public:
   unsigned DefaultReal8      : 1; // Sets the default real type to be 8 bytes wide
   unsigned DefaultDouble8    : 1; // Sets the default double precision type to be 8 bytes wide
   unsigned DefaultInt8       : 1; // Sets the default integer type to be 8 bytes wide
+  unsigned TabWidth;              // The tab character is treated as N spaces.
 
   LangOptions() {
     Fortran77 = 0;
@@ -50,6 +51,7 @@ public:
     ReturnComments = 0;
     SpellChecking = 1;
     DefaultReal8 = DefaultDouble8 = DefaultInt8 = 0;
+    TabWidth = 6;
   }
 };
 

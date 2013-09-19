@@ -136,10 +136,16 @@ llvm::Value *CodeGenFunction::EmitIntrinsicCallScalarTruncation(intrinsic::Funct
   case intrinsic::NINT:
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::rint, ValueType);
     break;
+  case intrinsic::CEILING:
+    FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::ceil, ValueType);
+    break;
+  case intrinsic::FLOOR:
+    FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::floor, ValueType);
+    break;
   }
 
   auto Result = Builder.CreateCall(FuncDecl, Value);
-  if(Func == intrinsic::NINT)
+  if(ResultType->isIntegerType())
     return EmitScalarToScalarConversion(Result, ResultType);
   return Result;
 }

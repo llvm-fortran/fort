@@ -28,6 +28,7 @@ namespace flang {
 static void InitCharacterInfo();
 static bool isWhitespace(unsigned char c);
 static bool isHorizontalWhitespace(unsigned char c);
+static bool isHorizontalTab(unsigned char c);
 static bool isVerticalWhitespace(unsigned char c);
 
 Lexer::Lexer(llvm::SourceMgr &SM, const LangOptions &features, DiagnosticsEngine &D)
@@ -153,8 +154,10 @@ SkipFixedFormBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
   while (isVerticalWhitespace(*BufPtr) && *BufPtr != '\0')
     ++BufPtr;
 
-  while (I != 72 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
-    ++I, ++BufPtr;
+  while (I != 72 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0') {
+    I += isHorizontalTab(*BufPtr)? LanguageOptions.TabWidth : 1;
+    ++BufPtr;
+  }
 
   if(I == 0 && (*BufPtr == 'C' || *BufPtr == 'c' || *BufPtr == '*')) {
     do {
@@ -625,6 +628,11 @@ static inline bool isLetter(unsigned char c) {
 /// whitespace: ' ', '\t', '\f', '\v'.  Note that this returns false for '\0'.
 static inline bool isHorizontalWhitespace(unsigned char c) {
   return (CharInfo[c] & CHAR_HORZ_WS) ? true : false;
+}
+
+/// isHorizontalTab - Return true if this character is horizontal tab.
+static inline bool isHorizontalTab(unsigned char c) {
+  return c == '\t';
 }
 
 /// isVerticalWhitespace - Return true if this character is vertical whitespace:

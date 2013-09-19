@@ -168,8 +168,8 @@ bool Sema::CheckIntrinsicTruncationFunc(intrinsic::FunctionKind Function,
   auto GenericFunction = getGenericFunctionKind(Function);
 
   if(GenericFunction != Function)
-    CheckDoublePrecisionRealArgument(Arg);
-  else CheckRealArgument(Arg);
+    CheckDoublePrecisionRealArgument(Arg, true);
+  else CheckRealArgument(Arg, true);
 
   switch(GenericFunction) {
   case AINT:
@@ -177,7 +177,9 @@ bool Sema::CheckIntrinsicTruncationFunc(intrinsic::FunctionKind Function,
     ReturnType = Arg->getType();
     break;
   case NINT:
-    ReturnType = Context.IntegerTy;
+  case CEILING:
+  case FLOOR:
+    ReturnType = GetUnaryReturnType(Arg, Context.IntegerTy);
     break;
   }
   return false;
