@@ -316,6 +316,9 @@ public:
   llvm::Value *EmitFunctionPointer(const FunctionDecl *F);
   llvm::Value *GetConstantScalarMaxValue(QualType T);
   llvm::Value *GetConstantScalarMinValue(QualType T);
+  llvm::Value *EmitBitOperation(intrinsic::FunctionKind Op,
+                                llvm::Value *A1, llvm::Value *A2,
+                                llvm::Value *A3);
 
   // complex expressions.
   ComplexValueTy ExtractComplexValue(llvm::Value *Agg);

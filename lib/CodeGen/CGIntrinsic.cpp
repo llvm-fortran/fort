@@ -110,6 +110,11 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
     return EmitInquiryIntrinsic(Func, Args);
   }
 
+  case GROUP_BITOPS:
+    return EmitBitOperation(Func, EmitScalarExpr(Args[0]),
+             Args.size() > 1? EmitScalarExpr(Args[1]) : nullptr,
+             Args.size() > 2? EmitScalarExpr(Args[2]) : nullptr);
+
   default:
     llvm_unreachable("invalid intrinsic");
     break;

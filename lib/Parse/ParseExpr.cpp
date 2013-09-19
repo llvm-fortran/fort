@@ -361,7 +361,7 @@ Parser::ExprResult Parser::ParseLevel2Expr() {
 Parser::ExprResult Parser::ParseLevel1Expr() {
   SourceLocation OpLoc = Tok.getLocation();
   IdentifierInfo *II = 0;
-  if (IsPresent(tok::defined_operator)) {
+ if (IsPresent(tok::defined_operator) && !IsNextToken(tok::l_paren)) {
     II = Tok.getIdentifierInfo();
     Lex();
   }

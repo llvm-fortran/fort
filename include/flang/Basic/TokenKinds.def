@@ -23,6 +23,9 @@
 #ifndef FORMAT_SPEC
 #define FORMAT_SPEC(X, Y) TOK(fs_ ## X)
 #endif
+#ifndef OPERATOR(X,Y)
+#define OPERATOR(X,Y) TOK(kw_ ## X)
+#endif
 
 //===----------------------------------------------------------------------===//
 // Language keywords.
@@ -293,25 +296,25 @@ KEYWORD(STOP                   , KEYALL)
 
 // [3.2.4] R309: Intrinsic Operators
 // [3.2.4] R713: rel-op
-KEYWORD(EQ                     , KEYALL)
-KEYWORD(NE                     , KEYALL)
-KEYWORD(LT                     , KEYALL)
-KEYWORD(LE                     , KEYALL)
-KEYWORD(GT                     , KEYALL)
-KEYWORD(GE                     , KEYALL)
+OPERATOR(EQ                    , KEYALL)
+OPERATOR(NE                    , KEYALL)
+OPERATOR(LT                    , KEYALL)
+OPERATOR(LE                    , KEYALL)
+OPERATOR(GT                    , KEYALL)
+OPERATOR(GE                    , KEYALL)
 // [3.2.4] R718: not-op
-KEYWORD(NOT                    , KEYALL)
+OPERATOR(NOT                   , KEYALL)
 // [3.2.4] R719: and-op
-KEYWORD(AND                    , KEYALL)
+OPERATOR(AND                   , KEYALL)
 // [3.2.4] R720: or-op
-KEYWORD(OR                     , KEYALL)
+OPERATOR(OR                    , KEYALL)
 // [3.2.4] R721: equiv-op
-KEYWORD(EQV                    , KEYALL)
-KEYWORD(NEQV                   , KEYALL)
+OPERATOR(EQV                   , KEYALL)
+OPERATOR(NEQV                  , KEYALL)
 
 // [4.4.4] R424: logical-literal-constant
-KEYWORD(TRUE                   , KEYALL)
-KEYWORD(FALSE                  , KEYALL)
+OPERATOR(TRUE                  , KEYALL)
+OPERATOR(FALSE                 , KEYALL)
 
 KEYWORD(UNIT                   , KEYALL)
 KEYWORD(FMT                    , KEYALL)

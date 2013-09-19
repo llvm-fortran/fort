@@ -313,7 +313,7 @@ llvm::Value *ScalarExprEmitter::VisitBinaryExprOr(const BinaryExpr *E) {
 }
 
 llvm::Value *CodeGenFunction::EmitIntToInt32Conversion(llvm::Value *Value) {
-  return Value; // FIXME: Kinds
+  return Builder.CreateSExtOrTrunc(Value, CGM.Int32Ty);
 }
 
 llvm::Value *CodeGenFunction::EmitSizeIntToIntConversion(llvm::Value *Value) {
@@ -418,6 +418,62 @@ llvm::Value *CodeGenFunction::GetConstantScalarMaxValue(QualType T) {
 
 llvm::Value *CodeGenFunction::GetConstantScalarMinValue(QualType T) {
   return EmitIntrinsicNumericInquiry(intrinsic::TINY, T, T);
+}
+
+llvm::Value *CodeGenFunction::EmitBitOperation(intrinsic::FunctionKind Op,
+                                               llvm::Value *A1, llvm::Value *A2,
+                                               llvm::Value *A3) {
+  switch(Op) {
+  case intrinsic::NOT:
+    return Builder.CreateNot(A1);
+  case intrinsic::IAND:
+    return Builder.CreateAnd(A1, A2);
+  case intrinsic::IOR:
+    return Builder.CreateOr(A1, A2);
+  case intrinsic::IEOR:
+    return Builder.CreateXor(A1, A2);
+  case intrinsic::BTEST: {
+    auto Mask = Builder.CreateShl(llvm::ConstantInt::get(A1->getType(), 1),
+                                  Builder.CreateZExtOrTrunc(A2, A1->getType()));
+    auto Result = Builder.CreateAnd(A1, Mask);
+    return Builder.CreateSelect(Builder.CreateICmpNE(Result, llvm::ConstantInt::get(A1->getType(), 0)),
+                                Builder.getTrue(), Builder.getFalse());
+  }
+  case intrinsic::IBSET: {
+    auto Mask = Builder.CreateShl(llvm::ConstantInt::get(A1->getType(), 1),
+                                  Builder.CreateZExtOrTrunc(A2, A1->getType()));
+    return Builder.CreateOr(A1, Mask);
+  }
+  case intrinsic::IBCLR:{
+    auto Mask = Builder.CreateNot(
+                  Builder.CreateShl(llvm::ConstantInt::get(A1->getType(), 1),
+                                    Builder.CreateZExtOrTrunc(A2, A1->getType())));
+    return Builder.CreateAnd(A1, Mask);
+  }
+  case intrinsic::IBITS: {
+    auto MaskOne = llvm::ConstantInt::get(A1->getType(), 1);
+    auto Mask = Builder.CreateSub(Builder.CreateShl(MaskOne,
+                                  Builder.CreateZExtOrTrunc(A3, A1->getType())), MaskOne);
+    return Builder.CreateAnd(Builder.CreateLShr(A1, Builder.CreateZExtOrTrunc(A2, A1->getType())),
+                             Mask);
+  }
+  case intrinsic::ISHFT: {
+    auto A1Ty = A1->getType();
+    if(auto Val = dyn_cast<llvm::ConstantInt>(A2)) {
+      if(Val->isNegative())
+        return Builder.CreateLShr(A1,
+                Builder.CreateZExtOrTrunc(Builder.CreateNeg(A2), A1Ty));
+      return Builder.CreateShl(A1, Builder.CreateZExtOrTrunc(A2, A1Ty));
+    }
+    return Builder.CreateSelect(Builder.CreateICmpSGE(A2, llvm::ConstantInt::get(A2->getType(), 0)),
+                                Builder.CreateShl(A1, Builder.CreateZExtOrTrunc(A2, A1Ty)),
+                                Builder.CreateLShr(A1,
+                                  Builder.CreateZExtOrTrunc(Builder.CreateNeg(A2), A1Ty)));
+  }
+  // FIXME: ishftc
+  default:
+    llvm_unreachable("Invalid bit operation!");
+  }
 }
 
 }

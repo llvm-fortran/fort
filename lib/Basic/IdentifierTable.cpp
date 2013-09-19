@@ -90,6 +90,7 @@ void IdentifierTable::AddPredefineds(const LangOptions &LangOpts) {
 #define FORMAT_SPEC(NAME, FLAGS) \
   AddPredefined(llvm::StringRef(#NAME), tok::fs_ ## NAME,       \
                 FLAGS, LangOpts, *this, true);
+#define OPERATOR(NAME, FLAGS)
 #include "flang/Basic/TokenKinds.def"
 }
 

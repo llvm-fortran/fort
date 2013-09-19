@@ -605,6 +605,12 @@ RValueTy ArrayOperationEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *
                                              Emit(Args[1]).asScalar() : nullptr);
     break;
   }
+
+  case GROUP_BITOPS: {
+    return CGF.EmitBitOperation(Func, Emit(Args[0]).asScalar(),
+             Args.size() > 1? Emit(Args[1]).asScalar() : nullptr,
+             Args.size() > 2? Emit(Args[2]).asScalar() : nullptr);
+  }
   default:
     llvm_unreachable("invalid intrinsic group");
   }

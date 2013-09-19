@@ -10,10 +10,9 @@ PROGRAM test
   integer(8) i64, i64_arr(10)
   logical l, l_arr(10)
 
-  ! FIXME:
-  !i = not(i)
-  !i = not(2.0)
-  !i = not(i64)
+  i = not(i)
+  i = not(2.0) ! expected-error {{passing 'real' to parameter of incompatible type 'integer'}}
+  i = not(i64) ! CHECK: i = int(not(i64))
 
   i = iand(i,1)
   i = ior(i,i) ! CHECK: i = ior(i, i)
