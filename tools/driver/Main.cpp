@@ -119,6 +119,12 @@ namespace {
   cl::opt<bool>
   DefaultInt8("fdefault-integer-8", cl::desc("set the kind of the default integer type to 8"), cl::init(false));
 
+  cl::opt<bool>
+  FreeForm("ffree-form", cl::desc("the source files are using free form layout"), cl::init(false));
+
+  cl::opt<bool>
+  FixedForm("ffixed-form", cl::desc("the source files are using fixed form layout"), cl::init(false));
+
 } // end anonymous namespace
 
 
@@ -310,8 +316,13 @@ static bool ParseFile(const std::string &Filename,
   Opts.DefaultDouble8 = DefaultDouble8;
   Opts.DefaultInt8 = DefaultInt8;
   Opts.ReturnComments = ReturnComments;
-  llvm::StringRef Ext = llvm::sys::path::extension(Filename);
-  if(Ext.equals_lower(".f")) {
+  if(!FreeForm && !FixedForm) {
+    llvm::StringRef Ext = llvm::sys::path::extension(Filename);
+    if(Ext.equals_lower(".f")) {
+      Opts.FixedForm = 1;
+      Opts.FreeForm = 0;
+    }
+  } else if(FixedForm) {
     Opts.FixedForm = 1;
     Opts.FreeForm = 0;
   }
