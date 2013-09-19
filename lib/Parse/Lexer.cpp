@@ -882,7 +882,7 @@ void Lexer::FormDefinedOperatorTokenWithChars(Token &Result) {
   unsigned TokLen;
   llvm::StringRef FullOp;
 
-  if (!Text.IsInCurrentAtom(TokStart)) {
+  if (!Text.IsInCurrentAtom(TokStart) || Result.needsCleaning()) {
     llvm::SmallVector<llvm::StringRef, 2> Spelling;
     FormTokenWithChars(Result, tok::unknown);
     getSpelling(Result, Spelling);
@@ -1002,6 +1002,50 @@ void Lexer::LexFixedFormIdentifier(const fixedForm::KeywordMatcher &Matcher,
   FormTokenWithChars(Tok, tok::identifier);
   if(NeedsCleaning)
     Tok.setFlag(Token::NeedsCleaning);
+}
+
+bool Lexer::LexPossibleDefinedOperator(Token &Result) {
+  auto Char = getNextChar();
+  if (Features.FixedForm) {
+    while(isHorizontalWhitespace(Char)) {
+      Result.setFlag(Token::NeedsCleaning);
+      Char = getNextChar();
+    }
+  }
+  if (!isLetter(Char))
+    return false;
+  // Match [A-Za-z]*, we have already matched '.'.
+  if(Features.FixedForm) {
+    for(;;) {
+      Char = getNextChar();
+      if(!isLetter(Char)) {
+        if(!isHorizontalWhitespace(Char))
+          break;
+        Result.setFlag(Token::NeedsCleaning);
+      }
+    }
+  } else {
+    while (isLetter(Char))
+      Char = getNextChar();
+  }
+
+  if (Char != '.') {
+    Diags.Report(SourceLocation::getFromPointer(TokStart), diag::err_defined_operator_missing_end);
+    FormTokenWithChars(Result, tok::unknown);
+    return true;
+  }
+
+  // FIXME: fixed-form
+  Char = getNextChar();
+  if (Char == '_') {
+    // Parse the kind.
+    do {
+      Char = getNextChar();
+    } while (isIdentifierBody(Char) || isDecimalNumberBody(Char));
+  }
+
+  FormDefinedOperatorTokenWithChars(Result);
+  return true;
 }
 
 /// LexFormatDescriptor - Lex the remainder of a format descriptor.
@@ -1247,28 +1291,8 @@ void Lexer::LexTokenInternal(Token &Result, bool IsPeekAhead) {
     return LexTokenInternal(Result, IsPeekAhead);
 
   case '.':
-    Char = getNextChar();
-    if (isLetter(Char)) {
-      // Match [A-Za-z]*, we have already matched '.'.
-      while (isLetter(Char))
-        Char = getNextChar();
-
-      if (Char != '.') {
-        Diags.Report(SourceLocation::getFromPointer(TokStart),diag::err_defined_operator_missing_end);
-        FormTokenWithChars(Result, tok::unknown);
-        return;
-      }
-
-      Char = getNextChar();
-      if (Char == '_') {
-        // Parse the kind.
-        do {
-          Char = getNextChar();
-        } while (isIdentifierBody(Char) || isDecimalNumberBody(Char));
-      }
-
-      return FormDefinedOperatorTokenWithChars(Result);
-    }
+    if(LexPossibleDefinedOperator(Result))
+      return;
     // FALLTHROUGH
   case '0': case '1': case '2': case '3': case '4':
   case '5': case '6': case '7': case '8': case '9':

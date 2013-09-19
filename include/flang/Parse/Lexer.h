@@ -226,6 +226,10 @@ class Lexer {
   void LexFixedFormIdentifier(const fixedForm::KeywordMatcher &Matcher,
                               Token &Tok);
 
+  /// LexPossibleDefinedOperator - Tries to lex a defined operator
+  /// that begins with '.', returns true if sucessfull.
+  bool LexPossibleDefinedOperator(Token &Result);
+
   /// LexFORMATDescriptor - Lex a format desriptor.
   void LexFORMATDescriptor(Token &Result);
 
