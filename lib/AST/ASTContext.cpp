@@ -31,45 +31,29 @@ ASTContext::~ASTContext() {
   ReleaseDeclContextMaps();
 }
 
-void ASTContext::InitBuiltinType(QualType &R, BuiltinType::TypeSpec K) {
-  BuiltinType *Ty = new (*this, TypeAlignment) BuiltinType(K);
-  R = QualType(Ty, 0);
-  Types.push_back(Ty);
-}
-
 void ASTContext::InitBuiltinTypes() {
   // [R404]
   VoidTy = QualType(new (*this, TypeAlignment) VoidType(), 0);
-  InitBuiltinType(IntegerTy,         BuiltinType::Integer);
-  InitBuiltinType(RealTy,            BuiltinType::Real);
-  DoublePrecisionTy = getExtQualType(RealTy.getTypePtr(), Qualifiers(),
-                                     BuiltinType::Real8, true);
-  InitBuiltinType(ComplexTy,         BuiltinType::Complex);
-  DoubleComplexTy = getExtQualType(ComplexTy.getTypePtr(), Qualifiers(),
-                                   BuiltinType::Real8, true);
 
-  InitBuiltinType(LogicalTy,         BuiltinType::Logical);
+  IntegerTy = QualType(getBuiltinType(BuiltinType::Integer, BuiltinType::Int4), 0);
+  RealTy = QualType(getBuiltinType(BuiltinType::Real, BuiltinType::Real4), 0);
+  DoublePrecisionTy = QualType(getBuiltinType(BuiltinType::Real, BuiltinType::Real8,
+                                              false, true), 0);
+  ComplexTy = QualType(getBuiltinType(BuiltinType::Complex, BuiltinType::Real4), 0);
+  DoubleComplexTy = QualType(getBuiltinType(BuiltinType::Complex, BuiltinType::Real8,
+                                            false, true), 0);
+  LogicalTy = QualType(getBuiltinType(BuiltinType::Logical, BuiltinType::Int4), 0);
 
   CharacterTy = QualType(getCharacterType(1), 0);
   NoLengthCharacterTy = QualType(getCharacterType(0), 0);
 }
 
-QualType ASTContext::getBuiltinQualType(BuiltinType::TypeSpec TS) const {
-  switch (TS) {
-  case BuiltinType::Invalid: assert(false && "Invalid type spec!"); break;
-  case BuiltinType::Integer:         return IntegerTy;
-  case BuiltinType::Real:            return RealTy;
-  case BuiltinType::Logical:         return LogicalTy;
-  case BuiltinType::Complex:         return ComplexTy;
-  }
-  return QualType();
-}
-
 const llvm::fltSemantics&  ASTContext::getFPTypeSemantics(QualType Type) {
-  switch(getRealOrComplexTypeKind(Type.getExtQualsPtrOrNull(), Type)) {
+  switch(Type->getBuiltinTypeKind()) {
   case BuiltinType::Real4:  return llvm::APFloat::IEEEsingle;
   case BuiltinType::Real8:  return llvm::APFloat::IEEEdouble;
   case BuiltinType::Real16: return llvm::APFloat::IEEEquad;
+  default: break;
   }
   llvm_unreachable("invalid real type");
 }
@@ -105,11 +89,10 @@ BuiltinType::TypeKind ASTContext::getSelectedIntKind(int64_t Range) const {
 //                   Type creation/memoization methods
 //===----------------------------------------------------------------------===//
 
-QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals,
-                                    unsigned KindSel, bool IsDoublePrecisionKind) const {
+QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals) const {
   // Check if we've already instantiated this type.
   llvm::FoldingSetNodeID ID;
-  ExtQuals::Profile(ID, BaseType, Quals, KindSel, IsDoublePrecisionKind);
+  ExtQuals::Profile(ID, BaseType, Quals);
   void *InsertPos = 0;
   if (ExtQuals *EQ = ExtQualNodes.FindNodeOrInsertPos(ID, InsertPos)) {
     assert(EQ->getQualifiers() == Quals);
@@ -121,53 +104,65 @@ QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals,
   if (!BaseType->isCanonicalUnqualified()) {
     SplitQualType CanonSplit = BaseType->getCanonicalTypeInternal().split();
     CanonSplit.second.addConsistentQualifiers(Quals);
-    Canon = getExtQualType(CanonSplit.first, CanonSplit.second, KindSel,
-                           IsDoublePrecisionKind);
+    Canon = getExtQualType(CanonSplit.first, CanonSplit.second);
 
     // Re-find the insert position.
     (void) ExtQualNodes.FindNodeOrInsertPos(ID, InsertPos);
   }
 
-  ExtQuals *EQ = new (*this, TypeAlignment) ExtQuals(BaseType, Canon, Quals,
-                                                     KindSel, IsDoublePrecisionKind);
+  ExtQuals *EQ = new (*this, TypeAlignment) ExtQuals(BaseType, Canon, Quals);
   ExtQualNodes.InsertNode(EQ, InsertPos);
   return QualType(EQ, 0);
 }
 
 QualType ASTContext::getQualTypeOtherKind(QualType Type, QualType KindType) {
-  auto ExtQuals = Type.getExtQualsPtrOrNull();
-  auto DesiredExtQuals = KindType.getExtQualsPtrOrNull();
-  assert(DesiredExtQuals);
-
-  return getExtQualType(Type.getTypePtr(),
-                        ExtQuals? ExtQuals->getQualifiers() : Qualifiers(),
-                        DesiredExtQuals->getKindSelector(),
-                        DesiredExtQuals->isDoublePrecisionKind());
+  auto BTy = Type->asBuiltinType();
+  auto DesiredBTy = KindType->asBuiltinType();
+  if(BTy->getBuiltinTypeKind() == DesiredBTy->getBuiltinTypeKind())
+    return Type;
+  auto Split = Type.split();
+  return getExtQualType(getBuiltinType(BTy->getTypeSpec(), DesiredBTy->getBuiltinTypeKind(),
+                                       DesiredBTy->isKindExplicitlySpecified(),
+                                       DesiredBTy->isDoublePrecisionKindSpecified()), Split.second);
 }
 
 // NB: this assumes that real and complex have have the same default kind.
 QualType ASTContext::getComplexTypeElementType(QualType Type) {
   assert(Type->isComplexType());
-  if(Type.getExtQualsPtrOrNull())
+  if(Type->getBuiltinTypeKind() != RealTy->getBuiltinTypeKind())
     return getQualTypeOtherKind(RealTy, Type);
   return RealTy;
 }
 
 QualType ASTContext::getComplexType(QualType ElementType) {
   assert(ElementType->isRealType());
-  if(ElementType.getExtQualsPtrOrNull())
+  if(ElementType->getBuiltinTypeKind() != ComplexTy->getBuiltinTypeKind())
     return getQualTypeOtherKind(ComplexTy, ElementType);
   return ComplexTy;
 }
 
 QualType ASTContext::getTypeWithQualifers(QualType Type, Qualifiers Quals) {
-  auto ExtQuals = Type.getExtQualsPtrOrNull();
+  auto Split = Type.split();
+  return getExtQualType(Split.first, Quals);
+}
 
-  return ExtQuals? getExtQualType(Type.getTypePtr(),
-                                  Quals,
-                                  ExtQuals->getKindSelector(),
-                                  ExtQuals->isDoublePrecisionKind()) :
-                   getExtQualType(Type.getTypePtr(), Quals);
+BuiltinType *ASTContext::getBuiltinType(BuiltinType::TypeSpec TS,
+                                        BuiltinType::TypeKind Kind,
+                                        bool IsKindExplicitlySpecified,
+                                        bool IsDoublePrecisionKindSpecified) {
+  llvm::FoldingSetNodeID ID;
+  BuiltinType::Profile(ID, TS, Kind, IsKindExplicitlySpecified,
+                       IsDoublePrecisionKindSpecified);
+
+  void *InsertPos = 0;
+  if (auto BT = BuiltinTypes.FindNodeOrInsertPos(ID, InsertPos))
+    return BT;
+
+  auto BT = new (*this, TypeAlignment) BuiltinType(TS, Kind, IsKindExplicitlySpecified,
+                                                   IsDoublePrecisionKindSpecified);
+  Types.push_back(BT);
+  BuiltinTypes.InsertNode(BT, InsertPos);
+  return BT;
 }
 
 CharacterType *ASTContext::getCharacterType(uint64_t Length) const {

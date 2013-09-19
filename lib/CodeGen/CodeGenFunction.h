@@ -261,7 +261,6 @@ public:
   void EmitReturnStmt(const ReturnStmt *S);
   void EmitCallStmt(const CallStmt *S);
   void EmitAssignmentStmt(const AssignmentStmt *S);
-  bool IsAssignmentStmtAssignmentToSaved(const AssignmentStmt *S);
   void EmitAssignment(const Expr *LHS, const Expr *RHS);
   void EmitAssignment(LValueTy LHS, RValueTy RHS);
 

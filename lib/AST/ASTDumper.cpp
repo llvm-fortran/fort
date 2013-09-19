@@ -50,11 +50,11 @@ public:
 
   // types
   void dumpType(QualType T);
-  void VisitBuiltinType(const BuiltinType *T, const ExtQuals *E);
-  void VisitCharacterType(const CharacterType *T, const ExtQuals *E);
-  void VisitArrayType(const ArrayType *T, const ExtQuals *E);
-  void VisitFunctionType(const FunctionType *T, const ExtQuals *E);
-  void VisitRecordType(const RecordType *T, const ExtQuals *E);
+  void VisitBuiltinType(const BuiltinType *T, Qualifiers QS);
+  void VisitCharacterType(const CharacterType *T, Qualifiers QS);
+  void VisitArrayType(const ArrayType *T, Qualifiers QS);
+  void VisitFunctionType(const FunctionType *T, Qualifiers QS);
+  void VisitRecordType(const RecordType *T, Qualifiers QS);
 
   // statements
   void dumpStmt(const Stmt *S);
@@ -278,8 +278,8 @@ void ASTDumper::dumpType(QualType T) {
   } */
 }
 
-void ASTDumper::VisitBuiltinType(const BuiltinType *T, const ExtQuals *E) {
-  if(E && E->isDoublePrecisionKind()) {
+void ASTDumper::VisitBuiltinType(const BuiltinType *T, Qualifiers QS) {
+  if(T->isDoublePrecisionKindSpecified()) {
     if(T->isRealType())
       OS << "double precision";
     else OS << "double complex";
@@ -301,32 +301,31 @@ void ASTDumper::VisitBuiltinType(const BuiltinType *T, const ExtQuals *E) {
     }
   }
 
-  if (!E) return;
-  if (!E->isDoublePrecisionKind() && E->hasKindSelector()) {
-    OS << " (Kind=" << BuiltinType::getTypeKindString(E->getKindSelector());
+  if(T->isKindExplicitlySpecified()) {
+    OS << " (Kind=" << BuiltinType::getTypeKindString(T->getBuiltinTypeKind());
     OS << ")";
   }
 }
 
-void ASTDumper::VisitCharacterType(const CharacterType *T, const ExtQuals *E) {
+void ASTDumper::VisitCharacterType(const CharacterType *T, Qualifiers QS) {
   OS << "character";
   if(T->hasLength() && T->getLength() > 1)
     OS << " (Len=" << T->getLength() << ")";
 }
 
-void ASTDumper::VisitArrayType(const ArrayType *T, const ExtQuals *E) {
+void ASTDumper::VisitArrayType(const ArrayType *T, Qualifiers QS) {
   dumpType(T->getElementType());
   OS << " array";
 }
 
-void ASTDumper::VisitFunctionType(const FunctionType *T, const ExtQuals *E) {
+void ASTDumper::VisitFunctionType(const FunctionType *T, Qualifiers QS) {
   OS << "procedure (";
   if(T->hasPrototype())
     OS << T->getPrototype()->getName();
   OS << ")";
 }
 
-void ASTDumper::VisitRecordType(const RecordType *T, const ExtQuals *E) {
+void ASTDumper::VisitRecordType(const RecordType *T, Qualifiers QS) {
   auto Record = T->getDecl();
   OS << "type " << Record->getName();
 }
@@ -746,9 +745,9 @@ void ASTDumper::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
     OS << "(";
   }
   dumpExpr(E->getExpression());
-  if(const ExtQuals *Ext = Type.getExtQualsPtrOrNull()) {
-    if(Ext->hasKindSelector())
-      OS << ",Kind=" << BuiltinType::getTypeKindString(Ext->getKindSelector());
+  if(auto BTy = Type->asBuiltinType()) {
+    if(BTy->isKindExplicitlySpecified() || BTy->isDoublePrecisionKindSpecified())
+       OS << ",Kind=" << BuiltinType::getTypeKindString(BTy->getBuiltinTypeKind());
   }
   OS << ')';
 }

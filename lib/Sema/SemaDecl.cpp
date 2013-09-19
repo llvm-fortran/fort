@@ -145,6 +145,33 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
     break;
   }
 
+  Type::TypeKind Kind = Type::NoKind;
+  if(DS.hasKindSelector())
+    Kind = EvalAndCheckTypeKind(Result, DS.getKindSelector());
+
+  if(Kind != Type::NoKind || DS.isDoublePrecision()) {
+    switch (DS.getTypeSpecType()) {
+    case DeclSpec::TST_integer:
+      Result = Kind == Type::NoKind? C.IntegerTy :
+                         QualType(C.getBuiltinType(BuiltinType::Integer, Kind, true), 0);
+      break;
+    case DeclSpec::TST_real:
+      Result = Kind == Type::NoKind? (DS.isDoublePrecision()? C.DoublePrecisionTy : C.RealTy) :
+                         QualType(C.getBuiltinType(BuiltinType::Real, Kind, true), 0);
+      break;
+    case DeclSpec::TST_logical:
+      Result = Kind == Type::NoKind? C.LogicalTy :
+                         QualType(C.getBuiltinType(BuiltinType::Logical, Kind, true), 0);
+      break;
+    case DeclSpec::TST_complex:
+      Result = Kind == Type::NoKind? (DS.isDoublePrecision()? C.DoubleComplexTy : C.ComplexTy) :
+                         QualType(C.getBuiltinType(BuiltinType::Complex, Kind, true), 0);
+      break;
+    default:
+      break;
+    }
+  }
+
   if (!DS.hasAttributes())
     return Result;
 
@@ -153,15 +180,7 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
   Quals.setIntentAttr(DS.getIntentSpec());
   Quals.setAccessAttr(DS.getAccessSpec());
 
-  unsigned Kind = BuiltinType::NoKind;
-  if(DS.isDoublePrecision()) {
-    assert(!DS.getKindSelector());
-    Kind = BuiltinType::Real8;
-  } else if(DS.hasKindSelector())
-    Kind = EvalAndCheckTypeKind(Result, DS.getKindSelector());
-
-  Result = C.getExtQualType(TypeNode, Quals, Kind,
-                            DS.isDoublePrecision());
+  Result = C.getExtQualType(TypeNode, Quals);
 
   if (!Quals.hasAttributeSpec(Qualifiers::AS_dimension))
     return Result;
@@ -322,8 +341,7 @@ Decl *Sema::ActOnParameterEntityDecl(ASTContext &C, QualType T,
 
 Decl *Sema::ActOnEntityDecl(ASTContext &C, const QualType &T,
                             SourceLocation IDLoc, const IdentifierInfo *IDInfo) {
-  auto Ext = T.getExtQualsPtrOrNull();
-  Qualifiers Quals(Ext? Ext->getQualifiers() : Qualifiers());
+  auto Quals = T.getQualifiers();
 
   if(Quals.hasAttributeSpec(Qualifiers::AS_external))
     return ActOnExternalEntityDecl(C, T, IDLoc, IDInfo);

@@ -50,9 +50,7 @@ void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
 
   llvm::Value *Ptr;
   auto Type = D->getType();
-  auto Quals = Type.getExtQualsPtrOrNull();
-  if(Quals && Quals->getQualifiers().hasAttributeSpec(Qualifiers::AS_save) &&
-     !IsMainProgram) {
+  if(Type.hasAttributeSpec(Qualifiers::AS_save) && !IsMainProgram) {
     Ptr = CGM.EmitGlobalVariable(CurFn->getName(), D);
     HasSavedVariables = true;
   } else {
@@ -75,8 +73,7 @@ public:
     if(D->isParameter() || D->isArgument() ||
        D->isFunctionResult())
       return;
-    auto Ext = D->getType().getExtQualsPtrOrNull();
-    bool HasSave = Ext && Ext->getQualifiers().hasAttributeSpec(Qualifiers::AS_save);
+    bool HasSave = D->getType().hasAttributeSpec(Qualifiers::AS_save);
     if(HasSave != VisitSaveQualified)
       return;
     if(D->hasInit())

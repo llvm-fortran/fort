@@ -208,11 +208,6 @@ bool Sema::CheckIntrinsicComplexFunc(intrinsic::FunctionKind Function,
 }
 
 static QualType TypeWithKind(ASTContext &C, QualType T, QualType TKind) {
-  const ExtQuals *AExt = T.getExtQualsPtrOrNull();
-  const ExtQuals *BExt = TKind.getExtQualsPtrOrNull();
-  auto AK = C.getArithmeticTypeKind(AExt, T);
-  auto BK = C.getArithmeticTypeKind(BExt, TKind);
-  if(AK == BK) return T;
   return C.getQualTypeOtherKind(T, TKind);
 }
 
@@ -523,9 +518,8 @@ bool Sema::CheckIntrinsicInquiryFunc(intrinsic::FunctionKind Function,
     if(CheckIntegerArgument(Args[0], true))
       ReturnType = Context.IntegerTy;
     else {
-      auto Kind = Context.getIntTypeKind(Args[0]->getType().getSelfOrArrayElementType()
-                                         .getExtQualsPtrOrNull());
-      ReturnType = Context.getExtQualType(Context.IntegerTy.getTypePtr(), Qualifiers(), Kind);
+      auto Kind = Args[0]->getType().getSelfOrArrayElementType();
+      ReturnType = Context.getQualTypeOtherKind(Context.IntegerTy, Kind);
     }
     break;
   }

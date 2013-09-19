@@ -275,7 +275,6 @@ bool IntExprEvaluator::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
 
   switch(E->getIntrinsicFunction()) {
   case intrinsic::SELECTED_INT_KIND: {
-    //FIXME
     if(!Eval(Args[0]))
       return false;
     auto Kind = Context.getSelectedIntKind(getResult());
@@ -284,6 +283,7 @@ bool IntExprEvaluator::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
     return true;
   }
   case intrinsic::SELECTED_REAL_KIND:
+    //FIXME
     return false;
   case intrinsic::KIND: {
     auto T = Args[0]->getType().getSelfOrArrayElementType();
@@ -295,14 +295,13 @@ bool IntExprEvaluator::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
       Result.Assign(llvm::APInt(64, 4, true));
       return true;
     }
-    auto Kind = Context.getArithmeticOrLogicalTypeKind(T.getExtQualsPtrOrNull(), T);
-    Result.Assign(llvm::APInt(64, Context.getTypeKindBitWidth(Kind)/8, true));
+    Result.Assign(llvm::APInt(64, Context.getTypeKindBitWidth(T->getBuiltinTypeKind())/8, true));
     return true;
   }
   case intrinsic::BIT_SIZE: {
     auto T = Args[0]->getType().getSelfOrArrayElementType();
     auto Val = T->isIntegerType()?
-                 Context.getTypeKindBitWidth(Context.getIntTypeKind(T.getExtQualsPtrOrNull())) : 1;
+                 Context.getTypeKindBitWidth(T->getBuiltinTypeKind()) : 1;
     Result.Assign(llvm::APInt(64, Val, true));
     return true;
   }

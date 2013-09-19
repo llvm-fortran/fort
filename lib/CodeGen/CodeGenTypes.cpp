@@ -30,10 +30,10 @@ CodeGenTypes::CodeGenTypes(CodeGenModule &cgm)
 CodeGenTypes::~CodeGenTypes() { }
 
 llvm::Type *CodeGenTypes::ConvertType(QualType T) {
-  auto Ext = T.getExtQualsPtrOrNull();
   auto TPtr = T.getTypePtr();
   if(const BuiltinType *BTy = dyn_cast<BuiltinType>(TPtr))
-    return ConvertBuiltInType(BTy, Ext);
+    return ConvertBuiltInType(BTy->getTypeSpec(),
+                              BTy->getBuiltinTypeKind());
   else if(const CharacterType *CTy = dyn_cast<CharacterType>(TPtr))
     return ConvertCharType(CTy);
   else if(const ArrayType *ATy = dyn_cast<ArrayType>(TPtr))
@@ -43,33 +43,24 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
   else if(const RecordType *RTy = dyn_cast<RecordType>(TPtr))
     return ConvertRecordType(RTy);
 
+  llvm_unreachable("invalid type");
   return nullptr;
 }
 
-llvm::Type *CodeGenTypes::ConvertBuiltInTypeForMem(const BuiltinType *T,
-                                                   const ExtQuals *Ext) {
-  return ConvertBuiltInType(T, Ext);
-}
+llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {
+  auto TPtr = T.getTypePtr();
+  if(const BuiltinType *BTy = dyn_cast<BuiltinType>(TPtr))
+    return ConvertBuiltInType(BTy->getTypeSpec(),
+                              BTy->getBuiltinTypeKind());
+  else if(const CharacterType *CTy = dyn_cast<CharacterType>(TPtr))
+    return ConvertCharTypeForMem(CTy);
+  else if(const ArrayType *ATy = dyn_cast<ArrayType>(TPtr))
+    return ConvertArrayTypeForMem(ATy);
+  else if(const RecordType *RTy = dyn_cast<RecordType>(TPtr))
+    return ConvertRecordType(RTy);
 
-llvm::Type *CodeGenTypes::ConvertBuiltInType(const BuiltinType *T,
-                                             const ExtQuals *Ext) {
-  BuiltinType::TypeKind Kind;
-  switch(T->getTypeSpec()) {
-  case BuiltinType::Integer:
-    Kind = CGM.getContext().getIntTypeKind(Ext);
-    break;
-  case BuiltinType::Real:
-    Kind = CGM.getContext().getRealTypeKind(Ext);
-    break;
-  case BuiltinType::Complex:
-    Kind = CGM.getContext().getComplexTypeKind(Ext);
-    break;
-  case BuiltinType::Logical:
-    Kind = CGM.getContext().getLogicalTypeKind(Ext);
-    break;
-  }
-  return ConvertBuiltInType(T->getTypeSpec(),
-                            Kind);
+  llvm_unreachable("invalid type");
+  return nullptr;
 }
 
 llvm::Type *CodeGenTypes::ConvertBuiltInType(BuiltinType::TypeSpec Spec,
@@ -77,17 +68,13 @@ llvm::Type *CodeGenTypes::ConvertBuiltInType(BuiltinType::TypeSpec Spec,
   llvm::Type *Type;
   switch(Kind) {
   case BuiltinType::Int1:
-    Type = CGM.Int8Ty;
-    break;
+    return CGM.Int8Ty;
   case BuiltinType::Int2:
-    Type = CGM.Int16Ty;
-    break;
+    return CGM.Int16Ty;
   case BuiltinType::Int4:
-    Type = CGM.Int32Ty;
-    break;
+    return CGM.Int32Ty;
   case BuiltinType::Int8:
-    Type = CGM.Int64Ty;
-    break;
+    return CGM.Int64Ty;
   case BuiltinType::Real4:
     Type = CGM.FloatTy;
     break;
@@ -104,6 +91,15 @@ llvm::Type *CodeGenTypes::ConvertBuiltInType(BuiltinType::TypeSpec Spec,
   return Type;
 }
 
+llvm::Type *CodeGenTypes::GetComplexType(llvm::Type *ElementType) {
+  llvm::Type *Pair[2] = { ElementType, ElementType };
+  return llvm::StructType::get(CGM.getLLVMContext(),
+                               ArrayRef<llvm::Type*>(Pair,2));
+}
+
+llvm::Type *CodeGenTypes::GetComplexTypeAsVector(llvm::Type *ElementType) {
+  return llvm::VectorType::get(ElementType, 2);
+}
 
 llvm::Type *CodeGenTypes::ConvertCharType(const CharacterType *T) {
   llvm::Type *Pair[2] = { CGM.Int8PtrTy, CGM.SizeTy };
@@ -116,20 +112,11 @@ llvm::Type *CodeGenTypes::ConvertCharTypeForMem(const CharacterType *T) {
   return llvm::ArrayType::get(CGM.Int8Ty, T->getLength());
 }
 
-llvm::Type *CodeGenTypes::GetComplexType(llvm::Type *ElementType) {
-  llvm::Type *Pair[2] = { ElementType, ElementType };
-  return llvm::StructType::get(CGM.getLLVMContext(),
-                               ArrayRef<llvm::Type*>(Pair,2));
-}
 
 llvm::Type *CodeGenTypes::GetCharacterType(llvm::Type *PtrType) {
   llvm::Type *Pair[2] = { PtrType, CGM.SizeTy };
   return llvm::StructType::get(CGM.getLLVMContext(),
                                ArrayRef<llvm::Type*>(Pair,2));
-}
-
-llvm::Type *CodeGenTypes::GetComplexTypeAsVector(llvm::Type *ElementType) {
-  return llvm::VectorType::get(ElementType, 2);
 }
 
 llvm::Type *CodeGenTypes::ConvertRecordType(const RecordType *T) {
@@ -138,22 +125,6 @@ llvm::Type *CodeGenTypes::ConvertRecordType(const RecordType *T) {
     Fields.push_back(ConvertTypeForMem(I->getType()));
   }
   return llvm::StructType::get(CGM.getLLVMContext(), Fields);
-}
-
-llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {
-  auto Ext = T.getExtQualsPtrOrNull();
-  auto TPtr = T.getTypePtr();
-  if(const BuiltinType *BTy = dyn_cast<BuiltinType>(TPtr))
-    return ConvertBuiltInTypeForMem(BTy, Ext);
-  else if(const CharacterType *CTy = dyn_cast<CharacterType>(TPtr))
-    return ConvertCharTypeForMem(CTy);
-  else if(const ArrayType *ATy = dyn_cast<ArrayType>(TPtr))
-    return ConvertArrayTypeForMem(ATy);
-  else if(const RecordType *RTy = dyn_cast<RecordType>(TPtr))
-    return ConvertRecordType(RTy);
-
-  llvm_unreachable("invalid type");
-  return nullptr;
 }
 
 llvm::Type *CodeGenTypes::ConvertFunctionType(const FunctionType *T) {

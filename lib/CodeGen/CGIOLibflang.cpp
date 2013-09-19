@@ -72,7 +72,6 @@ public:
   void EmitEnd();
   void EmitWriteUnformattedList(ArrayRef<Expr*> Values);
   void EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
-                                   const ExtQuals *ExtTy,
                                    const Expr *E);
   void EmitWriteUnformattedChar(const Expr *E);
 };
@@ -93,13 +92,11 @@ void CGLibflangWriteEmitter::EmitWriteUnformattedList(ArrayRef<Expr*> Values) {
     if(EType->isCharacterType())
       EmitWriteUnformattedChar(E);
     if(auto BTy = dyn_cast<BuiltinType>(EType.getTypePtr()))
-      EmitWriteUnformattedBuiltin(BTy,
-                                  EType.getExtQualsPtrOrNull(), E);
+      EmitWriteUnformattedBuiltin(BTy, E);
   }
 }
 
 void CGLibflangWriteEmitter::EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
-                                                         const ExtQuals *ExtTy,
                                                          const Expr *E) {
   CGFunction Func;
   switch(BTy->getTypeSpec()) {

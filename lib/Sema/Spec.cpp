@@ -143,20 +143,16 @@ bool Sema::ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S) {
 
 bool Sema::ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S, VarDecl *VD) {
   auto Type = VD->getType();
-  auto Ext = Type.getExtQualsPtrOrNull();
-  Qualifiers Quals;
-  if(Ext){
-    Quals = Ext->getQualifiers();
-    if(Quals.hasAttributeSpec(Qualifiers::AS_save)) {
-      if(S->getIdentifier()) {
-        Diags.Report(StmtLoc, diag::err_spec_qual_reapplication)
-          << "save" << VD->getIdentifier() << getTokenRange(S->getLocation());
-      } else {
-        Diags.Report(StmtLoc, diag::err_spec_qual_reapplication)
-          << "save" << VD->getIdentifier();
-      }
-      return true;
+  auto Quals = Type.getQualifiers();
+  if(Quals.hasAttributeSpec(Qualifiers::AS_save)) {
+    if(S->getIdentifier()) {
+      Diags.Report(StmtLoc, diag::err_spec_qual_reapplication)
+        << "save" << VD->getIdentifier() << getTokenRange(S->getLocation());
+    } else {
+      Diags.Report(StmtLoc, diag::err_spec_qual_reapplication)
+        << "save" << VD->getIdentifier();
     }
+    return true;
   }
   Quals.addAttributeSpecs(Qualifiers::AS_save);
   VD->setType(Context.getQualifiedType(Type, Quals));

@@ -390,7 +390,7 @@ llvm::Value *CodeGenFunction::EmitIntrinsicNumericInquiry(intrinsic::FunctionKin
 
   auto RetT = ConvertType(Result);
   auto T = ArgType;
-  auto TKind = getContext().getArithmeticTypeKind(T.getExtQualsPtrOrNull(), T);
+  auto TKind = T->getBuiltinTypeKind();
   int IntResult;
 
 #define HANDLE_INT(Result, func) \

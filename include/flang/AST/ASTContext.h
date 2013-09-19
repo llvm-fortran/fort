@@ -43,6 +43,7 @@ class ASTContext : public llvm::RefCountedBase<ASTContext> {
 
   mutable std::vector<Type*>            Types;
   mutable llvm::FoldingSet<ExtQuals>    ExtQualNodes;
+  mutable llvm::FoldingSet<BuiltinType> BuiltinTypes;
   mutable llvm::FoldingSet<CharacterType> CharTypes;
   mutable llvm::FoldingSet<PointerType> PointerTypes;
   mutable llvm::FoldingSet<ArrayType>   ArrayTypes;
@@ -62,103 +63,9 @@ class ASTContext : public llvm::RefCountedBase<ASTContext> {
 
   LangOptions LanguageOptions;
 
-  //===--------------------------------------------------------------------===//
-  //                           Type Constructors
-  //===--------------------------------------------------------------------===//
-
-public:
-  /// getExtQualType - Return a type with extended qualifiers.
-  QualType getExtQualType(const Type *Base, Qualifiers Quals,
-                          unsigned KindSel = BuiltinType::NoKind, bool IsDoublePrecisionKind = false) const;
-  QualType getQualTypeOtherKind(QualType Type, QualType KindType);
-  QualType getComplexTypeElementType(QualType Type);
-  QualType getComplexType(QualType ElementType);
-  QualType getTypeWithQualifers(QualType Type, Qualifiers Quals);
-
-  const llvm::fltSemantics& getFPTypeSemantics(QualType Type);
-
-  /// \brief Returns the kind of an integer type or the
-  /// default integer kind if the type has no extended
-  /// qualifiers or if kind wasn't specified.
-  BuiltinType::TypeKind getIntTypeKind(const ExtQuals *Ext) const {
-    return Ext && Ext->hasKindSelector()? Ext->getKindSelector() :
-                                          BuiltinType::Int4;
-  }
-
-  /// \brief Returns the kind of a logical type or the
-  /// default logical kind if the type has no extended
-  /// qualifiers or if kind wasn't specified.
-  BuiltinType::TypeKind getLogicalTypeKind(const ExtQuals *Ext) const {
-    return Ext && Ext->hasKindSelector()? Ext->getKindSelector() :
-                                          BuiltinType::Int4;
-  }
-
-  /// \brief Returns the kind of a real type or the
-  /// default real kind if the type has no extended
-  /// qualifiers or if kind wasn't specified.
-  BuiltinType::TypeKind getRealTypeKind(const ExtQuals *Ext) const {
-    return Ext && Ext->hasKindSelector()? Ext->getKindSelector() :
-                                          BuiltinType::Real4;
-  }
-
-  /// \brief Returns the kind of a complex type or the
-  /// default complex kind if the type has no extended
-  /// qualifiers or if kind wasn't specified.
-  BuiltinType::TypeKind getComplexTypeKind(const ExtQuals *Ext) const {
-    return Ext && Ext->hasKindSelector()? Ext->getKindSelector() :
-                                          BuiltinType::Real4;
-  }
-
-  /// \brief Returns the kind of a real or complex type or the appropriate
-  /// default kind if the type has no extended qualifiers or if the kind
-  /// wasn't specified.
-  BuiltinType::TypeKind getRealOrComplexTypeKind(const ExtQuals *Ext,
-                                                 QualType T) const {
-    if(T->isRealType()) return getRealTypeKind(Ext);
-    else return getComplexTypeKind(Ext);
-  }
-
-  /// \brief Returns the kind of an integer, real or complex type
-  /// or the appropriate default kind if the type has no extended
-  /// qualifiers or if the kind wasn't specified.
-  BuiltinType::TypeKind getArithmeticTypeKind(const ExtQuals *Ext,
-                                              QualType T) const {
-    if(T->isIntegerType()) return getIntTypeKind(Ext);
-    else if(T->isRealType()) return getRealTypeKind(Ext);
-    else return getComplexTypeKind(Ext);
-  }
-
-  /// \brief Returns the kind of an integer, real, logical or complex type
-  /// or the appropriate default kind if the type has no extended
-  /// qualifiers or if the kind wasn't specified.
-  BuiltinType::TypeKind getArithmeticOrLogicalTypeKind(const ExtQuals *Ext,
-                                                       QualType T) const {
-    if(T->isIntegerType()) return getIntTypeKind(Ext);
-    else if(T->isRealType()) return getRealTypeKind(Ext);
-    else if(T->isComplexType()) return getLogicalTypeKind(Ext);
-    else return getComplexTypeKind(Ext);
-  }
-
-  /// \brief Returns true if two arithmetic types have the same kind
-  bool ArithmeticTypesSameKind(const ExtQuals *AExt, QualType A,
-                               const ExtQuals *BExt, QualType B) const {
-    return getArithmeticTypeKind(AExt, A) ==
-           getArithmeticTypeKind(BExt, B);
-  }
-
-  /// \brief Returns the amount of bits that an arithmetic type kind occupies
-  unsigned getTypeKindBitWidth(BuiltinType::TypeKind Kind) const;
-
-  /// \brief Returns a type kind big enough to store a value
-  /// ranging from -10^Range to 10^Range, or
-  /// NoKind if such value can't be stored.
-  BuiltinType::TypeKind getSelectedIntKind(int64_t Range) const;
-
-private:
   QualType getTypeDeclTypeSlow(const TypeDecl *Decl);
 
   void InitBuiltinTypes();
-  void InitBuiltinType(QualType &R, BuiltinType::TypeSpec K);
 
 public:
   ASTContext(llvm::SourceMgr &SM, LangOptions LangOpts);
@@ -185,16 +92,45 @@ public:
   QualType IntegerTy;
   QualType RealTy;
   QualType DoublePrecisionTy;
-  QualType CharacterTy;
   QualType LogicalTy;
   QualType ComplexTy;
   QualType DoubleComplexTy;
+  QualType CharacterTy;
+
+  /// \brief This is a character type with a '*' length specification
   QualType NoLengthCharacterTy;
 
-  /// getBuiltinQualType - Return the QualType for the specified builtin type.
-  QualType getBuiltinQualType(BuiltinType::TypeSpec TS) const;
+  bool isTypeDoublePrecision(QualType T) const {
+    return T->getBuiltinTypeKind() == DoublePrecisionTy->getBuiltinTypeKind();
+  }
 
-  /// getCharacterType - Return the QualType for the specified character type.
+  bool isTypeDoubleComplex(QualType T) const {
+    return T->getBuiltinTypeKind() == DoubleComplexTy->getBuiltinTypeKind();
+  }
+
+  //===--------------------------------------------------------------------===//
+  //                           Type Constructors
+  //===--------------------------------------------------------------------===//
+
+  /// getExtQualType - Return a type with extended qualifiers.
+  QualType getExtQualType(const Type *Base, Qualifiers Quals) const;
+  QualType getQualTypeOtherKind(QualType Type, QualType KindType);
+  QualType getTypeWithQualifers(QualType Type, Qualifiers Quals);
+
+  /// getBuiltinType - Return the unique reference for the specified builtin type.
+  BuiltinType *getBuiltinType(BuiltinType::TypeSpec TS,
+                              BuiltinType::TypeKind Kind,
+                              bool IsKindExplicitlySpecified = false,
+                              bool IsDoublePrecisionKindSpecified = false);
+
+  /// getComplexTypeElementType - Returns the type of an element in a complex pair.
+  QualType getComplexTypeElementType(QualType Type);
+
+  /// getComplexType - Returns the unique reference for a complex type
+  /// with a given element type.
+  QualType getComplexType(QualType ElementType);
+
+  /// getCharacterType - Return the unique reference for the specified character type.
   CharacterType *getCharacterType(uint64_t Length) const;
 
   /// getPointerType - Return the uniqued reference to the type for a pointer to
@@ -260,6 +196,17 @@ public:
   const Type *getCanonicalType(const Type *T) const {
     return T->getCanonicalTypeInternal().getTypePtr();
   }
+
+  /// \brief Returns the floating point semantics for the given real type.
+  const llvm::fltSemantics& getFPTypeSemantics(QualType Type);
+
+  /// \brief Returns the amount of bits that an arithmetic type kind occupies.
+  unsigned getTypeKindBitWidth(BuiltinType::TypeKind Kind) const;
+
+  /// \brief Returns a type kind big enough to store a value
+  /// ranging from -10^Range to 10^Range, or
+  /// NoKind if such value can't be stored.
+  BuiltinType::TypeKind getSelectedIntKind(int64_t Range) const;
 
 private:
   // FIXME: This currently contains the set of StoredDeclMaps used

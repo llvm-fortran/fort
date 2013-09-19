@@ -485,17 +485,6 @@ void CodeGenFunction::EmitCallStmt(const CallStmt *S) {
   EmitCall(S->getFunction(), ArgList, S->getArguments(), true);
 }
 
-bool CodeGenFunction::IsAssignmentStmtAssignmentToSaved(const AssignmentStmt *S) {
-  auto LHS = S->getLHS();
-  DesignatorExpr *Designator;
-  while(Designator = dyn_cast<DesignatorExpr>(LHS))
-    LHS = Designator->getTarget();
-  auto Var = dyn_cast<VarExpr>(LHS);
-  if(!Var) return false;
-  auto Ext = Var->getVarDecl()->getType().getExtQualsPtrOrNull();
-  return Ext && Ext->getQualifiers().hasAttributeSpec(Qualifiers::AS_save);
-}
-
 void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
   auto RHS = S->getRHS();
   auto RHSType = RHS->getType();

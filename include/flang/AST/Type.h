@@ -37,6 +37,7 @@ namespace flang {
   class Type;
   class ExtQuals;
   class QualType;
+  class BuiltinType;
   class CharacterType;
   class FunctionType;
   class RecordType;
@@ -334,16 +335,22 @@ public:
   const Type *getTypePtr() const;
   const Type *getTypePtrOrNull() const;
 
-  const ExtQuals *getExtQualsPtrOrNull() const;
-
-  /// \brief Retrieves a pointer to the name of the base type.
-  const IdentifierInfo *getBaseTypeIdentifier() const;
-
   /// \brief Divides a QualType into its unqualified type and a set of local
   /// qualifiers.
   SplitQualType split() const;
 
+  /// \brief Returns the qualifiers for this type has.
+  Qualifiers getQualifiers() const {
+    return split().second;
+  }
+
+  /// \brief Returns true if this type has the given attribute spec.
+  bool hasAttributeSpec(Qualifiers::AS A) const {
+    return split().second.hasAttributeSpec(A);
+  }
+
   void *getAsOpaquePtr() const { return Value.getOpaqueValue(); }
+
   static QualType getFromOpaquePtr(const void *Ptr) {
     QualType T;
     T.Value.setFromOpaqueValue(const_cast<void*>(Ptr));
@@ -486,6 +493,13 @@ public:
     None
   };
 
+  enum TypeKind {
+#define INTEGER_KIND(NAME, VALUE) NAME,
+#define FLOATING_POINT_KIND(NAME, VALUE) NAME,
+#include "flang/AST/BuiltinTypeKinds.def"
+    NoKind
+  };
+
 private:
   Type(const Type&);           // DO NOT IMPLEMENT.
   void operator=(const Type&); // DO NOT IMPLEMENT.
@@ -493,14 +507,18 @@ private:
 protected:
   /// TypeClass bitfield - Enum that specifies what subclass this belongs to.
   unsigned TypeBitsTC : 8;
-  /// The kind (BuiltinType::Kind) of builtin type this is.
+  /// The spec (BuiltinType::TypeSpec) of builtin type this is.
+  unsigned BuiltinTypeBitsSpec : 8;
   unsigned BuiltinTypeBitsKind : 8;
+  unsigned BuiltinTypeKindSpecified : 1;
+  unsigned BuiltinTypeDoublePrecisionKindSpecified : 1;
 
   Type *this_() { return this; }
   Type(TypeClass TC, QualType Canon)
     : ExtQualsTypeCommonBase(this,
                              Canon.isNull() ? QualType(this_(), 0) : Canon) {
     TypeBitsTC = TC;
+    BuiltinTypeBitsKind = NoKind;
   }
 
   friend class ASTContext;
@@ -526,10 +544,13 @@ public:
   bool isBuiltinType() const;
   bool isIntegerType() const;
   bool isRealType() const;
-  bool isCharacterType() const;
-  const CharacterType *asCharacterType() const;
   bool isComplexType() const;
   bool isLogicalType() const;
+  const BuiltinType *asBuiltinType() const;
+  TypeKind getBuiltinTypeKind() const;
+
+  bool isCharacterType() const;
+  const CharacterType *asCharacterType() const;
 
   bool isArrayOfCharacterType() const;
   bool isArrayType() const;
@@ -557,7 +578,7 @@ public:
 };
 
 /// BuiltinType - Intrinsic Fortran types.
-class BuiltinType : public Type {
+class BuiltinType : public Type, public llvm::FoldingSetNode {
 public:
   /// TypeSpec - The intrinsic Fortran type specifications. REAL is the default
   /// if "IMPLICIT NONE" isn't specified.
@@ -567,25 +588,27 @@ public:
     Invalid
   };
 
-  enum TypeKind {
-#define INTEGER_KIND(NAME, VALUE) NAME,
-#define FLOATING_POINT_KIND(NAME, VALUE) NAME,
-#include "flang/AST/BuiltinTypeKinds.def"
-    NoKind
-  };
-
-protected:
+private:
   friend class ASTContext;      // ASTContext creates these.
-  BuiltinType()
+  BuiltinType(TypeSpec TS, TypeKind K,
+              bool IsKindSpecified,
+              bool IsDoublePrecisionKindSpecified)
     : Type(Builtin, QualType()) {
-    BuiltinTypeBitsKind = Real;
-  }
-  BuiltinType(TypeSpec TS)
-    : Type(Builtin, QualType()) {
-    BuiltinTypeBitsKind = TS;
+    BuiltinTypeBitsSpec = TS;
+    BuiltinTypeBitsKind = K;
+    BuiltinTypeKindSpecified = IsKindSpecified? 1: 0;
+    BuiltinTypeDoublePrecisionKindSpecified = IsDoublePrecisionKindSpecified? 1: 0;
   }
 public:
-  TypeSpec getTypeSpec() const { return TypeSpec(BuiltinTypeBitsKind); }
+  TypeSpec getTypeSpec() const { return TypeSpec(BuiltinTypeBitsSpec); }
+
+  bool isKindExplicitlySpecified() const {
+    return BuiltinTypeKindSpecified != 0;
+  }
+
+  bool isDoublePrecisionKindSpecified() const {
+    return BuiltinTypeDoublePrecisionKindSpecified != 0;
+  }
 
   bool isIntegerType() const {
     return getTypeSpec() == Integer;
@@ -610,6 +633,21 @@ public:
   }
 
   static const char *getTypeKindString(TypeKind Kind);
+
+  void Profile(llvm::FoldingSetNodeID &ID) {
+    Profile(ID, getTypeSpec(), getBuiltinTypeKind(),
+            isKindExplicitlySpecified(),
+            isDoublePrecisionKindSpecified());
+  }
+  static void Profile(llvm::FoldingSetNodeID &ID,
+                      TypeSpec Spec, TypeKind Kind,
+                      bool KindSpecified,
+                      bool DoublePrecisionKindSpecified) {
+    ID.AddInteger(Spec);
+    ID.AddInteger(Kind);
+    ID.AddBoolean(KindSpecified);
+    ID.AddBoolean(DoublePrecisionKindSpecified);
+  }
 
   static bool classof(const Type *T) { return T->getTypeClass() == Builtin; }
   static bool classof(const BuiltinType *) { return true; }
@@ -803,22 +841,13 @@ class ExtQuals : public ExtQualsTypeCommonBase, public llvm::FoldingSetNode {
   /// contains extended qualifiers.
   Qualifiers Quals;
 
-  /// KindSelector - The kind-selector for a type.
-  unsigned KindSelector : 16;
-
-  /// IsDoublePrecisionKind - This assumes that a
-  /// kind-selector was applied using
-  /// DOUBLE PRECISION/DOUBLE COMPLEX statement.
-  unsigned IsDoublePrecisionKind : 1;
-
   ExtQuals *this_() { return this; }
 
 public:
-  ExtQuals(const Type *BaseTy, QualType Canon, Qualifiers Quals,
-           unsigned KS = BuiltinType::NoKind, bool DBL = false)
+  ExtQuals(const Type *BaseTy, QualType Canon, Qualifiers Quals)
     : ExtQualsTypeCommonBase(BaseTy,
                              Canon.isNull() ? QualType(this_(), 0) : Canon),
-      Quals(Quals), KindSelector(KS), IsDoublePrecisionKind(DBL?1:0)
+      Quals(Quals)
   {}
 
   Qualifiers getQualifiers() const { return Quals; }
@@ -834,21 +863,12 @@ public:
 
   const Type *getBaseType() const { return BaseType; }
 
-  bool hasKindSelector() const       { return KindSelector != BuiltinType::NoKind; }
-  BuiltinType::TypeKind getKindSelector() const {
-    return (BuiltinType::TypeKind)KindSelector;
-  }
-  bool isDoublePrecisionKind() const { return IsDoublePrecisionKind != 0; }
-
   void Profile(llvm::FoldingSetNodeID &ID) const {
-    Profile(ID, getBaseType(), Quals, KindSelector, IsDoublePrecisionKind != 0);
+    Profile(ID, getBaseType(), Quals);
   }
   static void Profile(llvm::FoldingSetNodeID &ID,
-                      const Type *BaseType, Qualifiers Quals,
-                      unsigned KS, bool IsDBL) {
+                      const Type *BaseType, Qualifiers Quals) {
     ID.AddPointer(BaseType);
-    ID.AddInteger(KS);
-    ID.AddBoolean(IsDBL);
     Quals.Profile(ID);
   }
 };
@@ -885,9 +905,6 @@ inline const Type *QualType::getTypePtr() const {
 }
 inline const Type *QualType::getTypePtrOrNull() const {
   return (isNull() ? 0 : getCommonPtr()->BaseType);
-}
-inline const ExtQuals *QualType::getExtQualsPtrOrNull() const {
-  return Value.getPointer().dyn_cast<const ExtQuals*>();
 }
 inline bool QualType::isCanonical() const {
   return getTypePtr()->isCanonicalUnqualified();
@@ -929,12 +946,6 @@ inline bool Type::isRealType() const {
     return BT->getTypeSpec() == BuiltinType::Real;
   return false;
 }
-inline bool Type::isCharacterType() const {
-  return isa<CharacterType>(CanonicalType);
-}
-inline const CharacterType *Type::asCharacterType() const {
-  return dyn_cast<CharacterType>(CanonicalType);
-}
 inline bool Type::isLogicalType() const {
   if (const BuiltinType *BT = dyn_cast<BuiltinType>(CanonicalType))
     return BT->getTypeSpec() == BuiltinType::Logical;
@@ -944,6 +955,18 @@ inline bool Type::isComplexType() const {
   if (const BuiltinType *BT = dyn_cast<BuiltinType>(CanonicalType))
     return BT->getTypeSpec() == BuiltinType::Complex;
   return false;
+}
+inline const BuiltinType *Type::asBuiltinType() const {
+  return dyn_cast<BuiltinType>(CanonicalType);
+}
+inline BuiltinType::TypeKind Type::getBuiltinTypeKind() const {
+  return TypeKind(BuiltinTypeBitsKind);
+}
+inline bool Type::isCharacterType() const {
+  return isa<CharacterType>(CanonicalType);
+}
+inline const CharacterType *Type::asCharacterType() const {
+  return dyn_cast<CharacterType>(CanonicalType);
 }
 inline bool Type::isArrayType() const {
   return isa<ArrayType>(CanonicalType);

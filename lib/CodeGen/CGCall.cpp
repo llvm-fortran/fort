@@ -279,9 +279,7 @@ void CodeGenFunction::EmitCallArg(CallArgList &Args,
     auto EType = E->getType();
     auto Ptr = EmitCallArgPtr(E);
     Args.add(Builder.CreateBitCast(Ptr, CGM.VoidPtrTy));
-    Args.add(Builder.getInt32(getContext().getTypeKindBitWidth(
-                                getContext().getArithmeticOrLogicalTypeKind(
-                                  EType.getExtQualsPtrOrNull(), EType))/8));
+    Args.add(Builder.getInt32(getContext().getTypeKindBitWidth(EType->getBuiltinTypeKind())/8));
     break;
   }
   }

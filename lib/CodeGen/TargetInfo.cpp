@@ -67,8 +67,7 @@ void X86_64ABIInfo::computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const {
     return;
 
   if(Info.getKind() == ABIRetInfo::Value) {
-    auto Kind = CGM.getContext().getComplexTypeKind(T.getExtQualsPtrOrNull());
-    switch(Kind) {
+    switch(T->getBuiltinTypeKind()) {
     case BuiltinType::Real4:
       Info = ABIRetInfo(ABIRetInfo::Value, llvm::VectorType::get(CGM.FloatTy, 2));
       break;

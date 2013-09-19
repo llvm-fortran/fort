@@ -518,6 +518,12 @@ public:
                                       SourceLocation MaxLoc,
                                       ExprResult RealPart, ExprResult ImPart);
 
+  /// Returns true if a type is a double precision real type.
+  bool IsTypeDoublePrecisionReal(QualType T) const;
+
+  /// Returns true if a type is a double precision complex type.
+  bool IsTypeDoublePrecisionComplex(QualType T) const;
+
   /// GetUnaryReturnType - Returns the type T with the
   /// required qualifiers and array type from the given expression.
   QualType GetUnaryReturnType(const Expr *E, QualType T);

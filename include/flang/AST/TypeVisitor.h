@@ -33,10 +33,11 @@ class TypeVisitor {
 public:
 
 #define DISPATCH(NAME, CLASS) \
-  return static_cast<ImplClass*>(this)->Visit ## NAME(static_cast<const CLASS*>(T.getTypePtr()), T.getExtQualsPtrOrNull())
+  return static_cast<ImplClass*>(this)->Visit ## NAME(static_cast<const CLASS*>(Split.first), Split.second)
 
   /// \brief Performs the operation associated with this visitor object.
   RetTy Visit(QualType T) {
+    auto Split = T.split();
     // Top switch stmt: dispatch to VisitFooType for each FooType.
     switch (T->getTypeClass()) {
 #define TYPE(Class, Parent) case Type::Class: DISPATCH(Class##Type, Class##Type);
@@ -47,14 +48,14 @@ public:
 
   // If the implementation chooses not to implement a certain visit method, fall
   // back on superclass.
-#define TYPE(Class, Parent) RetTy Visit##Class##Type(const Class##Type *T, const ExtQuals *E) { \
-  return static_cast<ImplClass*>(this)->Visit ## Parent(static_cast<const Parent*>(T), E);                                                       \
+#define TYPE(Class, Parent) RetTy Visit##Class##Type(const Class##Type *T, Qualifiers QS) { \
+  return static_cast<ImplClass*>(this)->Visit ## Parent(static_cast<const Parent*>(T), QS);                                                       \
 }
 #include "flang/AST/TypeNodes.def"
 
   /// \brief Method called if \c ImpClass doesn't provide specific handler
   /// for some type class.
-  RetTy VisitType(const Type*, const ExtQuals *E) { return RetTy(); }
+  RetTy VisitType(const Type*, Qualifiers) { return RetTy(); }
 };
 
 #undef DISPATCH

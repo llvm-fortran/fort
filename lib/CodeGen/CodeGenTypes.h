@@ -89,9 +89,6 @@ public:
 
   llvm::Type *GetCharacterType(llvm::Type *PtrType);
 
-  llvm::Type *ConvertBuiltInTypeForMem(const BuiltinType *T,
-                                       const ExtQuals *Ext);
-  llvm::Type *ConvertBuiltInType(const BuiltinType *T, const ExtQuals *Ext);
   llvm::Type *ConvertBuiltInType(BuiltinType::TypeSpec Spec,
                                  BuiltinType::TypeKind Kind);
 

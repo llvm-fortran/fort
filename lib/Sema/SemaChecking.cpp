@@ -78,7 +78,8 @@ BuiltinType::TypeKind Sema::EvalAndCheckTypeKind(QualType T,
 QualType Sema::ApplyTypeKind(QualType T, const Expr *E) {
   auto Kind = EvalAndCheckTypeKind(T, E);
   return Kind != BuiltinType::NoKind?
-           Context.getExtQualType(T.getTypePtr(), Qualifiers(), Kind) : T;
+        QualType(Context.getBuiltinType(T->asBuiltinType()->getTypeSpec(),
+                   Kind, true), 0) : T;
 }
 
 bool Sema::CheckConstantExpression(const Expr *E) {
@@ -286,25 +287,10 @@ bool Sema::AreTypesOfSameKind(QualType A, QualType B) const {
     return B->isCharacterType();
   if(auto ABTy = dyn_cast<BuiltinType>(A.getTypePtr())) {
     auto BBTy = dyn_cast<BuiltinType>(B.getTypePtr());
-    if(!BBTy) return false;
+    if(!BBTy) return false;    
     auto Spec = ABTy->getTypeSpec();
     if(Spec != BBTy->getTypeSpec()) return false;
-    auto AExt = A.getExtQualsPtrOrNull();
-    auto BExt = B.getExtQualsPtrOrNull();
-    switch(Spec) {
-    case BuiltinType::Integer:
-      return Context.getIntTypeKind(AExt) ==
-             Context.getIntTypeKind(BExt);
-    case BuiltinType::Real:
-      return Context.getRealTypeKind(AExt) ==
-             Context.getRealTypeKind(BExt);
-    case BuiltinType::Complex:
-      return Context.getComplexTypeKind(AExt) ==
-             Context.getComplexTypeKind(BExt);
-    case BuiltinType::Logical:
-      return Context.getLogicalTypeKind(AExt) ==
-             Context.getLogicalTypeKind(BExt);
-    }
+    return ABTy->getBuiltinTypeKind() == BBTy->getBuiltinTypeKind();
   }
   return false;
 }
@@ -353,12 +339,13 @@ Expr *Sema::TypecheckExprIntegerOrLogicalOrSameCharacter(Expr *E,
 }
 
 bool Sema::IsDefaultBuiltinOrDoublePrecisionType(QualType T) {
-  if(!(T->isBuiltinType() || T->isCharacterType()))
+  if(T->isCharacterType())
+    return true;
+  if(!T->isBuiltinType())
     return false;
-  auto Ext = T.getExtQualsPtrOrNull();
-  if(!Ext) return true;
-  if(Ext->getKindSelector() == BuiltinType::NoKind ||
-     Ext->isDoublePrecisionKind())
+  auto BTy = T->asBuiltinType();
+  if(BTy->isDoublePrecisionKindSpecified() ||
+     !BTy->isKindExplicitlySpecified())
     return true;
   return false;
 }
@@ -396,27 +383,6 @@ static const BuiltinType *getBuiltinType(const Expr *E, bool AllowArrays = false
 
 static const BuiltinType *getBuiltinType(QualType T) {
   return dyn_cast<BuiltinType>(T.getTypePtr());
-}
-
-/// Returns true if a type is a double precision real type (Kind is 8).
-static bool IsTypeDoublePrecisionReal(QualType T) {
-  auto Ext = T.getExtQualsPtrOrNull();
-  return T->isRealType() &&
-           Ext && Ext->getKindSelector() == BuiltinType::Real8? true : false;
-}
-
-/// Returns true if a type is a single precision real type (Kind is 4).
-static bool IsTypeSinglePrecisionReal(QualType T) {
-  if(T->isRealType())
-    return !IsTypeDoublePrecisionReal(T);
-  return false;
-}
-
-/// Returns true if a type is a double precision complex type (Kind is 8).
-static bool IsTypeDoublePrecisionComplex(QualType T) {
-  auto Ext = T.getExtQualsPtrOrNull();
-  return T->isComplexType() &&
-           Ext && Ext->getKindSelector() == BuiltinType::Real8? true : false;
 }
 
 bool Sema::DiagnoseIncompatiblePassing(const Expr *E, QualType T,
@@ -460,10 +426,8 @@ bool Sema::CheckArgumentsTypeCompability(const Expr *E1, const Expr *E2,
   } else {
     auto Type1 = getBuiltinType(E1, AllowArrays);
     auto Type2 = getBuiltinType(E2, AllowArrays);
-    auto Ext1 = T1.getExtQualsPtrOrNull();
-    auto Ext2 = T2.getExtQualsPtrOrNull();
     if(!(!Type2 || Type1->getTypeSpec() != Type2->getTypeSpec() ||
-       Context.getArithmeticOrLogicalTypeKind(Ext1,T1) != Context.getArithmeticOrLogicalTypeKind(Ext2, T2)))
+       Type1->getBuiltinTypeKind() != Type2->getBuiltinTypeKind()))
       return false;
   }
 
@@ -503,7 +467,8 @@ bool Sema::CheckComplexArgument(const Expr *E, bool AllowArrays) {
 }
 
 bool Sema::CheckStrictlyRealArgument(const Expr *E, bool AllowArrays) {
-  if(!IsTypeSinglePrecisionReal(ScalarizeType(E->getType(), AllowArrays)))
+  auto T = ScalarizeType(E->getType(), AllowArrays);
+  if(!T->isRealType() || IsTypeDoublePrecisionReal(T))
     return DiagnoseIncompatiblePassing(E, Context.RealTy, AllowArrays);
   return false;
 }
@@ -511,7 +476,8 @@ bool Sema::CheckStrictlyRealArgument(const Expr *E, bool AllowArrays) {
 bool Sema::CheckStrictlyRealArrayArgument(const Expr *E, StringRef ArgName) {
   auto T = E->getType()->asArrayType();
   if(T) {
-    if(IsTypeSinglePrecisionReal(T->getElementType()))
+    auto ET = T->getElementType();
+    if(ET->isRealType() && !IsTypeDoublePrecisionReal(ET))
       return false;
   }
   return DiagnoseIncompatiblePassing(E, "'real array'", false, ArgName);
