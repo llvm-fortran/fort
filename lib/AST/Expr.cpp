@@ -37,72 +37,67 @@ SourceLocation ConstantExpr::getLocEnd() const {
   return MaxLoc;
 }
 
-IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, SourceLocation Loc,
-                                         SourceLocation MaxLoc, llvm::StringRef Data)
-  : ConstantExpr(IntegerConstantExprClass, C.IntegerTy, Loc, MaxLoc) {
+IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, SourceRange Range,
+                                         llvm::StringRef Data)
+  : ConstantExpr(IntegerConstantExprClass, C.IntegerTy, Range.Start, Range.End) {
   llvm::APInt Val(64,Data,10);
   Num.setValue(C, Val);
 }
 
-IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, SourceLocation Loc,
-                                         SourceLocation MaxLoc, APInt Value)
-  : ConstantExpr(IntegerConstantExprClass, C.IntegerTy, Loc, MaxLoc) {
+IntegerConstantExpr::IntegerConstantExpr(ASTContext &C, SourceRange Range,
+                                         APInt Value)
+  : ConstantExpr(IntegerConstantExprClass, C.IntegerTy, Range.Start, Range.End) {
   Num.setValue(C, Value);
 }
 
-IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, SourceLocation Loc,
-                                                 SourceLocation MaxLoc, llvm::StringRef Data) {
-  return new (C) IntegerConstantExpr(C, Loc, MaxLoc, Data);
+IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, SourceRange Range,
+                                                 StringRef Data) {
+  return new (C) IntegerConstantExpr(C, Range, Data);
 }
 
-IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, SourceLocation Loc,
-                                                 SourceLocation MaxLoc, APInt Value) {
-  return new (C) IntegerConstantExpr(C, Loc, MaxLoc, Value);
+IntegerConstantExpr *IntegerConstantExpr::Create(ASTContext &C, SourceRange Range,
+                                                 APInt Value) {
+  return new (C) IntegerConstantExpr(C, Range, Value);
 }
 
-RealConstantExpr::RealConstantExpr(ASTContext &C, SourceLocation Loc,
-                                   SourceLocation MaxLoc, llvm::StringRef Data,
+RealConstantExpr::RealConstantExpr(ASTContext &C, SourceRange Range, llvm::StringRef Data,
                                    QualType Type)
-  : ConstantExpr(RealConstantExprClass, Type, Loc, MaxLoc) {
+  : ConstantExpr(RealConstantExprClass, Type, Range.Start, Range.End) {
   APFloat Val(C.getFPTypeSemantics(Type), Data);
   Num.setValue(C, Val);
 }
 
-RealConstantExpr *RealConstantExpr::Create(ASTContext &C, SourceLocation Loc,
-                                           SourceLocation MaxLoc, llvm::StringRef Data,
-                                           QualType Type) {
-  return new (C) RealConstantExpr(C, Loc, MaxLoc, Data, Type);
+RealConstantExpr *RealConstantExpr::Create(ASTContext &C, SourceRange Range,
+                                           llvm::StringRef Data, QualType Type) {
+  return new (C) RealConstantExpr(C, Range, Data, Type);
 }
 
-ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, SourceLocation Loc, SourceLocation MaxLoc,
+ComplexConstantExpr::ComplexConstantExpr(ASTContext &C, SourceRange Range,
                                          Expr *Real, Expr *Imaginary, QualType Type)
-  : ConstantExpr(ComplexConstantExprClass, Type, Loc, MaxLoc),
+  : ConstantExpr(ComplexConstantExprClass, Type, Range.Start, Range.End),
     Re(Real), Im(Imaginary) { }
 
-ComplexConstantExpr *ComplexConstantExpr::Create(ASTContext &C, SourceLocation Loc,
-                                                 SourceLocation MaxLoc,
+ComplexConstantExpr *ComplexConstantExpr::Create(ASTContext &C, SourceRange Range,
                                                  Expr *Real, Expr *Imaginary,
                                                  QualType Type) {
-  return new (C) ComplexConstantExpr(C, Loc, MaxLoc, Real, Imaginary, Type);
+  return new (C) ComplexConstantExpr(C, Range, Real, Imaginary, Type);
 }
 
-CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, SourceLocation Loc,
-                                             SourceLocation MaxLoc, llvm::StringRef data)
-  : ConstantExpr(CharacterConstantExprClass, C.CharacterTy, Loc, MaxLoc) {
-  // TODO: A 'kind' on a character literal constant.
+CharacterConstantExpr::CharacterConstantExpr(ASTContext &C, SourceRange Range,
+                                             StringRef data, QualType T)
+  : ConstantExpr(CharacterConstantExprClass, T, Range.Start, Range.End) {
   Data = new (C) char[data.size() + 1];
   std::strncpy(Data, data.data(), data.size());
   Data[data.size()] = '\0';
 }
 
-CharacterConstantExpr::CharacterConstantExpr(char *Str, SourceLocation Loc, QualType T)
-  : ConstantExpr(CharacterConstantExprClass, T, Loc, Loc), Data(Str) {
+CharacterConstantExpr::CharacterConstantExpr(char *Str, SourceRange Range, QualType T)
+  : ConstantExpr(CharacterConstantExprClass, T, Range.Start, Range.End), Data(Str) {
 }
 
-CharacterConstantExpr *CharacterConstantExpr::Create(ASTContext &C, SourceLocation Loc,
-                                                     SourceLocation MaxLoc,
-                                                     llvm::StringRef Data) {
-  return new (C) CharacterConstantExpr(C, Loc, MaxLoc, Data);
+CharacterConstantExpr *CharacterConstantExpr::Create(ASTContext &C, SourceRange Range,
+                                                     StringRef Data, QualType T) {
+  return new (C) CharacterConstantExpr(C, Range, Data, T);
 }
 
 CharacterConstantExpr *CharacterConstantExpr::
@@ -118,13 +113,13 @@ CreateCopyWithCompatibleLength(ASTContext &C, QualType T) {
     return this;
   else if(Str.size() > Len)
     // FIXME: the existing memory can be reused.
-    return Create(C, getLocation(), getLocation(), Str.slice(0, Len));
+    return Create(C, getSourceRange(), Str.slice(0, Len), T);
   else {
     auto NewData = new (C) char[Len + 1];
     std::strncpy(NewData, Str.data(), Str.size());
     std::memset(NewData + Str.size(), ' ', (Len - Str.size()));
     NewData[Len] = '\0';
-    return new (C) CharacterConstantExpr(NewData, getLocation(), T);
+    return new (C) CharacterConstantExpr(NewData, getSourceRange(), T);
   }
 }
 
@@ -160,15 +155,15 @@ BOZConstantExpr *BOZConstantExpr::Create(ASTContext &C, SourceLocation Loc,
   return new (C) BOZConstantExpr(C, Loc, MaxLoc, Data);
 }
 
-LogicalConstantExpr::LogicalConstantExpr(ASTContext &C, SourceLocation Loc,
-                                         SourceLocation MaxLoc, llvm::StringRef Data)
-  : ConstantExpr(LogicalConstantExprClass, C.LogicalTy, Loc, MaxLoc) {
+LogicalConstantExpr::LogicalConstantExpr(ASTContext &C, SourceRange Range,
+                                         llvm::StringRef Data, QualType T)
+  : ConstantExpr(LogicalConstantExprClass, T, Range.Start, Range.End) {
   Val = (Data.compare_lower(".TRUE.") == 0);
 }
 
-LogicalConstantExpr *LogicalConstantExpr::Create(ASTContext &C, SourceLocation Loc,
-                                                 SourceLocation MaxLoc, llvm::StringRef Data) {
-  return new (C) LogicalConstantExpr(C, Loc, MaxLoc, Data);
+LogicalConstantExpr *LogicalConstantExpr::Create(ASTContext &C, SourceRange Range,
+                                                 llvm::StringRef Data, QualType T) {
+  return new (C) LogicalConstantExpr(C, Range, Data, T);
 }
 
 RepeatedConstantExpr::RepeatedConstantExpr(SourceLocation Loc,
@@ -298,48 +293,48 @@ ImplicitTempArrayExpr *ImplicitTempArrayExpr::Create(ASTContext &C, Expr *E) {
   return new(C) ImplicitTempArrayExpr(E->getLocation(), E);
 }
 
-FunctionRefExpr::FunctionRefExpr(SourceLocation Loc, const FunctionDecl *Func,
-                QualType T)
-  : Expr(FunctionRefExprClass, T, Loc), Function(Func) {}
+FunctionRefExpr::FunctionRefExpr(SourceLocation Loc, SourceLocation LocEnd,
+                                 const FunctionDecl *Func, QualType T)
+  : Expr(FunctionRefExprClass, T, Loc), Function(Func), NameLocEnd(LocEnd) {}
 
-FunctionRefExpr *FunctionRefExpr::Create(ASTContext &C, SourceLocation Loc,
+FunctionRefExpr *FunctionRefExpr::Create(ASTContext &C, SourceRange Range,
                                          const FunctionDecl *Function) {
-  return new(C) FunctionRefExpr(Loc, Function, C.getFunctionType(Function));
+  return new(C) FunctionRefExpr(Range.Start, Range.End,
+                                Function, C.getFunctionType(Function));
 }
 
 SourceLocation FunctionRefExpr::getLocEnd() const {
-  return getLocation();//FIXME
+  return NameLocEnd;
 }
 
-VarExpr::VarExpr(SourceLocation Loc, const VarDecl *Var)
+VarExpr::VarExpr(SourceLocation Loc, SourceLocation LocEnd,
+                 const VarDecl *Var)
   : Expr(VarExprClass, Var->getType(), Loc),
-    Variable(Var) {}
+    Variable(Var), NameLocEnd(LocEnd) {}
 
-VarExpr *VarExpr::Create(ASTContext &C, SourceLocation Loc, VarDecl *VD) {
-  VD->MarkUsedAsVariable(Loc);
-  return new (C) VarExpr(Loc, VD);
+VarExpr *VarExpr::Create(ASTContext &C, SourceRange Range, VarDecl *VD) {
+  VD->MarkUsedAsVariable(Range.Start);
+  return new (C) VarExpr(Range.Start, Range.End, VD);
 }
 
 SourceLocation VarExpr::getLocEnd() const {
-  return SourceLocation::getFromPointer(getLocation().getPointer() +
-                               Variable->getIdentifier()->getLength());
+  return NameLocEnd;
 }
 
 UnresolvedIdentifierExpr::UnresolvedIdentifierExpr(ASTContext &C,
-                                                   SourceLocation Loc,
+                                                   SourceLocation Loc, SourceLocation LocEnd,
                                                    const IdentifierInfo *ID)
-  : Expr(UnresolvedIdentifierExprClass, C.IntegerTy, Loc), IDInfo(ID) {
-}
+  : Expr(UnresolvedIdentifierExprClass, C.IntegerTy, Loc), IDInfo(ID),
+    NameLocEnd(LocEnd) { }
 
 UnresolvedIdentifierExpr *UnresolvedIdentifierExpr::Create(ASTContext &C,
-                                                           SourceLocation Loc,
+                                                           SourceRange Range,
                                                            const IdentifierInfo *IDInfo) {
-  return new(C) UnresolvedIdentifierExpr(C, Loc, IDInfo);
+  return new(C) UnresolvedIdentifierExpr(C, Range.Start, Range.End, IDInfo);
 }
 
 SourceLocation UnresolvedIdentifierExpr::getLocEnd() const {
-  return SourceLocation::getFromPointer(getLocation().getPointer() +
-                                        IDInfo->getLength());
+  return NameLocEnd;
 }
 
 

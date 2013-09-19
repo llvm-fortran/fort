@@ -215,6 +215,9 @@ private:
   /// the given location.
   SourceRange getTokenRange(SourceLocation Loc) const;
 
+  /// getTokenRange - returns the range of the current token.
+  SourceRange getTokenRange() const;
+
   //===--------------------------------------------------------------------===//
   // Low-Level token peeking and consumption methods.
   //
@@ -525,7 +528,7 @@ private:
   ExprResult ParseExpression();
   ExprResult ParseFunctionCallArgumentList(SmallVectorImpl<Expr*> &Args,
                                            SourceLocation &RParenLoc);
-  ExprResult ParseRecursiveCallExpression(SourceLocation IDLoc);
+  ExprResult ParseRecursiveCallExpression(SourceRange IDRange);
   ExprResult ParseCallExpression(SourceLocation IDLoc, FunctionDecl *Function);
   ExprResult ParseArrayConstructor();
   ExprResult ParseTypeConstructor(SourceLocation IDLoc, RecordDecl *Record);
@@ -541,7 +544,7 @@ private:
   ExprResult ParseExpectedFollowupExpression(const char *DiagAfter = "");
 
   void ParseStatementLabel();
-  ExprResult ParseStatementLabelReference(bool ConsumeToken = true);
+  ExprResult ParseStatementLabelReference(bool Consume = true);
 
   /// ParseConstructNameLabel - Parses an optional construct-name ':' label.
   /// If the construct name isn't there, then set the ConstructName to null.

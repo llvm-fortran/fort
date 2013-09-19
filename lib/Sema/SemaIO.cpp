@@ -69,7 +69,8 @@ FormatSpec *Sema::ActOnExpressionFormatSpec(ASTContext &C, SourceLocation Loc,
   Diags.Report(Loc, diag::err_typecheck_expected_format_spec)
     << Type << E->getSourceRange();
   // Return an empty character literal spec when an error occurs.
-  return CharacterExpFormatSpec::Create(C, Loc, CharacterConstantExpr::Create(Context, Loc, Loc, ""));
+  return CharacterExpFormatSpec::Create(C, Loc,
+                                        CharacterConstantExpr::Create(Context, Loc, "", C.CharacterTy));
 }
 
 ExternalStarUnitSpec *Sema::ActOnStarUnitSpec(ASTContext &C, SourceLocation Loc,

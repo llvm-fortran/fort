@@ -833,14 +833,14 @@ ExprResult Sema::ActOnDATAOuterImpliedDoExpr(ASTContext &C,
             // an implied do variable
             auto VD = dyn_cast<VarDecl>(Declaration);
             assert(VD);
-            return VarExpr::Create(C, Unresolved->getLocation(), VD);
+            return VarExpr::Create(C, Unresolved->getSourceRange(), VD);
           }
         } else {
            if(auto OuterDeclaration = S.ResolveIdentifier(IDInfo)) {
             if(auto VD = dyn_cast<VarDecl>(OuterDeclaration)) {
               // a constant variable
               if(VD->isParameter())
-                return VarExpr::Create(C, E->getLocation(), VD);
+                return VarExpr::Create(C, E->getSourceRange(), VD);
             }
             Diags.Report(E->getLocation(),diag::err_implied_do_expect_leaf_expr)
               << E->getSourceRange();
@@ -1039,8 +1039,7 @@ bool Sema::CheckCharacterLengthDeclarationCompability(QualType T, VarDecl *VD) {
 }
 
 QualType Sema::GetSingleDimArrayType(QualType ElTy, int Size) {
-  auto Dim = ExplicitShapeSpec::Create(Context, IntegerConstantExpr::Create(
-                                         Context, SourceLocation(), SourceLocation(), llvm::APInt(64, Size)));
+  auto Dim = ExplicitShapeSpec::Create(Context, IntegerConstantExpr::Create(Context, Size));
   return Context.getArrayType(ElTy, Dim);
 }
 

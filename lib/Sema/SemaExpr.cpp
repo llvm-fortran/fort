@@ -337,8 +337,8 @@ ExprResult Sema::ActOnComplexConstantExpr(ASTContext &C, SourceLocation Loc,
     ImPart = ImplicitCast(C, ElementType, ImPart);
   }
 
-  return ComplexConstantExpr::Create(C, Loc,
-                                     MaxLoc, RealPart.get(), ImPart.get(),
+  return ComplexConstantExpr::Create(C, SourceRange(Loc, MaxLoc),
+                                     RealPart.get(), ImPart.get(),
                                      C.getComplexType(ElementType));
 }
 

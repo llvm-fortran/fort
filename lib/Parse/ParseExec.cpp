@@ -237,13 +237,14 @@ Parser::StmtResult Parser::ParseAssignStmt() {
     return StmtError();
 
   auto IDInfo = Tok.getIdentifierInfo();
+  auto IDRange = getTokenRange();
   auto IDLoc = Tok.getLocation();
   if(!ExpectAndConsume(tok::identifier))
     return StmtError();
   auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo);
   if(!VD)
     return StmtError();
-  auto Var = VarExpr::Create(Context, IDLoc, VD);
+  auto Var = VarExpr::Create(Context, IDRange, VD);
 
   return Actions.ActOnAssignStmt(Context, Loc, Value, Var, StmtLabel);
 }
@@ -435,6 +436,7 @@ Parser::StmtResult Parser::ParseDoStmt() {
 
   // the do var
   auto IDInfo = Tok.getIdentifierInfo();
+  auto IDRange = getTokenRange();
   auto IDLoc = Tok.getLocation();
   if(!ExpectAndConsume(tok::identifier))
     goto error;
@@ -457,13 +459,13 @@ Parser::StmtResult Parser::ParseDoStmt() {
   }
 
   if(auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo))
-    DoVar = VarExpr::Create(Context, IDLoc, VD);
+    DoVar = VarExpr::Create(Context, IDRange, VD);
   return Actions.ActOnDoStmt(Context, Loc, EqLoc, TerminalStmt,
                              DoVar, E1, E2, E3, StmtConstructName, StmtLabel);
 error:
   if(IDInfo) {
     if(auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo))
-      DoVar = VarExpr::Create(Context, IDLoc, VD);
+      DoVar = VarExpr::Create(Context, IDRange, VD);
   }
   SkipUntilNextStatement();
   return Actions.ActOnDoStmt(Context, Loc, EqLoc, TerminalStmt,
@@ -755,7 +757,8 @@ FormatSpec *Parser::ParseFMTSpec(bool IsLabeled) {
     if(E.isUsable())
       return Actions.ActOnExpressionFormatSpec(Context, Loc, E.get());
     // NB: return empty format string on error.
-    return Actions.ActOnExpressionFormatSpec(Context, Loc, CharacterConstantExpr::Create(Context, Loc, Loc, ""));
+    return Actions.ActOnExpressionFormatSpec(Context, Loc,
+                                             CharacterConstantExpr::Create(Context, Loc, "", Context.CharacterTy));
   }
 
   return Actions.ActOnStarFormatSpec(Context, Loc);

@@ -110,6 +110,12 @@ SourceRange Parser::getTokenRange(SourceLocation Loc) const {
   return SourceRange(Loc, T.getLocation());
 }
 
+// FIXME:
+SourceRange Parser::getTokenRange() const {
+  return SourceRange(Tok.getLocation(), SourceLocation::getFromPointer(Tok.getLocation().getPointer() +
+                                                                       Tok.getLength()));
+}
+
 bool Parser::IsNextToken(tok::TokenKind TokKind) {
   if (NextTok.is(tok::unknown))
     TheLexer.Lex(NextTok, true);
@@ -496,24 +502,21 @@ void Parser::ParseStatementLabel() {
 
   std::string NumStr;
   CleanLiteral(Tok, NumStr);
-  StmtLabel = IntegerConstantExpr::Create(Context, Tok.getLocation(),
-                                          getMaxLocationOfCurrentToken(),
+  StmtLabel = IntegerConstantExpr::Create(Context, getTokenRange(),
                                           NumStr);
-  Lex();
+  ConsumeToken();
 }
 
 /// ParseStatementLabelReference - Parses a statement label reference token.
-ExprResult Parser::ParseStatementLabelReference(bool ConsumeToken) {
-  if(Tok.isNot(tok::int_literal_constant)) {
+ExprResult Parser::ParseStatementLabelReference(bool Consume) {
+  if(Tok.isNot(tok::int_literal_constant))
     return ExprError();
-  }
 
   std::string NumStr;
   CleanLiteral(Tok, NumStr);
-  auto Result = IntegerConstantExpr::Create(Context, Tok.getLocation(),
-                                            getMaxLocationOfCurrentToken(),
+  auto Result = IntegerConstantExpr::Create(Context, getTokenRange(),
                                             NumStr);
-  if(ConsumeToken) Lex();
+  if(Consume) ConsumeToken();
   return Result;
 }
 

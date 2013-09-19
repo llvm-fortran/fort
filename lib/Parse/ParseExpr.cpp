@@ -383,8 +383,7 @@ void Parser::SetKindSelector(ConstantExpr *E, StringRef Kind) {
   Expr *KindExpr = 0;
 
   if (::isdigit(Kind[0])) {
-    KindExpr = IntegerConstantExpr::Create(Context, Loc,
-                                           Loc,
+    KindExpr = IntegerConstantExpr::Create(Context, E->getSourceRange(),
                                            Kind);
   } else {
     std::string KindStr(Kind);
@@ -449,12 +448,10 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = LogicalConstantExpr::Create(Context, Loc,
-                                    getMaxLocationOfCurrentToken(),
-                                    StrPair.first);
+    E = LogicalConstantExpr::Create(Context, getTokenRange(),
+                                    StrPair.first, Context.LogicalTy);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
-
-    Lex();
+    ConsumeToken();
     break;
   }
   case tok::binary_boz_constant:
@@ -469,17 +466,15 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
                                 getMaxLocationOfCurrentToken(),
                                 StrPair.first);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
-
-    Lex();
+    ConsumeToken();
     break;
   }
   case tok::char_literal_constant: {
     std::string NumStr;
     CleanLiteral(Tok, NumStr);
-    E = CharacterConstantExpr::Create(Context, Loc,
-                                      getMaxLocationOfCurrentToken(),
-                                      StringRef(NumStr));
-    Lex();
+    E = CharacterConstantExpr::Create(Context, getTokenRange(),
+                                      StringRef(NumStr), Context.CharacterTy);
+    ConsumeToken();
     // Possible substring
     if(IsPresent(tok::l_paren))
       return ParseSubstring(E);
@@ -491,8 +486,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = IntegerConstantExpr::Create(Context, Loc,
-                                    getMaxLocationOfCurrentToken(),
+    E = IntegerConstantExpr::Create(Context, getTokenRange(),
                                     StrPair.first);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
 
@@ -505,12 +499,10 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = RealConstantExpr::Create(Context, Loc,
-                                 getMaxLocationOfCurrentToken(),
+    E = RealConstantExpr::Create(Context, getTokenRange(),
                                  NumStr, Context.RealTy);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
-
-    Lex();
+    ConsumeToken();
     break;
   }
   case tok::double_precision_literal_constant: {
@@ -526,12 +518,10 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = RealConstantExpr::Create(Context, Loc,
-                                 getMaxLocationOfCurrentToken(),
+    E = RealConstantExpr::Create(Context, getTokenRange(),
                                  NumStr, Context.DoublePrecisionTy);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
-
-    Lex();
+    ConsumeToken();
     break;
   }
   case tok::identifier:
@@ -621,14 +611,12 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
 ExprResult Parser::ParseNameOrCall() {
   auto IDInfo = Tok.getIdentifierInfo();
   assert(IDInfo && "Token isn't an identifier");
+  auto IDRange = getTokenRange();
   auto IDLoc = ConsumeToken();
 
-  if(DontResolveIdentifiers) {
-    auto E = UnresolvedIdentifierExpr::Create(Context,
-                                              IDLoc,
-                                              IDInfo);
-    return E;
-  }
+  if(DontResolveIdentifiers)
+    return UnresolvedIdentifierExpr::Create(Context,
+                                            IDRange, IDInfo);
 
   // [R504]:
   //   object-name :=
@@ -653,9 +641,9 @@ ExprResult Parser::ParseNameOrCall() {
     if(IsPresent(tok::l_paren) &&
        VD->isFunctionResult() && isa<FunctionDecl>(Actions.CurContext)) {
       // FIXME: accessing function results from inner recursive functions
-      return ParseRecursiveCallExpression(IDLoc);
+      return ParseRecursiveCallExpression(IDRange);
     }
-    return VarExpr::Create(Context, IDLoc, VD);
+    return VarExpr::Create(Context, IDRange, VD);
   }
   else if(IntrinsicFunctionDecl *IFunc = dyn_cast<IntrinsicFunctionDecl>(Declaration)) {
     SmallVector<Expr*, 8> Arguments;
@@ -667,20 +655,21 @@ ExprResult Parser::ParseNameOrCall() {
   } else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
     // FIXME: allow subroutines, but errors in sema
     if(!IsPresent(tok::l_paren))
-      return FunctionRefExpr::Create(Context, IDLoc, Func);
+      return FunctionRefExpr::Create(Context, IDRange, Func);
     if(!Func->isSubroutine()) {
       return ParseCallExpression(IDLoc, Func);
     }
   } else if(isa<SelfDecl>(Declaration) && isa<FunctionDecl>(Actions.CurContext))
-    return ParseRecursiveCallExpression(IDLoc);
+    return ParseRecursiveCallExpression(IDRange);
   else if(auto Record = dyn_cast<RecordDecl>(Declaration))
     return ParseTypeConstructor(IDLoc, Record);
   Diag.Report(IDLoc, diag::err_expected_var);
   return ExprError();
 }
 
-ExprResult Parser::ParseRecursiveCallExpression(SourceLocation IDLoc) {
+ExprResult Parser::ParseRecursiveCallExpression(SourceRange IDRange) {
   auto Func = Actions.CurrentContextAsFunction();
+  auto IDLoc = IDRange.Start;
   if(Func->isSubroutine()) {
     Diag.Report(IDLoc, diag::err_invalid_subroutine_use)
      << Func->getIdentifier() << getTokenRange(IDLoc);
@@ -690,7 +679,7 @@ ExprResult Parser::ParseRecursiveCallExpression(SourceLocation IDLoc) {
     return ExprError();
 
   if(!IsPresent(tok::l_paren))
-    return FunctionRefExpr::Create(Context, IDLoc, Func);
+    return FunctionRefExpr::Create(Context, IDRange, Func);
   return ParseCallExpression(IDLoc, Func);
 }
 

@@ -201,17 +201,16 @@ public:
 
 class IntegerConstantExpr : public ConstantExpr {
   APIntStorage Num;
-  IntegerConstantExpr(ASTContext &C, SourceLocation Loc,
-                      SourceLocation MaxLoc, llvm::StringRef Data);
-  IntegerConstantExpr(ASTContext &C, SourceLocation Loc,
-                      SourceLocation MaxLoc, APInt Value);
+  IntegerConstantExpr(ASTContext &C, SourceRange Range,
+                      StringRef Data);
+  IntegerConstantExpr(ASTContext &C, SourceRange Range, APInt Value);
 public:
-  static IntegerConstantExpr *Create(ASTContext &C, SourceLocation Loc,
-                                     SourceLocation MaxLoc, llvm::StringRef Data);
-  static IntegerConstantExpr *Create(ASTContext &C, SourceLocation Loc,
-                                     SourceLocation MaxLoc, APInt Value);
+  static IntegerConstantExpr *Create(ASTContext &C, SourceRange Range,
+                                     StringRef Data);
+  static IntegerConstantExpr *Create(ASTContext &C, SourceRange Range,
+                                     APInt Value);
   static IntegerConstantExpr *Create(ASTContext &C, int64_t Value) {
-    return Create(C, SourceLocation(), SourceLocation(), APInt(64, Value, true));
+    return Create(C, SourceRange(), APInt(64, Value, true));
   }
 
   APInt getValue() const { return Num.getValue(); }
@@ -225,12 +224,11 @@ public:
 class RealConstantExpr : public ConstantExpr {
 private:
   APFloatStorage Num;
-  RealConstantExpr(ASTContext &C, SourceLocation Loc,
-                   SourceLocation MaxLoc, llvm::StringRef Data,
-                   QualType Type);
+  RealConstantExpr(ASTContext &C, SourceRange Range,
+                   llvm::StringRef Data, QualType Type);
 public:
-  static RealConstantExpr *Create(ASTContext &C, SourceLocation Loc,
-                                  SourceLocation MaxLoc, llvm::StringRef Data,
+  static RealConstantExpr *Create(ASTContext &C, SourceRange Range,
+                                  llvm::StringRef Data,
                                   QualType Type);
 
   APFloat getValue() const { return Num.getValue(); }
@@ -244,11 +242,10 @@ public:
 class ComplexConstantExpr : public ConstantExpr {
 private:
   Expr *Re, *Im;
-  ComplexConstantExpr(ASTContext &C, SourceLocation Loc, SourceLocation MaxLoc,
+  ComplexConstantExpr(ASTContext &C, SourceRange Range,
                       Expr *Real, Expr *Imaginary, QualType Type);
 public:
-  static ComplexConstantExpr *Create(ASTContext &C, SourceLocation Loc,
-                                     SourceLocation MaxLoc,
+  static ComplexConstantExpr *Create(ASTContext &C, SourceRange Range,
                                      Expr *Real, Expr *Imaginary,
                                      QualType Type);
 
@@ -264,12 +261,16 @@ public:
 class CharacterConstantExpr : public ConstantExpr {
   char *Data;
 
-  CharacterConstantExpr(char *Str, SourceLocation Loc, QualType T);
-  CharacterConstantExpr(ASTContext &C, SourceLocation Loc,
-                        SourceLocation MaxLoc, llvm::StringRef Data);
+  CharacterConstantExpr(char *Str, SourceRange Range, QualType T);
+  CharacterConstantExpr(ASTContext &C, SourceRange Range,
+                        StringRef Data, QualType T);
 public:
+  static CharacterConstantExpr *Create(ASTContext &C, SourceRange Range,
+                                       StringRef Data, QualType T);
   static CharacterConstantExpr *Create(ASTContext &C, SourceLocation Loc,
-                                       SourceLocation MaxLoc, llvm::StringRef Data);
+                                       StringRef Data, QualType T) {
+    return Create(C, SourceRange(Loc, Loc), Data, T);
+  }
 
   /// CreateCopyWithCompatibleLength - if the 'this' string has the same length
   /// as the type, it returns 'this'. Otherwise it creates a new CharacterConstantExpr
@@ -312,11 +313,12 @@ public:
 
 class LogicalConstantExpr : public ConstantExpr {
   bool Val;
-  LogicalConstantExpr(ASTContext &C, SourceLocation Loc,
-                      SourceLocation MaxLoc, llvm::StringRef Data);
+
+  LogicalConstantExpr(ASTContext &C, SourceRange Range,
+                      llvm::StringRef Data, QualType T);
 public:
-  static LogicalConstantExpr *Create(ASTContext &C, SourceLocation Loc,
-                                     SourceLocation MaxLoc, llvm::StringRef Data);
+  static LogicalConstantExpr *Create(ASTContext &C, SourceRange Range,
+                                     llvm::StringRef Data, QualType T);
 
   bool isTrue() const { return Val; }
   bool isFalse() const { return !Val; }
@@ -672,11 +674,13 @@ public:
 
 /// FunctionRefExpr - a reference to a function
 class FunctionRefExpr : public Expr {
+  SourceLocation NameLocEnd;
   const FunctionDecl *Function;
-  FunctionRefExpr(SourceLocation Loc, const FunctionDecl *Func,
-                  QualType T);
+
+  FunctionRefExpr(SourceLocation Loc, SourceLocation LocEnd,
+                  const FunctionDecl *Func, QualType T);
 public:
-  static FunctionRefExpr *Create(ASTContext &C, SourceLocation Loc,
+  static FunctionRefExpr *Create(ASTContext &C, SourceRange Range,
                                  const FunctionDecl *Function);
 
   const FunctionDecl *getFunctionDecl() const { return Function; }
@@ -691,10 +695,15 @@ public:
 
 /// VarExpr -
 class VarExpr : public Expr {
+  SourceLocation NameLocEnd;
   const VarDecl *Variable;
-  VarExpr(SourceLocation Loc, const VarDecl *Var);
+
+  VarExpr(SourceLocation Loc, SourceLocation LocEnd, const VarDecl *Var);
 public:
-  static VarExpr *Create(ASTContext &C, SourceLocation L, VarDecl *V);
+  static VarExpr *Create(ASTContext &C, SourceRange Range, VarDecl *VD);
+  static VarExpr *Create(ASTContext &C, SourceLocation L, VarDecl *VD) {
+    return Create(C, SourceRange(L, L), VD);
+  }
 
   const VarDecl *getVarDecl() const { return Variable; }
 
@@ -711,11 +720,14 @@ public:
 ///
 /// Used in implied DO in the DATA statement.
 class UnresolvedIdentifierExpr : public Expr {
+  SourceLocation NameLocEnd;
   const IdentifierInfo *IDInfo;
+
   UnresolvedIdentifierExpr(ASTContext &C, SourceLocation Loc,
+                           SourceLocation LocEnd,
                            const IdentifierInfo *ID);
 public:
-  static UnresolvedIdentifierExpr *Create(ASTContext &C, SourceLocation Loc,
+  static UnresolvedIdentifierExpr *Create(ASTContext &C, SourceRange Range,
                                           const IdentifierInfo *IDInfo);
   const IdentifierInfo *getIdentifier() const { return IDInfo; }
 

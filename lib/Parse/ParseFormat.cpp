@@ -112,8 +112,8 @@ public:
         Diag.Report(Loc, diag::err_expected_int_literal_constant);
       return nullptr;
     }
-    return IntegerConstantExpr::Create(Context, Loc,
-                                       getCurrentLoc(), Str);
+    return IntegerConstantExpr::Create(Context, SourceRange(Loc,
+                                       getCurrentLoc()), Str);
   }
 
   void MustBeDone() {

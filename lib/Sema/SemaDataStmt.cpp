@@ -308,8 +308,8 @@ ExprResult DataStmtEngine::CreateSubstringExprInitializer(SubstringExpr *E,
     Str[I] = StrVal[I - Begin];
   }
   for(; I < End; ++I) Str[I] = ' ';
-  return CharacterConstantExpr::Create(Context, Val.get()->getLocation(),
-                                       Val.get()->getLocation(), Str);
+  return CharacterConstantExpr::Create(Context, Val.get()->getSourceRange(),
+                                       Str, Context.CharacterTy);
 }
 
 void DataStmtEngine::VisitSubstringExpr(SubstringExpr *E) {
