@@ -74,6 +74,7 @@ public:
   void EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
                                    const ExtQuals *ExtTy,
                                    const Expr *E);
+  void EmitWriteUnformattedChar(const Expr *E);
 };
 
 void CGLibflangWriteEmitter::EmitStart() {
@@ -89,6 +90,8 @@ void CGLibflangWriteEmitter::EmitEnd() {
 void CGLibflangWriteEmitter::EmitWriteUnformattedList(ArrayRef<Expr*> Values) {
   for(auto E : Values) {
     auto EType = E->getType();
+    if(EType->isCharacterType())
+      EmitWriteUnformattedChar(E);
     if(auto BTy = dyn_cast<BuiltinType>(EType.getTypePtr()))
       EmitWriteUnformattedBuiltin(BTy,
                                   EType.getExtQualsPtrOrNull(), E);
@@ -112,11 +115,6 @@ void CGLibflangWriteEmitter::EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
     Func = CGM.GetRuntimeFunction2("write_complex", ControllerPtr->getType(),
                                    E->getType(), CGType(), getTransferABI());
     break;
-  case BuiltinType::Character:
-    Func = CGM.GetRuntimeFunction2("write_character", ControllerPtr->getType(),
-                                   E->getType());
-    CGF.EmitCall2(Func, ControllerPtr, CGF.EmitCharacterExpr(E));
-    return;
   case BuiltinType::Logical:
     Func = CGM.GetRuntimeFunction2("write_logical", ControllerPtr->getType(),
                                    E->getType(), CGType(), getTransferABI());
@@ -126,6 +124,12 @@ void CGLibflangWriteEmitter::EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
   CGF.EmitCallArg(ArgList, ControllerPtr, Func.getInfo()->getArguments()[0]);
   CGF.EmitCallArg(ArgList, E, Func.getInfo()->getArguments()[1]);
   CGF.EmitCall(Func.getFunction(), Func.getInfo(), ArgList, ArrayRef<Expr*>(), true);
+}
+
+void CGLibflangWriteEmitter::EmitWriteUnformattedChar(const Expr *E) {
+  auto Func = CGM.GetRuntimeFunction2("write_character", ControllerPtr->getType(),
+                                      E->getType());
+  CGF.EmitCall2(Func, ControllerPtr, CGF.EmitCharacterExpr(E));
 }
 
 void CGLibflangIORuntime::EmitWriteStmt(CodeGenFunction &CGF, const WriteStmt *S) {

@@ -96,16 +96,12 @@ CharacterValueTy CharacterExprEmitter::VisitBinaryExprConcat(const BinaryExpr *E
     Dest = takeDestination();
   } else {
     // FIXME temp size overflow checking.
-    auto ExtLHS = E->getLHS()->getType().getExtQualsPtrOrNull();
-    auto ExtRHS = E->getRHS()->getType().getExtQualsPtrOrNull();
-    auto Size = (ExtLHS && ExtLHS->hasLengthSelector()? ExtLHS->getLengthSelector() : 1) +
-                (ExtRHS && ExtRHS->hasLengthSelector()? ExtRHS->getLengthSelector() : 1);
-    auto TempType = CGF.getContext().getExtQualType(CGF.getContext().CharacterTy.getTypePtr(),
-                                                    Qualifiers(),
-                                                    0, false, false, Size);
-    Dest = CGF.GetCharacterValueFromPtr(
-             CGF.CreateTempAlloca(CGF.ConvertTypeForMem(TempType), "characters"),
-             TempType);
+    auto CharTyLHS = E->getLHS()->getType()->asCharacterType();
+    auto CharTyRHS = E->getRHS()->getType()->asCharacterType();
+    auto Size = CharTyLHS->getLength() + CharTyRHS->getLength();
+    auto Storage = CGF.CreateTempAlloca(llvm::ArrayType::get(CGF.getModule().Int8Ty, Size), "concat-result");
+    Dest = CharacterValueTy(Builder.CreateConstInBoundsGEP2_32(Storage, 0, 0),
+                            llvm::ConstantInt::get(CGF.getModule().SizeTy, Size));
   }
 
   // a = b // c
@@ -184,8 +180,8 @@ void CodeGenFunction::EmitCharacterAssignment(CharacterValueTy LHS, CharacterVal
 }
 
 llvm::Value *CodeGenFunction::GetCharacterTypeLength(QualType T) {
-  llvm::ConstantInt::get(CGM.SizeTy,
-                         getTypes().GetCharacterTypeLength(T));
+  return llvm::ConstantInt::get(CGM.SizeTy,
+                                T->asCharacterType()->getLength());
 }
 
 CharacterValueTy CodeGenFunction::GetCharacterValueFromPtr(llvm::Value *Ptr,

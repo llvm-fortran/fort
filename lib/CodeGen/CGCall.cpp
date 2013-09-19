@@ -369,10 +369,9 @@ CharacterValueTy CodeGenFunction::GetCharacterArg(const VarDecl *Arg) {
     }
 
     }
-    auto T = Arg->getType().getExtQualsPtrOrNull();
-    if(!(T && T->isStarLengthSelector()))
-      Val.Len = llvm::ConstantInt::get(CGM.SizeTy, T && T->hasLengthSelector()?
-                                                   T->getLengthSelector() : 1);
+    auto CharTy = Arg->getType()->asCharacterType();
+    if(CharTy->hasLength())
+      Val.Len = llvm::ConstantInt::get(CGM.SizeTy, CharTy->getLength());
     CharacterArgs.insert(std::make_pair(Arg, Val));
     return Val;
   }

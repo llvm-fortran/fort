@@ -33,9 +33,11 @@ namespace flang {
     TypeAlignmentInBits = 4,
     TypeAlignment = 1 << TypeAlignmentInBits
   };
+
   class Type;
   class ExtQuals;
   class QualType;
+  class CharacterType;
   class FunctionType;
   class RecordType;
 }
@@ -525,6 +527,7 @@ public:
   bool isIntegerType() const;
   bool isRealType() const;
   bool isCharacterType() const;
+  const CharacterType *asCharacterType() const;
   bool isComplexType() const;
   bool isLogicalType() const;
 
@@ -610,6 +613,34 @@ public:
 
   static bool classof(const Type *T) { return T->getTypeClass() == Builtin; }
   static bool classof(const BuiltinType *) { return true; }
+};
+
+/// CharacterType - Character types.
+class CharacterType : public Type, public llvm::FoldingSetNode {
+  uint64_t Length;
+
+  friend class ASTContext;
+  CharacterType(uint64_t Len)
+    : Type(Character, QualType()), Length(Len) {}
+public:
+
+  bool hasLength() const {
+    return Length != 0;
+  }
+  uint64_t getLength() const {
+    return Length;
+  }
+
+  void Profile(llvm::FoldingSetNodeID &ID) {
+    Profile(ID, Length);
+  }
+  static void Profile(llvm::FoldingSetNodeID &ID,
+                      uint64_t Length) {
+    ID.AddInteger(Length);
+  }
+
+  static bool classof(const Type *T) { return T->getTypeClass() == Character; }
+  static bool classof(const CharacterType *) { return true; }
 };
 
 /// PointerType - Allocatable types.
@@ -780,24 +811,14 @@ class ExtQuals : public ExtQualsTypeCommonBase, public llvm::FoldingSetNode {
   /// DOUBLE PRECISION/DOUBLE COMPLEX statement.
   unsigned IsDoublePrecisionKind : 1;
 
-  /// LEN = *
-  unsigned IsStarLengthSelector : 1;
-
-  /// LengthSelector - the length of a character variable
-  /// The value of 0 means that the length selector wasn't
-  /// specified.
-  unsigned LenSelector;
-
   ExtQuals *this_() { return this; }
 
 public:
   ExtQuals(const Type *BaseTy, QualType Canon, Qualifiers Quals,
-           unsigned KS = BuiltinType::NoKind, bool DBL = false,
-           bool StarLS = false, unsigned LS = 0)
+           unsigned KS = BuiltinType::NoKind, bool DBL = false)
     : ExtQualsTypeCommonBase(BaseTy,
                              Canon.isNull() ? QualType(this_(), 0) : Canon),
-      Quals(Quals), KindSelector(KS), IsDoublePrecisionKind(DBL?1:0),
-      IsStarLengthSelector(StarLS?1:0), LenSelector(LS)
+      Quals(Quals), KindSelector(KS), IsDoublePrecisionKind(DBL?1:0)
   {}
 
   Qualifiers getQualifiers() const { return Quals; }
@@ -819,22 +840,15 @@ public:
   }
   bool isDoublePrecisionKind() const { return IsDoublePrecisionKind != 0; }
 
-  bool hasLengthSelector() const { return LenSelector != 0 || IsStarLengthSelector != 0; }
-  bool isStarLengthSelector() const { return IsStarLengthSelector != 0; }
-  unsigned getLengthSelector() const { return LenSelector; }
-
   void Profile(llvm::FoldingSetNodeID &ID) const {
-    Profile(ID, getBaseType(), Quals, KindSelector, IsDoublePrecisionKind != 0,
-            IsStarLengthSelector != 0, LenSelector);
+    Profile(ID, getBaseType(), Quals, KindSelector, IsDoublePrecisionKind != 0);
   }
   static void Profile(llvm::FoldingSetNodeID &ID,
                       const Type *BaseType, Qualifiers Quals,
-                      unsigned KS, bool IsDBL, bool StarLS, unsigned LS) {
+                      unsigned KS, bool IsDBL) {
     ID.AddPointer(BaseType);
     ID.AddInteger(KS);
     ID.AddBoolean(IsDBL);
-    ID.AddBoolean(StarLS);
-    ID.AddInteger(LS);
     Quals.Profile(ID);
   }
 };
@@ -916,9 +930,10 @@ inline bool Type::isRealType() const {
   return false;
 }
 inline bool Type::isCharacterType() const {
-  if (const BuiltinType *BT = dyn_cast<BuiltinType>(CanonicalType))
-    return BT->getTypeSpec() == BuiltinType::Character;
-  return false;
+  return isa<CharacterType>(CanonicalType);
+}
+inline const CharacterType *Type::asCharacterType() const {
+  return dyn_cast<CharacterType>(CanonicalType);
 }
 inline bool Type::isLogicalType() const {
   if (const BuiltinType *BT = dyn_cast<BuiltinType>(CanonicalType))

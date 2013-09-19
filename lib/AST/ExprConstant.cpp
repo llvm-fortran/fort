@@ -287,12 +287,15 @@ bool IntExprEvaluator::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
     return false;
   case intrinsic::KIND: {
     auto T = Args[0]->getType().getSelfOrArrayElementType();
+    if(T->isCharacterType()) {
+      Result.Assign(llvm::APInt(64, 1, true));
+      return true;
+    }
     if(!T->isBuiltinType()) {
       Result.Assign(llvm::APInt(64, 4, true));
       return true;
     }
-    auto Kind = T->isCharacterType()? BuiltinType::Int1 :
-                  Context.getArithmeticOrLogicalTypeKind(T.getExtQualsPtrOrNull(), T);
+    auto Kind = Context.getArithmeticOrLogicalTypeKind(T.getExtQualsPtrOrNull(), T);
     Result.Assign(llvm::APInt(64, Context.getTypeKindBitWidth(Kind)/8, true));
     return true;
   }

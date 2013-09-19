@@ -43,12 +43,15 @@ void ASTContext::InitBuiltinTypes() {
   InitBuiltinType(IntegerTy,         BuiltinType::Integer);
   InitBuiltinType(RealTy,            BuiltinType::Real);
   DoublePrecisionTy = getExtQualType(RealTy.getTypePtr(), Qualifiers(),
-                                     BuiltinType::Real8, true, false, 0);
+                                     BuiltinType::Real8, true);
   InitBuiltinType(ComplexTy,         BuiltinType::Complex);
   DoubleComplexTy = getExtQualType(ComplexTy.getTypePtr(), Qualifiers(),
-                                   BuiltinType::Real8, true, false, 0);
-  InitBuiltinType(CharacterTy,       BuiltinType::Character);
+                                   BuiltinType::Real8, true);
+
   InitBuiltinType(LogicalTy,         BuiltinType::Logical);
+
+  CharacterTy = QualType(getCharacterType(1), 0);
+  NoLengthCharacterTy = QualType(getCharacterType(0), 0);
 }
 
 QualType ASTContext::getBuiltinQualType(BuiltinType::TypeSpec TS) const {
@@ -56,7 +59,6 @@ QualType ASTContext::getBuiltinQualType(BuiltinType::TypeSpec TS) const {
   case BuiltinType::Invalid: assert(false && "Invalid type spec!"); break;
   case BuiltinType::Integer:         return IntegerTy;
   case BuiltinType::Real:            return RealTy;
-  case BuiltinType::Character:       return CharacterTy;
   case BuiltinType::Logical:         return LogicalTy;
   case BuiltinType::Complex:         return ComplexTy;
   }
@@ -104,12 +106,10 @@ BuiltinType::TypeKind ASTContext::getSelectedIntKind(int64_t Range) const {
 //===----------------------------------------------------------------------===//
 
 QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals,
-                                    unsigned KindSel, bool IsDoublePrecisionKind,
-                                    bool IsStarLength,
-                                    unsigned LenSel) const {
+                                    unsigned KindSel, bool IsDoublePrecisionKind) const {
   // Check if we've already instantiated this type.
   llvm::FoldingSetNodeID ID;
-  ExtQuals::Profile(ID, BaseType, Quals, KindSel, IsDoublePrecisionKind, IsStarLength, LenSel);
+  ExtQuals::Profile(ID, BaseType, Quals, KindSel, IsDoublePrecisionKind);
   void *InsertPos = 0;
   if (ExtQuals *EQ = ExtQualNodes.FindNodeOrInsertPos(ID, InsertPos)) {
     assert(EQ->getQualifiers() == Quals);
@@ -122,15 +122,14 @@ QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals,
     SplitQualType CanonSplit = BaseType->getCanonicalTypeInternal().split();
     CanonSplit.second.addConsistentQualifiers(Quals);
     Canon = getExtQualType(CanonSplit.first, CanonSplit.second, KindSel,
-                           IsDoublePrecisionKind, IsStarLength, LenSel);
+                           IsDoublePrecisionKind);
 
     // Re-find the insert position.
     (void) ExtQualNodes.FindNodeOrInsertPos(ID, InsertPos);
   }
 
   ExtQuals *EQ = new (*this, TypeAlignment) ExtQuals(BaseType, Canon, Quals,
-                                                     KindSel, IsDoublePrecisionKind,
-                                                     IsStarLength, LenSel);
+                                                     KindSel, IsDoublePrecisionKind);
   ExtQualNodes.InsertNode(EQ, InsertPos);
   return QualType(EQ, 0);
 }
@@ -143,9 +142,7 @@ QualType ASTContext::getQualTypeOtherKind(QualType Type, QualType KindType) {
   return getExtQualType(Type.getTypePtr(),
                         ExtQuals? ExtQuals->getQualifiers() : Qualifiers(),
                         DesiredExtQuals->getKindSelector(),
-                        DesiredExtQuals->isDoublePrecisionKind(),
-                        ExtQuals? ExtQuals->isStarLengthSelector() : false,
-                        ExtQuals? ExtQuals->getLengthSelector() : 0);
+                        DesiredExtQuals->isDoublePrecisionKind());
 }
 
 // NB: this assumes that real and complex have have the same default kind.
@@ -169,10 +166,22 @@ QualType ASTContext::getTypeWithQualifers(QualType Type, Qualifiers Quals) {
   return ExtQuals? getExtQualType(Type.getTypePtr(),
                                   Quals,
                                   ExtQuals->getKindSelector(),
-                                  ExtQuals->isDoublePrecisionKind(),
-                                  ExtQuals->isStarLengthSelector(),
-                                  ExtQuals->getLengthSelector()) :
+                                  ExtQuals->isDoublePrecisionKind()) :
                    getExtQualType(Type.getTypePtr(), Quals);
+}
+
+CharacterType *ASTContext::getCharacterType(uint64_t Length) const {
+  llvm::FoldingSetNodeID ID;
+  CharacterType::Profile(ID, Length);
+
+  void *InsertPos = 0;
+  if (auto CT = CharTypes.FindNodeOrInsertPos(ID, InsertPos))
+    return CT;
+
+  auto CT = new (*this, TypeAlignment) CharacterType(Length);
+  Types.push_back(CT);
+  CharTypes.InsertNode(CT, InsertPos);
+  return CT;
 }
 
 /// getPointerType - Return the uniqued reference to the type for a pointer to
@@ -187,7 +196,7 @@ PointerType *ASTContext::getPointerType(const Type *Ty, unsigned NumDims) {
   if (PointerType *PT = PointerTypes.FindNodeOrInsertPos(ID, InsertPos))
     return PT;
 
-  PointerType *New = new (*this) PointerType(Ty, NumDims);
+  PointerType *New = new (*this, TypeAlignment) PointerType(Ty, NumDims);
   Types.push_back(New);
   PointerTypes.InsertNode(New, InsertPos);
   return New;

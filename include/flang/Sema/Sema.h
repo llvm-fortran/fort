@@ -693,7 +693,7 @@ public:
 
   /// Returns evaluated length specification
   /// fot the character type.
-  unsigned EvalAndCheckCharacterLength(const Expr *E);
+  uint64_t EvalAndCheckCharacterLength(const Expr *E);
 
   /// Returns true if an expression is constant(i.e. evaluatable)
   bool CheckConstantExpression(const Expr *E);

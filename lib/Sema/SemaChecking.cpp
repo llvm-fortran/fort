@@ -81,17 +81,6 @@ QualType Sema::ApplyTypeKind(QualType T, const Expr *E) {
            Context.getExtQualType(T.getTypePtr(), Qualifiers(), Kind) : T;
 }
 
-unsigned Sema::EvalAndCheckCharacterLength(const Expr *E) {
-  auto Result = CheckIntGT0(E, EvalAndCheckIntExpr(E, 1));
-  if(Result > int64_t(std::numeric_limits<unsigned>::max())) {
-    //FIXME overflow diag
-    Diags.Report(E->getLocation(), diag::err_expected_integer_constant_expr)
-      << E->getSourceRange();
-    return 1;
-  }
-  return Result;
-}
-
 bool Sema::CheckConstantExpression(const Expr *E) {
   if(!E->isEvaluatable(Context)) {
     Diags.Report(E->getLocation(),
@@ -293,6 +282,8 @@ bool Sema::CheckCharacterExpression(const Expr *E) {
 }
 
 bool Sema::AreTypesOfSameKind(QualType A, QualType B) const {
+  if(A->isCharacterType())
+    return B->isCharacterType();
   if(auto ABTy = dyn_cast<BuiltinType>(A.getTypePtr())) {
     auto BBTy = dyn_cast<BuiltinType>(B.getTypePtr());
     if(!BBTy) return false;
@@ -307,8 +298,6 @@ bool Sema::AreTypesOfSameKind(QualType A, QualType B) const {
     case BuiltinType::Real:
       return Context.getRealTypeKind(AExt) ==
              Context.getRealTypeKind(BExt);
-    case BuiltinType::Character:
-      return true;
     case BuiltinType::Complex:
       return Context.getComplexTypeKind(AExt) ==
              Context.getComplexTypeKind(BExt);
@@ -330,7 +319,7 @@ bool Sema::CheckTypesOfSameKind(QualType A, QualType B,
 }
 
 bool Sema::CheckTypeScalarOrCharacter(const Expr *E, QualType T, bool IsConstant) {
-  if(isa<BuiltinType>(T.getTypePtr())) return true;
+  if(T->isBuiltinType() || T->isCharacterType()) return true;
   Diags.Report(E->getLocation(), IsConstant?
                  diag::err_expected_scalar_or_character_constant_expr :
                  diag::err_expected_scalar_or_character_expr)
@@ -364,7 +353,7 @@ Expr *Sema::TypecheckExprIntegerOrLogicalOrSameCharacter(Expr *E,
 }
 
 bool Sema::IsDefaultBuiltinOrDoublePrecisionType(QualType T) {
-  if(!T->isBuiltinType())
+  if(!(T->isBuiltinType() || T->isCharacterType()))
     return false;
   auto Ext = T.getExtQualsPtrOrNull();
   if(!Ext) return true;
@@ -462,21 +451,27 @@ bool Sema::CheckArgumentsTypeCompability(const Expr *E1, const Expr *E2,
                                          StringRef ArgName1, StringRef ArgName2,
                                          bool AllowArrays) {
   // assume builtin type
-  auto Type1 = getBuiltinType(E1, AllowArrays);
-  auto Type2 = getBuiltinType(E2, AllowArrays);
-  auto T1 = AllowArrays? E1->getType().getSelfOrArrayElementType() : E1->getType();
-  auto T2 = AllowArrays? E2->getType().getSelfOrArrayElementType() : E2->getType();
-  auto Ext1 = T1.getExtQualsPtrOrNull();
-  auto Ext2 = T2.getExtQualsPtrOrNull();
-  if(!Type2 || Type1->getTypeSpec() != Type2->getTypeSpec() ||
-     Context.getArithmeticOrLogicalTypeKind(Ext1,T1) != Context.getArithmeticOrLogicalTypeKind(Ext2, T2)) {
-    Diags.Report(E2->getLocation(), diag::err_typecheck_arg_conflict_type)
-     << ArgName1 << ArgName2
-     << T1 << T2
-     << E1->getSourceRange() << E2->getSourceRange();
-    return true;
+  auto T1 = ScalarizeType(E1->getType(), AllowArrays);
+  auto T2 = ScalarizeType(E2->getType(), AllowArrays);
+
+  if(T1->isCharacterType()) {
+    if(T2->isCharacterType())
+      return false;
+  } else {
+    auto Type1 = getBuiltinType(E1, AllowArrays);
+    auto Type2 = getBuiltinType(E2, AllowArrays);
+    auto Ext1 = T1.getExtQualsPtrOrNull();
+    auto Ext2 = T2.getExtQualsPtrOrNull();
+    if(!(!Type2 || Type1->getTypeSpec() != Type2->getTypeSpec() ||
+       Context.getArithmeticOrLogicalTypeKind(Ext1,T1) != Context.getArithmeticOrLogicalTypeKind(Ext2, T2)))
+      return false;
   }
-  return false;
+
+  Diags.Report(E2->getLocation(), diag::err_typecheck_arg_conflict_type)
+   << ArgName1 << ArgName2
+   << T1 << T2
+   << E1->getSourceRange() << E2->getSourceRange();
+  return true;
 }
 
 bool Sema::CheckBuiltinTypeArgument(const Expr *E, bool AllowArrays) {
@@ -535,8 +530,7 @@ bool Sema::CheckDoubleComplexArgument(const Expr *E, bool AllowArrays) {
 }
 
 bool Sema::CheckCharacterArgument(const Expr *E) {
-  auto Type = getBuiltinType(E);
-  if(!Type || !Type->isCharacterType())
+  if(!E->getType()->isCharacterType())
     return DiagnoseIncompatiblePassing(E, Context.CharacterTy, false);
   return false;
 }

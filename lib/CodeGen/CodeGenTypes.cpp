@@ -29,17 +29,13 @@ CodeGenTypes::CodeGenTypes(CodeGenModule &cgm)
 
 CodeGenTypes::~CodeGenTypes() { }
 
-uint64_t CodeGenTypes::GetCharacterTypeLength(QualType T) {
-  auto Ext = T.getExtQualsPtrOrNull();
-  return Ext && Ext->hasLengthSelector()?
-           Ext->getLengthSelector() : 1;
-}
-
 llvm::Type *CodeGenTypes::ConvertType(QualType T) {
   auto Ext = T.getExtQualsPtrOrNull();
   auto TPtr = T.getTypePtr();
   if(const BuiltinType *BTy = dyn_cast<BuiltinType>(TPtr))
     return ConvertBuiltInType(BTy, Ext);
+  else if(const CharacterType *CTy = dyn_cast<CharacterType>(TPtr))
+    return ConvertCharType(CTy);
   else if(const ArrayType *ATy = dyn_cast<ArrayType>(TPtr))
     return ConvertArrayType(ATy);
   else if(const FunctionType *FTy = dyn_cast<FunctionType>(TPtr))
@@ -52,10 +48,7 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
 
 llvm::Type *CodeGenTypes::ConvertBuiltInTypeForMem(const BuiltinType *T,
                                                    const ExtQuals *Ext) {
-  if(T->getTypeSpec() != BuiltinType::Character)
-    return ConvertBuiltInType(T, Ext);
-  return llvm::ArrayType::get(CGM.Int8Ty, Ext && Ext->hasLengthSelector()?
-                                            Ext->getLengthSelector() : 1);
+  return ConvertBuiltInType(T, Ext);
 }
 
 llvm::Type *CodeGenTypes::ConvertBuiltInType(const BuiltinType *T,
@@ -74,11 +67,6 @@ llvm::Type *CodeGenTypes::ConvertBuiltInType(const BuiltinType *T,
   case BuiltinType::Logical:
     Kind = CGM.getContext().getLogicalTypeKind(Ext);
     break;
-
-  case BuiltinType::Character:
-    llvm::Type *Pair[2] = { CGM.Int8PtrTy, CGM.SizeTy };
-    return llvm::StructType::get(CGM.getLLVMContext(),
-                                 ArrayRef<llvm::Type*>(Pair,2));
   }
   return ConvertBuiltInType(T->getTypeSpec(),
                             Kind);
@@ -116,6 +104,18 @@ llvm::Type *CodeGenTypes::ConvertBuiltInType(BuiltinType::TypeSpec Spec,
   return Type;
 }
 
+
+llvm::Type *CodeGenTypes::ConvertCharType(const CharacterType *T) {
+  llvm::Type *Pair[2] = { CGM.Int8PtrTy, CGM.SizeTy };
+  return llvm::StructType::get(CGM.getLLVMContext(),
+                               ArrayRef<llvm::Type*>(Pair,2));
+}
+
+llvm::Type *CodeGenTypes::ConvertCharTypeForMem(const CharacterType *T) {
+  assert(T->hasLength());
+  return llvm::ArrayType::get(CGM.Int8Ty, T->getLength());
+}
+
 llvm::Type *CodeGenTypes::GetComplexType(llvm::Type *ElementType) {
   llvm::Type *Pair[2] = { ElementType, ElementType };
   return llvm::StructType::get(CGM.getLLVMContext(),
@@ -145,6 +145,8 @@ llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T) {
   auto TPtr = T.getTypePtr();
   if(const BuiltinType *BTy = dyn_cast<BuiltinType>(TPtr))
     return ConvertBuiltInTypeForMem(BTy, Ext);
+  else if(const CharacterType *CTy = dyn_cast<CharacterType>(TPtr))
+    return ConvertCharTypeForMem(CTy);
   else if(const ArrayType *ATy = dyn_cast<ArrayType>(TPtr))
     return ConvertArrayTypeForMem(ATy);
   else if(const RecordType *RTy = dyn_cast<RecordType>(TPtr))

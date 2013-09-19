@@ -102,11 +102,8 @@ CharacterConstantExpr *CharacterConstantExpr::Create(ASTContext &C, SourceRange 
 
 CharacterConstantExpr *CharacterConstantExpr::
 CreateCopyWithCompatibleLength(ASTContext &C, QualType T) {
-  uint64_t Len = 1;
-  if(auto Ext = T.getExtQualsPtrOrNull()) {
-    if(Ext->hasLengthSelector())
-      Len = Ext->getLengthSelector();
-  }
+  auto CTy = T->asCharacterType();
+  uint64_t Len = CTy->hasLength()? CTy->getLength() : 1;
 
   StringRef Str(Data);
   if(Str.size() == Len)

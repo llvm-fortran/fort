@@ -43,6 +43,7 @@ class ASTContext : public llvm::RefCountedBase<ASTContext> {
 
   mutable std::vector<Type*>            Types;
   mutable llvm::FoldingSet<ExtQuals>    ExtQualNodes;
+  mutable llvm::FoldingSet<CharacterType> CharTypes;
   mutable llvm::FoldingSet<PointerType> PointerTypes;
   mutable llvm::FoldingSet<ArrayType>   ArrayTypes;
   mutable llvm::FoldingSet<RecordType>  RecordTypes;
@@ -68,9 +69,7 @@ class ASTContext : public llvm::RefCountedBase<ASTContext> {
 public:
   /// getExtQualType - Return a type with extended qualifiers.
   QualType getExtQualType(const Type *Base, Qualifiers Quals,
-                          unsigned KindSel = BuiltinType::NoKind, bool IsDoublePrecisionKind = false,
-                          bool IsStarLength = false,
-                          unsigned LenSel = 0) const;
+                          unsigned KindSel = BuiltinType::NoKind, bool IsDoublePrecisionKind = false) const;
   QualType getQualTypeOtherKind(QualType Type, QualType KindType);
   QualType getComplexTypeElementType(QualType Type);
   QualType getComplexType(QualType ElementType);
@@ -190,9 +189,13 @@ public:
   QualType LogicalTy;
   QualType ComplexTy;
   QualType DoubleComplexTy;
+  QualType NoLengthCharacterTy;
 
   /// getBuiltinQualType - Return the QualType for the specified builtin type.
   QualType getBuiltinQualType(BuiltinType::TypeSpec TS) const;
+
+  /// getCharacterType - Return the QualType for the specified character type.
+  CharacterType *getCharacterType(uint64_t Length) const;
 
   /// getPointerType - Return the uniqued reference to the type for a pointer to
   /// the specified type.

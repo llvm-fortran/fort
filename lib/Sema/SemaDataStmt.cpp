@@ -283,11 +283,8 @@ void DataStmtEngine::VisitArrayElementExpr(ArrayElementExpr *E) {
 
 ExprResult DataStmtEngine::CreateSubstringExprInitializer(SubstringExpr *E,
                                                           QualType CharTy) {
-  uint64_t Len = 1;
-  if(auto Ext = CharTy.getExtQualsPtrOrNull()) {
-    if(Ext->hasLengthSelector())
-      Len = Ext->getLengthSelector();
-  }
+  auto CTy = CharTy.getSelfOrArrayElementType()->asCharacterType();
+  uint64_t Len = CTy->hasLength()? CTy->getLength() : 1;
 
   uint64_t Begin, End;
   if(!E->EvaluateRange(Context, Len, Begin, End, &ImpliedDoEvaluator)) {

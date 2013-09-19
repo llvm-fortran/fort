@@ -108,6 +108,10 @@ bool Sema::CheckDeclaration(const IdentifierInfo *IDInfo, SourceLocation IDLoc) 
 // Type construction
 //
 
+uint64_t Sema::EvalAndCheckCharacterLength(const Expr *E) {
+  return CheckIntGT0(E, EvalAndCheckIntExpr(E, 1));
+}
+
 /// \brief Convert the specified DeclSpec to the appropriate type object.
 QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
   QualType Result;
@@ -120,7 +124,12 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
     Result = C.RealTy;
     break;
   case DeclSpec::TST_character:
-    Result = C.CharacterTy;
+    if(DS.isStarLengthSelector())
+      Result = C.NoLengthCharacterTy;
+    else if(DS.hasLengthSelector())
+      Result = QualType(C.getCharacterType(
+                          EvalAndCheckCharacterLength(DS.getLengthSelector())), 0);
+    else Result = C.CharacterTy;
     break;
   case DeclSpec::TST_logical:
     Result = C.LogicalTy;
@@ -151,14 +160,8 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
   } else if(DS.hasKindSelector())
     Kind = EvalAndCheckTypeKind(Result, DS.getKindSelector());
 
-  unsigned LengthSelector = 0;
-  if(DS.hasLengthSelector() && !DS.isStarLengthSelector())
-    LengthSelector = EvalAndCheckCharacterLength(DS.getLengthSelector());
-
   Result = C.getExtQualType(TypeNode, Quals, Kind,
-                            DS.isDoublePrecision(),
-                            DS.isStarLengthSelector(),
-                            LengthSelector);
+                            DS.isDoublePrecision());
 
   if (!Quals.hasAttributeSpec(Qualifiers::AS_dimension))
     return Result;

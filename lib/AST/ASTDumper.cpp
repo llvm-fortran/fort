@@ -51,6 +51,7 @@ public:
   // types
   void dumpType(QualType T);
   void VisitBuiltinType(const BuiltinType *T, const ExtQuals *E);
+  void VisitCharacterType(const CharacterType *T, const ExtQuals *E);
   void VisitArrayType(const ArrayType *T, const ExtQuals *E);
   void VisitFunctionType(const FunctionType *T, const ExtQuals *E);
   void VisitRecordType(const RecordType *T, const ExtQuals *E);
@@ -291,9 +292,6 @@ void ASTDumper::VisitBuiltinType(const BuiltinType *T, const ExtQuals *E) {
     case BuiltinType::Real:
       OS << "real";
       break;
-    case BuiltinType::Character:
-      OS << "character";
-      break;
     case BuiltinType::Complex:
       OS << "complex";
       break;
@@ -306,19 +304,14 @@ void ASTDumper::VisitBuiltinType(const BuiltinType *T, const ExtQuals *E) {
   if (!E) return;
   if (!E->isDoublePrecisionKind() && E->hasKindSelector()) {
     OS << " (Kind=" << BuiltinType::getTypeKindString(E->getKindSelector());
-    if (E->hasLengthSelector()) {
-      if(E->isStarLengthSelector()) OS << ", Len=*";
-      else {
-        OS << ", Len=" << E->getLengthSelector();
-      }
-    }
     OS << ")";
-  } else if (E->hasLengthSelector()) {
-    if(E->isStarLengthSelector()) OS << "(Len=*)";
-    else {
-      OS << " (Len=" << E->getLengthSelector() << ")";
-    }
   }
+}
+
+void ASTDumper::VisitCharacterType(const CharacterType *T, const ExtQuals *E) {
+  OS << "character";
+  if(T->hasLength() && T->getLength() > 1)
+    OS << " (Len=" << T->getLength() << ")";
 }
 
 void ASTDumper::VisitArrayType(const ArrayType *T, const ExtQuals *E) {

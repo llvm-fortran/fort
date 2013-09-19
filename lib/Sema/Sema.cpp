@@ -1027,13 +1027,10 @@ bool Sema::CheckArrayTypeDeclarationCompability(const ArrayType *T, VarDecl *VD)
 }
 
 bool Sema::CheckCharacterLengthDeclarationCompability(QualType T, VarDecl *VD) {
-  auto Ext = T.getExtQualsPtrOrNull();
-  if(Ext) {
-    if(Ext->isStarLengthSelector() && !VD->isArgument()) {
-      Diags.Report(VD->getLocation(), diag::err_char_star_length_incompatible)
-        << (VD->isParameter()? 1 : 0) << VD->getIdentifier()
-        << VD->getSourceRange();
-    }
+  if(!T->asCharacterType()->hasLength() && !VD->isArgument()) {
+    Diags.Report(VD->getLocation(), diag::err_char_star_length_incompatible)
+      << (VD->isParameter()? 1 : 0) << VD->getIdentifier()
+      << VD->getSourceRange();
   }
   return true;
 }

@@ -95,6 +95,9 @@ public:
   llvm::Type *ConvertBuiltInType(BuiltinType::TypeSpec Spec,
                                  BuiltinType::TypeKind Kind);
 
+  llvm::Type *ConvertCharType(const CharacterType *T);
+  llvm::Type *ConvertCharTypeForMem(const CharacterType *T);
+
   llvm::ArrayType *ConvertArrayTypeForMem(const ArrayType *T);
 
   llvm::Type *ConvertArrayType(const ArrayType *T);
@@ -119,8 +122,6 @@ public:
                                          SmallVectorImpl<llvm::Type *> &AdditionalArgTypes,
                                          QualType T,
                                          const CGFunctionInfo::RetInfo &ReturnInfo);
-
-  uint64_t GetCharacterTypeLength(QualType T);
 
 };
 
