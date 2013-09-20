@@ -391,6 +391,10 @@ public:
                        const IdentifierInfo *IDInfo,
                        Expr *StmtLabel);
 
+  StmtResult ActOnSAVECommonBlock(ASTContext &C, SourceLocation Loc,
+                                  SourceLocation IDLoc,
+                                  const IdentifierInfo *IDInfo);
+
   // EQUIVALENCE statement
   StmtResult ActOnEQUIVALENCE(ASTContext &C, SourceLocation Loc,
                               SourceLocation PartLoc,

@@ -155,6 +155,8 @@ def err_undeclared_stmt_label_use : Error<"use of undeclared statement label '%0
 def warn_unused_stmt_label : Warning<"unused statement label '%0'">,
   InGroup<UnusedLabel>, DefaultIgnore;
 
+def err_undeclared_common_block_use : Error<"use of undeclared common block %0">;
+
 def err_redefinition_of_construct_name : Error<"redefinition of named construct %0">;
 def err_use_of_invalid_construct_name : Error<"use of construct name for an unnamed construct">;
 def err_expected_construct_name : Error<"expected construct name %0">;

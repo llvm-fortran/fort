@@ -153,6 +153,13 @@ Decl *InnerScope::Resolve(const IdentifierInfo *IDInfo) const {
   return Result? Result : (Parent? Parent->Resolve(IDInfo) : nullptr);
 }
 
+CommonBlockDecl *CommonBlockScope::find(const IdentifierInfo *IDInfo) {
+  assert(IDInfo);
+  auto Result = Blocks.find(IDInfo);
+  if(Result != Blocks.end())
+    return Result->second;
+  return nullptr;
+}
 
 CommonBlockDecl *CommonBlockScope::findOrInsert(ASTContext &C, DeclContext *DC,
                                                 SourceLocation IDLoc,

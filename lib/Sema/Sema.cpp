@@ -814,6 +814,19 @@ StmtResult Sema::ActOnSAVE(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
+StmtResult Sema::ActOnSAVECommonBlock(ASTContext &C, SourceLocation Loc,
+                                      SourceLocation IDLoc,
+                                      const IdentifierInfo *IDInfo) {
+  auto Block = CurCommonBlockScope->find(IDInfo);
+  if(!Block) {
+    Diags.Report(IDLoc, diag::err_undeclared_common_block_use)
+      << IDInfo;
+  } else
+    CurSpecScope->AddSaveSpec(Loc, IDLoc, Block);
+
+  return StmtResult();
+}
+
 /// FIXME: allow outer scope integer constants.
 /// FIXME: walk constant expressions like 1+1.
 ExprResult Sema::ActOnDATAOuterImpliedDoExpr(ASTContext &C,

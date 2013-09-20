@@ -13,3 +13,9 @@ program test
   common     ! expected-error {{expected identifier}}
 
 end program
+
+subroutine sub1
+  integer i
+  common /a/i
+  save /a/
+end

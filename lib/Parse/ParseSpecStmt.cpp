@@ -404,8 +404,6 @@ Parser::StmtResult Parser::ParseINTRINSICStmt(bool IsActuallyExternal) {
 ///   [R543]:
 ///     save-stmt :=
 ///         SAVE [ [::] saved-entity-list ]
-///
-/// FIXME: common blocks '/' block-name '/'
 Parser::StmtResult Parser::ParseSAVEStmt() {
   // Check if this is an assignment.
   if (IsNextToken(tok::equal))
@@ -421,22 +419,49 @@ Parser::StmtResult Parser::ParseSAVEStmt() {
 
   auto IDLoc = Tok.getLocation();
   auto II = Tok.getIdentifierInfo();
-  if(!ExpectAndConsume(tok::identifier))
-    ListParsedOk = false;
-  if(!IsSaveStmt && Features.FixedForm && (IsPresent(tok::equal) || IsPresent(tok::l_paren)))
-    return ReparseAmbiguousAssignmentStatement();
-  auto Stmt = Actions.ActOnSAVE(Context, Loc, IDLoc, II, nullptr);
+  StmtResult Stmt;
+  if(ConsumeIfPresent(tok::slash)) {
+    IDLoc = Tok.getLocation();
+    II = Tok.getIdentifierInfo();
+    if(ExpectAndConsume(tok::identifier)) {
+      if(!ExpectAndConsume(tok::slash))
+        ListParsedOk = false;
+      Stmt = Actions.ActOnSAVECommonBlock(Context, Loc, IDLoc, II);
+    }
+    else ListParsedOk = false;
+  }
+  else if(ExpectAndConsume(tok::identifier)) {
+    if(!IsSaveStmt && Features.FixedForm && (IsPresent(tok::equal) || IsPresent(tok::l_paren)))
+      return ReparseAmbiguousAssignmentStatement();
+    Stmt = Actions.ActOnSAVE(Context, Loc, IDLoc, II, nullptr);
+  } else ListParsedOk = false;
+
   if(Stmt.isUsable())
     StmtList.push_back(Stmt.get());
   if(ListParsedOk) {
     while(ConsumeIfPresent(tok::comma)) {
       IDLoc = Tok.getLocation();
       II = Tok.getIdentifierInfo();
-      if(!ExpectAndConsume(tok::identifier)){
+      if(ConsumeIfPresent(tok::slash)) {
+        IDLoc = Tok.getLocation();
+        II = Tok.getIdentifierInfo();
+        if(!ExpectAndConsume(tok::identifier)) {
+          ListParsedOk = false;
+          break;
+        }
+        if(!ExpectAndConsume(tok::slash)) {
+          ListParsedOk = false;
+          break;
+        }
+        Stmt = Actions.ActOnSAVECommonBlock(Context, Loc, IDLoc, II);
+      }
+      else if(ExpectAndConsume(tok::identifier))
+        Stmt = Actions.ActOnSAVE(Context, Loc, IDLoc, II, nullptr);
+      else {
         ListParsedOk = false;
         break;
       }
-      auto Stmt = Actions.ActOnSAVE(Context, Loc, IDLoc, II, nullptr);
+
       if(Stmt.isUsable())
         StmtList.push_back(Stmt.get());
     }

@@ -314,6 +314,8 @@ class CommonBlockScope {
   llvm::SmallDenseMap<const IdentifierInfo*, CommonBlockDecl*> Blocks;
 public:
 
+  CommonBlockDecl *find(const IdentifierInfo *IDInfo);
+
   CommonBlockDecl *findOrInsert(ASTContext &C, DeclContext *DC,
                                 SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo);
