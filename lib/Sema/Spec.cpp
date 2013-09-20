@@ -19,6 +19,7 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
+#include "flang/AST/StorageSet.h"
 #include "flang/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -157,6 +158,13 @@ bool Sema::ApplySaveSpecification(SourceLocation Loc, SourceLocation IDLoc,
 
 bool Sema::ApplySaveSpecification(SourceLocation Loc, SourceLocation IDLoc,
                                   VarDecl *VD) {
+  if(VD->hasStorageSet()) {
+    if(auto CBSet = dyn_cast<CommonBlockSet>(VD->getStorageSet())) {
+      Diags.Report(Loc, diag::err_spec_not_applicable_to_common_block)
+        << "save" << getTokenRange(IDLoc);
+      return true;
+    }
+  }
   auto Type = VD->getType();
   auto Quals = Type.getQualifiers();
   if(Quals.hasAttributeSpec(Qualifiers::AS_save)) {
@@ -186,17 +194,44 @@ void SpecificationScope::AddCommonSpec(SourceLocation Loc, SourceLocation IDLoc,
   CommonSpecs.push_back(Spec);
 }
 
-void SpecificationScope::ApplyCommonSpecs(Sema &Visitor) {
+class CommonBlockSetBuilder {
+public:
+  llvm::SmallDenseMap<CommonBlockDecl*,
+    SmallVector<CommonBlockSet::Object, 16>, 8> Sets;
+
+  void Add(CommonBlockDecl *CBDecl, CommonBlockSet::Object Object) {
+    Sets.insert(std::make_pair(CBDecl,SmallVector<CommonBlockSet::Object, 16>())).first->second.push_back(Object);
+  }
+
+  void CreateSets(ASTContext &C) {
+    for(auto Set : Sets)
+      Set.first->getStorageSet()->setObjects(C, Set.second);
+  }
+};
+
+void SpecificationScope::ApplyCommonSpecs(Sema &Visitor, CommonBlockSetBuilder &Builder) {
   for(auto Spec : CommonSpecs)
     Visitor.ApplyCommonSpecification(Spec.Loc, Spec.IDLoc,
-                                     Spec.IDInfo, Spec.Block);
+                                     Spec.IDInfo, Spec.Block,
+                                     Builder);
 }
 
 bool Sema::ApplyCommonSpecification(SourceLocation Loc, SourceLocation IDLoc,
                                     const IdentifierInfo *IDInfo,
-                                    CommonBlockDecl *Block) {
+                                    CommonBlockDecl *Block, CommonBlockSetBuilder &Builder) {
   auto VD = GetVariableForSpecification(Loc, IDInfo, IDLoc);
   if(!VD) return true;
+  if(VD->hasStorageSet()) {
+    if(auto CBSet = dyn_cast<CommonBlockSet>(VD->getStorageSet())) {
+      Diags.Report(Loc, diag::err_spec_qual_reapplication)
+        << "common" << IDInfo
+        << getTokenRange(IDLoc);
+      return true;
+    }
+    // FIXME: COMMON + EQUIVALENCE
+  }
+  Builder.Add(Block, CommonBlockSet::Object(VD));
+  VD->setStorageSet(Block->getStorageSet());
   return false;
 }
 
@@ -205,7 +240,11 @@ void Sema::ActOnSpecificationPart() {
   ActOnFunctionSpecificationPart();
 
   CurSpecScope->ApplyDimensionSpecs(*this);
-  CurSpecScope->ApplyCommonSpecs(*this);
+
+  CommonBlockSetBuilder CBBuilder;
+  CurSpecScope->ApplyCommonSpecs(*this, CBBuilder);
+  CBBuilder.CreateSets(Context);
+
   CurSpecScope->ApplySaveSpecs(*this);
 }
 

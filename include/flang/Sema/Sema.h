@@ -210,7 +210,8 @@ public:
 
   bool ApplyCommonSpecification(SourceLocation Loc, SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo,
-                                CommonBlockDecl *Block);
+                                CommonBlockDecl *Block,
+                                CommonBlockSetBuilder &Builder);
 
   QualType ActOnTypeName(ASTContext &C, DeclSpec &DS);
   VarDecl *ActOnKindSelector(ASTContext &C, SourceLocation IDLoc,

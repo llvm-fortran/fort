@@ -299,6 +299,25 @@ EquivalenceSet *EquivalenceSet::Create(ASTContext &C, ArrayRef<Object> Objects) 
 }
 
 //===----------------------------------------------------------------------===//
+// Common Statement
+//===----------------------------------------------------------------------===//
+
+CommonBlockSet::CommonBlockSet(CommonBlockDecl *CBDecl)
+  : StorageSet(CommonBlockSetClass), Decl(CBDecl),
+    ObjectCount(0) { }
+
+CommonBlockSet *CommonBlockSet::Create(ASTContext &C, CommonBlockDecl *CBDecl) {
+  return new(C) CommonBlockSet(CBDecl);
+}
+
+void CommonBlockSet::setObjects(ASTContext &C, ArrayRef<Object> objects) {
+  ObjectCount = objects.size();
+  Objects = new(C) Object[ObjectCount];
+  for(size_t I = 0; I < ObjectCount; ++I)
+    Objects[I] = objects[I];
+}
+
+//===----------------------------------------------------------------------===//
 // Data Statement
 //===----------------------------------------------------------------------===//
 

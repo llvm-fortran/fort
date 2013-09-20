@@ -14,6 +14,7 @@
 
 #include "flang/Sema/Scope.h"
 #include "flang/AST/Expr.h"
+#include "flang/AST/StorageSet.h"
 #include <limits>
 
 namespace flang {
@@ -165,14 +166,19 @@ CommonBlockDecl *CommonBlockScope::findOrInsert(ASTContext &C, DeclContext *DC,
                                                 SourceLocation IDLoc,
                                                 const IdentifierInfo *IDInfo) {
   if(!IDInfo) {
-    if(!UnnamedBlock)
+    if(!UnnamedBlock) {
       UnnamedBlock = CommonBlockDecl::Create(C, DC, IDLoc, IDInfo);
+      auto Set = CommonBlockSet::Create(C, UnnamedBlock);
+      UnnamedBlock->setStorageSet(Set);
+    }
     return UnnamedBlock;
   }
   auto Result = Blocks.find(IDInfo);
   if(Result != Blocks.end())
     return Result->second;
   auto Block = CommonBlockDecl::Create(C, DC, IDLoc, IDInfo);
+  auto Set = CommonBlockSet::Create(C, Block);
+  Block->setStorageSet(Set);
   Blocks.insert(std::make_pair(IDInfo, Block));
   return Block;
 }

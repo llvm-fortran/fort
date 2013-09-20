@@ -27,5 +27,13 @@ end
 subroutine sub3
   integer i
   common /a/i
-  save i ! expected-error {{}}
+  save i ! expected-error {{the specification statement 'save' cannot be applied to a variable in common block}}
+end
+
+subroutine sub4
+  integer i,j
+  common i
+  common /a/i,j ! expected-error {{the specification statement 'common' cannot be applied to the variable 'i' more than once}}
+  common j ! expected-error {{the specification statement 'common' cannot be applied to the variable 'j' more than once}}
+  common /b/i ! expected-error {{the specification statement 'common' cannot be applied to the variable 'i' more than once}}
 end

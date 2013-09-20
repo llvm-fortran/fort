@@ -37,7 +37,9 @@ class IdentifierInfo;
 class StoredDeclsMap;
 class TypeLoc;
 class BlockStmt;
+class StorageSet;
 class EquivalenceSet;
+class CommonBlockSet;
 
 // Decls
 class DeclContext;
@@ -937,15 +939,15 @@ private:
   /// \brief The initializer for this variable.
   mutable Expr *Init;
 
-  /// \brief The equivalence set for this variable.
-  EquivalenceSet *EquivSet;
+  /// \brief The storage set for this variable.
+  StorageSet *Storage;
 
   friend class ASTContext;  // ASTContext creates these.
 
 protected:
   VarDecl(Kind DK, DeclContext *DC, SourceLocation IdLoc, const IdentifierInfo *ID,
           QualType T)
-    : DeclaratorDecl(DK, DC, IdLoc, ID, T), Init(nullptr), EquivSet(nullptr) {}
+    : DeclaratorDecl(DK, DC, IdLoc, ID, T), Init(nullptr), Storage(nullptr) {}
 
 public:
   static VarDecl *Create(ASTContext &C, DeclContext *DC,
@@ -980,12 +982,12 @@ public:
   void MutateIntoParameter(Expr *Value);
   void MarkUsedAsVariable (SourceLocation Loc);
 
-  EquivalenceSet *getEquivalenceSet() const { return EquivSet; }
-  bool hasEquivalenceSet() const {
-    return EquivSet != nullptr;
+  StorageSet *getStorageSet() const { return Storage; }
+  bool hasStorageSet() const {
+    return Storage != nullptr;
   }
-  void setEquivalenceSet(EquivalenceSet *E) {
-    EquivSet = E;
+  void setStorageSet(StorageSet *S) {
+    Storage = S;
   }
 
   // Implement isa/cast/dyncast/etc.
@@ -1004,12 +1006,22 @@ public:
 };
 
 class CommonBlockDecl : public NamedDecl {
+  CommonBlockSet *Set;
+
   CommonBlockDecl(DeclContext *DC,
                   SourceLocation IDLoc, const IdentifierInfo *IDInfo)
-    : NamedDecl(CommonBlock, DC, IDLoc, DeclarationName(IDInfo)) {}
+    : NamedDecl(CommonBlock, DC, IDLoc, DeclarationName(IDInfo)),
+      Set(nullptr) {}
 public:
   static CommonBlockDecl *Create(ASTContext &C, DeclContext *DC,
                                  SourceLocation IDLoc, const IdentifierInfo *IDInfo);
+
+  CommonBlockSet *getStorageSet() const {
+    return Set;
+  }
+  void setStorageSet(CommonBlockSet *S) {
+    Set = S;
+  }
 
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
   static bool classof(const CommonBlockDecl *D) { return true; }

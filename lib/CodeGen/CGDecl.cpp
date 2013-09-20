@@ -41,10 +41,15 @@ void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
      D->isArgument()  ||
      D->isFunctionResult()) return;
 
-  if(D->hasEquivalenceSet()) {
-    auto Set = EmitEquivalenceSet(D->getEquivalenceSet());
-    auto Ptr = EmitEquivalenceSetObject(Set, D);
-    LocalVariables.insert(std::make_pair(D, Ptr));
+  if(D->hasStorageSet()) {
+    if(auto E = dyn_cast<EquivalenceSet>(D->getStorageSet())) {
+      auto Set = EmitEquivalenceSet(E);
+      auto Ptr = EmitEquivalenceSetObject(Set, D);
+      LocalVariables.insert(std::make_pair(D, Ptr));
+    } else if(auto C = dyn_cast<CommonBlockSet>(D->getStorageSet())) {
+      // FIXME
+    } else
+      llvm_unreachable("invalid storage set");
     return;
   }
 

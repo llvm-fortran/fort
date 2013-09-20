@@ -99,7 +99,7 @@ bool SetCreator::CreateSet(ASTContext &C) {
 
   auto Set = EquivalenceSet::Create(C, Objects);
   for(auto I : Objects)
-    I.Var->setEquivalenceSet(Set);
+    I.Var->setStorageSet(Set);
   return true;
 }
 

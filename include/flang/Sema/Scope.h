@@ -310,9 +310,26 @@ public:
 /// statement.
 ///
 class CommonBlockScope {
-  CommonBlockDecl *UnnamedBlock;
-  llvm::SmallDenseMap<const IdentifierInfo*, CommonBlockDecl*> Blocks;
 public:
+  typedef llvm::SmallDenseMap<const IdentifierInfo*, CommonBlockDecl*> BlockMappingTy;
+private:
+  CommonBlockDecl *UnnamedBlock;
+  BlockMappingTy Blocks;
+public:
+
+  bool hasUnnamed() const {
+    return UnnamedBlock != nullptr;
+  }
+  CommonBlockDecl *getUnnamed() const {
+    return UnnamedBlock;
+  }
+
+  BlockMappingTy::const_iterator beginNamed() const {
+    return Blocks.begin();
+  }
+  BlockMappingTy::const_iterator endNamed() const {
+    return Blocks.end();
+  }
 
   CommonBlockDecl *find(const IdentifierInfo *IDInfo);
 
@@ -320,6 +337,8 @@ public:
                                 SourceLocation IDLoc,
                                 const IdentifierInfo *IDInfo);
 };
+
+class CommonBlockSetBuilder;
 
 /// The scope which helps to apply specification statements
 class SpecificationScope {
@@ -374,7 +393,8 @@ public:
                      const IdentifierInfo *IDInfo,
                      CommonBlockDecl *Block);
 
-  void ApplyCommonSpecs(Sema &Visitor);
+  void ApplyCommonSpecs(Sema &Visitor,
+                        CommonBlockSetBuilder &Builder);
 };
 
 /// The scope of a translation unit (a single file)

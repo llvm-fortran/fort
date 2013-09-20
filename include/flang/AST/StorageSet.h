@@ -20,6 +20,7 @@ namespace flang {
 
 class ASTContext;
 class VarDecl;
+class CommonBlockDecl;
 class Expr;
 
 /// StorageSet - A
@@ -89,14 +90,21 @@ public:
 private:
   Object *Objects;
   unsigned ObjectCount;
+  CommonBlockDecl *Decl;
 
-  CommonBlockSet(ASTContext &C, ArrayRef<Object> objects);
+  CommonBlockSet(CommonBlockDecl *CBDecl);
 public:
 
-  static CommonBlockSet *Create(ASTContext &C, ArrayRef<Object> Objects);
+  static CommonBlockSet *Create(flang::ASTContext &C, CommonBlockDecl *CBDecl);
+
+  void setObjects(ASTContext &C, ArrayRef<Object> objects);
 
   ArrayRef<Object> getObjects() const {
     return ArrayRef<Object>(Objects, ObjectCount);
+  }
+
+  CommonBlockDecl *getDecl() const {
+    return Decl;
   }
 
   static bool classof(const StorageSet* S) {

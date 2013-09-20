@@ -286,6 +286,8 @@ def err_spec_dimension_already_array : Error<
   "the specification statement 'dimension' cannot be applied to the array variable %0">;
 def err_spec_qual_reapplication : Error<
  "the specification statement '%0' cannot be applied to the variable %1 more than once">;
+def err_spec_not_applicable_to_common_block : Error<
+  "the specification statement '%0' cannot be applied to a variable in common block">;
 
 def warn_equivalence_same_object : Warning<
   "this equivalence connection uses the same object">;
@@ -297,7 +299,6 @@ def err_equivalence_conflicting_offsets : Error<
   "conflicting memory offsets in an equivalence connection">;
 def note_equivalence_prev_offset : Note<
   "previous memory offset was defined here">;
-
 
 def err_format_without_stmt_label : Error<
   "'FORMAT' statement is missing a statement label">;
