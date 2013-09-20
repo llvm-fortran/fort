@@ -196,5 +196,29 @@ llvm::Value *CodeGenModule::EmitConstantArray(llvm::Constant *Array) {
                                   true, llvm::GlobalValue::PrivateLinkage, Array);
 }
 
+llvm::Value *CodeGenModule::EmitCommonBlock(const CommonBlockDecl *CB,
+                                            llvm::Type *Type,
+                                            llvm::Constant *Initializer) {
+  llvm::SmallString<32> Name;
+  StringRef NameRef;
+  if(CB->getIdentifier()) {
+    Name.append(CB->getName());
+    Name.push_back('_');
+    NameRef = Name;
+  } else
+    NameRef = "__BLNK__"; // FIXME?
+
+  auto Var = TheModule.getGlobalVariable(NameRef);
+  if(Var)
+    return Var;
+  if(!Initializer)
+    Initializer = llvm::Constant::getNullValue(Type);
+  auto CBVar = new llvm::GlobalVariable(TheModule, Type,
+                                        false, llvm::GlobalValue::CommonLinkage,
+                                        Initializer, NameRef);
+  CBVar->setAlignment(16); // FIXME: proper target dependent alignment value
+  return CBVar;
+}
+
 }
 } // end namespace flang

@@ -193,6 +193,10 @@ public:
 
   llvm::Value *EmitConstantArray(llvm::Constant *Array);
 
+  llvm::Value *EmitCommonBlock(const CommonBlockDecl *CB,
+                               llvm::Type *Type,
+                               llvm::Constant *Initializer = nullptr);
+
   llvm::Value *GetCFunction(StringRef Name,
                             ArrayRef<llvm::Type*> ArgTypes,
                             llvm::Type *ReturnType = nullptr);

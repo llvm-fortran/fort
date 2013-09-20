@@ -46,9 +46,9 @@ void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
       auto Set = EmitEquivalenceSet(E);
       auto Ptr = EmitEquivalenceSetObject(Set, D);
       LocalVariables.insert(std::make_pair(D, Ptr));
-    } else if(auto C = dyn_cast<CommonBlockSet>(D->getStorageSet())) {
-      // FIXME
-    } else
+    } else if(auto CB = dyn_cast<CommonBlockSet>(D->getStorageSet()))
+      EmitCommonBlock(CB);
+    else
       llvm_unreachable("invalid storage set");
     return;
   }
@@ -158,6 +158,29 @@ llvm::Value *CodeGenFunction::EmitEquivalenceSetObject(EquivSet Set, const VarDe
                                                 uint64_t(ObjLowBound - Set.LowestBound));
   auto T = Var->getType();
   return Builder.CreatePointerCast(Ptr, llvm::PointerType::get(ConvertTypeForMem(T), 0));
+}
+
+void CodeGenFunction::EmitCommonBlock(const CommonBlockSet *S) {
+  auto Result = CommonBlocks.find(S);
+  if(Result != CommonBlocks.end())
+    return;
+
+  SmallVector<llvm::Type*, 32> Items;
+  for(auto Obj : S->getObjects()) {
+    if(Obj.Var)
+      Items.push_back(ConvertTypeForMem(Obj.Var->getType()));
+  }
+  auto CBType = llvm::StructType::get(CGM.getLLVMContext(), Items);
+  auto Ptr = Builder.CreateBitCast(CGM.EmitCommonBlock(S->getDecl(), CBType),
+                                   llvm::PointerType::get(CBType, 0));
+  unsigned Idx = 0;
+  for(auto Obj : S->getObjects()) {
+    if(Obj.Var) {
+      LocalVariables.insert(std::make_pair(Obj.Var,
+        Builder.CreateStructGEP(Ptr, Idx)));
+    }
+    ++Idx;
+  }
 }
 
 }
