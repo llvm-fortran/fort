@@ -1,4 +1,6 @@
 ! RUN: %flang -fsyntax-only -verify < %s
+! RUN: %flang -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
+
 PROGRAM dimtest
   IMPLICIT NONE
 
@@ -23,3 +25,20 @@ PROGRAM dimtest
   DIMENSION A(10), FOO(5:100) ! expected-error {{use of undeclared identifier 'foo'}}
 
 ENDPROGRAM
+
+subroutine sub1
+  dimension i(10)
+  i(1) = 2.0 ! CHECK: i(1) = int(2)
+end
+
+subroutine sub2
+  dimension i(10)
+  complex i
+  i(1) = 1 ! CHECK: i(1) = cmplx(1)
+end
+
+subroutine sub3
+  real i
+  dimension i(10)
+  i(1) = 1 ! CHECK: i(1) = real(1)
+end

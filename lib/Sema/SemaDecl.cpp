@@ -193,6 +193,21 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
 // Entity declarations.
 //
 
+VarDecl *Sema::CreateImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
+                                        const IdentifierInfo *IDInfo) {
+  auto Type = ResolveImplicitType(IDInfo);
+  if(Type.isNull()) {
+    Diags.Report(IDLoc, diag::err_undeclared_var_use)
+      << IDInfo;
+    return nullptr;
+  }
+  auto VD = VarDecl::Create(C, CurContext, IDLoc, IDInfo, Type);
+  // FIXME: type checks?
+  VD->setTypeImplicit(true);
+  CurContext->addDecl(VD);
+  return VD;
+}
+
 static Qualifiers getDeclQualifiers(const Decl *D) {
   if(auto Value = dyn_cast<ValueDecl>(D))
     return Value->getType().split().second;
@@ -393,12 +408,6 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
                             const IdentifierInfo *IDInfo) {
   QualType T = ActOnTypeName(C, DS);
   return ActOnEntityDecl(C, T, IDLoc, IDInfo);
-}
-
-void Sema::ActOnCOMMON(ASTContext &C, SourceLocation Loc, SourceLocation BlockLoc,
-                       SourceLocation IDLoc, const IdentifierInfo *BlockID,
-                       const IdentifierInfo *IDInfo, ArrayRef<ArraySpec*> Dimensions) {
-
 }
 
 //

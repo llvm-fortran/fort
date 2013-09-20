@@ -120,6 +120,10 @@ private:
   /// the implementation rather than explicitly written by the user.
   unsigned Implicit    : 1;
 
+  /// ImplicitType - Whether this declaration had the type that was
+  /// set using the implicit typing rules rather than explicit ones.
+  unsigned ImplicitType : 1;
+
 protected:
 
   /// the kind of a sub declaration this is
@@ -133,6 +137,7 @@ protected:
   Decl(Kind DK, DeclContext *DC, SourceLocation L)
     : NextDeclInContext(0), DeclCtx(DC), Loc(L), DeclKind(DK),
       InvalidDecl(false), HasAttrs(false), Implicit(false),
+      ImplicitType(0),
       SubDeclKind(0) {}
 
   virtual ~Decl();
@@ -174,6 +179,11 @@ public:
   /// was written explicitly in the source code.
   bool isImplicit() const { return Implicit; }
   void setImplicit(bool I = true) { Implicit = I; }
+
+  /// isTypeImplicit - Indicates whether the type of this declaration
+  /// set using the implicit typing rules.
+  bool isTypeImplicit() const { return ImplicitType; }
+  bool setTypeImplicit(bool I = true) { ImplicitType = I; }
 
   void dump() const;
   void dump(llvm::raw_ostream &OS) const;
@@ -610,8 +620,13 @@ protected:
             DeclarationName N, QualType T)
     : NamedDecl(DK, DC, L, N), DeclType(T) {}
 public:
+
   QualType getType() const { return DeclType; }
-  void setType(QualType newType) { DeclType = newType; }
+
+  void setType(QualType newType) {
+    DeclType = newType;
+    setTypeImplicit(false);
+  }
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
@@ -986,6 +1001,19 @@ public:
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
   static bool classof(const FileScopeAsmDecl *D) { return true; }
   static bool classofKind(Kind K) { return K == FileScopeAsm; }
+};
+
+class CommonBlockDecl : public NamedDecl {
+  CommonBlockDecl(DeclContext *DC,
+                  SourceLocation IDLoc, const IdentifierInfo *IDInfo)
+    : NamedDecl(CommonBlock, DC, IDLoc, DeclarationName(IDInfo)) {}
+public:
+  static CommonBlockDecl *Create(ASTContext &C, DeclContext *DC,
+                                 SourceLocation IDLoc, const IdentifierInfo *IDInfo);
+
+  static bool classof(const Decl *D) { return classofKind(D->getKind()); }
+  static bool classof(const CommonBlockDecl *D) { return true; }
+  static bool classofKind(Kind K) { return K == CommonBlock; }
 };
 
 static inline llvm::raw_ostream &operator<<(llvm::raw_ostream &O,

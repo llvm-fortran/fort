@@ -368,6 +368,16 @@ void VarDecl::MarkUsedAsVariable (SourceLocation Loc) {
 }
 
 //===----------------------------------------------------------------------===//
+// CommonBlockDecl Implementation
+//===----------------------------------------------------------------------===//
+
+CommonBlockDecl * CommonBlockDecl::Create(ASTContext &C, DeclContext *DC,
+                                          SourceLocation IDLoc,
+                                          const IdentifierInfo *IDInfo) {
+  return new(C) CommonBlockDecl(DC, IDLoc, IDInfo);
+}
+
+//===----------------------------------------------------------------------===//
 // Creation and Destruction of StoredDeclsMaps
 //===----------------------------------------------------------------------===//
 

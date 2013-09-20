@@ -33,7 +33,10 @@ Sema::Sema(ASTContext &ctxt, DiagnosticsEngine &D)
     CurExecutableStmts(nullptr),
     CurStmtLabelScope(nullptr),
     CurNamedConstructs(nullptr),
-    CurImplicitTypingScope(nullptr) {
+    CurImplicitTypingScope(nullptr),
+    CurSpecScope(nullptr),
+    CurEquivalenceScope(nullptr),
+    CurCommonBlockScope(nullptr) {
 }
 
 Sema::~Sema() {}
@@ -90,7 +93,11 @@ void Sema::PushExecutableProgramUnit(ExecutableProgramUnitScope &Scope) {
   // Enter new equivalence association scope
   CurEquivalenceScope = &Scope.EquivalenceAssociations;
 
+  // Enter new common block scope
+  CurCommonBlockScope = &Scope.CommonBlocks;
+
   CurExecutableStmts = &Scope.Body;
+  CurSpecScope = &Scope.Specs;
 }
 
 void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
@@ -144,6 +151,10 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
 
   CurEquivalenceScope->CreateEquivalenceSets(Context);
   CurEquivalenceScope = nullptr;
+
+  CurCommonBlockScope = nullptr;
+
+  CurSpecScope = nullptr;
 }
 
 void BlockStmtBuilder::Enter(Entry S) {
@@ -403,10 +414,10 @@ void Sema::ActOnEndSubProgram(ASTContext &C, SourceLocation Loc) {
 bool Sema::IsValidStatementFunctionIdentifier(const IdentifierInfo *IDInfo) {
   if (auto Prev = LookupIdentifier(IDInfo)) {
     if(auto VD = dyn_cast<VarDecl>(Prev))
-      return VD->isUnusedSymbol();
+      return VD->isUnusedSymbol() && !CurSpecScope->IsDimensionAppliedTo(IDInfo);
     return false;
   }
-  return true;
+  return !CurSpecScope->IsDimensionAppliedTo(IDInfo);
 }
 
 FunctionDecl *Sema::ActOnStatementFunction(ASTContext &C,
@@ -748,9 +759,19 @@ StmtResult Sema::ActOnDIMENSION(ASTContext &C, SourceLocation Loc,
                                 const IdentifierInfo *IDInfo,
                                 ArrayRef<ArraySpec*> Dims,
                                 Expr *StmtLabel) {
+  CurSpecScope->AddDimensionSpec(Loc, IDLoc, IDInfo, Dims);
+
   auto Result = DimensionStmt::Create(C, IDLoc, IDInfo, Dims, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
+}
+
+void Sema::ActOnCOMMON(ASTContext &C, SourceLocation Loc, SourceLocation BlockLoc,
+                       SourceLocation IDLoc, const IdentifierInfo *BlockID,
+                       const IdentifierInfo *IDInfo, ArrayRef<ArraySpec*> Dimensions) {
+  CurSpecScope->AddDimensionSpec(Loc, IDLoc, IDInfo, Dimensions);
+  auto Block = CurCommonBlockScope->findOrInsert(C, CurContext, BlockLoc, BlockID);
+  CurSpecScope->AddCommonSpec(Loc, IDLoc, IDInfo, Block);
 }
 
 StmtResult Sema::ActOnEXTERNAL(ASTContext &C, SourceLocation Loc,
@@ -775,6 +796,8 @@ StmtResult Sema::ActOnINTRINSIC(ASTContext &C, SourceLocation Loc,
 }
 
 StmtResult Sema::ActOnSAVE(ASTContext &C, SourceLocation Loc, Expr *StmtLabel) {
+  CurSpecScope->AddSaveSpec(Loc, Loc);
+
   auto Result = SaveStmt::Create(C, Loc, nullptr, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;
@@ -784,6 +807,8 @@ StmtResult Sema::ActOnSAVE(ASTContext &C, SourceLocation Loc,
                            SourceLocation IDLoc,
                            const IdentifierInfo *IDInfo,
                            Expr *StmtLabel) {
+  CurSpecScope->AddSaveSpec(Loc, IDLoc, IDInfo);
+
   auto Result = SaveStmt::Create(C, IDLoc, IDInfo, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;

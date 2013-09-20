@@ -153,4 +153,21 @@ Decl *InnerScope::Resolve(const IdentifierInfo *IDInfo) const {
   return Result? Result : (Parent? Parent->Resolve(IDInfo) : nullptr);
 }
 
+
+CommonBlockDecl *CommonBlockScope::findOrInsert(ASTContext &C, DeclContext *DC,
+                                                SourceLocation IDLoc,
+                                                const IdentifierInfo *IDInfo) {
+  if(!IDInfo) {
+    if(!UnnamedBlock)
+      UnnamedBlock = CommonBlockDecl::Create(C, DC, IDLoc, IDInfo);
+    return UnnamedBlock;
+  }
+  auto Result = Blocks.find(IDInfo);
+  if(Result != Blocks.end())
+    return Result->second;
+  auto Block = CommonBlockDecl::Create(C, DC, IDLoc, IDInfo);
+  Blocks.insert(std::make_pair(IDInfo, Block));
+  return Block;
+}
+
 } // end namespace flang

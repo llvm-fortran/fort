@@ -13,7 +13,7 @@
 
 #include "flang/AST/Stmt.h"
 #include "flang/AST/Expr.h"
-#include "flang/AST/EquivalenceSet.h"
+#include "flang/AST/StorageSet.h"
 #include "flang/AST/ASTContext.h"
 #include "flang/Basic/IdentifierTable.h"
 #include "llvm/ADT/StringRef.h"
@@ -286,7 +286,8 @@ EquivalenceStmt *EquivalenceStmt::Create(ASTContext &C, SourceLocation Loc,
   return new(C) EquivalenceStmt(C, Loc, Objects, StmtLabel);
 }
 
-EquivalenceSet::EquivalenceSet(ASTContext &C, ArrayRef<Object> objects) {
+EquivalenceSet::EquivalenceSet(ASTContext &C, ArrayRef<Object> objects)
+  : StorageSet(EquivalenceSetClass) {
   ObjectCount = objects.size();
   Objects = new(C) Object[ObjectCount];
   for(size_t I = 0; I < ObjectCount; ++I)

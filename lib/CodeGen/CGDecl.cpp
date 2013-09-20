@@ -16,7 +16,7 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/DeclVisitor.h"
 #include "flang/AST/Expr.h"
-#include "flang/AST/EquivalenceSet.h"
+#include "flang/AST/StorageSet.h"
 
 namespace flang {
 namespace CodeGen {

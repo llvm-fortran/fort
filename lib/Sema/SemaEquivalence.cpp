@@ -19,7 +19,7 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/AST/Stmt.h"
-#include "flang/AST/EquivalenceSet.h"
+#include "flang/AST/StorageSet.h"
 #include "flang/AST/ExprVisitor.h"
 #include "flang/Basic/Diagnostic.h"
 

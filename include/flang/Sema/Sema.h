@@ -64,6 +64,12 @@ class Sema {
   /// \brief The equivalence scope for the current program unit.
   EquivalenceScope *CurEquivalenceScope;
 
+  /// \brief The common block scope for the current program unit.
+  CommonBlockScope *CurCommonBlockScope;
+
+  /// \brief The specification scope for the current program unit.
+  SpecificationScope *CurSpecScope;
+
   /// \brief Represents the do loop variable currently being used.
   SmallVector<const VarExpr*, 8> CurLoopVars;
 
@@ -84,8 +90,6 @@ class Sema {
 
   /// \brief The mapping
   intrinsic::FunctionMapping IntrinsicFunctionMapping;
-
-
 
 public:
   typedef Expr ExprTy;
@@ -121,6 +125,10 @@ public:
 
   EquivalenceScope *getCurrentEquivalenceScope() const {
     return CurEquivalenceScope;
+  }
+
+  CommonBlockScope *getCurrentCommonBlockScope() const {
+    return CurCommonBlockScope;
   }
 
   BlockStmtBuilder *getCurrentBody() const {
@@ -187,9 +195,22 @@ public:
   VarDecl *GetVariableForSpecification(SourceLocation StmtLoc, const IdentifierInfo *IDInfo,
                                        SourceLocation IDLoc,
                                        bool CanBeArgument = true);
-  bool ApplySpecification(SourceLocation StmtLoc, const DimensionStmt *S);
-  bool ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S);
-  bool ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S, VarDecl *VD);
+
+  bool ApplyDimensionSpecification(SourceLocation Loc, SourceLocation IDLoc,
+                                   const IdentifierInfo *IDInfo,
+                                   ArrayRef<ArraySpec*> Dims);
+
+  bool ApplySaveSpecification(SourceLocation Loc, SourceLocation IDLoc,
+                              const IdentifierInfo *IDInfo);
+
+  bool ApplySaveSpecification(SourceLocation Loc, SourceLocation IDLoc, VarDecl *VD);
+
+  bool ApplySaveSpecification(SourceLocation Loc, SourceLocation IDLoc,
+                              CommonBlockDecl *Block);
+
+  bool ApplyCommonSpecification(SourceLocation Loc, SourceLocation IDLoc,
+                                const IdentifierInfo *IDInfo,
+                                CommonBlockDecl *Block);
 
   QualType ActOnTypeName(ASTContext &C, DeclSpec &DS);
   VarDecl *ActOnKindSelector(ASTContext &C, SourceLocation IDLoc,
@@ -225,6 +246,9 @@ public:
   /// applied.
   void ActOnTypeDeclSpec(ASTContext &C, SourceLocation Loc,
                          const IdentifierInfo *IDInfo, DeclSpec &DS);
+
+  VarDecl *CreateImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
+                                    const IdentifierInfo *IDInfo);
 
   Decl *ActOnExternalEntityDecl(ASTContext &C, QualType T,
                                 SourceLocation IDLoc, const IdentifierInfo *IDInfo);

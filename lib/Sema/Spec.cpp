@@ -49,107 +49,122 @@ void Sema::ActOnFunctionSpecificationPart() {
   }
 }
 
-/// Applies the specification statements to the declarations.
-void Sema::ActOnSpecificationPart() {
-  ActOnFunctionSpecificationPart();
-  auto Body = getCurrentBody()->getDeclStatements();
-
-  for(ArrayRef<Stmt*>::iterator I = Body.begin(), End = Body.end();
-      I != End; ++I) {
-    ArrayRef<Stmt*> StmtList;
-
-    auto StmtLoc = (*I)->getLocation();
-    if (const CompoundStmt *BundledStmt = dyn_cast<CompoundStmt>(*I)) {
-      StmtList = BundledStmt->getBody();
-      StmtLoc = BundledStmt->getLocation();
-    }
-    else StmtList = ArrayRef<Stmt*>(*I);
-    for(auto S : StmtList) {
-      if (const DimensionStmt *DimStmt = dyn_cast<DimensionStmt>(S)){
-        ApplySpecification(StmtLoc, DimStmt);
-      }
-      else if(const SaveStmt *SavStmt = dyn_cast<SaveStmt>(S)) {
-        ApplySpecification(StmtLoc, SavStmt);
-      }
-    }
-  }
-}
-
 VarDecl *Sema::GetVariableForSpecification(SourceLocation StmtLoc,
                                            const IdentifierInfo *IDInfo,
                                            SourceLocation IDLoc,
                                            bool CanBeArgument) {
   auto Declaration = LookupIdentifier(IDInfo);
-  if(Declaration) {
-    auto VD = dyn_cast<VarDecl>(Declaration);
-    if(VD && !(VD->isParameter() || (!CanBeArgument && VD->isArgument())))
-      return VD;
-    Diags.Report(StmtLoc, CanBeArgument? diag::err_spec_requires_local_var_arg : diag::err_spec_requires_local_var)
-      << IDInfo << getTokenRange(IDLoc);
-    if(VD) {
-      Diags.Report(Declaration->getLocation(), diag::note_previous_definition_kind)
-          << IDInfo << (VD->isArgument()? 0 : 1)
-          << getTokenRange(Declaration->getLocation());
-    } else
-      Diags.Report(Declaration->getLocation(), diag::note_previous_definition);
-  } else {
-    Diags.Report(IDLoc, diag::err_undeclared_var_use)
-     << IDInfo << getTokenRange(IDLoc);
-  }
-
+  if(!Declaration)
+    return CreateImplicitEntityDecl(Context, IDLoc, IDInfo);
+  auto VD = dyn_cast<VarDecl>(Declaration);
+  if(VD && !(VD->isParameter() || (!CanBeArgument && VD->isArgument()) || VD->isFunctionResult()))
+    return VD;
+  Diags.Report(StmtLoc, CanBeArgument? diag::err_spec_requires_local_var_arg : diag::err_spec_requires_local_var)
+    << IDInfo << getTokenRange(IDLoc);
+  if(VD) {
+    Diags.Report(Declaration->getLocation(), diag::note_previous_definition_kind)
+        << IDInfo << (VD->isArgument()? 0 : 1)
+        << getTokenRange(Declaration->getLocation());
+  } else
+    Diags.Report(Declaration->getLocation(), diag::note_previous_definition);
   return nullptr;
 }
 
-bool Sema::ApplySpecification(SourceLocation StmtLoc, const DimensionStmt *S) {
-  auto VD = GetVariableForSpecification(StmtLoc,
-                                        S->getVariableName(),
-                                        S->getLocation());
+void SpecificationScope::AddDimensionSpec(SourceLocation Loc, SourceLocation IDLoc,
+                                          const IdentifierInfo *IDInfo,
+                                          ArrayRef<ArraySpec*> Dims) {
+  if(Dims.empty())
+    return;
+  auto Start = Dimensions.size();
+  Dimensions.append(Dims.begin(), Dims.end());
+  StoredDimensionSpec Spec = { Loc, IDLoc, IDInfo, Start, Dims.size() };
+  DimensionSpecs.push_back(Spec);
+}
+
+ bool SpecificationScope::IsDimensionAppliedTo(const IdentifierInfo *IDInfo) const {
+   for(auto Spec : DimensionSpecs) {
+     if(Spec.IDInfo == IDInfo) return true;
+   }
+   return false;
+ }
+
+void SpecificationScope::ApplyDimensionSpecs(Sema &Visitor) {
+  for(auto Spec : DimensionSpecs)
+    Visitor.ApplyDimensionSpecification(Spec.Loc, Spec.IDLoc, Spec.IDInfo,
+      llvm::makeArrayRef(Dimensions.begin()+Spec.Offset, Spec.Size));
+}
+
+bool Sema::ApplyDimensionSpecification(SourceLocation Loc, SourceLocation IDLoc,
+                                       const IdentifierInfo *IDInfo,
+                                       ArrayRef<ArraySpec*> Dims) {
+  auto VD = GetVariableForSpecification(Loc, IDInfo, IDLoc);
   if(!VD) return true;
   if(isa<ArrayType>(VD->getType())) {
-    Diags.Report(StmtLoc,
+    Diags.Report(Loc,
                  diag::err_spec_dimension_already_array)
-      << S->getVariableName() << getTokenRange(S->getLocation());
+      << VD->getIdentifier();
     return true;
   }
-  else {
-    auto T = ActOnArraySpec(Context, VD->getType(), S->getIDList());
-    VD->setType(T);
-    if(T->isArrayType()) {
-      CheckArrayTypeDeclarationCompability(T->asArrayType(), VD);
-      VD->MarkUsedAsVariable(S->getLocation());
-    }
+
+  auto T = ActOnArraySpec(Context, VD->getType(), Dims);
+  bool IsTypeImplicit = VD->isTypeImplicit();
+  VD->setType(T);
+  if(T->isArrayType()) {
+    CheckArrayTypeDeclarationCompability(T->asArrayType(), VD);
+    VD->MarkUsedAsVariable(Loc);
   }
+  VD->setTypeImplicit(IsTypeImplicit);
   return false;
 }
 
-bool Sema::ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S) {
-  if(!S->getIdentifier()) {
+void SpecificationScope::AddSaveSpec(SourceLocation Loc, SourceLocation IDLoc,
+                                     const IdentifierInfo *IDInfo) {
+  StoredSaveSpec Spec = { Loc, IDLoc, IDInfo };
+  SaveSpecs.push_back(Spec);
+}
+
+void SpecificationScope::AddSaveSpec(SourceLocation Loc, SourceLocation IDLoc,
+                                     CommonBlockDecl *Block) {
+  StoredSaveCommonBlockSpec Spec = { Loc, IDLoc, Block };
+  SaveCommonBlockSpecs.push_back(Spec);
+}
+
+void SpecificationScope::ApplySaveSpecs(Sema &Visitor) {
+  for(auto Spec : SaveSpecs)
+    Visitor.ApplySaveSpecification(Spec.Loc, Spec.IDLoc,
+                                   Spec.IDInfo);
+  for(auto Spec : SaveCommonBlockSpecs)
+    Visitor.ApplySaveSpecification(Spec.Loc, Spec.IDLoc,
+                                   Spec.Block);
+}
+
+bool Sema::ApplySaveSpecification(SourceLocation Loc, SourceLocation IDLoc,
+                                  const IdentifierInfo *IDInfo) {
+  if(!IDInfo) {
     for(DeclContext::decl_iterator I = CurContext->decls_begin(),
         End = CurContext->decls_end(); I != End; ++I) {
       auto VD = dyn_cast<VarDecl>(*I);
-      if(VD && !(VD->isParameter() || VD->isArgument())) {
-        ApplySpecification(StmtLoc, S, VD);
+      if(VD && !(VD->isParameter() || VD->isArgument() || VD->isFunctionResult())) {
+        ApplySaveSpecification(Loc, SourceLocation(), VD);
       }
     }
     return false;
   }
-  auto VD = GetVariableForSpecification(StmtLoc,
-                                        S->getIdentifier(),
-                                        S->getLocation(),
-                                        false);
+  auto VD = GetVariableForSpecification(Loc, IDInfo, IDLoc, false);
   if(!VD) return true;
-  return ApplySpecification(StmtLoc, S, VD);
+  return ApplySaveSpecification(Loc, IDLoc, VD);
 }
 
-bool Sema::ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S, VarDecl *VD) {
+bool Sema::ApplySaveSpecification(SourceLocation Loc, SourceLocation IDLoc,
+                                  VarDecl *VD) {
   auto Type = VD->getType();
   auto Quals = Type.getQualifiers();
   if(Quals.hasAttributeSpec(Qualifiers::AS_save)) {
-    if(S->getIdentifier()) {
-      Diags.Report(StmtLoc, diag::err_spec_qual_reapplication)
-        << "save" << VD->getIdentifier() << getTokenRange(S->getLocation());
+    if(IDLoc.isValid()) {
+      Diags.Report(Loc, diag::err_spec_qual_reapplication)
+        << "save" << VD->getIdentifier() << getTokenRange(IDLoc);
     } else {
-      Diags.Report(StmtLoc, diag::err_spec_qual_reapplication)
+      Diags.Report(Loc, diag::err_spec_qual_reapplication)
         << "save" << VD->getIdentifier();
     }
     return true;
@@ -157,6 +172,41 @@ bool Sema::ApplySpecification(SourceLocation StmtLoc, const SaveStmt *S, VarDecl
   Quals.addAttributeSpecs(Qualifiers::AS_save);
   VD->setType(Context.getQualifiedType(Type, Quals));
   return false;
+}
+
+bool Sema::ApplySaveSpecification(SourceLocation Loc, SourceLocation IDLoc,
+                                  CommonBlockDecl *Block) {
+  return false;
+}
+
+void SpecificationScope::AddCommonSpec(SourceLocation Loc, SourceLocation IDLoc,
+                                       const IdentifierInfo *IDInfo,
+                                       CommonBlockDecl *Block) {
+  StoredCommonSpec Spec = { Loc, IDLoc, IDInfo, Block };
+  CommonSpecs.push_back(Spec);
+}
+
+void SpecificationScope::ApplyCommonSpecs(Sema &Visitor) {
+  for(auto Spec : CommonSpecs)
+    Visitor.ApplyCommonSpecification(Spec.Loc, Spec.IDLoc,
+                                     Spec.IDInfo, Spec.Block);
+}
+
+bool Sema::ApplyCommonSpecification(SourceLocation Loc, SourceLocation IDLoc,
+                                    const IdentifierInfo *IDInfo,
+                                    CommonBlockDecl *Block) {
+  auto VD = GetVariableForSpecification(Loc, IDInfo, IDLoc);
+  if(!VD) return true;
+  return false;
+}
+
+/// Applies the specification statements to the declarations.
+void Sema::ActOnSpecificationPart() {
+  ActOnFunctionSpecificationPart();
+
+  CurSpecScope->ApplyDimensionSpecs(*this);
+  CurSpecScope->ApplyCommonSpecs(*this);
+  CurSpecScope->ApplySaveSpecs(*this);
 }
 
 } // namespace flang

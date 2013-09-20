@@ -26,6 +26,8 @@ namespace flang {
 class Decl;
 class DeclContext;
 class UsingDirectiveDecl;
+class CommonBlockDecl;
+class Sema;
 
 /// BlockStmtBuilder - Constructs bodies for statements and program units.
 class BlockStmtBuilder {
@@ -302,6 +304,77 @@ public:
   void CreateEquivalenceSets(ASTContext &C);
 };
 
+/// CommonBlockScope - This is a component of a scope which assists with
+/// semantic analysis for the COMMON statement and storage unit
+/// association for the variables that are influenced by the COMMON
+/// statement.
+///
+class CommonBlockScope {
+  CommonBlockDecl *UnnamedBlock;
+  llvm::SmallDenseMap<const IdentifierInfo*, CommonBlockDecl*> Blocks;
+public:
+
+  CommonBlockDecl *findOrInsert(ASTContext &C, DeclContext *DC,
+                                SourceLocation IDLoc,
+                                const IdentifierInfo *IDInfo);
+};
+
+/// The scope which helps to apply specification statements
+class SpecificationScope {
+
+  struct StoredDimensionSpec {
+    SourceLocation Loc, IDLoc;
+    const IdentifierInfo *IDInfo;
+    unsigned Offset, Size;
+  };
+  SmallVector<StoredDimensionSpec, 8> DimensionSpecs;
+  SmallVector<ArraySpec*, 32> Dimensions;
+
+  struct StoredSaveSpec {
+    SourceLocation Loc, IDLoc;
+    const IdentifierInfo *IDInfo;
+  };
+
+  SmallVector<StoredSaveSpec, 4> SaveSpecs;
+
+  struct StoredCommonSpec {
+    SourceLocation Loc, IDLoc;
+    const IdentifierInfo *IDInfo;
+    CommonBlockDecl *Block;
+  };
+  struct StoredSaveCommonBlockSpec {
+    SourceLocation Loc, IDLoc;
+    CommonBlockDecl *Block;
+  };
+
+  SmallVector<StoredCommonSpec, 4> CommonSpecs;
+  SmallVector<StoredSaveCommonBlockSpec, 4> SaveCommonBlockSpecs;
+
+public:
+
+  void AddDimensionSpec(SourceLocation Loc, SourceLocation IDLoc,
+                        const IdentifierInfo *IDInfo,
+                        ArrayRef<ArraySpec*> Dims);
+
+  bool IsDimensionAppliedTo(const IdentifierInfo *IDInfo) const;
+
+  void ApplyDimensionSpecs(Sema &Visitor);
+
+  void AddSaveSpec(SourceLocation Loc, SourceLocation IDLoc,
+                   const IdentifierInfo *IDInfo = nullptr);
+
+  void AddSaveSpec(SourceLocation Loc, SourceLocation IDLoc,
+                   CommonBlockDecl *Block);
+
+  void ApplySaveSpecs(Sema &Visitor);
+
+  void AddCommonSpec(SourceLocation Loc, SourceLocation IDLoc,
+                     const IdentifierInfo *IDInfo,
+                     CommonBlockDecl *Block);
+
+  void ApplyCommonSpecs(Sema &Visitor);
+};
+
 /// The scope of a translation unit (a single file)
 class TranslationUnitScope {
 public:
@@ -316,7 +389,9 @@ public:
   ConstructNameScope NamedConstructs;
   ImplicitTypingScope ImplicitTypingRules;
   EquivalenceScope EquivalenceAssociations;
+  CommonBlockScope CommonBlocks;
   BlockStmtBuilder Body;
+  SpecificationScope Specs;
 };
 
 /// The scope of a main program

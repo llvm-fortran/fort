@@ -1,4 +1,5 @@
 ! RUN: %flang -verify -fsyntax-only < %s
+! RUN: %flang -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
 
 SUBROUTINE FOO
   INTEGER I
@@ -28,3 +29,13 @@ SUBROUTINE FEZ()
   SAVE var
   SAVE ! expected-error {{the specification statement 'save' cannot be applied to the variable 'var' more than once}}
 END
+
+subroutine sub1
+  save i
+  i = 1.0 ! CHECK: i = int(1)
+end
+
+subroutine sub2
+  implicit none
+  save i ! expected-error {{use of undeclared identifier 'i'}}
+end
