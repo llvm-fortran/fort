@@ -1462,7 +1462,7 @@ bool Parser::ParseSpecificationStmt() {
     goto notImplemented;
   case tok::kw_COMMON:
     Result = ParseCOMMONStmt();
-    goto notImplemented;
+    break;
   case tok::kw_PARAMETER:
     Result = ParsePARAMETERStmt();
     break;
@@ -1591,18 +1591,6 @@ Parser::StmtResult Parser::ParseASYNCHRONOUSStmt() {
 ///     bind-stmt :=
 ///         language-binding-spec [::] bind-entity-list
 Parser::StmtResult Parser::ParseBINDStmt() {
-  return StmtResult();
-}
-
-/// ParseCOMMONStmt - Parse the COMMON statement.
-///
-///   [5.5.2] R557:
-///     common-stmt :=
-///         COMMON #
-///         # [ / [common-block-name] / ] common-block-object-list #
-///         # [ [,] / [common-block-name / #
-///         #   common-block-object-list ] ...
-Parser::StmtResult Parser::ParseCOMMONStmt() {
   return StmtResult();
 }
 

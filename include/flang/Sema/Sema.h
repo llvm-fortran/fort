@@ -377,6 +377,10 @@ public:
 
   bool CheckEquivalenceType(QualType ExpectedType, const Expr *E);
 
+  void ActOnCOMMON(ASTContext &C, SourceLocation Loc, SourceLocation BlockLoc,
+                   SourceLocation IDLoc, const IdentifierInfo *BlockID,
+                   const IdentifierInfo *IDInfo, ArrayRef<ArraySpec *> Dimensions);
+
   // DATA statement:
   StmtResult ActOnDATA(ASTContext &C, SourceLocation Loc,
                        ArrayRef<Expr*> LHS, ArrayRef<Expr*> Values,

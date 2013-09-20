@@ -395,6 +395,12 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
   return ActOnEntityDecl(C, T, IDLoc, IDInfo);
 }
 
+void Sema::ActOnCOMMON(ASTContext &C, SourceLocation Loc, SourceLocation BlockLoc,
+                       SourceLocation IDLoc, const IdentifierInfo *BlockID,
+                       const IdentifierInfo *IDInfo, ArrayRef<ArraySpec*> Dimensions) {
+
+}
+
 //
 // derived types
 //

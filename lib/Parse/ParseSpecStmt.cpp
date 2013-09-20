@@ -130,6 +130,73 @@ Parser::StmtResult Parser::ParseEQUIVALENCEStmt() {
   return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
+/// ParseCOMMONStmt - Parse the COMMON statement.
+///
+///   [5.5.2] R557:
+///     common-stmt :=
+///         COMMON #
+///         # [ / [common-block-name] / ] common-block-object-list #
+///         # [ [,] / [common-block-name / #
+///         #   common-block-object-list ] ...
+Parser::StmtResult Parser::ParseCOMMONStmt() {
+  // Check if this is an assignment.
+  if (IsNextToken(tok::equal))
+    return StmtResult();
+
+  auto Loc = ConsumeToken();
+  SmallVector<Stmt*, 8> StmtList;
+  SmallVector<Expr*, 8> ObjectList;
+
+  SourceLocation BlockIDLoc;
+  const IdentifierInfo *BlockID = nullptr;
+
+  bool Error = false;
+  do {
+    if(ConsumeIfPresent(tok::slash)) {
+      if(ConsumeIfPresent(tok::slash))
+        BlockID = nullptr;
+      else {
+        BlockIDLoc = Tok.getLocation();
+        BlockID = Tok.getIdentifierInfo();
+        if(!ExpectAndConsume(tok::identifier)) {
+          Error = true;
+          break;
+        }
+        if(!ExpectAndConsume(tok::slash)) {
+          Error = true;
+          break;
+        }
+      }
+    } else if(ConsumeIfPresent(tok::slashslash))
+      BlockID = nullptr;
+
+    auto IDLoc = Tok.getLocation();
+    auto IDInfo = Tok.getIdentifierInfo();
+    SmallVector<ArraySpec*, 8> Dimensions;
+
+    if(!ExpectAndConsume(tok::identifier)) {
+      Error = true;
+      break;
+    }
+    if(IsPresent(tok::l_paren)) {
+      if(ParseArraySpec(Dimensions)) {
+        Error = true;
+        break;
+      }
+    }
+
+    Actions.ActOnCOMMON(Context, Loc, BlockIDLoc,
+                        IDLoc, BlockID, IDInfo,
+                        Dimensions);
+  } while(ConsumeIfPresent(tok::comma));
+
+
+  if(Error) SkipUntilNextStatement();
+  else ExpectStatementEnd();
+
+  return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
+}
+
 /// ParsePARAMETERStmt - Parse the PARAMETER statement.
 ///
 ///   [R548]:
