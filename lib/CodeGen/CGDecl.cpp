@@ -173,6 +173,7 @@ void CodeGenFunction::EmitCommonBlock(const CommonBlockSet *S) {
   auto CBType = llvm::StructType::get(CGM.getLLVMContext(), Items);
   auto Ptr = Builder.CreateBitCast(CGM.EmitCommonBlock(S->getDecl(), CBType),
                                    llvm::PointerType::get(CBType, 0));
+  CommonBlocks.insert(std::make_pair(S, Ptr));
   unsigned Idx = 0;
   for(auto Obj : S->getObjects()) {
     if(Obj.Var) {

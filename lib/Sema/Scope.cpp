@@ -154,6 +154,9 @@ Decl *InnerScope::Resolve(const IdentifierInfo *IDInfo) const {
   return Result? Result : (Parent? Parent->Resolve(IDInfo) : nullptr);
 }
 
+CommonBlockScope::CommonBlockScope()
+  : UnnamedBlock(nullptr) {}
+
 CommonBlockDecl *CommonBlockScope::find(const IdentifierInfo *IDInfo) {
   assert(IDInfo);
   auto Result = Blocks.find(IDInfo);

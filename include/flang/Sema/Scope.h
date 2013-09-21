@@ -317,6 +317,8 @@ private:
   BlockMappingTy Blocks;
 public:
 
+  CommonBlockScope();
+
   bool hasUnnamed() const {
     return UnnamedBlock != nullptr;
   }
