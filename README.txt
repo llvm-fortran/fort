@@ -13,8 +13,7 @@ Flang is a Fortran front-end.
 
 Flang depends on a fork of clang for some of its files. In order to compile
 Flang, you'll need to fetch the clang_branch and merge it with master in your
-local repository. After cloning flang, you can use the following commands to achieve
-this:
+local repository. After cloning flang, you can use the following commands to achieve this:
   
   git fetch origin clang_branch
   git checkout clang_branch
