@@ -78,7 +78,7 @@ void SpecificationScope::AddDimensionSpec(SourceLocation Loc, SourceLocation IDL
     return;
   auto Start = Dimensions.size();
   Dimensions.append(Dims.begin(), Dims.end());
-  StoredDimensionSpec Spec = { Loc, IDLoc, IDInfo, Start, Dims.size() };
+  StoredDimensionSpec Spec = { Loc, IDLoc, IDInfo, unsigned(Start), unsigned(Dims.size()) };
   DimensionSpecs.push_back(Spec);
 }
 
