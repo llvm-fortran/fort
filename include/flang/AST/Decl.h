@@ -185,7 +185,7 @@ public:
   /// isTypeImplicit - Indicates whether the type of this declaration
   /// set using the implicit typing rules.
   bool isTypeImplicit() const { return ImplicitType; }
-  bool setTypeImplicit(bool I = true) { ImplicitType = I; }
+  void setTypeImplicit(bool I = true) { ImplicitType = I; }
 
   void dump() const;
   void dump(llvm::raw_ostream &OS) const;
