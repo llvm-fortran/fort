@@ -370,6 +370,7 @@ bool Parser::ExpectAndConsume(tok::TokenKind ExpectedTok, unsigned Diag,
       break;
     case tok::identifier:
       Diag = diag::err_expected_ident;
+      break;
     default:
       assert(false && "Couldn't select a default "
              "diagnostic for the given token type.");
