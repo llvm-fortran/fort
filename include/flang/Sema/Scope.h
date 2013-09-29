@@ -98,8 +98,8 @@ private:
 /// declaring and resolving statement labels.
 ///
 class StmtLabelScope {
-public:
   StmtLabelScope *Parent;
+public:
 
   /// \brief Represents a usage of an undeclared statement label in
   /// some statement.
@@ -133,6 +133,7 @@ private:
   /// referenced statement labels in this scope.
   llvm::SmallVector<ForwardDecl, 16> ForwardStmtLabelDeclsInScope;
 public:
+  StmtLabelScope() : Parent(nullptr) {}
 
   typedef StmtLabelMapTy::const_iterator decl_iterator;
   decl_iterator decl_begin() const { return StmtLabelDeclsInScope.begin(); }
