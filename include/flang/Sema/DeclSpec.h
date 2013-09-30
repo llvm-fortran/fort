@@ -174,9 +174,7 @@ public:
   }
 
   bool hasAttributes() const {
-    return hasKindSelector() || hasLengthSelector() ||
-      AttributeSpecs != 0 || IntentSpec != 0 || AccessSpec != 0 ||
-      IsDoublePrecision != 0;
+    return AttributeSpecs != 0 || IntentSpec != 0 || AccessSpec != 0;
   }
 
   virtual void print(llvm::raw_ostream &) {}
