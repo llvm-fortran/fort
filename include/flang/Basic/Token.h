@@ -86,6 +86,7 @@ public:
   /// string, etc.
   bool isLiteral() const {
     return is(tok::int_literal_constant)|| is(tok::real_literal_constant)
+      || is(tok::double_precision_literal_constant)
       || is(tok::statement_label)       || is(tok::char_literal_constant)
       || is(tok::binary_boz_constant)   || is(tok::octal_boz_constant)
       || is(tok::hex_boz_constant)      || is(tok::defined_operator)
