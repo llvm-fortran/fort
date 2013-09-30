@@ -536,7 +536,7 @@ class RecordDecl : public TypeDecl, public DeclContext {
 protected:
   RecordDecl(Kind DK, DeclContext *DC, SourceLocation StartLoc, SourceLocation IdLoc,
              const IdentifierInfo *Id, RecordDecl *PrevDecl)
-    : TypeDecl(DK, DC, IdLoc, Id), DeclContext(Record) {
+    : TypeDecl(DK, DC, IdLoc, Id), DeclContext(DK) {
     IsDefinition = false;
     IsBeingDefined = false;
     IsSequence = false;
