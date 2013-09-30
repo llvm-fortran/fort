@@ -30,7 +30,7 @@ def Named : Decl<1>;
   def Value : DDecl<Named, 1>;
     def EnumConstant : DDecl<Value>;
     def Declarator : DDecl<Value, 1>;
-      def MainProgram : Decl, DeclContext;
+      def MainProgram : DDecl<Declarator>, DeclContext;
       def Function : DDecl<Declarator>, DeclContext;
       def IntrinsicFunction : DDecl<Declarator>;
       def Module : DDecl<Declarator>, DeclContext;
