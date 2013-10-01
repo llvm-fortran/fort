@@ -26,7 +26,7 @@ local repository. After cloning flang, you can use the following commands to ach
 //===----------------------------------------------------------------------===//
 
 Flang's driver will instruct the linker to link with the libflang runtime. 
-You can get libflang at https://github.com/hyp/libflang . Once you have libflang, 
+You can get libflang at https://github.com/hyp/libflangrt . Once you have libflang, 
 you'll need to tell flang where it is - you can use the -L option (e.g. -L~/libflang).
 
 //===----------------------------------------------------------------------===//
