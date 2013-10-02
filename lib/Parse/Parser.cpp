@@ -1239,14 +1239,11 @@ Parser::StmtResult Parser::ParsePROGRAMStmt() {
 
   // Parse the program name.
   Lex();
-  if (Tok.isNot(tok::identifier) || Tok.isAtStartOfStatement()) {
-    Diag.Report(ProgramLoc, diag::err_expected_ident);
-    return StmtError();
-  }
-
   SourceLocation NameLoc = Tok.getLocation();
   IDInfo = Tok.getIdentifierInfo();
-  Lex(); // Eat program name.
+  if(!ExpectAndConsume(tok::identifier))
+    return StmtError();
+
   return Actions.ActOnPROGRAM(Context, IDInfo, ProgramLoc, NameLoc,
                               StmtLabel);
 }
