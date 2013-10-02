@@ -1131,6 +1131,8 @@ bool Parser::ParseDeclarationConstruct() {
     break;
   case tok::kw_TYPE:
   case tok::kw_CLASS:
+    if (IsNextToken(tok::equal))
+      return true;
     if(!IsNextToken(tok::l_paren)) {
       ParseDerivedTypeDefinitionStmt();
       break;
@@ -1143,6 +1145,8 @@ bool Parser::ParseDeclarationConstruct() {
   case tok::kw_LOGICAL:
   case tok::kw_DOUBLEPRECISION:
   case tok::kw_DOUBLECOMPLEX: {
+    if (IsNextToken(tok::equal))
+      return true;
     if (ParseTypeDeclarationStmt(Decls))
       SkipUntilNextStatement();
     else
