@@ -691,6 +691,7 @@ Parser::StmtResult Parser::ParseENDStmt(tok::TokenKind EndKw) {
       << Expected;
     Diag.Report(cast<NamedDecl>(Actions.CurContext)->getLocation(), diag::note_matching)
       << Given;
+    if(Tok.isAtStartOfStatement()) ConsumeToken();
     SkipUntilNextStatement();
     return StmtError();
   }
