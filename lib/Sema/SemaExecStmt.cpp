@@ -419,7 +419,7 @@ Stmt *Sema::LeaveBlocksUntilDo(SourceLocation Loc) {
     --I;
     auto S = Stack[I].Statement;
     if(isa<DoWhileStmt>(S) ||
-       isa<DoStmt>(S) && !Stack[I].hasExpectedDoLabel()) {
+       (isa<DoStmt>(S) && !Stack[I].hasExpectedDoLabel())) {
       Result = S;
       break;
     }
