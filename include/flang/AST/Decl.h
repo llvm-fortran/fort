@@ -1035,7 +1035,7 @@ static inline llvm::raw_ostream &operator<<(llvm::raw_ostream &O,
 
 // Specialization selected when ToTy is not a known subclass of DeclContext.
 template <class ToTy,
-          bool IsKnownSubtype = ::llvm::is_base_of< DeclContext, ToTy>::value>
+          bool IsKnownSubtype = ::std::is_base_of< DeclContext, ToTy>::value>
 struct cast_convert_decl_context {
   static const ToTy *doit(const DeclContext *Val) {
     return static_cast<const ToTy*>(Decl::castFromDeclContext(Val));

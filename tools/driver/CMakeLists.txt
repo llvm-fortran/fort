@@ -6,7 +6,6 @@ set( LLVM_LINK_COMPONENTS
   codegen
   ipo
   selectiondag
-  jit
   interpreter
   linker
   )

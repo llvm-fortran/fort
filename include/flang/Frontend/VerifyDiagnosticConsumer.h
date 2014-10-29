@@ -13,7 +13,6 @@
 #include "flang/Basic/Diagnostic.h"
 #include "flang/Parse/Lexer.h"
 #include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/OwningPtr.h"
 #include "llvm/ADT/PointerIntPair.h"
 #include "llvm/ADT/STLExtras.h"
 #include <climits>
@@ -203,7 +202,7 @@ private:
   DiagnosticsEngine &Diags;
   DiagnosticClient *PrimaryClient;
   bool OwnsPrimaryClient;
-  llvm::OwningPtr<TextDiagnosticBuffer> Buffer;
+  std::unique_ptr<TextDiagnosticBuffer> Buffer;
   const Lexer *CurrentPreprocessor;
   const LangOptions *LangOpts;
   const llvm::SourceMgr *SrcManager;

@@ -141,7 +141,7 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
     // was already reported as undeclared label use.
     ReportUnterminatedStmt(CurExecutableStmts->LastEntered(), Loc, false);
   }
-  auto Body = CurExecutableStmts->LeaveOuterBody(Context, cast<Decl>(CurContext)->getLocation());
+  auto Body = CurExecutableStmts->LeaveOuterBody(Context, Decl::castFromDeclContext(CurContext)->getLocation());
   if(auto FD = dyn_cast<FunctionDecl>(CurContext))
     FD->setBody(Body);
   else
@@ -172,7 +172,7 @@ Stmt *BlockStmtBuilder::CreateBody(ASTContext &C,
 
 void BlockStmtBuilder::LeaveIfThen(ASTContext &C) {
   auto Last = ControlFlowStack.back();
-  assert(isa<IfStmt>(Last));
+  assert(isa<IfStmt>(Last.Statement));
 
   auto Body = CreateBody(C, Last);
   cast<IfStmt>(Last.Statement)->setThenStmt(Body);
@@ -181,7 +181,7 @@ void BlockStmtBuilder::LeaveIfThen(ASTContext &C) {
 
 void BlockStmtBuilder::LeaveWhereThen(ASTContext &C) {
   auto Last = ControlFlowStack.back();
-  assert(isa<WhereStmt>(Last));
+  assert(isa<WhereStmt>(Last.Statement));
 
   auto Body = CreateBody(C, Last);
   cast<WhereStmt>(Last.Statement)->setThenStmt(Body);

@@ -18,7 +18,6 @@
 #include "flang/AST/Expr.h"
 #include "flang/Basic/Diagnostic.h"
 #include "flang/Frontend/CodeGenOptions.h"
-#include "llvm/ADT/OwningPtr.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"
@@ -27,17 +26,17 @@ using namespace flang;
 
 namespace {
 
-  using llvm::OwningPtr;
+  using std::unique_ptr;
 
   class CodeGeneratorImpl : public CodeGenerator {
     DiagnosticsEngine &Diags;
-    OwningPtr<const llvm::DataLayout> TD;
+    std::unique_ptr<const llvm::DataLayout> TD;
     ASTContext *Ctx;
     const CodeGenOptions CodeGenOpts;  // Intentionally copied in.
     const TargetOptions Target;
   protected:
-    OwningPtr<llvm::Module> M;
-    OwningPtr<CodeGen::CodeGenModule> Builder;
+    std::unique_ptr<llvm::Module> M;
+    std::unique_ptr<CodeGen::CodeGenModule> Builder;
   public:
     CodeGeneratorImpl(DiagnosticsEngine &diags, const std::string& ModuleName,
                       const CodeGenOptions &CGO,
@@ -54,7 +53,7 @@ namespace {
     }
 
     virtual llvm::Module* ReleaseModule() {
-      return M.take();
+      return M.release();
     }
 
     virtual void Initialize(ASTContext &Context) {

@@ -23,12 +23,12 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
-#include "llvm/ExecutionEngine/JIT.h"
+//#include "llvm/ExecutionEngine/JIT.h"
 #include "llvm/PassManager.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Instrumentation.h"
-#include "llvm/Analysis/Verifier.h"
+#include "llvm/IR/Verifier.h"
 #include "llvm/Analysis/Passes.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Target/TargetMachine.h"
@@ -47,8 +47,6 @@
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/Timer.h"
-#include "llvm/Support/system_error.h"
-#include "llvm/ADT/OwningPtr.h"
 using namespace llvm;
 using namespace flang;
 
@@ -128,6 +126,7 @@ namespace {
 } // end anonymous namespace
 
 
+/*
 extern "C" void jit_write_start(void *) { }
 
 extern "C" void jit_write_character(void *,const char *Ptr, size_t Length) {
@@ -158,7 +157,7 @@ extern "C" void jit_init() {}
 
 static int Execute(llvm::Module *Module, const char * const *envp) {
   std::string Error;
-  OwningPtr<llvm::ExecutionEngine> EE(
+  std::unique_ptr<llvm::ExecutionEngine> EE(
     llvm::ExecutionEngine::createJIT(Module, &Error));
   if (!EE) {
     llvm::errs() << "unable to make execution engine: " << Error << "\n";
@@ -204,6 +203,7 @@ static int Execute(llvm::Module *Module, const char * const *envp) {
 
   return EE->runFunctionAsMain(EntryFn, Args, envp);
 }
+*/
 
 std::string GetOutputName(StringRef Filename,
                           BackendAction Action) {
@@ -237,10 +237,10 @@ static bool EmitFile(llvm::raw_ostream &Out,
       Action == Backend_EmitObj ? llvm::TargetMachine::CGFT_ObjectFile :
                                   llvm::TargetMachine::CGFT_AssemblyFile;
 
-    llvm::PassManager PM;
+    PassManager PM;
 
     Target.setAsmVerbosityDefault(true);
-    Target.setMCRelaxAll(true);
+    //Target.setMCRelaxAll(true);
     llvm::formatted_raw_ostream FOS(Out);
 
     // Ask the target to add backend passes as necessary.
@@ -262,11 +262,11 @@ static bool EmitOutputFile(const std::string &Input,
                            llvm::Module *Module,
                            llvm::TargetMachine* TM,
                            BackendAction Action) {
-  std::string err;
-  llvm::raw_fd_ostream Out(Input.c_str(), err, llvm::raw_fd_ostream::F_Binary);//FIXME: llvm 3.4: llvm::sys::fs::F_Binary);
-  if (!err.empty()){
+  std::error_code err;
+  llvm::raw_fd_ostream Out(Input.c_str(), err, llvm::sys::fs::F_None);
+  if (!err){
     llvm::errs() << "Could not open output file '" << Input << "': "
-                 << err <<"\n";
+                 << err.message() <<"\n";
     return true;
   }
   return EmitFile(Out, Module, TM, Action);
@@ -295,13 +295,14 @@ static bool LinkFiles(ArrayRef<std::string> OutputFiles) {
 static bool ParseFile(const std::string &Filename,
                       const std::vector<std::string> &IncludeDirs,
                       SmallVectorImpl<std::string> &OutputFiles) {
-  llvm::OwningPtr<llvm::MemoryBuffer> MB;
-  if (llvm::error_code ec = llvm::MemoryBuffer::getFileOrSTDIN(Filename.c_str(),
-                                                               MB)) {
+  ErrorOr<std::unique_ptr<MemoryBuffer>> MBOrErr =
+      MemoryBuffer::getFileOrSTDIN(Filename);
+  if (std::error_code EC = MBOrErr.getError()) {
     llvm::errs() << "Could not open input file '" << Filename << "': " 
-                 << ec.message() <<"\n";
+                 << EC.message() <<"\n";
     return true;
   }
+  std::unique_ptr<llvm::MemoryBuffer> MB = std::move(MBOrErr.get());
 
   // Record the location of the include directory so that the lexer can find it
   // later.
@@ -309,7 +310,7 @@ static bool ParseFile(const std::string &Filename,
   SrcMgr.setIncludeDirs(IncludeDirs);
 
   // Tell SrcMgr about this buffer, which is what Parser will pick up.
-  SrcMgr.AddNewSourceBuffer(MB.take(), llvm::SMLoc());
+  SrcMgr.AddNewSourceBuffer(std::move(MB), llvm::SMLoc());
 
   LangOptions Opts;
   Opts.DefaultReal8 = DefaultReal8;
@@ -382,7 +383,7 @@ static bool ParseFile(const std::string &Filename,
     if(!(EmitLLVM && OptLevel == 0)) {
       auto TheModule = CG->GetModule();
       auto PM = new PassManager();
-      PM->add(new DataLayout(TheModule));
+      PM->add(new DataLayoutPass());
       TM->addAnalysisPasses(*PM);
       PM->add(createPromoteMemoryToRegisterPass());
 
@@ -404,8 +405,8 @@ static bool ParseFile(const std::string &Filename,
     }
 
     if(Interpret) {
-      const char *Env[] = { "", nullptr };
-      Execute(CG->ReleaseModule(), Env);
+      //const char *Env[] = { "", nullptr };
+      //Execute(CG->ReleaseModule(), Env);
     } else if(OutputFile == "-")
       EmitFile(llvm::outs(), CG->GetModule(), TM, BA);
     else {

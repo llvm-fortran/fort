@@ -24,8 +24,8 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/IR/CallingConv.h"
 #include "llvm/IR/Module.h"
-#include "llvm/Support/ValueHandle.h"
-#include "llvm/Transforms/Utils/BlackList.h"
+#include "llvm/IR/ValueHandle.h"
+#include "llvm/Support/SpecialCaseList.h"
 
 namespace llvm {
   class Module;

@@ -79,8 +79,8 @@ public:
   void *Allocate(unsigned Size, unsigned Align = 8) const {
     return BumpAlloc.Allocate(Size, Align);
   }
-  void Deallocate(void *Ptr) const {
-    BumpAlloc.Deallocate(Ptr);
+  void Deallocate(void *Ptr, size_t size) const {
+    BumpAlloc.Deallocate((const void*) Ptr, size);
   }
 
   LangOptions getLangOpts() const {
@@ -259,9 +259,9 @@ inline void *operator new(size_t Bytes, const flang::ASTContext &C,
 /// invoking it directly; see the new operator for more details. This operator
 /// is called implicitly by the compiler if a placement new expression using the
 /// ASTContext throws in the object constructor.
-inline void operator delete(void *Ptr, const flang::ASTContext &C, size_t)
+inline void operator delete(void *Ptr, const flang::ASTContext &C, size_t size)
               throw () {
-  C.Deallocate(Ptr);
+  C.Deallocate(Ptr, size);
 }
 
 /// This placement form of operator new[] uses the ASTContext's allocator for
@@ -297,9 +297,9 @@ inline void *operator new[](size_t Bytes, const flang::ASTContext& C,
 /// invoking it directly; see the new[] operator for more details. This operator
 /// is called implicitly by the compiler if a placement new[] expression using
 /// the ASTContext throws in the object constructor.
-inline void operator delete[](void *Ptr, const flang::ASTContext &C, size_t)
+inline void operator delete[](void *Ptr, const flang::ASTContext &C, size_t size)
               throw () {
-  C.Deallocate(Ptr);
+  C.Deallocate(Ptr, size);
 }
 
 #endif

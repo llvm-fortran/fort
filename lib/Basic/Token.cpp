@@ -66,8 +66,8 @@ llvm::Twine Token::CleanCharContext() {
     if (*CurPtr != '\n' && *CurPtr != '\r')
       continue;
 
-    CharContext = CharContext +
-      llvm::Twine(llvm::StringRef(Start, Amp - Start));
+    CharContext.concat(
+      llvm::Twine(llvm::StringRef(Start, Amp - Start)));
 
     while (true) {
       while (isHorizontalWhitespace(*CurPtr) ||
