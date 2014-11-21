@@ -120,8 +120,7 @@ namespace flang {
       // Link LinkModule into this module if present, preserving its validity.
       if (LinkModule) {
         std::string ErrorMsg;
-        if (Linker::LinkModules(M, LinkModule.get(), Linker::PreserveSource,
-                                &ErrorMsg)) {
+        if (Linker::LinkModules(M, LinkModule.get())) {
           Diags.Report(diag::err_fe_cannot_link_module)
             << LinkModule->getModuleIdentifier() << ErrorMsg;
           return;
