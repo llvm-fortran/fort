@@ -377,13 +377,7 @@ private:
   /// \brief The list of ranges added to this diagnostic.
   SourceRange DiagRanges[MaxRanges];
 
-  /// \brief If valid, provides a hint with some code to insert, remove,
-  /// or modify at a particular position.
-  struct FixIt : FixItHint {
-    FixIt() : FixItHint(SourceLocation(),"") {}
-    FixIt(const FixItHint &Hint) : FixItHint(Hint) {}
-  };
-  FixIt DiagFixItHints[MaxFixItHints];
+  SmallVector<FixItHint, 10> DiagFixItHints;
 
   DiagnosticMappingInfo makeMappingInfo(diag::Mapping Map, SourceLocation L) {
     bool isPragma = L.isValid();
@@ -596,10 +590,7 @@ public:
   }
 
   void AddFixItHint(const FixItHint &Hint) const {
-    assert(isActive() && "Clients must not add to cleared diagnostic!");
-    assert(NumFixits < DiagnosticsEngine::MaxFixItHints &&
-           "Too many arguments to diagnostic!");
-    DiagObj->DiagFixItHints[NumFixits++] = Hint;
+    DiagObj->DiagFixItHints.push_back(Hint);
   }
 
   bool hasMaxRanges() const {
@@ -768,13 +759,12 @@ public:
     return DiagObj->NumDiagFixItHints;
   }
 
-  const FixItHint &getFixItHint(unsigned Idx) const {
-    assert(Idx < getNumFixItHints() && "Invalid index!");
+  const ArrayRef<FixItHint> getFixItHint(unsigned Idx) const {
     return DiagObj->DiagFixItHints[Idx];
   }
 
-  const FixItHint *getFixItHints() const {
-    return getNumFixItHints()? DiagObj->DiagFixItHints : 0;
+  const ArrayRef<FixItHint> getFixItHints() const {
+    return DiagObj->DiagFixItHints;
   }
 
   /// \brief Format this diagnostic into a string, substituting the
