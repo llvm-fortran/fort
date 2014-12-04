@@ -79,7 +79,7 @@ private:
 
   /// This is the current buffer index we're lexing from as managed by the
   /// SourceMgr object.
-  int CurBuffer;
+  std::vector<int> CurBufferIndex;
 
   ASTContext &Context;
 

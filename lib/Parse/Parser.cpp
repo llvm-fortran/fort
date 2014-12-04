@@ -60,11 +60,12 @@ void PrettyStackTraceParserEntry::print(llvm::raw_ostream &OS) const {
 Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  &D,
                Sema &actions)
   : TheLexer(SM, Opts, D), Features(Opts), CrashInfo(*this), SrcMgr(SM),
-    CurBuffer(0), Context(actions.Context), Diag(D), Actions(actions),
+    Context(actions.Context), Diag(D), Actions(actions),
     Identifiers(Opts), DontResolveIdentifiers(false),
     DontResolveIdentifiersInSubExpressions(false),
     LexFORMATTokens(false), StmtConstructName(SourceLocation(),nullptr) {
-  getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBuffer));
+  CurBufferIndex.push_back(SrcMgr.getMainFileID());
+  getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBufferIndex.back()));
   Tok.startToken();
   NextTok.startToken();
 
@@ -80,18 +81,18 @@ bool Parser::EnterIncludeFile(const std::string &Filename) {
   if (NewBuf == -1)
     return true;
 
-  CurBuffer = NewBuf;
+  CurBufferIndex.push_back(NewBuf);
   LexerBufferContext.push_back(getLexer().getBufferPtr());
-  getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBuffer));
+  getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBufferIndex.back()));
   Diag.getClient()->BeginSourceFile(Features, &TheLexer);
   return false;
 }
 
 bool Parser::LeaveIncludeFile() {
-  if(CurBuffer == 0) return true;//No files included.
+  if(CurBufferIndex.size() == 1) return true;//No files included.
   Diag.getClient()->EndSourceFile();
-  --CurBuffer;
-  getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBuffer),
+  CurBufferIndex.pop_back();
+  getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBufferIndex.back()),
                        LexerBufferContext.back());
   LexerBufferContext.pop_back();
   return false;
