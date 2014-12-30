@@ -5,13 +5,12 @@ macro(flang_diag_gen component)
     TARGET FlangDiagnostic${component})
 endmacro(flang_diag_gen)
 
-flang_tablegen(DiagnosticGroups.inc
-  -gen-flang-diag-groups
-  SOURCE Diagnostic.td
-  TARGET FlangDiagnosticGroups)
 
 flang_diag_gen(Common)
 flang_diag_gen(Lex)
 flang_diag_gen(Parse)
 flang_diag_gen(Frontend)
 flang_diag_gen(Sema)
+flang_tablegen(DiagnosticGroups.inc -gen-flang-diag-groups
+  SOURCE Diagnostic.td
+  TARGET FlangDiagnosticGroups)
