@@ -264,7 +264,7 @@ static bool EmitOutputFile(const std::string &Input,
                            BackendAction Action) {
   std::error_code err;
   llvm::raw_fd_ostream Out(Input.c_str(), err, llvm::sys::fs::F_None);
-  if (!err){
+  if (err){
     llvm::errs() << "Could not open output file '" << Input << "': "
                  << err.message() <<"\n";
     return true;
