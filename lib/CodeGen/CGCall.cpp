@@ -187,8 +187,8 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
     ArgList.add(ResultTemp);
   }
 
-  auto Result = Builder.CreateCall(Callee,
-                                   ArgList.createValues(), "call");
+  auto  Result = Builder.CreateCall(Callee,
+                                    ArgList.createValues());
   Result->setCallingConv(FuncInfo->getCallingConv());
 
   if(ReturnsNothing ||
@@ -236,7 +236,7 @@ RValueTy CodeGenFunction::EmitCall(CGFunction Func,
   }
 
   auto Result = Builder.CreateCall(Func.getFunction(),
-                                   ArgList.createValues(), "call");
+                                   ArgList.createValues());
   Result->setCallingConv(FuncInfo->getCallingConv());
   if(!FuncInfo->getReturnInfo().Type.isNull() &&
      FuncInfo->getReturnInfo().Type->isComplexType())
