@@ -93,7 +93,7 @@ bool SetCreator::CreateSet(ASTContext &C) {
   FindConnections(Obj);
   llvm::SmallPtrSet<VarDecl*, 16> ProcessedObjects;
   for(auto I : Result) {
-    if(ProcessedObjects.insert(I.Obj->Var))
+    if(ProcessedObjects.insert(I.Obj->Var).second)
       Objects.push_back(EquivalenceSet::Object(I.Obj->Var, I.E));
   }
 

@@ -121,6 +121,7 @@ class IdentifierTable {
   // Shark shows that using MallocAllocator is *much* slower than using this
   // BumpPtrAllocator!
   typedef llvm::StringMap<IdentifierInfo*, llvm::BumpPtrAllocator> HashTableTy;
+  typedef std::pair<llvm::StringRef, IdentifierInfo*> HashTableEntryTy;
   HashTableTy IdentifierHashTable;
   HashTableTy KeywordHashTable;
   HashTableTy FormatSpecHashTable;
@@ -171,10 +172,7 @@ public:
     for (size_t I = 0, E = UCName.size(); I != E; ++I)
       UCName[I] = ::tolower(UCName[I]);
 
-    llvm::StringMapEntry<IdentifierInfo*> &Entry =
-      IdentifierHashTable.GetOrCreateValue(UCName);
-
-    IdentifierInfo *II = Entry.getValue();
+    IdentifierInfo *II = IdentifierHashTable.lookup(UCName);
     if (II) return *II;
 
     // No entry; if we have an external lookup, look there first.
@@ -182,7 +180,7 @@ public:
       II = ExternalLookup->get(UCName);
       if (II) {
         // Cache in the StringMap for subsequent lookups.
-        Entry.setValue(II);
+        IdentifierHashTable.insert(HashTableEntryTy(UCName, II));
         return *II;
       }
     }
@@ -190,7 +188,7 @@ public:
     // Lookups failed, make a new IdentifierInfo.
     void *Mem = IdentifierHashTable.getAllocator().Allocate<IdentifierInfo>();
     II = new (Mem) IdentifierInfo();
-    Entry.setValue(II);
+    auto &Entry = *IdentifierHashTable.insert(HashTableEntryTy(UCName, II)).first;
 
     // Make sure getName() knows how to find the IdentifierInfo
     // contents.
@@ -204,10 +202,8 @@ public:
     for (size_t I = 0, E = UCName.size(); I != E; ++I)
       UCName[I] = ::tolower(UCName[I]);
 
-    llvm::StringMapEntry<IdentifierInfo*> &Entry =
-      KeywordHashTable.GetOrCreateValue(UCName);
+    IdentifierInfo *II = KeywordHashTable.lookup(UCName);
 
-    IdentifierInfo *II = Entry.getValue();
     if (II) return *II;
 
     // No entry; if we have an external lookup, look there first.
@@ -215,7 +211,7 @@ public:
       II = ExternalLookup->get(UCName);
       if (II) {
         // Cache in the StringMap for subsequent lookups.
-        Entry.setValue(II);
+        KeywordHashTable.insert(HashTableEntryTy(UCName, II));
         return *II;
       }
     }
@@ -224,7 +220,7 @@ public:
     void *Mem = KeywordHashTable.getAllocator().Allocate<IdentifierInfo>();
     II = new (Mem) IdentifierInfo();
     II->setTokenID(TokenCode);
-    Entry.setValue(II);
+    auto &Entry = *KeywordHashTable.insert(HashTableEntryTy(UCName, II)).first;
 
     // Make sure getName() knows how to find the IdentifierInfo
     // contents.
@@ -238,10 +234,8 @@ public:
     for (size_t I = 0, E = UCName.size(); I != E; ++I)
       UCName[I] = ::tolower(UCName[I]);
 
-    llvm::StringMapEntry<IdentifierInfo*> &Entry =
-      FormatSpecHashTable.GetOrCreateValue(UCName);
+    IdentifierInfo *II = FormatSpecHashTable.lookup(UCName);
 
-    IdentifierInfo *II = Entry.getValue();
     if (II) return *II;
 
     // No entry; if we have an external lookup, look there first.
@@ -249,7 +243,7 @@ public:
       II = ExternalLookup->get(UCName);
       if (II) {
         // Cache in the StringMap for subsequent lookups.
-        Entry.setValue(II);
+        FormatSpecHashTable.insert(HashTableEntryTy(UCName, II));
         return *II;
       }
     }
@@ -258,7 +252,7 @@ public:
     void *Mem = FormatSpecHashTable.getAllocator().Allocate<IdentifierInfo>();
     II = new (Mem) IdentifierInfo();
     II->setTokenID(TokenCode);
-    Entry.setValue(II);
+    auto &Entry = *FormatSpecHashTable.insert(HashTableEntryTy(UCName, II)).first;
 
     // Make sure getName() knows how to find the IdentifierInfo
     // contents.
@@ -319,16 +313,14 @@ public:
   /// routine to build IdentifierInfo nodes and then introduce additional
   /// information about those identifiers.
   IdentifierInfo &CreateIdentifierInfo(llvm::StringRef Name) {
-    llvm::StringMapEntry<IdentifierInfo*> &Entry =
-      IdentifierHashTable.GetOrCreateValue(Name);
+    IdentifierInfo *II = IdentifierHashTable.lookup(Name);
 
-    IdentifierInfo *II = Entry.getValue();
     assert(!II && "IdentifierInfo already exists");
 
     // Lookups failed, make a new IdentifierInfo.
     void *Mem = IdentifierHashTable.getAllocator().Allocate<IdentifierInfo>();
     II = new (Mem) IdentifierInfo();
-    Entry.setValue(II);
+    auto &Entry = *IdentifierHashTable.insert(HashTableEntryTy(Name, II)).first;
 
     // Make sure getName() knows how to find the IdentifierInfo
     // contents.

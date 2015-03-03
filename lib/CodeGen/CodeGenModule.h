@@ -107,8 +107,8 @@ struct CodeGenTypeCache {
 /// CodeGenModule - This class organizes the cross-function state that is used
 /// while generating LLVM code.
 class CodeGenModule : public CodeGenTypeCache {
-  CodeGenModule(const CodeGenModule &) LLVM_DELETED_FUNCTION;
-  void operator=(const CodeGenModule &) LLVM_DELETED_FUNCTION;
+  CodeGenModule(const CodeGenModule &) = delete;
+  void operator=(const CodeGenModule &) = delete;
 
   ASTContext &Context;
   const LangOptions &LangOpts;

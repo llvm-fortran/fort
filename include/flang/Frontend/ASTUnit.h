@@ -80,8 +80,8 @@ private:
   /// \brief The language options used when we load an AST file.
   LangOptions ASTFileLangOpts;
   
-  ASTUnit(const ASTUnit &) LLVM_DELETED_FUNCTION;
-  void operator=(const ASTUnit &) LLVM_DELETED_FUNCTION;
+  ASTUnit(const ASTUnit &) = delete;
+  void operator=(const ASTUnit &) = delete;
   
   explicit ASTUnit(bool MainFileIsAST);
 

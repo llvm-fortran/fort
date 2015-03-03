@@ -19,6 +19,7 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/DiagnosticPrinter.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Linker/Linker.h"
@@ -119,18 +120,17 @@ namespace flang {
 
       // Link LinkModule into this module if present, preserving its validity.
       if (LinkModule) {
-        std::string ErrorMsg;
-        if (Linker::LinkModules(M, LinkModule.get())) {
-          Diags.Report(diag::err_fe_cannot_link_module)
-            << LinkModule->getModuleIdentifier() << ErrorMsg;
+        if (Linker::LinkModules(
+                M, LinkModule.get(),
+                [=](const DiagnosticInfo &DI) { linkerDiagnosticHandler(DI); }))
           return;
-        }
       }
 
       EmitBackendOutput(Diags, CodeGenOpts, TargetOpts, LangOpts,
                         TheModule.get(), Action, AsmOutStream);
-      
     }
+
+    void linkerDiagnosticHandler(const llvm::DiagnosticInfo &DI);
 
   };
   
@@ -148,6 +148,21 @@ CodeGenAction::~CodeGenAction() {
   TheModule.reset();
   if (OwnsVMContext)
     delete VMContext;
+}
+
+void BackendConsumer::linkerDiagnosticHandler(const DiagnosticInfo &DI) {
+  if (DI.getSeverity() != DS_Error)
+    return;
+
+  std::string MsgStorage;
+  {
+    raw_string_ostream Stream(MsgStorage);
+    DiagnosticPrinterRawOStream DP(Stream);
+    DI.print(DP);
+  }
+
+  Diags.Report(diag::err_fe_cannot_link_module)
+      << LinkModule->getModuleIdentifier() << MsgStorage;
 }
 
 bool CodeGenAction::hasIRSupport() const { return true; }
