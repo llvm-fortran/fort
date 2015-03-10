@@ -15,8 +15,6 @@
 #include "flang/Frontend/FrontendDiagnostic.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/IRPrintingPasses.h"
-#include "llvm/Analysis/TargetLibraryInfo.h"
-#include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/CodeGen/RegAllocRegistry.h"
 #include "llvm/CodeGen/SchedulerRegistry.h"
@@ -31,6 +29,7 @@
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/Timer.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Target/TargetLibraryInfo.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/Transforms/IPO.h"
@@ -57,39 +56,32 @@ class EmitAssemblyHelper {
   mutable FunctionPassManager *PerFunctionPasses;
 
 private:
-  TargetIRAnalysis getTargetIRAnalysis() const {
-    if (TM)
-      return TM->getTargetIRAnalysis();
-
-    return TargetIRAnalysis();
-  }
-
   PassManager *getCodeGenPasses() const {
     if (!CodeGenPasses) {
-      CodeGenPasses = new legacy::PassManager();
+      CodeGenPasses = new PassManager();
       CodeGenPasses->add(new DataLayoutPass());
-      CodeGenPasses->add(
-          createTargetTransformInfoWrapperPass(getTargetIRAnalysis()));
+      if (TM)
+        TM->addAnalysisPasses(*CodeGenPasses);
     }
     return CodeGenPasses;
   }
 
   PassManager *getPerModulePasses() const {
     if (!PerModulePasses) {
-      PerModulePasses = new legacy::PassManager();
+      PerModulePasses = new PassManager();
       PerModulePasses->add(new DataLayoutPass());
-      PerModulePasses->add(
-          createTargetTransformInfoWrapperPass(getTargetIRAnalysis()));
+      if (TM)
+        TM->addAnalysisPasses(*PerModulePasses);
     }
     return PerModulePasses;
   }
 
   FunctionPassManager *getPerFunctionPasses() const {
     if (!PerFunctionPasses) {
-      PerFunctionPasses = new legacy::FunctionPassManager(TheModule);
+      PerFunctionPasses = new FunctionPassManager(TheModule);
       PerFunctionPasses->add(new DataLayoutPass());
-      PerFunctionPasses->add(
-          createTargetTransformInfoWrapperPass(getTargetIRAnalysis()));
+      if (TM)
+        TM->addAnalysisPasses(*PerFunctionPasses);
     }
     return PerFunctionPasses;
   }
@@ -154,14 +146,6 @@ static void addBoundsCheckingPass(const PassManagerBuilder &Builder,
   PM.add(createBoundsCheckingPass());
 }
 
-static TargetLibraryInfoImpl *createTLII(llvm::Triple &TargetTriple,
-                                         const CodeGenOptions &CodeGenOpts) {
-  TargetLibraryInfoImpl *TLII = new TargetLibraryInfoImpl(TargetTriple);
-  if (!CodeGenOpts.SimplifyLibCalls)
-    TLII->disableAllFunctions();
-  return TLII;
-}
-
 void EmitAssemblyHelper::CreatePasses() {
   unsigned OptLevel = CodeGenOpts.OptimizationLevel;
   CodeGenOptions::InliningMethod Inlining = CodeGenOpts.getInlining();
@@ -185,8 +169,10 @@ void EmitAssemblyHelper::CreatePasses() {
 
   // Figure out TargetLibraryInfo.
   Triple TargetTriple(TheModule->getTargetTriple());
-  PMBuilder.LibraryInfo = createTLII(TargetTriple, CodeGenOpts);
-
+  PMBuilder.LibraryInfo = new TargetLibraryInfo(TargetTriple);
+  if (!CodeGenOpts.SimplifyLibCalls)
+    PMBuilder.LibraryInfo->disableAllFunctions();
+  
   switch (Inlining) {
   case CodeGenOptions::NoInlining: break;
   case CodeGenOptions::NormalInlining: {
@@ -402,9 +388,13 @@ bool EmitAssemblyHelper::AddEmitPasses(BackendAction Action,
 
   // Add LibraryInfo.
   llvm::Triple TargetTriple(TheModule->getTargetTriple());
-  std::unique_ptr<TargetLibraryInfoImpl> TLII(
-      createTLII(TargetTriple, CodeGenOpts));
-  PM->add(new TargetLibraryInfoWrapperPass(*TLII));
+  TargetLibraryInfo *TLI = new TargetLibraryInfo(TargetTriple);
+  if (!CodeGenOpts.SimplifyLibCalls)
+    TLI->disableAllFunctions();
+  PM->add(TLI);
+
+  // Add Target specific analysis passes.
+  TM->addAnalysisPasses(*PM);
 
   // Normal mode, emit a .s or .o file by running the code generator. Note,
   // this also adds codegenerator level optimization passes.
