@@ -239,7 +239,7 @@ static bool EmitFile(llvm::raw_ostream &Out,
 
     PassManager PM;
 
-    Target.setAsmVerbosityDefault(true);
+    //Target.setAsmVerbosityDefault(true);
     //Target.setMCRelaxAll(true);
     llvm::formatted_raw_ostream FOS(Out);
 
@@ -384,7 +384,7 @@ static bool ParseFile(const std::string &Filename,
       auto TheModule = CG->GetModule();
       auto PM = new PassManager();
       PM->add(new DataLayoutPass());
-      TM->addAnalysisPasses(*PM);
+      //TM->addAnalysisPasses(*PM);
       PM->add(createPromoteMemoryToRegisterPass());
 
       PassManagerBuilder PMBuilder;

@@ -171,8 +171,8 @@ public:
     }
 
   private:
-    Directive(const Directive &) LLVM_DELETED_FUNCTION;
-    void operator=(const Directive &) LLVM_DELETED_FUNCTION;
+    Directive(const Directive &) = delete;
+    void operator=(const Directive &) = delete;
   };
 
   typedef std::vector<Directive*> DirectiveList;

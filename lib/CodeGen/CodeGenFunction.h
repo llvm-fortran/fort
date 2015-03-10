@@ -52,8 +52,8 @@ namespace CodeGen {
 /// CodeGenFunction - This class organizes the per-function state that is used
 /// while generating LLVM code.
 class CodeGenFunction {
-  CodeGenFunction(const CodeGenFunction &) LLVM_DELETED_FUNCTION;
-  void operator=(const CodeGenFunction &) LLVM_DELETED_FUNCTION;
+  CodeGenFunction(const CodeGenFunction &) = delete;
+  void operator=(const CodeGenFunction &) = delete;
 
   CodeGenModule &CGM;  // Per-module state.
   //const TargetInfo &Target;

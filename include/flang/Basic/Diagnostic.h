@@ -471,7 +471,7 @@ class DiagnosticBuilder {
   /// call to ForceEmit.
   mutable bool IsForceEmit;
 
-  void operator=(const DiagnosticBuilder &) LLVM_DELETED_FUNCTION;
+  void operator=(const DiagnosticBuilder &) = delete;
   friend class DiagnosticsEngine;
 
   DiagnosticBuilder()
