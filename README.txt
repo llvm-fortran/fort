@@ -11,15 +11,34 @@ Flang is a Fortran front-end.
 // Compiling Flang (master branch)
 //===----------------------------------------------------------------------===//
 
-Flang depends on a fork of clang for some of its files. In order to compile
-Flang, you'll need to fetch the clang_branch and merge it with master in your
-local repository. After cloning flang, you can use the following commands to achieve this:
-  
-  git fetch origin clang_branch
-  git checkout clang_branch
-  git checkout master
-  git merge --squash --no-commit clang_branch
-  git reset HEAD
+Download LLVM source and move to a branch with a reference known to work with
+Flang.
+
+> git clone https://github.com/llvm-mirror/llvm.git
+> cd llvm
+> git checkout -t origin/release_36
+
+Download the Flang source code within the LLVM tree, the two will be compiled
+together.
+
+> cd tools & git clone git://github.com/CodethinkLabs/flang.git
+
+Compile LLVM and Flang together.
+
+> mkdir build
+> cd build & cmake ../ -DCMAKE_INSTALL_PREFIX=/usr
+> cd build & make
+> cd build & make install
+
+You will also need to install the Flang standard library, which the Flang 
+compiler links to by default. This is built outside the LLVM tree.
+
+> git clone git://github.com/CodethinkLabs/libflangrt.git
+> cd libflangrt
+> mkdir build
+> cd build & cmake ../ -DCMAKE_INSTALL_PREFIX=/usr
+> cd build & make
+> cd build & make install
 
 //===----------------------------------------------------------------------===//
 // Using flang
