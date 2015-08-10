@@ -602,6 +602,7 @@ bool Parser::ParseProgramUnit() {
   case tok::kw_INTEGER:
   case tok::kw_COMPLEX:
   case tok::kw_CHARACTER:
+  case tok::kw_BYTE:
   case tok::kw_LOGICAL:
   case tok::kw_DOUBLEPRECISION:
   case tok::kw_DOUBLECOMPLEX:
@@ -866,7 +867,7 @@ bool Parser::ParseRecursiveExternalSubprogram() {
   if(Tok.is(tok::kw_INTEGER) || Tok.is(tok::kw_REAL) || Tok.is(tok::kw_COMPLEX) ||
      Tok.is(tok::kw_DOUBLEPRECISION) || Tok.is(tok::kw_DOUBLECOMPLEX) ||
      Tok.is(tok::kw_LOGICAL) || Tok.is(tok::kw_CHARACTER) ||
-     Tok.is(tok::kw_TYPE))
+     Tok.is(tok::kw_BYTE) || Tok.is(tok::kw_TYPE))
     return ParseTypedExternalSubprogram(FunctionDecl::Recursive);
 
 err:
@@ -1144,6 +1145,7 @@ bool Parser::ParseDeclarationConstruct() {
   case tok::kw_REAL:
   case tok::kw_COMPLEX:
   case tok::kw_CHARACTER:
+  case tok::kw_BYTE:
   case tok::kw_LOGICAL:
   case tok::kw_DOUBLEPRECISION:
   case tok::kw_DOUBLECOMPLEX: {

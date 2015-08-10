@@ -28,6 +28,11 @@ bool Sema::IsTypeDoublePrecisionComplex(QualType T) const {
   return T->isComplexType() && Context.isTypeDoubleComplex(T);
 }
 
+/// Returns true if a type is a byte type.
+bool Sema::IsTypeByte(QualType T) const {
+  return Context.isTypeByte(T);
+}
+
 /// Returns TST_integer/TST_real/TST_complex if a given type
 /// is an arithmetic type, or TST_unspecified otherwise
 static TypeSpecifierType GetArithmeticTypeSpec(QualType T) {

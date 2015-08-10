@@ -136,6 +136,7 @@ KEYWORD(DO                     , KEYALL)
 KEYWORD(WHILE        , KEYALL)
 KEYWORD(INTEGER                , KEYALL)
 KEYWORD(CHARACTER              , KEYALL)
+KEYWORD(BYTE                   , KEYALL)
 KEYWORD(REAL                   , KEYALL) // A function based on context.
 KEYWORD(DOUBLE                 , KEYALL)
 KEYWORD(PRECISION              , KEYALL)

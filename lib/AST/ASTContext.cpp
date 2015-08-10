@@ -36,6 +36,7 @@ void ASTContext::InitBuiltinTypes() {
   VoidTy = QualType(new (*this, TypeAlignment) VoidType(), 0);
 
   auto Opts = getLangOpts();
+  auto ByteKind = Type::Int1;
   auto IntKind = Opts.DefaultInt8? Type::Int8 : Type::Int4;
   auto RealKind = Opts.DefaultReal8? Type::Real8 : Type::Real4;
   auto DblKind = Type::Real8;
@@ -53,6 +54,8 @@ void ASTContext::InitBuiltinTypes() {
                                             false, true), 0);
 
   LogicalTy = QualType(getBuiltinType(BuiltinType::Logical, IntKind), 0);
+  ByteTy = QualType(getBuiltinType(BuiltinType::Logical, ByteKind,
+                                   false, false, true), 0);
 
   CharacterTy = QualType(getCharacterType(1), 0);
   NoLengthCharacterTy = QualType(getCharacterType(0), 0);
@@ -133,7 +136,8 @@ QualType ASTContext::getQualTypeOtherKind(QualType Type, QualType KindType) {
   auto Split = Type.split();
   return getExtQualType(getBuiltinType(BTy->getTypeSpec(), DesiredBTy->getBuiltinTypeKind(),
                                        DesiredBTy->isKindExplicitlySpecified(),
-                                       DesiredBTy->isDoublePrecisionKindSpecified()), Split.second);
+                                       DesiredBTy->isDoublePrecisionKindSpecified(),
+                                       DesiredBTy->isByteKindSpecified()), Split.second);
 }
 
 // NB: this assumes that real and complex have have the same default kind.
@@ -159,17 +163,20 @@ QualType ASTContext::getTypeWithQualifers(QualType Type, Qualifiers Quals) {
 BuiltinType *ASTContext::getBuiltinType(BuiltinType::TypeSpec TS,
                                         BuiltinType::TypeKind Kind,
                                         bool IsKindExplicitlySpecified,
-                                        bool IsDoublePrecisionKindSpecified) {
+                                        bool IsDoublePrecisionKindSpecified,
+                                        bool IsByteKindSpecified) {
   llvm::FoldingSetNodeID ID;
   BuiltinType::Profile(ID, TS, Kind, IsKindExplicitlySpecified,
-                       IsDoublePrecisionKindSpecified);
+                       IsDoublePrecisionKindSpecified,
+                       IsByteKindSpecified);
 
   void *InsertPos = 0;
   if (auto BT = BuiltinTypes.FindNodeOrInsertPos(ID, InsertPos))
     return BT;
 
   auto BT = new (*this, TypeAlignment) BuiltinType(TS, Kind, IsKindExplicitlySpecified,
-                                                   IsDoublePrecisionKindSpecified);
+                                                   IsDoublePrecisionKindSpecified,
+                                                   IsByteKindSpecified);
   Types.push_back(BT);
   BuiltinTypes.InsertNode(BT, InsertPos);
   return BT;

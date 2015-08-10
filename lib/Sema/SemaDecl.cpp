@@ -149,7 +149,7 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
   if(DS.hasKindSelector())
     Kind = EvalAndCheckTypeKind(Result, DS.getKindSelector());
 
-  if(Kind != Type::NoKind || DS.isDoublePrecision()) {
+  if(Kind != Type::NoKind || DS.isDoublePrecision() || DS.isByte()) {
     switch (DS.getTypeSpecType()) {
     case DeclSpec::TST_integer:
       Result = Kind == Type::NoKind? C.IntegerTy :
@@ -160,7 +160,7 @@ QualType Sema::ActOnTypeName(ASTContext &C, DeclSpec &DS) {
                          QualType(C.getBuiltinType(BuiltinType::Real, Kind, true), 0);
       break;
     case DeclSpec::TST_logical:
-      Result = Kind == Type::NoKind? C.LogicalTy :
+      Result = Kind == Type::NoKind? (DS.isByte()? C.ByteTy : C.LogicalTy) :
                          QualType(C.getBuiltinType(BuiltinType::Logical, Kind, true), 0);
       break;
     case DeclSpec::TST_complex:

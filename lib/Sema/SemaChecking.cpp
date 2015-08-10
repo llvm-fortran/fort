@@ -345,6 +345,7 @@ bool Sema::IsDefaultBuiltinOrDoublePrecisionType(QualType T) {
     return false;
   auto BTy = T->asBuiltinType();
   if(BTy->isDoublePrecisionKindSpecified() ||
+     BTy->isByteKindSpecified() ||
      !BTy->isKindExplicitlySpecified())
     return true;
   return false;

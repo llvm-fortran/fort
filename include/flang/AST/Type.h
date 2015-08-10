@@ -512,6 +512,7 @@ protected:
   unsigned BuiltinTypeBitsKind : 8;
   unsigned BuiltinTypeKindSpecified : 1;
   unsigned BuiltinTypeDoublePrecisionKindSpecified : 1;
+  unsigned BuiltinTypeByteKindSpecified : 1;
 
   Type *this_() { return this; }
   Type(TypeClass TC, QualType Canon)
@@ -592,12 +593,14 @@ private:
   friend class ASTContext;      // ASTContext creates these.
   BuiltinType(TypeSpec TS, TypeKind K,
               bool IsKindSpecified,
-              bool IsDoublePrecisionKindSpecified)
+              bool IsDoublePrecisionKindSpecified,
+              bool IsByteKindSpecified)
     : Type(Builtin, QualType()) {
     BuiltinTypeBitsSpec = TS;
     BuiltinTypeBitsKind = K;
     BuiltinTypeKindSpecified = IsKindSpecified? 1: 0;
     BuiltinTypeDoublePrecisionKindSpecified = IsDoublePrecisionKindSpecified? 1: 0;
+    BuiltinTypeByteKindSpecified = IsByteKindSpecified? 1: 0;
   }
 public:
   TypeSpec getTypeSpec() const { return TypeSpec(BuiltinTypeBitsSpec); }
@@ -608,6 +611,10 @@ public:
 
   bool isDoublePrecisionKindSpecified() const {
     return BuiltinTypeDoublePrecisionKindSpecified != 0;
+  }
+
+  bool isByteKindSpecified() const {
+    return BuiltinTypeByteKindSpecified != 0;
   }
 
   bool isIntegerType() const {
@@ -637,16 +644,19 @@ public:
   void Profile(llvm::FoldingSetNodeID &ID) {
     Profile(ID, getTypeSpec(), getBuiltinTypeKind(),
             isKindExplicitlySpecified(),
-            isDoublePrecisionKindSpecified());
+            isDoublePrecisionKindSpecified(),
+            isByteKindSpecified());
   }
   static void Profile(llvm::FoldingSetNodeID &ID,
                       TypeSpec Spec, TypeKind Kind,
                       bool KindSpecified,
-                      bool DoublePrecisionKindSpecified) {
+                      bool DoublePrecisionKindSpecified,
+                      bool ByteKindSpecified) {
     ID.AddInteger(Spec);
     ID.AddInteger(Kind);
     ID.AddBoolean(KindSpecified);
     ID.AddBoolean(DoublePrecisionKindSpecified);
+    ID.AddBoolean(ByteKindSpecified);
   }
 
   static bool classof(const Type *T) { return T->getTypeClass() == Builtin; }

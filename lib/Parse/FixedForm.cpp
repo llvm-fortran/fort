@@ -108,7 +108,8 @@ static const tok::TokenKind AmbiguousTypeKeywords[] = {
   tok::kw_DOUBLEPRECISION,
   tok::kw_DOUBLECOMPLEX,
   tok::kw_LOGICAL,
-  tok::kw_CHARACTER
+  tok::kw_CHARACTER,
+  tok::kw_BYTE
 };
 
 AmbiguousTypeStatements::AmbiguousTypeStatements()

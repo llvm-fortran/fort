@@ -279,6 +279,7 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
   //    or COMPLEX [ kind-selector ]
   //    or DOUBLE COMPLEX
   //    or CHARACTER [ char-selector ]
+  //    or BYTE
   //    or LOGICAL [ kind-selector ]
   switch (Tok.getKind()) {
   default:
@@ -295,6 +296,10 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
     break;
   case tok::kw_CHARACTER:
     DS.SetTypeSpecType(DeclSpec::TST_character);
+    break;
+  case tok::kw_BYTE:
+    DS.SetTypeSpecType(DeclSpec::TST_logical);
+    DS.setByte(); // equivalent to Kind = 1
     break;
   case tok::kw_LOGICAL:
     DS.SetTypeSpecType(DeclSpec::TST_logical);
@@ -316,7 +321,7 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
   ExprResult Kind;
   ExprResult Len;
 
-  // FIXME: no Kind for double complex and double precision
+  // FIXME: no Kind for double complex, double precision and byte
   switch (DS.getTypeSpecType()) {
   case DeclSpec::TST_struct:
     break;
@@ -543,6 +548,7 @@ bool Parser::ParseDerivedTypeDefinitionStmt() {
     case tok::kw_REAL:
     case tok::kw_COMPLEX:
     case tok::kw_CHARACTER:
+    case tok::kw_BYTE:
     case tok::kw_LOGICAL:
     case tok::kw_DOUBLEPRECISION:
     case tok::kw_DOUBLECOMPLEX:

@@ -96,6 +96,7 @@ public:
   QualType RealTy;
   QualType DoublePrecisionTy;
   QualType LogicalTy;
+  QualType ByteTy;
   QualType ComplexTy;
   QualType DoubleComplexTy;
   QualType CharacterTy;
@@ -111,6 +112,10 @@ public:
     return T->getBuiltinTypeKind() == DoubleComplexTy->getBuiltinTypeKind();
   }
 
+  bool isTypeByte(QualType T) const {
+    return T->getBuiltinTypeKind() == ByteTy->getBuiltinTypeKind();
+  }
+
   //===--------------------------------------------------------------------===//
   //                           Type Constructors
   //===--------------------------------------------------------------------===//
@@ -124,7 +129,8 @@ public:
   BuiltinType *getBuiltinType(BuiltinType::TypeSpec TS,
                               BuiltinType::TypeKind Kind,
                               bool IsKindExplicitlySpecified = false,
-                              bool IsDoublePrecisionKindSpecified = false);
+                              bool IsDoublePrecisionKindSpecified = false,
+                              bool IsByteKindSpecified = false);
 
   /// getComplexTypeElementType - Returns the type of an element in a complex pair.
   QualType getComplexTypeElementType(QualType Type);

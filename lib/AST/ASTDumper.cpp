@@ -283,6 +283,8 @@ void ASTDumper::VisitBuiltinType(const BuiltinType *T, Qualifiers QS) {
     if(T->isRealType())
       OS << "double precision";
     else OS << "double complex";
+  } else if(T->isByteKindSpecified()) {
+    OS << "byte";
   } else {
     switch (T->getTypeSpec()) {
     default: assert(false && "Invalid built-in type!");

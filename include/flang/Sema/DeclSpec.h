@@ -84,6 +84,7 @@ private:
   /*IS*/ unsigned IntentSpec     : 3;
   /*AC*/ unsigned AccessSpec     : 3;
   unsigned IsDoublePrecision     : 1; // can apply to reals or complex
+  unsigned IsByte                : 1; // Logical is BYTE type
   unsigned IsStarLength          : 1; // LEN = *
 
   /// \brief The kind and length selectors.
@@ -98,13 +99,16 @@ public:
       AttributeSpecs(AS_unspecified),
       IntentSpec(IS_unspecified),
       AccessSpec(AC_unspecified),
-      IsDoublePrecision(0), IsStarLength(0),
+      IsDoublePrecision(0), IsByte(0), IsStarLength(0),
       Kind(0), Len(0),
       Record(nullptr) {}
   virtual ~DeclSpec();
 
   bool isDoublePrecision() const { return IsDoublePrecision == 1; }
   void setDoublePrecision() { IsDoublePrecision = 1; }
+
+  bool isByte() const { return IsByte == 1; }
+  void setByte() { IsByte = 1; }
 
   bool hasKindSelector() const { return Kind != 0; }
   Expr *getKindSelector() const { return Kind; }
