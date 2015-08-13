@@ -556,7 +556,7 @@ private:
 
   // Declaration construct functions
   bool ParseDerivedTypeDefinitionStmt();
-  void ParseEndTypeStmt();
+  void ParseEndTypeStmt(bool IsStructure = false);
   bool ParseDerivedTypeComponentStmt();
 
   ExprResult ParseSelector(bool IsKindSel);

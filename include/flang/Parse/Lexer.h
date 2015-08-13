@@ -226,6 +226,10 @@ class Lexer {
   void LexFixedFormIdentifier(const fixedForm::KeywordMatcher &Matcher,
                               Token &Tok);
 
+  /// ScanPossibleF77Operator - Determine if next characters represent
+  /// a valid Fortran77 operator, returns true if so.
+  bool ScanPossibleF77Operator();
+
   /// LexPossibleDefinedOperator - Tries to lex a defined operator
   /// that begins with '.', returns true if sucessfull.
   bool LexPossibleDefinedOperator(Token &Result);

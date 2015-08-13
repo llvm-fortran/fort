@@ -22,6 +22,7 @@ def err_duplicate_len_selector : Error<
   "duplicate character length declaration specifier">;
 def err_unexpected_lparen : Error<"unexpected '('">;
 def err_unexpected_percent : Error<"unexpected '%'">;
+def err_unexpected_period : Error<"unexpected '.'">;
 
 def err_expected_expression : Error<"expected an expression">;
 def err_expected_expression_after : Error<

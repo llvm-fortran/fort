@@ -463,6 +463,17 @@ bool Parser::ParseTypeOrClassDeclTypeSpec(DeclSpec &DS) {
       return true;
     Actions.ActOnTypeDeclSpec(Context, Loc, ID, DS);
     return false;
+  } else if(Tok.is(tok::kw_RECORD)) {
+    ConsumeToken();
+    if(!ExpectAndConsume(tok::slash))
+      return true;
+    auto ID = Tok.getIdentifierInfo();
+    auto Loc = Tok.getLocation();
+    if(!ExpectAndConsume(tok::identifier)
+      || !ExpectAndConsume(tok::slash))
+      return true;
+    Actions.ActOnTypeDeclSpec(Context, Loc, ID, DS);
+    return false;
   }
 
   // FIXME: Handle CLASS.
@@ -517,6 +528,7 @@ bool Parser::ParseTypeOrClassDeclTypeSpec(DeclSpec &DS) {
 ///     END TYPE [ type-name ]
 bool Parser::ParseDerivedTypeDefinitionStmt() {
   bool IsClass = Tok.is(tok::kw_CLASS);
+  bool IsStructure = Tok.is(tok::kw_STRUCTURE);
   auto Loc = ConsumeToken();
 
   if(ConsumeIfPresent(tok::comma)) {
@@ -524,13 +536,23 @@ bool Parser::ParseDerivedTypeDefinitionStmt() {
   }
   ConsumeIfPresent(tok::coloncolon);
 
+  if (IsStructure && !ExpectAndConsume(tok::slash)) {
+    SkipUntilNextStatement();
+    return true;
+  }
+
   auto ID = Tok.getIdentifierInfo();
   auto IDLoc = Tok.getLocation();
   if(!ExpectAndConsume(tok::identifier)) {
     SkipUntilNextStatement();
     return true;
-  } else
-    ExpectStatementEnd();
+  }
+
+  if (IsStructure && !ExpectAndConsume(tok::slash)) {
+    SkipUntilNextStatement();
+    return true;
+  }
+  ExpectStatementEnd();
 
   Actions.ActOnDerivedTypeDecl(Context, Loc, IDLoc, ID);
 
@@ -545,6 +567,7 @@ bool Parser::ParseDerivedTypeDefinitionStmt() {
     switch(Tok.getKind()) {
     case tok::kw_TYPE:
     case tok::kw_CLASS:
+    case tok::kw_RECORD:
     case tok::kw_INTEGER:
     case tok::kw_REAL:
     case tok::kw_COMPLEX:
@@ -563,7 +586,7 @@ bool Parser::ParseDerivedTypeDefinitionStmt() {
     }
   }
 
-  ParseEndTypeStmt();
+  ParseEndTypeStmt(IsStructure);
 
   Actions.ActOnEndDerivedTypeDecl(Context);
   return false;
@@ -571,12 +594,12 @@ error:
   return true;
 }
 
-void Parser::ParseEndTypeStmt() {
-  if(Tok.isNot(tok::kw_ENDTYPE)) {
+void Parser::ParseEndTypeStmt(bool IsStructure) {
+  if(Tok.isNot(IsStructure ? tok::kw_ENDSTRUCTURE : tok::kw_ENDTYPE)) {
     Diag.Report(Tok.getLocation(), diag::err_expected_kw)
-      << "end type";
+      << (IsStructure ? "end structure" : "end type");
     Diag.Report(cast<NamedDecl>(Actions.CurContext)->getLocation(), diag::note_matching)
-      << "type";
+      << (IsStructure ? "structure" : "type");
     return;
   }
 

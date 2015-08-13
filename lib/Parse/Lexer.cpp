@@ -1004,6 +1004,36 @@ void Lexer::LexFixedFormIdentifier(const fixedForm::KeywordMatcher &Matcher,
     Tok.setFlag(Token::NeedsCleaning);
 }
 
+bool Lexer::ScanPossibleF77Operator() {
+  unsigned w;
+  for (w = 1; isHorizontalWhitespace(peekNextChar(w)); w++);
+
+  char CSIdent[6] = { 0 };
+  for (unsigned i = 0; isLetter(peekNextChar(w)) && (i < 6); i++, w++)
+    CSIdent[i] = peekNextChar(w);
+  if (peekNextChar(w) != '.')
+    return false;
+
+  llvm::StringRef Ident(CSIdent);
+
+  const char* CSBuiltIn[] = {
+    "TRUE", "FALSE",
+    "EQ", "NE",
+    "LT", "LE", "GT", "GE",
+    "NOT", "AND", "OR",
+    "EQV", "NEQV", NULL
+  };
+
+  for (unsigned b = 0; CSBuiltIn[b]; b++) {
+    llvm::StringRef BuiltIn(CSBuiltIn[b]);
+
+    if (BuiltIn.compare_lower(Ident))
+      return true;
+  }
+
+  return false;
+}
+
 bool Lexer::LexPossibleDefinedOperator(Token &Result) {
   auto Char = getNextChar();
   if (Features.FixedForm) {
@@ -1291,8 +1321,16 @@ void Lexer::LexTokenInternal(Token &Result, bool IsPeekAhead) {
     return LexTokenInternal(Result, IsPeekAhead);
 
   case '.':
-    if(LexPossibleDefinedOperator(Result))
+    if ((!Features.Fortran77 || ScanPossibleF77Operator())
+      && LexPossibleDefinedOperator(Result))
       return;
+
+    if (Features.Fortran77 && !isDecimalNumberBody(peekNextChar())) {
+      Kind = tok::period;
+      break;
+    }
+
+    getNextChar();
     // FALLTHROUGH
   case '0': case '1': case '2': case '3': case '4':
   case '5': case '6': case '7': case '8': case '9':

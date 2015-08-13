@@ -216,6 +216,9 @@ void Parser::Lex() {
     MERGE_TOKENS(END, FILE);
     MERGE_TOKENS(END, INTERFACE);
     MERGE_TOKENS(END, BLOCKDATA);
+    MERGE_TOKENS(END, STRUCTURE);
+    MERGE_TOKENS(END, MAP);
+    MERGE_TOKENS(END, UNION);
 
     if (NextTok.is(tok::kw_BLOCK)) {
       Tok = NextTok;
@@ -868,7 +871,7 @@ bool Parser::ParseRecursiveExternalSubprogram() {
   if(Tok.is(tok::kw_INTEGER) || Tok.is(tok::kw_REAL) || Tok.is(tok::kw_COMPLEX) ||
      Tok.is(tok::kw_DOUBLEPRECISION) || Tok.is(tok::kw_DOUBLECOMPLEX) ||
      Tok.is(tok::kw_LOGICAL) || Tok.is(tok::kw_CHARACTER) ||
-     Tok.is(tok::kw_BYTE) || Tok.is(tok::kw_TYPE))
+     Tok.is(tok::kw_BYTE) || Tok.is(tok::kw_TYPE) || Tok.is(tok::kw_RECORD))
     return ParseTypedExternalSubprogram(FunctionDecl::Recursive);
 
 err:
@@ -1135,6 +1138,7 @@ bool Parser::ParseDeclarationConstruct() {
     break;
   case tok::kw_TYPE:
   case tok::kw_CLASS:
+  case tok::kw_STRUCTURE:
     if (IsNextToken(tok::equal))
       return true;
     if(!IsNextToken(tok::l_paren)) {
@@ -1142,6 +1146,7 @@ bool Parser::ParseDeclarationConstruct() {
       break;
     }
     // NB: fallthrough
+  case tok::kw_RECORD:
   case tok::kw_INTEGER:
   case tok::kw_REAL:
   case tok::kw_COMPLEX:

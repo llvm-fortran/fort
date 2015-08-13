@@ -186,6 +186,10 @@ KEYWORD(PARAMETER              , KEYALL)    // [5.2.9]  parameter-stmt
 KEYWORD(POINTER                , KEYNOTF77) // [5.2.10] pointer-stmt
 KEYWORD(PROTECTED              , KEYNOTF77) // [5.2.11] protected-stmt
 KEYWORD(SAVE                   , KEYALL)    // [5.2.12] save-stmt
+KEYWORD(STRUCTURE              , KEYF77)
+KEYWORD(MAP                    , KEYF77)
+KEYWORD(UNION                  , KEYF77)
+KEYWORD(RECORD                 , KEYF77)
 KEYWORD(TARGET                 , KEYALL)    // [5.2.13] target-stmt
 KEYWORD(VALUE                  , KEYALL)    // [5.2.14] value-stmt
 KEYWORD(VOLATILE               , KEYALL)    // [5.2.15] volatile-stmt
@@ -212,8 +216,7 @@ KEYWORD(FORALL                 , KEYNOTF77) // [7.4.4]  forall-construct
 
 KEYWORD(FORMAT                 , KEYALL)
 
-// [???] R???
-KEYWORD(OPERATOR               , KEYALL)
+KEYWORD(OPERATOR               , KEYNOTF77) // [12.7.7] generic-spec
 
 KEYWORD(USE                    , KEYALL)    // [11.2.1] use-stmt
 KEYWORD(ONLY                   , KEYALL)    // [11.2.1] use-stmt
@@ -254,6 +257,12 @@ KEYWORD(ENDFUNCTION            , KEYALL)
 KEYWORD(ENDINTERFACE           , KEYALL)
 // END PROGRAM:
 KEYWORD(ENDPROGRAM             , KEYALL)
+// END STRUCTURE:
+KEYWORD(ENDSTRUCTURE           , KEYALL)
+// END MAP:
+KEYWORD(ENDMAP                 , KEYALL)
+// END UNION:
+KEYWORD(ENDUNION               , KEYALL)
 // END SUBPROGRAM:
 KEYWORD(ENDSUBPROGRAM          , KEYALL)
 // END SUBROUTINE:

@@ -600,6 +600,14 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
         Diag.Report(Tok.getLocation(), diag::err_unexpected_percent);
         return ExprError();
       }
+    } else if(IsPresent(tok::period)) {
+      auto EType = E.get()->getType();
+      if(EType->isRecordType())
+        E = ParseStructureComponent(E);
+      else {
+        Diag.Report(Tok.getLocation(), diag::err_unexpected_period);
+        return ExprError();
+      }
     }
     else break;
   }
@@ -908,7 +916,7 @@ ExprResult Parser::ParseDataReference() {
     ExprResult E = ParsePartReference();
     if (E.isInvalid()) return E;
     Exprs.push_back(E);
-  } while (ConsumeIfPresent(tok::percent));
+  } while (ConsumeIfPresent(tok::percent) || ConsumeIfPresent(tok::period));
 
   return Actions.ActOnDataReference(Exprs);
 }
