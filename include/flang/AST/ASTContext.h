@@ -37,6 +37,7 @@ class DeclContext;
 class Decl;
 class RecordDecl;
 class TypeDecl;
+class TargetInfo;
 
 class ASTContext : public llvm::RefCountedBase<ASTContext> {
   ASTContext &this_() { return *this; }
@@ -67,9 +68,13 @@ class ASTContext : public llvm::RefCountedBase<ASTContext> {
 
   void InitBuiltinTypes();
 
+  const TargetInfo *Target;
+
 public:
   ASTContext(llvm::SourceMgr &SM, LangOptions LangOpts);
   ~ASTContext();
+
+  const TargetInfo &getTargetInfo() const { return *Target; }
 
   TranslationUnitDecl *getTranslationUnitDecl() const { return TUDecl; }
 

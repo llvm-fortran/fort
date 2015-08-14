@@ -21,7 +21,7 @@ Flang.
 Download the Flang source code within the LLVM tree, the two will be compiled
 together.
 
-> cd tools & git clone git://github.com/CodethinkLabs/flang.git
+> cd tools & git clone git://github.com/llvm-flang/flang.git
 
 Compile LLVM and Flang together.
 
@@ -33,7 +33,7 @@ Compile LLVM and Flang together.
 You will also need to install the Flang standard library, which the Flang 
 compiler links to by default. This is built outside the LLVM tree.
 
-> git clone git://github.com/CodethinkLabs/libflangrt.git
+> git clone git://github.com/llvm-flang/libflangrt.git
 > cd libflangrt
 > mkdir build
 > cd build & cmake ../ -DCMAKE_INSTALL_PREFIX=/usr
@@ -45,7 +45,7 @@ compiler links to by default. This is built outside the LLVM tree.
 //===----------------------------------------------------------------------===//
 
 Flang's driver will instruct the linker to link with the libflang runtime. 
-You can get libflang at https://github.com/hyp/libflangrt . Once you have libflang, 
+You can get libflang at https://github.com/llvm-flang/libflangrt . Once you have libflang, 
 you'll need to tell flang where it is - you can use the -L option (e.g. -L~/libflang).
 
 //===----------------------------------------------------------------------===//
@@ -65,6 +65,7 @@ Long term:
 
 * Flang driver (?)
 * Parsing GNU modules
+* Add (or hoist) Clang style TargetInfo class template
 
 Longer term:
 

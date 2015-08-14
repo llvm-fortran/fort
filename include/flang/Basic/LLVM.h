@@ -25,11 +25,19 @@ namespace llvm {
   class APFloat;
   class StringRef;
   class Twine;
+#if 0
   template<typename T> class ArrayRef;
   template<typename T, unsigned N> class SmallVector;
   template<typename T> class SmallVectorImpl;
+#endif
+  template<typename T> class ArrayRef;
+  template<unsigned InternalLen> class SmallString;
+  template<typename T, unsigned N> class SmallVector;
+  template<typename T> class SmallVectorImpl;
+  template<typename T> class Optional;
 
   class raw_ostream;
+  class raw_pwrite_stream;
   // TODO: DenseMap, ...
 }
 
@@ -48,10 +56,12 @@ namespace flang {
   using llvm::StringRef;
   using llvm::Twine;
   using llvm::ArrayRef;
+  using llvm::SmallString;
   using llvm::SmallVector;
   using llvm::SmallVectorImpl;
   
   using llvm::raw_ostream;
+  using llvm::raw_pwrite_stream;
 } // end namespace flang.
 
 #endif

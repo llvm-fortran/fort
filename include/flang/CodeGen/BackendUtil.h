@@ -30,11 +30,11 @@ namespace flang {
     Backend_EmitMCNull,    ///< Run CodeGen, but don't emit anything
     Backend_EmitObj        ///< Emit native object files
   };
-  
+
   void EmitBackendOutput(DiagnosticsEngine &Diags, const CodeGenOptions &CGOpts,
-                         const TargetOptions &TOpts, const LangOptions &LOpts,
-                         llvm::Module *M,
-                         BackendAction Action, raw_ostream *OS);
+                        const TargetOptions &TOpts, const LangOptions &LOpts,
+                        StringRef TDesc, llvm::Module *M, BackendAction Action,
+                        raw_pwrite_stream *OS);
 }
 
 #endif

@@ -53,12 +53,15 @@ void CGLibflangSystemRuntime::EmitFree(CodeGenFunction &CGF, llvm::Value *Ptr) {
 llvm::Value *CGLibflangSystemRuntime::EmitETIME(CodeGenFunction &CGF, ArrayRef<Expr*> Arguments) {
   auto RealTy = CGM.getContext().RealTy;
   auto RealPtrTy = llvm::PointerType::get(CGF.ConvertTypeForMem(RealTy) ,0);
-  auto Func = CGM.GetRuntimeFunction2(RealTy->getBuiltinTypeKind() == BuiltinType::Real4? "etimef" : "etime",
+  auto Func = CGM.GetRuntimeFunction2(
+    RealTy->getBuiltinTypeKind() == BuiltinType::Real4? "etimef" : "etime",
                                       RealPtrTy, RealPtrTy, RealTy);
   auto Arr = CGF.EmitArrayArgumentPointerValueABI(Arguments[0]);
   CallArgList ArgList;
   CGF.EmitCallArg(ArgList, Arr, Func.getInfo()->getArguments()[0]);
-  CGF.EmitCallArg(ArgList, CGF.getBuilder().CreateConstInBoundsGEP1_32(Arr, 1),
+  CGF.EmitCallArg(ArgList,
+                  CGF.getBuilder().CreateConstInBoundsGEP1_32(
+                    CGF.ConvertTypeForMem(RealTy),Arr, 1, NULL),
                   Func.getInfo()->getArguments()[1]);
   return CGF.EmitCall(Func.getFunction(), Func.getInfo(), ArgList).asScalar();
 }

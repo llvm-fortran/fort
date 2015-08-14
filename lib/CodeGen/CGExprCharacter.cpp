@@ -100,8 +100,10 @@ CharacterValueTy CharacterExprEmitter::VisitBinaryExprConcat(const BinaryExpr *E
     auto CharTyRHS = E->getRHS()->getType()->asCharacterType();
     auto Size = CharTyLHS->getLength() + CharTyRHS->getLength();
     auto Storage = CGF.CreateTempAlloca(llvm::ArrayType::get(CGF.getModule().Int8Ty, Size), "concat-result");
-    Dest = CharacterValueTy(Builder.CreateConstInBoundsGEP2_32(Storage, 0, 0),
-                            llvm::ConstantInt::get(CGF.getModule().SizeTy, Size));
+    Dest = CharacterValueTy(Builder.CreateConstInBoundsGEP2_32(
+        llvm::ArrayType::get(CGF.getModule().Int8Ty, Size),
+        Storage, 0, 0),
+        llvm::ConstantInt::get(CGF.getModule().SizeTy, Size));
   }
 
   // a = b // c
@@ -186,7 +188,8 @@ llvm::Value *CodeGenFunction::GetCharacterTypeLength(QualType T) {
 
 CharacterValueTy CodeGenFunction::GetCharacterValueFromPtr(llvm::Value *Ptr,
                                                            QualType StorageType) {
-  return CharacterValueTy(Builder.CreateConstInBoundsGEP2_32(Ptr, 0, 0),
+  return CharacterValueTy(Builder.CreateConstInBoundsGEP2_32(Ptr->getType(),
+                                                             Ptr, 0, 0),
                           GetCharacterTypeLength(StorageType));
 }
 

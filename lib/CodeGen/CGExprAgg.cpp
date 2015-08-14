@@ -74,7 +74,8 @@ RValueTy AggregateExprEmitter::VisitTypeConstructorExpr(const TypeConstructorExp
   auto Fields = E->getType().getSelfOrArrayElementType()->asRecordType()->getElements();
   for(unsigned I = 0; I < Values.size(); ++I) {
     CGF.EmitStore(CGF.EmitRValue(Values[I]),
-                  LValueTy(Builder.CreateStructGEP(TempStruct,I)),
+                  LValueTy(Builder.CreateStructGEP(CGF.ConvertTypeForMem(E->getType()),
+                                                   TempStruct,I)),
                   Fields[I]->getType());
   }
   return RValueTy::getAggregate(TempStruct);
@@ -93,7 +94,7 @@ void CodeGenFunction::EmitAggregateAssignment(const Expr *LHS, const Expr *RHS) 
 }
 
 llvm::Value *CodeGenFunction::EmitAggregateMember(llvm::Value *Agg, const FieldDecl *Field) {
-  return Builder.CreateStructGEP(Agg, Field->getIndex());
+  return Builder.CreateStructGEP(Agg->getType(), Agg, Field->getIndex());
 }
 
 void CodeGenFunction::EmitAggregateReturn(const CGFunctionInfo::RetInfo &Info, llvm::Value *Ptr) {

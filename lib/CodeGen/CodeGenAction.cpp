@@ -39,7 +39,7 @@ namespace flang {
     const CodeGenOptions &CodeGenOpts;
     const TargetOptions &TargetOpts;
     const LangOptions &LangOpts;
-    raw_ostream *AsmOutStream;
+    raw_pwrite_stream *AsmOutStream;
     ASTContext *Context;
 
     Timer LLVMIRGeneration;
@@ -56,7 +56,7 @@ namespace flang {
                     bool TimePasses,
                     const std::string &infile,
                     llvm::Module *LinkModule,
-                    raw_ostream *OS,
+                    raw_pwrite_stream *OS,
                     LLVMContext &C) :
       Diags(_Diags),
       Action(action),
@@ -126,7 +126,8 @@ namespace flang {
           return;
       }
 
-      EmitBackendOutput(Diags, CodeGenOpts, TargetOpts, LangOpts,
+      EmitBackendOutput(Diags, CodeGenOpts, TargetOpts, LangOpts, 
+                        " ", 
                         TheModule.get(), Action, AsmOutStream);
     }
 
@@ -189,7 +190,7 @@ llvm::LLVMContext *CodeGenAction::takeLLVMContext() {
   return VMContext;
 }
 
-static raw_ostream *GetOutputStream(CompilerInstance &CI,
+static raw_pwrite_stream *GetOutputStream(CompilerInstance &CI,
                                     StringRef InFile,
                                     BackendAction Action) {
   switch (Action) {
@@ -212,7 +213,7 @@ static raw_ostream *GetOutputStream(CompilerInstance &CI,
 ASTConsumer *CodeGenAction::CreateASTConsumer(CompilerInstance &CI,
                                               StringRef InFile) {
   BackendAction BA = static_cast<BackendAction>(Act);
-  std::unique_ptr<raw_ostream> OS(GetOutputStream(CI, InFile, BA));
+  std::unique_ptr<raw_pwrite_stream> OS(GetOutputStream(CI, InFile, BA));
   if (BA != Backend_EmitNothing && !OS)
     return 0;
 

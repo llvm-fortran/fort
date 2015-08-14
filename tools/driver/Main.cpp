@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+
 #include "flang/Frontend/TextDiagnosticPrinter.h"
 #include "flang/Frontend/VerifyDiagnosticConsumer.h"
 #include "flang/AST/ASTConsumer.h"
@@ -24,7 +25,7 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 //#include "llvm/ExecutionEngine/JIT.h"
-#include "llvm/PassManager.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Instrumentation.h"
@@ -47,6 +48,36 @@
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/Timer.h"
+#include "llvm/ADT/StringSwitch.h"
+#include "llvm/Analysis/TargetLibraryInfo.h"
+#include "llvm/Analysis/TargetTransformInfo.h"
+#include "llvm/Bitcode/BitcodeWriterPass.h"
+#include "llvm/CodeGen/RegAllocRegistry.h"
+#include "llvm/CodeGen/SchedulerRegistry.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/IRPrintingPasses.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/MC/SubtargetFeature.h"
+#include "llvm/Support/ManagedStatic.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/PrettyStackTrace.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/Support/Timer.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetOptions.h"
+#include "llvm/Target/TargetSubtargetInfo.h"
+#include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include "llvm/Transforms/Instrumentation.h"
+#include "llvm/Transforms/ObjCARC.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Utils/SymbolRewriter.h"
+#include <memory>
+
 using namespace llvm;
 using namespace flang;
 
@@ -237,16 +268,17 @@ static bool EmitFile(llvm::raw_ostream &Out,
       Action == Backend_EmitObj ? llvm::TargetMachine::CGFT_ObjectFile :
                                   llvm::TargetMachine::CGFT_AssemblyFile;
 
-    PassManager PM;
+    llvm::legacy::PassManager PM;
 
     //Target.setAsmVerbosityDefault(true);
     //Target.setMCRelaxAll(true);
     llvm::formatted_raw_ostream FOS(Out);
 
+    //FIXME : add the backend passes 
     // Ask the target to add backend passes as necessary.
-    if (Target.addPassesToEmitFile(PM, FOS, FileType, true)) {
-      return true;
-    }
+    //if (Target.addPassesToEmitFile(PM, FOS, FileType, true)) {
+    //  return true;
+    //}
 
     PM.run(Mod);
   }
@@ -382,8 +414,10 @@ static bool ParseFile(const std::string &Filename,
 
     if(!(EmitLLVM && OptLevel == 0)) {
       auto TheModule = CG->GetModule();
-      auto PM = new PassManager();
-      PM->add(new DataLayoutPass());
+      auto PM = new llvm::legacy::PassManager();
+      //llvm::legacy::FunctionPassManager *FPM = new llvm::legacy::FunctionPassManager(TheModule);
+      //FPM->add(new DataLayoutPass());
+      //PM->add(new llvm::DataLayoutPass());
       //TM->addAnalysisPasses(*PM);
       PM->add(createPromoteMemoryToRegisterPass());
 
@@ -399,17 +433,24 @@ static bool ParseFile(const std::string &Filename,
 
 
       PMBuilder.populateModulePassManager(*PM);
+      //llvm::legacy::PassManager *MPM = new llvm::legacy::PassManager();
+      //PMBuilder.populateModulePassManager(*MPM);
 
       PM->run(*TheModule);
+      //MPM->run(*TheModule);
       delete PM;
+      //delete MPM;
     }
 
     if(Interpret) {
       //const char *Env[] = { "", nullptr };
       //Execute(CG->ReleaseModule(), Env);
-    } else if(OutputFile == "-")
-      EmitFile(llvm::outs(), CG->GetModule(), TM, BA);
-    else {
+    } else if(OutputFile == "-"){
+      // FIXME: outputting to stdout is broken 
+      //EmitFile(llvm::outs(), CG->GetModule(), TM, BA);
+      OutputFiles.push_back(GetOutputName("stdout",BA));
+      EmitOutputFile(OutputFiles.back(), CG->GetModule(), TM, BA);
+    }else {
       OutputFiles.push_back(GetOutputName(Filename, BA));
       EmitOutputFile(OutputFiles.back(), CG->GetModule(), TM, BA);
     }

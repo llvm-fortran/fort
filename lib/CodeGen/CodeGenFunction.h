@@ -37,6 +37,7 @@ namespace llvm {
   class Twine;
   class Value;
   class CallSite;
+  class Type;
 }
 
 namespace flang {
