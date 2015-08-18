@@ -300,6 +300,7 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
   case tok::kw_BYTE:
     DS.SetTypeSpecType(DeclSpec::TST_logical);
     DS.setByte(); // equivalent to Kind = 1
+    AllowSelectors = false;
     break;
   case tok::kw_LOGICAL:
     DS.SetTypeSpecType(DeclSpec::TST_logical);
@@ -307,10 +308,12 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
   case tok::kw_DOUBLEPRECISION:
     DS.SetTypeSpecType(DeclSpec::TST_real);
     DS.setDoublePrecision(); // equivalent to Kind = 8
+    AllowSelectors = false;
     break;
   case tok::kw_DOUBLECOMPLEX:
     DS.SetTypeSpecType(DeclSpec::TST_complex);
     DS.setDoublePrecision(); // equivalent to Kind = 8
+    AllowSelectors = false;
     break;
   }
 
@@ -321,27 +324,25 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
   ExprResult Kind;
   ExprResult Len;
 
-  // FIXME: no Kind for double complex, double precision and byte
   switch (DS.getTypeSpecType()) {
   case DeclSpec::TST_struct:
     break;
   default:
     ConsumeToken();
-    if (ConsumeIfPresent(tok::star)) {
-      // FIXME: proper obsolete COMPLEX*16 support
-      ConsumeAnyToken();
-      DS.setDoublePrecision();
-    }
 
     if (!AllowSelectors)
       break;
-    if (ConsumeIfPresent(tok::l_paren)) {
-      Kind = ParseSelector(true);
+
+    if (ConsumeIfPresent(tok::star)) {
+      Kind = ParseExpectedFollowupExpression("*");
       if (Kind.isInvalid())
         return true;
-
-      if(!ExpectAndConsume(tok::r_paren, 0, "", tok::r_paren))
-        return true;
+    } else if (ConsumeIfPresent(tok::l_paren)) {
+        Kind = ParseSelector(true);
+        if (Kind.isInvalid())
+          return true;
+        if(!ExpectAndConsume(tok::r_paren))
+          return true;
     }
 
     break;
