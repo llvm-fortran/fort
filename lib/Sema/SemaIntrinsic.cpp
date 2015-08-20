@@ -157,6 +157,9 @@ bool Sema::CheckIntrinsicConversionFunc(intrinsic::FunctionKind Function,
     CheckIntegerArgument(Item);
     ReturnType = Context.CharacterTy;
     break;
+
+  default:
+    break;
   }
   return false;
 }
@@ -181,6 +184,8 @@ bool Sema::CheckIntrinsicTruncationFunc(intrinsic::FunctionKind Function,
   case FLOOR:
     ReturnType = GetUnaryReturnType(Arg, Context.IntegerTy);
     break;
+  default:
+    break;
   }
   return false;
 }
@@ -204,6 +209,8 @@ bool Sema::CheckIntrinsicComplexFunc(intrinsic::FunctionKind Function,
     break;
   case CONJG:
     ReturnType = Arg->getType();
+    break;
+  default:
     break;
   }
   return false;

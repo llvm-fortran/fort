@@ -19,7 +19,7 @@ namespace flang {
 
 void APNumericStorage::setIntValue(ASTContext &C, const APInt &Val) {
   if (hasAllocation())
-    C.Deallocate(pVal, sizeof(uint64_t[llvm::APInt::getNumWords(BitWidth)]));
+    C.Deallocate(pVal, sizeof(uint64_t) * llvm::APInt::getNumWords(BitWidth));
 
   BitWidth = Val.getBitWidth();
   unsigned NumWords = Val.getNumWords();

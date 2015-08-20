@@ -688,6 +688,7 @@ Parser::StmtResult Parser::ParseENDStmt(tok::TokenKind EndKw) {
       Expected = "end function"; Given = "function"; break;
     case tok::kw_ENDSUBROUTINE:
       Expected = "end subroutine"; Given = "subroutine"; break;
+    default: break;
     }
     Diag.Report(Tok.getLocation(), diag::err_expected_kw)
       << Expected;

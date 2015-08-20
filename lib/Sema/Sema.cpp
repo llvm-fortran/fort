@@ -1065,8 +1065,8 @@ bool Sema::CheckArrayTypeDeclarationCompability(const ArrayType *T, VarDecl *VD)
     return false;
   for(auto I = T->begin(); I != T->end(); ++I) {
     auto Shape = *I;
-    if(auto Explicit = dyn_cast<ExplicitShapeSpec>(Shape)) {
-    } else {
+    auto Explicit = dyn_cast<ExplicitShapeSpec>(Shape);
+    if(!Explicit) {
       // implied
       auto Implied = cast<ImpliedShapeSpec>(Shape);
       if(!VD->isArgument()) {

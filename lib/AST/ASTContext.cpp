@@ -80,6 +80,7 @@ unsigned ASTContext::getTypeKindBitWidth(BuiltinType::TypeKind Kind) const {
   case BuiltinType::Real4: return 32;
   case BuiltinType::Real8: return 64;
   case BuiltinType::Real16: return 128;
+  default: break;
   }
   llvm_unreachable("invalid built in type kind");
   return 0;

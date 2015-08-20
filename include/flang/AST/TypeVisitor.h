@@ -42,6 +42,7 @@ public:
     switch (T->getTypeClass()) {
 #define TYPE(Class, Parent) case Type::Class: DISPATCH(Class##Type, Class##Type);
 #include "flang/AST/TypeNodes.def"
+      default: break;
     }
     llvm_unreachable("Unknown type class!");
   }

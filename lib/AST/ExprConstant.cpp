@@ -121,6 +121,8 @@ bool ConstExprVerifier::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
   case intrinsic::KIND:
   case intrinsic::BIT_SIZE:
     return true;
+  default:
+    break;
   }
   return VisitExpr(E);
 }
@@ -305,6 +307,8 @@ bool IntExprEvaluator::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
     Result.Assign(llvm::APInt(64, Val, true));
     return true;
   }
+  default:
+    break;
   }
 
   return VisitExpr(E);
@@ -405,7 +409,7 @@ bool SubstringExpr::EvaluateRange(ASTContext &Ctx, uint64_t Len,
     int64_t I;
     if(!EndPoint->EvaluateAsInt(I, Ctx, Scope))
       return false;
-    if(I < 1 || I > Len) return false;
+    if(I < 1 || (uint64_t)I > Len) return false;
     End = I;
   } else End = Len;
   return true;

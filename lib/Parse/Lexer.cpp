@@ -658,13 +658,13 @@ static inline bool isNumberBody(unsigned char c) {
 /// isBinaryNumberBody - Return true if this is the body character of a binary
 /// number, which is [01].
 static inline bool isBinaryNumberBody(unsigned char c) {
-  return (c == '0' | c == '1') ? true : false;
+  return ((c == '0') || (c == '1'));
 }
 
 /// isOctalNumberBody - Return true if this is the body character of an octal
 /// number, which is [0-7].
 static inline bool isOctalNumberBody(unsigned char c) {
-  return (c >= '0' & c <= '7') ? true : false;
+  return ((c >= '0') && (c <= '7'));
 }
 
 /// isDecimalNumberBody - Return true if this is the body character of a decimal

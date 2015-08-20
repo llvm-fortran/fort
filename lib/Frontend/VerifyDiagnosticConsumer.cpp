@@ -495,6 +495,7 @@ static unsigned PrintUnexpected(DiagnosticsEngine &Diags, const llvm::SourceMgr 
       case DiagnosticsEngine::Error: Diags.ReportError(I->first,I->second); break;
       case DiagnosticsEngine::Warning: Diags.ReportWarning(I->first,I->second); break;
       case DiagnosticsEngine::Note: Diags.ReportNote(I->first,I->second); break;
+      default: break;
     }
   }
   return std::distance(diag_begin, diag_end);
