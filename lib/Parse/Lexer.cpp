@@ -1463,6 +1463,7 @@ LexIdentifier:
     break;
   case ';':
     LastTokenWasSemicolon = true;
+    getNextChar(); // Consume ';' token to prevent recursive matching
     return LexTokenInternal(Result, IsPeekAhead);
   case '%':
     Kind = tok::percent;
