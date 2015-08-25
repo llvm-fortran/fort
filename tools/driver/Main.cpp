@@ -154,6 +154,9 @@ namespace {
   cl::opt<bool>
   FixedForm("ffixed-form", cl::desc("the source files are using fixed form layout"), cl::init(false));
 
+  cl::opt<bool>
+  Fortran77("f77", cl::desc("compile with Fortran77 features"), cl::init(false));
+
 } // end anonymous namespace
 
 
@@ -366,8 +369,10 @@ static bool ParseFile(const std::string &Filename,
   Opts.DefaultDouble8 = DefaultDouble8;
   Opts.DefaultInt8 = DefaultInt8;
   Opts.ReturnComments = ReturnComments;
+  Opts.Fortran77 = Fortran77;
+
+  llvm::StringRef Ext = llvm::sys::path::extension(Filename);
   if(!FreeForm && !FixedForm) {
-    llvm::StringRef Ext = llvm::sys::path::extension(Filename);
     if(Ext.equals_lower(".f")) {
       Opts.FixedForm = 1;
       Opts.FreeForm = 0;
@@ -376,6 +381,8 @@ static bool ParseFile(const std::string &Filename,
     Opts.FixedForm = 1;
     Opts.FreeForm = 0;
   }
+  if (!Fortran77 && Ext.equals_lower(".f77"))
+    Opts.Fortran77 = 1;
 
   TextDiagnosticPrinter TDP(SrcMgr);
   DiagnosticsEngine Diag(new DiagnosticIDs,&SrcMgr, &TDP, false);
