@@ -484,7 +484,7 @@ private:
   StmtResult ParseElseIfStmt();
   StmtResult ParseElseStmt();
   StmtResult ParseEndIfStmt();
-  ExprResult ParseExpectedConditionExpression(const char *DiagAfter);
+  ExprResult ParseExpectedConditionExpression(const char *DiagAfter, bool *Failed = NULL);
 
   StmtResult ParseDoStmt();
   StmtResult ParseDoWhileStmt(bool isDo);
