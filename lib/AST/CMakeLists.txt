@@ -1,19 +1,19 @@
 set(LLVM_LINK_COMPONENTS support)
 
 add_flang_library(flangAST
-	ASTContext.cpp
-	Decl.cpp
-	DeclGroup.cpp
-	DeclarationName.cpp
-	Expr.cpp
+  ASTContext.cpp
+  Decl.cpp
+  DeclGroup.cpp
+  DeclarationName.cpp
+  Expr.cpp
   ExprConstant.cpp
   ExprArray.cpp
-	FormatSpec.cpp
+  FormatSpec.cpp
   FormatItem.cpp
   IOSpec.cpp
-	Stmt.cpp
+  Stmt.cpp
   ASTDumper.cpp
-	Type.cpp
+  Type.cpp
   IntrinsicFunctions.cpp
   )
 
@@ -25,5 +25,6 @@ add_dependencies(flangAST
   )
 
 target_link_libraries(flangAST
+  PRIVATE
   flangBasic
   )
