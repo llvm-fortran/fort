@@ -116,6 +116,9 @@ void CGLibflangWriteEmitter::EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
     Func = CGM.GetRuntimeFunction2("write_logical", ControllerPtr->getType(),
                                    E->getType(), CGType(), getTransferABI());
     break;
+  default:
+    assert(false && "Invalid TypeSpec");
+    break;
   }
   CallArgList ArgList;
   CGF.EmitCallArg(ArgList, ControllerPtr, Func.getInfo()->getArguments()[0]);

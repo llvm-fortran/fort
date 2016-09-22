@@ -255,6 +255,9 @@ std::string GetOutputName(StringRef Filename,
   case Backend_EmitLL:
     llvm::sys::path::replace_extension(Path, ".ll");
     break;
+  default:
+    assert(false && "No output name for action");
+    break;
   }
   return std::string(Path.begin(), Path.size());
 }
@@ -267,8 +270,8 @@ static bool EmitFile(llvm::raw_pwrite_stream &Out,
   //write instructions to file
   if(Action == Backend_EmitObj || Action == Backend_EmitAssembly){
     llvm::Module &Mod = *Module;
-    llvm::TargetMachine &Target = *TM;
 #if 0
+    llvm::TargetMachine &Target = *TM;
     llvm::TargetMachine::CodeGenFileType FileType =
       Action == Backend_EmitObj ? llvm::TargetMachine::CGFT_ObjectFile :
                                   llvm::TargetMachine::CGFT_AssemblyFile;
