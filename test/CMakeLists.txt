@@ -6,7 +6,7 @@ set(LLVM_BINARY_DIR ${FLANG_PATH_TO_LLVM_BUILD})
 set(LLVM_TOOLS_DIR ${FLANG_PATH_TO_LLVM_BUILD}/tools)
 set(LLVM_LIBS_DIR ${FLANG_PATH_TO_LLVM_BUILD}/lib)
 
-configure_file(lit.site.cfg.in  ${CMAKE_SOURCE_DIR}/test/lit.site.cfg)
-configure_file(TestRunner.sh.in ${CMAKE_SOURCE_DIR}/test/TestRunner.sh)
+configure_file(lit.site.cfg.in  ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg)
+configure_file(TestRunner.sh.in ${CMAKE_CURRENT_BINARY_DIR}/TestRunner.sh)
 
 
