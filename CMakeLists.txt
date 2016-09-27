@@ -109,7 +109,7 @@ if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
         add_subdirectory(${LLVM_MAIN_SRC_DIR}/utils/count utils/count)
         add_subdirectory(${LLVM_MAIN_SRC_DIR}/utils/not utils/not)
         set(LLVM_UTILS_PROVIDED ON)
-        set(CLANG_TEST_DEPS FileCheck count not)
+        set(FLANG_TEST_DEPS FileCheck count not)
       endif()
       set(UNITTEST_DIR ${LLVM_MAIN_SRC_DIR}/utils/unittest)
       if(EXISTS ${UNITTEST_DIR}/googletest/include/gtest/gtest.h
@@ -353,12 +353,14 @@ list(APPEND LLVM_COMMON_DEPENDS ${FLANG_TABLEGEN_TARGETS})
 
 add_subdirectory(lib)
 add_subdirectory(tools)
-add_subdirectory(test)
 
 if( LLVM_INCLUDE_TESTS )
-  # if( NOT FLANG_BUILT_STANDALONE )
-    add_subdirectory(unittests)
-  #endif()
+  add_subdirectory(unittests)
+  list(APPEND FLANG_TEST_DEPS FlangUnitTests)
+    list(APPEND FLANG_TEST_PARAMS
+      flang_unit_site_config=${CMAKE_CURRENT_BINARY_DIR}/test/Unit/lit.site.cfg
+      )
+  add_subdirectory(test)
 endif()
 
 # Workaround for MSVS10 to avoid the Dialog Hell

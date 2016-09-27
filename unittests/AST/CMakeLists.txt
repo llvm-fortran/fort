@@ -1,4 +1,4 @@
-add_flang_executable(exprEvaluatorTest
+add_flang_unittest(exprEvaluatorTest
   ExprEvaluator.cpp
   )
 

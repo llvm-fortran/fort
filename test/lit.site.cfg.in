@@ -10,8 +10,8 @@ config.target_triple = "@TARGET_TRIPLE@"
 # Support substitution of the tools and libs dirs with user parameters. This is
 # used when we can't determine the tool dir at configuration time.
 try:
-    config.llvm_tools_dir = config.llvm_tools_dir % lit.params
-    config.llvm_libs_dir = config.llvm_libs_dir % lit.params
+    config.llvm_tools_dir = config.llvm_tools_dir % lit_config.params
+    config.llvm_libs_dir = config.llvm_libs_dir % lit_config.params
 except KeyError,e:
     key, = e.args
     lit.fatal("unable to find %r parameter, use '--param=%s=VALUE'" % (key,key))
@@ -20,5 +20,5 @@ except KeyError,e:
 config.flang = "@FLANG_BINARY_DIR@/bin/flang"
 config.test_dir = "@FLANG_SOURCE_DIR@/test"
 config.file_check = "@LLVM_BINARY_DIR@/bin/FileCheck"
-lit.load_config(config, "@FLANG_SOURCE_DIR@/test/lit.cfg")
+lit_config.load_config(config, "@FLANG_SOURCE_DIR@/test/lit.cfg")
 
