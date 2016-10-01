@@ -469,16 +469,15 @@ static bool ParseFile(const std::string &Filename,
       //delete MPM;
     }
 
-    if(Interpret) {
+    if (Interpret) {
       //const char *Env[] = { "", nullptr };
       //Execute(CG->ReleaseModule(), Env);
-    } else if(OutputFile == "-"){
-      // FIXME: outputting to stdout is broken 
-      //EmitFile(llvm::outs(), CG->GetModule(), TM, BA);
-      OutputFiles.push_back(GetOutputName("stdout",BA));
-      EmitOutputFile(OutputFiles.back(), CG->GetModule(), TM, BA);
-    }else {
-      OutputFiles.push_back(GetOutputName(Filename, BA));
+    } else {
+      if(OutputFile == "-"){
+        OutputFiles.push_back(OutputFile);
+      }else {
+        OutputFiles.push_back(GetOutputName(Filename, BA));
+      }
       EmitOutputFile(OutputFiles.back(), CG->GetModule(), TM, BA);
     }
     delete CG;
