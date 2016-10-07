@@ -780,8 +780,8 @@ public:
 
   void setBody(Stmt *S);
   void setBody(Expr *E);
-  Stmt *getBody() const { return Body.get<Stmt*>(); }
-  Expr *getBodyExpr() const { return Body.get<Expr*>(); }
+  Stmt *getBody() const { return (Body.is<Stmt*>() ? Body.get<Stmt*>() : nullptr); }
+  Expr *getBodyExpr() const { return (Body.is<Expr*>() ? Body.get<Expr*>() : nullptr); }
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
