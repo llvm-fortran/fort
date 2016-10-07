@@ -37,6 +37,6 @@ PROGRAM doubletest
 
   dc = dc/dbl ! CHECK: dc = (dc/cmplx(dbl,Kind=8))
 
-  dc = dcc ! CHECK: dc = dcc
+  dc = dcc ! CHECK: dc = cmplx(dcc,Kind=8)
 
 END PROGRAM

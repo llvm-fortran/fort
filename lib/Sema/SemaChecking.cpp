@@ -64,6 +64,7 @@ BuiltinType::TypeKind Sema::EvalAndCheckTypeKind(QualType T,
     switch(Result) {
     case 4: return BuiltinType::Real4;
     case 8: return BuiltinType::Real8;
+    case 16: return BuiltinType::Real16;
     }
     break;
   }
