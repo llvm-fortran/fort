@@ -563,13 +563,16 @@ Decl *Sema::ActOnPossibleImplicitFunctionDecl(ASTContext &C, SourceLocation IDLo
 }
 
 bool Sema::ApplyImplicitRulesToArgument(VarDecl *Arg, SourceRange Range) {
+  if (Arg->isInvalidDecl()) { // We must have complained about this declaration before
+    return false;
+  }
   auto Type = ResolveImplicitType(Arg->getIdentifier());
   if(Type.isNull()) {
     Diags.Report(Range.isValid()? Range.Start : Arg->getLocation(),
                  diag::err_arg_no_implicit_type)
      << (Range.isValid()? Range : Arg->getSourceRange())
      << Arg->getIdentifier();
-    Arg->setType(Context.RealTy); //Prevent further errors
+    Arg->setInvalidDecl(); // Record invalid type (should prevent further error messages)
     return false;
   }
   Arg->setType(Type);
