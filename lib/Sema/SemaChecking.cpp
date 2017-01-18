@@ -134,7 +134,14 @@ public:
           }
           E->setType(VD->getType());
         }
-        if(!VD->getType()->isIntegerType()) {
+
+	// Ignore invalid declarations, but record argument error
+        if(VD->isInvalidDecl()) {
+          HasArgumentTypeErrors = true;
+	  return;
+	}
+
+	if(!VD->getType()->isIntegerType()) {
           Diags.Report(E->getLocation(), diag::err_array_explicit_shape_requires_int_arg)
             << VD->getType() << E->getSourceRange();
           HasArgumentTypeErrors = true;
