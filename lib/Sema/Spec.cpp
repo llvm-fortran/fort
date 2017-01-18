@@ -36,6 +36,9 @@ void Sema::ActOnFunctionSpecificationPart() {
           Diags.Report(FD->getLocation(), diag::err_func_no_implicit_type)
             << FD->getIdentifier();
           // FIXME: add note implicit none was applied here.
+
+          if(FD->hasResult())
+            FD->getResult()->setInvalidDecl();
         }
         else SetFunctionType(FD, Type, FD->getLocation(), SourceRange()); //FIXME: proper loc and range
       }
