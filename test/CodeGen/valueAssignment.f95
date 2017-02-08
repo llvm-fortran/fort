@@ -14,9 +14,9 @@ PROGRAM test
   Y = 0.0        ! CHECK: store float 0
   L = .false.    ! CHECK: store i32 0, i32*
 
-  CONTINUE       ! CHECK: getelementptr inbounds { float, float }*
+  CONTINUE       ! CHECK: getelementptr inbounds { float, float }
   C = (1.0, 3.0) ! CHECK: store float 1
-  CONTINUE       ! CHECK: getelementptr inbounds { float, float }*
+  CONTINUE       ! CHECK: getelementptr inbounds { float, float }
   CONTINUE       ! CHECK: store float 3
 
   X = IC

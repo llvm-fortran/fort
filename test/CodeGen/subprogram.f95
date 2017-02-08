@@ -10,10 +10,10 @@ SUBROUTINE SUB2(I, R, C, L) ! CHECK: define void @sub2_(i32* noalias %i, float* 
   LOGICAL L
   INTEGER J
 
-  J = I ! CHECK: load i32* %i
-  C = R ! CHECK: load float* %r
+  J = I ! CHECK: load i32, i32* %i
+  C = R ! CHECK: load float, float* %r
 
-  IF(L) THEN ! CHECK: load i32* %l
+  IF(L) THEN ! CHECK: load i32, i32* %l
     J = 0
   END IF
 
@@ -29,8 +29,8 @@ COMPLEX FUNCTION DOUBLE(C)
   COMPLEX C
   DOUBLE = C+C
 
-  CONTINUE ! CHECK: load float*
-  CONTINUE ! CHECK: load float*
+  CONTINUE ! CHECK: load float, float*
+  CONTINUE ! CHECK: load float, float*
 END
 
 PROGRAM test

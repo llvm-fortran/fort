@@ -3,7 +3,7 @@ PROGRAM test
   LOGICAL L            ! CHECK: alloca i32
   INTEGER I
 
-  L = L                ! CHECK: load i32*
+  L = L                ! CHECK: load i32, i32*
   L = .NOT. L          ! CHECK: xor i32
 
   L = .TRUE. .EQV. L   ! CHECK: icmp eq i1 true
@@ -14,7 +14,7 @@ PROGRAM test
   L = I .LT. 10 .AND. I .GT. 1
   CONTINUE ! CHECK: icmp slt i32
   CONTINUE ! CHECK: br i1
-  CONTINUE ! CHECK: load i32*
+  CONTINUE ! CHECK: load i32, i32*
   CONTINUE ! CHECK: icmp sgt i32
   CONTINUE ! CHECK: br i1
   CONTINUE ! CHECK: br label
@@ -24,7 +24,7 @@ PROGRAM test
   L = 0 .EQ. I .OR. 1 .EQ. I
   CONTINUE ! CHECK: icmp eq i32 0
   CONTINUE ! CHECK: br i1
-  CONTINUE ! CHECK: load i32*
+  CONTINUE ! CHECK: load i32, i32*
   CONTINUE ! CHECK: icmp eq i32 1
   CONTINUE ! CHECK: br i1
   CONTINUE ! CHECK: br label

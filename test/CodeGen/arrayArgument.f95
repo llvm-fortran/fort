@@ -8,15 +8,15 @@ SUBROUTINE SUB(IARR, IARR2, LEN, RARR)
   IARR(1) = 11
   IARR2(25) = 13
 
-  RARR(22, 4) = 1.0 ! CHECK: load i32*
+  RARR(22, 4) = 1.0 ! CHECK: load i32, i32*
   CONTINUE          ! CHECK: mul i64 3
   CONTINUE          ! CHECK: add i64 21
-  CONTINUE          ! CHECK: getelementptr float*
+  CONTINUE          ! CHECK: getelementptr float, float*
 
   DO I = 1, 10
-    IARR(I) = -1 ! CHECK: load i32*
+    IARR(I) = -1 ! CHECK: load i32, i32*
     CONTINUE     ! CHECK: sub i64
-    CONTINUE     ! CHECK: getelementptr i32*
+    CONTINUE     ! CHECK: getelementptr i32, i32*
   END DO
 
   DO I = 1, LEN

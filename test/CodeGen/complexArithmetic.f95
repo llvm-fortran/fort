@@ -4,8 +4,8 @@ PROGRAM test
   DOUBLE COMPLEX DC ! CHECK: alloca { double, double }
   LOGICAL L
 
-  C = C       ! CHECK: getelementptr inbounds { float, float }*
-  CONTINUE    ! CHECK: load float*
+  C = C       ! CHECK: getelementptr inbounds { float, float }, { float, float }*
+  CONTINUE    ! CHECK: load float, float*
 
   C = +C
   C = -C      ! CHECK: fsub float

@@ -4,7 +4,7 @@ PROGRAM dotest
 
 ! The if statement must be processed no matter what, as we want to match the end if
 
-    if .true. then ! expected-error {{expected '(' after 'IF'}}
+    if .true. then ! Unbracketed literals were intentionally enabled; was expecting {{expected '(' after 'IF'}}
     end if
 
     if () then ! expected-error {{expected an expression}}

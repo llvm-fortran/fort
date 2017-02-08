@@ -13,18 +13,18 @@ PROGRAM helloArrays
   COMPLEX cc
   CHARACTER*20 STRSTR
 
-  rr = r(1) ! CHECK: getelementptr inbounds [10 x float]*
-  CONTINUE  ! CHECK: getelementptr float*
-  CONTINUE  ! CHECK: load float*
+  rr = r(1) ! CHECK: getelementptr inbounds [10 x float], [10 x float]*
+  CONTINUE  ! CHECK: getelementptr float, float*
+  CONTINUE  ! CHECK: load float, float*
 
-  ii = i(0) ! CHECK: getelementptr i32*
+  ii = i(0) ! CHECK: getelementptr i32, i32*
 
   is = 1
   i(is) = r(is) ! CHECK: sext i8
 
-  cc = c(1, 1, 1) ! CHECK: getelementptr { float, float }*
+  cc = c(1, 1, 1) ! CHECK: getelementptr { float, float }, { float, float }*
 
-  STRSTR = STR(4, 9) ! CHECK: getelementptr [20 x i8]*
+  STRSTR = STR(4, 9) ! CHECK: getelementptr [20 x i8], [20 x i8]*
 
   i(5) = 11
   r(1) = 1.0
