@@ -76,6 +76,7 @@ Short term:
 
 Long term:
 
+* Preprocessor support
 * Flang driver (?)
 * Parsing GNU modules
 * Add (or hoist) Clang style TargetInfo class template
