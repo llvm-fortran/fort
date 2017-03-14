@@ -78,7 +78,7 @@ bool Parser::EnterIncludeFile(const std::string &Filename) {
   std::string IncludedFile;
   int NewBuf = SrcMgr.AddIncludeFile(Filename, getLexer().getLoc(),
                                      IncludedFile);
-  if (NewBuf == -1)
+  if (NewBuf == 0)
     return true;
 
   CurBufferIndex.push_back(NewBuf);
