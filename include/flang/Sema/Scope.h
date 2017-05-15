@@ -258,7 +258,7 @@ public:
 ///
 class EquivalenceScope {
 public:
-  struct InfluenceObject;
+  class InfluenceObject;
 
   class Object {
   public:

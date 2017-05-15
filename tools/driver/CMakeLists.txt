@@ -25,7 +25,8 @@ target_link_libraries(flang
 
 set_target_properties(flang PROPERTIES VERSION ${FLANG_EXECUTABLE_VERSION})
 
-add_dependencies(flang flang-headers)
+# TODO open issue
+#add_dependencies(flang flang-headers)
 
 if(UNIX)
   set(flang_binary "flang${CMAKE_EXECUTABLE_SUFFIX}")

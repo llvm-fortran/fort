@@ -40,6 +40,19 @@ compiler links to by default. This is built outside the LLVM tree.
 > cd build & make
 > cd build & make install
 
+Testing:
+
+> cmake -DLLVM_INCLUDE_TESTS=On ..
+> make check-flang
+
+If built within LLVM source tree, it should pick up test settings from it and
+running a separate make command should not be necessary. If you want to build
+tests in standalone flang build, make sure to add CMake flags that would
+install FileCheck with LLVM:
+
+> -DLLVM_INSTALL_UTILS=On -DLLVM_INCLUDE_TESTS=On
+
+
 //===----------------------------------------------------------------------===//
 // Using flang
 //===----------------------------------------------------------------------===//

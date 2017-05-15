@@ -1,5 +1,19 @@
 cmake_minimum_required(VERSION 2.8)
 
+# FIXME: It may be removed when we use 2.8.12.
+if(CMAKE_VERSION VERSION_LESS 2.8.12)
+  # Invalidate a couple of keywords.
+  set(cmake_2_8_12_INTERFACE)
+  set(cmake_2_8_12_PRIVATE)
+else()
+  # Use ${cmake_2_8_12_KEYWORD} intead of KEYWORD in target_link_libraries().
+  set(cmake_2_8_12_INTERFACE INTERFACE)
+  set(cmake_2_8_12_PRIVATE PRIVATE)
+  if(POLICY CMP0022)
+    cmake_policy(SET CMP0022 NEW) # automatic when 2.8.12 is required
+  endif()
+endif()
+
 # If we are not building as a part of LLVM, build Flang as an
 # standalone project, using LLVM as an external library:
 if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
@@ -109,7 +123,7 @@ if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
         add_subdirectory(${LLVM_MAIN_SRC_DIR}/utils/count utils/count)
         add_subdirectory(${LLVM_MAIN_SRC_DIR}/utils/not utils/not)
         set(LLVM_UTILS_PROVIDED ON)
-        set(CLANG_TEST_DEPS FileCheck count not)
+        set(FLANG_TEST_DEPS FileCheck count not)
       endif()
       set(UNITTEST_DIR ${LLVM_MAIN_SRC_DIR}/utils/unittest)
       if(EXISTS ${UNITTEST_DIR}/googletest/include/gtest/gtest.h
@@ -297,7 +311,6 @@ macro(add_flang_library name)
 
   llvm_config( ${name} ${LLVM_LINK_COMPONENTS} )
   target_link_libraries( ${name} ${LLVM_COMMON_LIBS} )
-  link_system_libs( ${name} )
 
   install(TARGETS ${name}
     LIBRARY DESTINATION lib${LLVM_LIBDIR_SUFFIX}
@@ -353,12 +366,14 @@ list(APPEND LLVM_COMMON_DEPENDS ${FLANG_TABLEGEN_TARGETS})
 
 add_subdirectory(lib)
 add_subdirectory(tools)
-add_subdirectory(test)
 
 if( LLVM_INCLUDE_TESTS )
-  # if( NOT FLANG_BUILT_STANDALONE )
-    add_subdirectory(unittests)
-  #endif()
+  add_subdirectory(unittests)
+  list(APPEND FLANG_TEST_DEPS FlangUnitTests)
+    list(APPEND FLANG_TEST_PARAMS
+      flang_unit_site_config=${CMAKE_CURRENT_BINARY_DIR}/test/Unit/lit.site.cfg
+      )
+  add_subdirectory(test)
 endif()
 
 # Workaround for MSVS10 to avoid the Dialog Hell
