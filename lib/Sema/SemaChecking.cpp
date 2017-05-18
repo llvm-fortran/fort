@@ -64,6 +64,7 @@ BuiltinType::TypeKind Sema::EvalAndCheckTypeKind(QualType T,
     switch(Result) {
     case 4: return BuiltinType::Real4;
     case 8: return BuiltinType::Real8;
+    case 16: return BuiltinType::Real16;
     }
     break;
   }
@@ -133,7 +134,14 @@ public:
           }
           E->setType(VD->getType());
         }
-        if(!VD->getType()->isIntegerType()) {
+
+	// Ignore invalid declarations, but record argument error
+        if(VD->isInvalidDecl()) {
+          HasArgumentTypeErrors = true;
+	  return;
+	}
+
+	if(!VD->getType()->isIntegerType()) {
           Diags.Report(E->getLocation(), diag::err_array_explicit_shape_requires_int_arg)
             << VD->getType() << E->getSourceRange();
           HasArgumentTypeErrors = true;

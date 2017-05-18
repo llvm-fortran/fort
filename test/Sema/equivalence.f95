@@ -23,7 +23,7 @@ SUBROUTINE equivtest(JJ) ! expected-note {{'jj' is an argument defined here}}
 
   EQUIVALENCE (I, 22) ! expected-error {{specification statement requires a variable or an array element expression}}
 
-  EQUIVALENCE (I, STR) ! expected-error {{expected an expression of integer, real, complex or logical type ('character (Len=10)' invalid)}}
+  EQUIVALENCE (I, STR)
   EQUIVALENCE (STR, A) ! expected-error {{expected an expression of character type ('real' invalid)}}
   EQUIVALENCE (I, FOO) ! expected-error {{expected an expression with default type kind ('integer (Kind=8)' invalid)}}
 
