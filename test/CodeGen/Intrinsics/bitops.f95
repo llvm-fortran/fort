@@ -32,7 +32,7 @@ PROGRAM bittest
   i = ishft(i, 4)  ! CHECK: shl i32 {{.*}}, 4
   i = ishft(i, -2) ! CHECK: lshr i32 {{.*}}, 2
   i = ishft(i, i/4) ! CHECK: icmp sge i32 {{.*}}, 0
-  continue          ! CHECK-NEXT: select i1
+  continue          ! CHECK: select i1
 
   i = ishft(3, 1) ! CHECK: store i32 6
   i = ishft(8, -1) ! CHECK: store i32 4
