@@ -7,6 +7,10 @@ flang:
 
 Flang is a Fortran front-end.
 
+Note: This project is not related to the project of the same name based on PGI's
+Fortran compiler which can be found at https://github.com/flang-compiler/flang.
+See https://github.com/llvm-flang/flang/issues/5 for details.
+
 //===----------------------------------------------------------------------===//
 // Compiling Flang (master branch)
 //===----------------------------------------------------------------------===//
@@ -52,14 +56,14 @@ install FileCheck with LLVM:
 
 > -DLLVM_INSTALL_UTILS=On -DLLVM_INCLUDE_TESTS=On
 
-
 //===----------------------------------------------------------------------===//
 // Using flang
 //===----------------------------------------------------------------------===//
 
 Flang's driver will instruct the linker to link with the libflang runtime. 
-You can get libflang at https://github.com/llvm-flang/libflangrt . Once you have libflang, 
-you'll need to tell flang where it is - you can use the -L option (e.g. -L~/libflang).
+You can get libflang at https://github.com/llvm-flang/libflangrt.
+Once you have libflang, you'll need to tell flang where it is - you can use the
+-L option (e.g. -L~/libflang).
 
 //===----------------------------------------------------------------------===//
 // To Do List
