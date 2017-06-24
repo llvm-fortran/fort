@@ -473,7 +473,8 @@ void CodeGenFunction::EmitSelectCaseStmt(const SelectCaseStmt *S) {
 }
 
 void CodeGenFunction::EmitStopStmt(const StopStmt *S) {
-  EmitRuntimeCall(CGM.GetRuntimeFunction("stop", ArrayRef<llvm::Type*>()));
+  auto Func = CGM.GetRuntimeFunction("stop", ArrayRef<CGType>());
+  EmitCall(Func, ArrayRef<RValueTy>());
 }
 
 void CodeGenFunction::EmitReturnStmt(const ReturnStmt *S) {
