@@ -22,6 +22,7 @@
 #include "llvm/ADT/Twine.h"
 
 // FIXME: Errors from diag:: for BOZ literals
+// FIXME: Magic constants for line length, look for 72 and 132
 
 namespace flang {
 
@@ -299,9 +300,6 @@ void Lexer::LineOfText::GetNextLine(bool AtLineStart) {
 
   const char *AmpersandPos = 0;
   if(LanguageOptions.FixedForm) {
-    if(AtLineStart)
-      SkipFixedFormBlankLinesAndComments(I, LineBegin);
-
     // Fixed form
     while (I != 72 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
       ++I, ++BufPtr;
@@ -1281,9 +1279,10 @@ void Lexer::LexTokenInternal(Token &Result, bool IsPeekAhead) {
   }
 
   // Check to see if we're at the start of a line.
-  if (getLineBegin() == getCurrentPtr())
+  if (getLineBegin() == getCurrentPtr()) {
     // The returned token is at the start of the line.
     Result.setFlag(Token::StartOfStatement);
+  }
 
   // If we saw a semicolon, then we're at the start of a new statement.
   if (LastTokenWasSemicolon) {
@@ -1298,6 +1297,18 @@ void Lexer::LexTokenInternal(Token &Result, bool IsPeekAhead) {
 
   TokStart = getCurrentPtr();
   tok::TokenKind Kind;
+
+  // Fixed-form comments
+  if (Features.FixedForm) {
+    // 'C' or '*' at the beginning of the line
+    if ((getLineBegin() == getCurrentPtr())
+        && (Char == 'C' || Char == 'c' || Char == '*')) {
+      LexComment(Result);
+      if (Features.ReturnComments)
+        return;
+      return LexTokenInternal(Result, IsPeekAhead);
+    }
+  }
 
   switch (Char) {
   case 0:  // Null.
