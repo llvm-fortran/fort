@@ -379,10 +379,12 @@ static bool ParseFile(const std::string &Filename,
     if(Ext.equals_lower(".f")) {
       Opts.FixedForm = 1;
       Opts.FreeForm = 0;
+      Opts.LineLength = 72;
     }
   } else if(FixedForm) {
     Opts.FixedForm = 1;
     Opts.FreeForm = 0;
+    Opts.LineLength = 72;
   }
   if (!Fortran77 && Ext.equals_lower(".f77"))
     Opts.Fortran77 = 1;
