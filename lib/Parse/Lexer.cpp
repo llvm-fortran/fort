@@ -1133,15 +1133,13 @@ void Lexer::LexNumericConstant(Token &Result) {
 
   const char *NumBegin = TokStart;
   bool BeginsWithDot = (*NumBegin == '.');
-  if (!LexIntegerLiteralConstant() && BeginsWithDot) {
-    Diags.ReportError(SourceLocation::getFromPointer(NumBegin),
-                      "invalid REAL literal");
-    FormTokenWithChars(Result, tok::error);
-    return;
-  }
 
   char C;
-  if(!BeginsWithDot) {
+  LexIntegerLiteralConstant();
+  if(BeginsWithDot) {
+    IsReal = true;
+    C = getCurrentChar();
+  } else {
 
     char PrevChar = getCurrentChar();
     if (PrevChar == '.') {
@@ -1175,9 +1173,6 @@ void Lexer::LexNumericConstant(Token &Result) {
         goto make_literal;
       }
     }
-  } else {
-    IsReal = true;
-    C = getCurrentChar();
   }
 
   if (C == 'E' || C == 'e' || C == 'D' || C == 'd') {
