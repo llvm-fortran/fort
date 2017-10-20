@@ -22,7 +22,6 @@
 #include "llvm/ADT/Twine.h"
 
 // FIXME: Errors from diag:: for BOZ literals
-// FIXME: Magic constants for line length, look for 72 and 132
 
 namespace flang {
 
@@ -117,10 +116,10 @@ SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin, bool IgnoreContin
   while (isVerticalWhitespace(*BufPtr) && *BufPtr != '\0')
     ++BufPtr;
 
-  while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
+  while (I != LanguageOptions.LineLength && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
     ++I, ++BufPtr;
 
-  if (I != 132 && *BufPtr == '!') {
+  if (I != LanguageOptions.LineLength && *BufPtr == '!') {
     do {
       ++BufPtr;
     } while (!isVerticalWhitespace(*BufPtr));
@@ -137,7 +136,7 @@ SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin, bool IgnoreContin
   // If we have a continuation character at the beginning of the line, and we've
   // had a previous continuation character at the end of the line, then readjust
   // the LineBegin.
-  if (I != 132 && *BufPtr == '&') {
+  if (I != LanguageOptions.LineLength && *BufPtr == '&') {
     if (Atoms.empty() && !IgnoreContinuationChar)
       Diags.Report(SourceLocation::getFromPointer(BufPtr),
                    diag::err_continuation_out_of_context);
@@ -155,7 +154,7 @@ SkipFixedFormBlankLinesAndComments(unsigned &I, const char *&LineBegin) {
   while (isVerticalWhitespace(*BufPtr) && *BufPtr != '\0')
     ++BufPtr;
 
-  while (I != 72 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0') {
+  while (I != LanguageOptions.LineLength && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0') {
     I += isHorizontalTab(*BufPtr)? LanguageOptions.TabWidth : 1;
     ++BufPtr;
   }
@@ -190,7 +189,7 @@ GetCharacterLiteral(unsigned &I, const char *&LineBegin, bool &PadAtoms) {
   bool skipNextQuoteChar = false;
   ++I, ++BufPtr;
   while(true) {
-    while (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
+    while (I != LanguageOptions.LineLength && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
       if (*BufPtr == '"' || *BufPtr == '\'') {
         if(!skipNextQuoteChar){
           char quoteChar = *BufPtr;
@@ -201,14 +200,14 @@ GetCharacterLiteral(unsigned &I, const char *&LineBegin, bool &PadAtoms) {
           if (DoubleQuotes) {
             if (quoteChar == '\'')
               continue;
-            if(I != 132 && *BufPtr == '"'){
+            if(I != LanguageOptions.LineLength && *BufPtr == '"'){
               ++I,++BufPtr;
               continue;
             }
           } else {
             if (quoteChar == '"')
               continue;
-            if(I != 132 && *BufPtr == '\''){
+            if(I != LanguageOptions.LineLength && *BufPtr == '\''){
               ++I,++BufPtr;
               continue;
             }
@@ -256,12 +255,12 @@ GetCharacterLiteral(unsigned &I, const char *&LineBegin, bool &PadAtoms) {
 
       AmpersandPos = BufPtr;
       ++I, ++BufPtr;
-      if (I == 132)
+      if (I == LanguageOptions.LineLength)
         break;
-      while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
+      while (I != LanguageOptions.LineLength && isHorizontalWhitespace(*BufPtr) && *BufPtr != '\0')
         ++I, ++BufPtr;
 
-      if (I == 132 || isVerticalWhitespace(*BufPtr) || *BufPtr == '\0')
+      if (I == LanguageOptions.LineLength || isVerticalWhitespace(*BufPtr) || *BufPtr == '\0')
         break;
       AmpersandPos = 0;
 
@@ -301,7 +300,7 @@ void Lexer::LineOfText::GetNextLine(bool AtLineStart) {
   const char *AmpersandPos = 0;
   if(LanguageOptions.FixedForm) {
     // Fixed form
-    while (I != 72 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
+    while (I != LanguageOptions.LineLength && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
       ++I, ++BufPtr;
     }
     Atoms.push_back(StringRef(LineBegin, BufPtr - LineBegin));
@@ -333,22 +332,21 @@ void Lexer::LineOfText::GetNextLine(bool AtLineStart) {
     if(AtLineStart)
       BeginsWithAmp = SkipBlankLinesAndComments(I, LineBegin);
     // Free form
-    while (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
+    while (I != LanguageOptions.LineLength && !isVerticalWhitespace(*BufPtr) && *BufPtr != '\0') {
       if (*BufPtr == '\'' || *BufPtr == '"') {
         // TODO: A BOZ constant doesn't get parsed like a character literal.
         GetCharacterLiteral(I, LineBegin, PadAtoms);
-        if (I == 132 || isVerticalWhitespace(*BufPtr))
+        if (I == LanguageOptions.LineLength || isVerticalWhitespace(*BufPtr))
           break;
       } else if (*BufPtr == '&') {
         AmpersandPos = BufPtr;
         do {
           ++I, ++BufPtr;
-        } while (I != 132 && isHorizontalWhitespace(*BufPtr) && *BufPtr!='\0');
+        } while (I != LanguageOptions.LineLength && isHorizontalWhitespace(*BufPtr) && *BufPtr!='\0');
 
-        // We should be either at the end of the line, at column 132, or at the
-        // beginning of a comment. If not, the '&' is invalid. Report and ignore
-        // it.
-        if (I != 132 && !isVerticalWhitespace(*BufPtr) && *BufPtr != '!') {
+	// We should be either at the end of the line, or at the beginning of a
+	// comment. If not, the '&' is invalid. Report and ignore it.
+        if (I != LanguageOptions.LineLength && !isVerticalWhitespace(*BufPtr) && *BufPtr != '!') {
           Diags.ReportError(SourceLocation::getFromPointer(AmpersandPos),
                             "continuation character not at end of line");
           AmpersandPos = 0;     // Pretend nothing's wrong.
@@ -362,7 +360,7 @@ void Lexer::LineOfText::GetNextLine(bool AtLineStart) {
           break;
         }
 
-        if (I == 132 || isVerticalWhitespace(*BufPtr))
+        if (I == LanguageOptions.LineLength || isVerticalWhitespace(*BufPtr))
           break;
       } else if(*BufPtr == '!') {
         while (!isVerticalWhitespace(*BufPtr) && *BufPtr != '\0')
