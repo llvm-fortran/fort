@@ -17,6 +17,7 @@
 #include "flang/AST/ASTContext.h"
 #include "flang/AST/Decl.h"
 #include "flang/AST/Stmt.h"
+#include "flang/AST/StorageSet.h"
 #include "flang/AST/Expr.h"
 #include "flang/Frontend/CodeGenOptions.h"
 #include "llvm/IR/DataLayout.h"
@@ -81,9 +82,7 @@ void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func,
     Arg->setName(ArgDecl->getName());
     if(ArgDecl->getType()->isArrayType() ||
        ABI == ABIArgInfo::Reference) {
-      llvm::AttrBuilder Attributes;
-      Attributes.addAttribute(llvm::Attribute::NoAlias);
-      Arg->addAttr(llvm::AttributeSet::get(CGM.getLLVMContext(), 0, Attributes));
+      Arg->addAttr(llvm::Attribute::NoAlias);
     }
   }
 

@@ -182,13 +182,13 @@ public:
 static inline const llvm::fltSemantics &
 GetIEEEFloatSemantics(const llvm::APInt &api) {
   if (api.getBitWidth() == 16)
-    return llvm::APFloat::IEEEhalf;
+    return llvm::APFloat::IEEEhalf();
   else if (api.getBitWidth() == 32)
-    return llvm::APFloat::IEEEsingle;
+    return llvm::APFloat::IEEEsingle();
   else if (api.getBitWidth()==64)
-    return llvm::APFloat::IEEEdouble;
+    return llvm::APFloat::IEEEdouble();
   else if (api.getBitWidth()==128)
-    return llvm::APFloat::IEEEquad;
+    return llvm::APFloat::IEEEquad();
   llvm_unreachable("Unknown float semantic.");
 }
 

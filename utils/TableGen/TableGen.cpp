@@ -46,8 +46,7 @@ namespace {
                     clEnumValN(GenFlangStmtNodes, "gen-flang-stmt-nodes",
                                "Generate Flang AST statement nodes"),
                     clEnumValN(GenFlangExprNodes, "gen-flang-expr-nodes",
-                               "Generate Flang AST expression nodes"),
-                    clEnumValEnd));
+                               "Generate Flang AST expression nodes")));
 
   cl::opt<std::string>
   FlangComponent("flang-component",
@@ -82,7 +81,7 @@ bool FlangTableGenMain(raw_ostream &OS, RecordKeeper &Records) {
 }
 
 int main(int argc, char **argv) {
-  sys::PrintStackTraceOnErrorSignal();
+  sys::PrintStackTraceOnErrorSignal(argv[0]);
   PrettyStackTraceProgram X(argc, argv);
   cl::ParseCommandLineOptions(argc, argv);
 

@@ -15,13 +15,14 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/ASTContext.h"
 #include "llvm/Support/Allocator.h"
+#include <type_traits>
 
 namespace flang {
 
 DeclGroup *DeclGroup::Create(ASTContext &C, Decl **Decls, unsigned NumDecls) {
   assert(NumDecls > 1 && "Invalid DeclGroup");
   unsigned Size = sizeof(DeclGroup) + sizeof(Decl*) * NumDecls;
-  void* Mem = C.Allocate(Size, llvm::AlignOf<DeclGroup>::Alignment);
+  void* Mem = C.Allocate(Size, alignof(DeclGroup));
   new (Mem) DeclGroup(NumDecls, Decls);
   return static_cast<DeclGroup*>(Mem);
 }

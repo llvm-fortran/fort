@@ -26,6 +26,11 @@ namespace flang {
 
 Stmt::~Stmt() {}
 
+void *Stmt::operator new(size_t bytes, const ASTContext& C,
+                         unsigned alignment) {
+  return ::operator new(bytes, C, alignment);
+}
+
 //===----------------------------------------------------------------------===//
 // Statement Part Statement
 //===----------------------------------------------------------------------===//

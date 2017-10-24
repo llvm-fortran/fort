@@ -38,7 +38,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/FormattedStream.h"
-#include "llvm/Bitcode/ReaderWriter.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -60,6 +60,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/MC/SubtargetFeature.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/CommandLine.h"
@@ -459,9 +460,10 @@ static bool ParseFile(const std::string &Filename,
     TargetOptions.Triple = TargetTriple.empty()? llvm::sys::getDefaultTargetTriple() :
                                                  TargetTriple;
     TargetOptions.CPU = llvm::sys::getHostCPUName();
+    std::unique_ptr<LLVMContext> LLContext(new LLVMContext);
 
     auto CG = CreateLLVMCodeGen(Diag, Filename == ""? std::string("module") : Filename,
-                                CodeGenOptions(), TargetOptions, llvm::getGlobalContext());
+                                CodeGenOptions(), TargetOptions, *LLContext);
     CG->Initialize(Context);
     CG->HandleTranslationUnit(Context);
 
@@ -482,7 +484,7 @@ static bool ParseFile(const std::string &Filename,
     llvm::TargetOptions Options;
 
     auto TM = TheTarget->createTargetMachine(TargetOptions.Triple, TargetOptions.CPU, "", Options,
-                                             Reloc::Default, CodeModel::Default,
+                                             Reloc::Static, CodeModel::Default,
                                              TMOptLevel);
 
     if(!(EmitLLVM && OptLevel == 0)) {
@@ -533,7 +535,7 @@ static bool ParseFile(const std::string &Filename,
 }
 
 int main(int argc, char **argv) {
-  sys::PrintStackTraceOnErrorSignal();
+  sys::PrintStackTraceOnErrorSignal(llvm::StringRef(argv[0]));
   PrettyStackTraceProgram X(argc, argv);
   cl::ParseCommandLineOptions(argc, argv, "LLVM Fortran compiler");
 

@@ -63,9 +63,9 @@ void ASTContext::InitBuiltinTypes() {
 
 const llvm::fltSemantics&  ASTContext::getFPTypeSemantics(QualType Type) {
   switch(Type->getBuiltinTypeKind()) {
-  case BuiltinType::Real4:  return llvm::APFloat::IEEEsingle;
-  case BuiltinType::Real8:  return llvm::APFloat::IEEEdouble;
-  case BuiltinType::Real16: return llvm::APFloat::IEEEquad;
+  case BuiltinType::Real4:  return llvm::APFloat::IEEEsingle();
+  case BuiltinType::Real8:  return llvm::APFloat::IEEEdouble();
+  case BuiltinType::Real16: return llvm::APFloat::IEEEquad();
   default: break;
   }
   llvm_unreachable("invalid real type");

@@ -57,11 +57,11 @@ private:
   friend class ASTContext;
 protected:
   // Make vanilla 'new' and 'delete' illegal for Stmts.
-  void* operator new(size_t bytes) throw() {
+  void* operator new(size_t bytes) noexcept {
     assert(0 && "Stmts cannot be allocated with regular 'new'.");
     return 0;
   }
-  void operator delete(void* data) throw() {
+  void operator delete(void* data) noexcept {
     assert(0 && "Stmts cannot be released with regular 'delete'.");
   }
 
@@ -132,24 +132,22 @@ public:
 public:
   // Only allow allocation of Stmts using the allocator in ASTContext or by
   // doing a placement new.
-  void *operator new(size_t bytes, ASTContext &C,
-                     unsigned alignment = 8) throw() {
-    return ::operator new(bytes, C, alignment);
+  void *operator new(size_t bytes, const ASTContext &C,
+                     unsigned alignment = 8);
+
+  void *operator new(size_t bytes, const ASTContext *C,
+                     unsigned alignment = 8) noexcept {
+    return operator new(bytes, *C, alignment);
   }
 
-  void *operator new(size_t bytes, ASTContext *C,
-                     unsigned alignment = 8) throw() {
-    return ::operator new(bytes, *C, alignment);
-  }
-
-  void *operator new(size_t bytes, void *mem) throw() {
+  void *operator new(size_t bytes, void *mem) noexcept {
     return mem;
   }
 
-  void operator delete(void*, ASTContext&, unsigned) throw() { }
-  void operator delete(void*, ASTContext*, unsigned) throw() { }
-  void operator delete(void*, std::size_t) throw() { }
-  void operator delete(void*, void*) throw() { }
+  void operator delete(void*, ASTContext&, unsigned) noexcept { }
+  void operator delete(void*, ASTContext*, unsigned) noexcept { }
+  void operator delete(void*, std::size_t) noexcept { }
+  void operator delete(void*, void*) noexcept { }
 };
 
 /// ConstructName - represents the name of the construct statement
