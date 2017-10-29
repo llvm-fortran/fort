@@ -42,6 +42,7 @@ public:
   unsigned DefaultDouble8    : 1; // Sets the default double precision type to be 8 bytes wide
   unsigned DefaultInt8       : 1; // Sets the default integer type to be 8 bytes wide
   unsigned TabWidth;              // The tab character is treated as N spaces.
+  unsigned LineLength;            // Maximum allowed line length
 
   LangOptions() {
     Fortran77 = 0;
@@ -52,6 +53,7 @@ public:
     SpellChecking = 1;
     DefaultReal8 = DefaultDouble8 = DefaultInt8 = 0;
     TabWidth = 6;
+    LineLength = 132; // Free form
   }
 };
 

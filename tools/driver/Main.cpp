@@ -157,6 +157,12 @@ namespace {
   cl::opt<bool>
   Fortran77("f77", cl::desc("compile with Fortran77 features"), cl::init(false));
 
+  cl::opt<std::string>
+  FixedFormLineLength("ffixed-line-length-", cl::desc("maximum allowed line length in fixed form, 0 or 'none' to disable the limit"), cl::Prefix, cl::ValueRequired);
+
+  cl::opt<std::string>
+  FreeFormLineLength("ffree-line-length-", cl::desc("maximum allowed line length in free form, 0 or 'none' to disable the limit"), cl::Prefix, cl::ValueRequired);
+
 } // end anonymous namespace
 
 
@@ -347,6 +353,34 @@ static bool LinkFiles(ArrayRef<std::string> OutputFiles) {
   return system(Cmd.c_str());
 }
 
+// Parse a "line length" argument (-ffixed-length-N, -ffree-length-N)
+// throw errors for non-integer values and values that are too big for the
+// target field to store
+static bool ParseLineLengthArg(cl::opt<std::string> &Arg, unsigned &Val) {
+  if (Arg.empty())
+    return false;
+
+  if (Arg == "none") {
+    Val = 0;
+    return false;
+  }
+
+  char * rest;
+  unsigned long val = strtoul(Arg.c_str(), &rest, 10);
+
+  if (*rest != '\0') {
+    Arg.error("'" + Arg + "' value invalid");
+    return true;
+  }
+  if (val > std::numeric_limits<unsigned>::max()) {
+    Arg.error("'" + Arg + "' value too big");
+    return true;
+  }
+  Val = val;
+
+  return false;
+}
+
 static bool ParseFile(const std::string &Filename,
                       const std::vector<std::string> &IncludeDirs,
                       SmallVectorImpl<std::string> &OutputFiles) {
@@ -379,13 +413,25 @@ static bool ParseFile(const std::string &Filename,
     if(Ext.equals_lower(".f")) {
       Opts.FixedForm = 1;
       Opts.FreeForm = 0;
+      Opts.LineLength = 72;
     }
   } else if(FixedForm) {
     Opts.FixedForm = 1;
     Opts.FreeForm = 0;
+    Opts.LineLength = 72;
   }
   if (!Fortran77 && Ext.equals_lower(".f77"))
     Opts.Fortran77 = 1;
+
+  unsigned LineLength;
+  if (ParseLineLengthArg(FreeFormLineLength, LineLength))
+    return true;
+  if (Opts.FreeForm && !FreeFormLineLength.empty())
+    Opts.LineLength = LineLength;
+  if (ParseLineLengthArg(FixedFormLineLength, LineLength))
+    return true;
+  if (Opts.FixedForm && !FixedFormLineLength.empty())
+    Opts.LineLength = LineLength;
 
   TextDiagnosticPrinter TDP(SrcMgr);
   DiagnosticsEngine Diag(new DiagnosticIDs,&SrcMgr, &TDP, false);
