@@ -47,4 +47,23 @@ def err_file_modified : Error<
 // Unsupported statement
 def err_unsupported_stmt : Error<"unsupported statement">;
 
+// Targets
+
+def err_target_unknown_triple : Error<
+  "unknown target triple '%0', please use -triple or -arch">;
+def err_target_unknown_cpu : Error<"unknown target CPU '%0'">;
+def err_target_unknown_abi : Error<"unknown target ABI '%0'">;
+def err_target_unsupported_abi : Error<"ABI '%0' is not supported on CPU '%1'">;
+def err_target_unsupported_abi_for_triple : Error<
+  "ABI '%0' is not supported for '%1'">;
+def err_target_unknown_fpmath : Error<"unknown FP unit '%0'">;
+def err_target_unsupported_fpmath : Error<
+    "the '%0' unit is not supported with this instruction set">;
+def err_target_unsupported_unaligned : Error<
+  "the %0 sub-architecture does not support unaligned accesses">;
+def err_target_unsupported_execute_only : Error<
+  "execute only is not supported for the %0 sub-architecture">;
+def err_opt_not_valid_with_opt : Error<
+  "option '%0' cannot be specified with '%1'">;
+
 }

@@ -17,6 +17,7 @@
 #include "flang/AST/Decl.h"
 #include "flang/AST/Expr.h"
 #include "flang/Basic/Diagnostic.h"
+#include "flang/Basic/TargetInfo.h"
 #include "flang/Frontend/CodeGenOptions.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/DataLayout.h"
@@ -58,9 +59,8 @@ namespace {
     virtual void Initialize(ASTContext &Context) {
       Ctx = &Context;
 
-      //M->setTargetTriple(Ctx->getTargetInfo().getTriple().getTriple());
-      //M->setDataLayout(Ctx->getTargetInfo().getTargetDescription());
-      M->setTargetTriple(Target.Triple);
+      M->setTargetTriple(Ctx->getTargetInfo().getTriple().getTriple());
+      M->setDataLayout(Ctx->getTargetInfo().getDataLayout());
       TD.reset(new llvm::DataLayout(M.get()));
 
       Builder.reset(new CodeGen::CodeGenModule(Context, CodeGenOpts, *M, *TD,
