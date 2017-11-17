@@ -235,6 +235,16 @@ void MainProgramDecl::setBody(Stmt *S) {
 // FunctionDecl Implementation
 //===----------------------------------------------------------------------===//
 
+FunctionDecl::FunctionDecl(Kind DK, FunctionKind FK, DeclContext *DC,
+             const DeclarationNameInfo &NameInfo, QualType T,
+             int Attr)
+  : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
+    DeclContext(DK), ArgumentCount(0), Arguments(nullptr),
+    Result(nullptr), Body((Stmt*)nullptr) {
+    CustomBoolAttr1 = (Attr & Recursive) != 0;
+    SubDeclKind = FK;
+  }
+
 FunctionDecl *FunctionDecl::Create(ASTContext &C, FunctionKind FK,
                                    DeclContext *DC,
                                    const DeclarationNameInfo &NameInfo,
@@ -262,6 +272,14 @@ void FunctionDecl::setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList) 
 
 void FunctionDecl::setResult(VarDecl *VD) {
   Result = VD;
+}
+
+Stmt *FunctionDecl::getBody() const {
+  return (Body.is<Stmt*>() ? Body.get<Stmt*>() : nullptr);
+}
+
+Expr *FunctionDecl::getBodyExpr() const {
+  return (Body.is<Expr*>() ? Body.get<Expr*>() : nullptr);
 }
 
 //===----------------------------------------------------------------------===//

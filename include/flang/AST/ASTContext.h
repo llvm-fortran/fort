@@ -75,6 +75,7 @@ public:
   ~ASTContext();
 
   const TargetInfo &getTargetInfo() const { return *Target; }
+  void setTargetInfo(const TargetInfo &Target) { this->Target = &Target; }
 
   TranslationUnitDecl *getTranslationUnitDecl() const { return TUDecl; }
 

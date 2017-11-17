@@ -15,6 +15,7 @@
 #include "flang/Frontend/TextDiagnosticPrinter.h"
 #include "flang/Frontend/VerifyDiagnosticConsumer.h"
 #include "flang/AST/ASTConsumer.h"
+#include "flang/Basic/TargetInfo.h"
 #include "flang/Frontend/ASTConsumers.h"
 #include "flang/Parse/Parser.h"
 #include "flang/Sema/Sema.h"
@@ -38,7 +39,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/FormattedStream.h"
-#include "llvm/Bitcode/ReaderWriter.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -60,6 +61,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/MC/SubtargetFeature.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/CommandLine.h"
@@ -454,14 +456,19 @@ static bool ParseFile(const std::string &Filename,
   }
 
   // Emit
-  if(!SyntaxOnly && !Diag.hadErrors()) {    
-    flang::TargetOptions TargetOptions;
-    TargetOptions.Triple = TargetTriple.empty()? llvm::sys::getDefaultTargetTriple() :
-                                                 TargetTriple;
-    TargetOptions.CPU = llvm::sys::getHostCPUName();
+  if(!SyntaxOnly && !Diag.hadErrors()) {
+    std::shared_ptr<flang::TargetOptions> TargetOptions = std::make_shared<flang::TargetOptions>();
+    TargetOptions->Triple = TargetTriple.empty()? llvm::sys::getDefaultTargetTriple() :
+                                                  TargetTriple;
+    TargetOptions->CPU = llvm::sys::getHostCPUName();
+    std::shared_ptr<LLVMContext> LLContext(new LLVMContext);
+
+    // FIXME data layout is not getting set in the AST context
 
     auto CG = CreateLLVMCodeGen(Diag, Filename == ""? std::string("module") : Filename,
-                                CodeGenOptions(), TargetOptions, llvm::getGlobalContext());
+                                CodeGenOptions(), *TargetOptions, *LLContext);
+    std::unique_ptr<flang::TargetInfo> TI(TargetInfo::CreateTargetInfo(Diag, TargetOptions));
+    Context.setTargetInfo(*TI);
     CG->Initialize(Context);
     CG->HandleTranslationUnit(Context);
 
@@ -471,7 +478,7 @@ static bool ParseFile(const std::string &Filename,
 
     const llvm::Target *TheTarget = 0;
     std::string Err;
-    TheTarget = llvm::TargetRegistry::lookupTarget(TargetOptions.Triple, Err);
+    TheTarget = llvm::TargetRegistry::lookupTarget(TargetOptions->Triple, Err);
 
     CodeGenOpt::Level TMOptLevel = CodeGenOpt::Default;
     switch(OptLevel) {
@@ -481,8 +488,8 @@ static bool ParseFile(const std::string &Filename,
 
     llvm::TargetOptions Options;
 
-    auto TM = TheTarget->createTargetMachine(TargetOptions.Triple, TargetOptions.CPU, "", Options,
-                                             Reloc::Default, CodeModel::Default,
+    auto TM = TheTarget->createTargetMachine(TargetOptions->Triple, TargetOptions->CPU, "", Options,
+                                             Reloc::Static, CodeModel::Default,
                                              TMOptLevel);
 
     if(!(EmitLLVM && OptLevel == 0)) {
@@ -533,7 +540,7 @@ static bool ParseFile(const std::string &Filename,
 }
 
 int main(int argc, char **argv) {
-  sys::PrintStackTraceOnErrorSignal();
+  sys::PrintStackTraceOnErrorSignal(llvm::StringRef(argv[0]));
   PrettyStackTraceProgram X(argc, argv);
   cl::ParseCommandLineOptions(argc, argv, "LLVM Fortran compiler");
 

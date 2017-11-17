@@ -34,6 +34,7 @@
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/Target/TargetSubtargetInfo.h"
 #include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/IPO/AlwaysInliner.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Instrumentation.h"
 #include "llvm/Transforms/ObjCARC.h"
@@ -119,7 +120,7 @@ public:
                      const LangOptions &LOpts,
                      Module *M)
     : Diags(_Diags), CodeGenOpts(CGOpts), TargetOpts(TOpts), LangOpts(LOpts),
-      TheModule(M), CodeGenerationTime("Code Generation Time"),
+      TheModule(M), CodeGenerationTime("codegen", "Code Generation Time"),
       CodeGenPasses(0), PerModulePasses(0), PerFunctionPasses(0) {}
 
   ~EmitAssemblyHelper() {
@@ -154,6 +155,21 @@ static void addBoundsCheckingPass(const PassManagerBuilder &Builder,
   PM.add(createBoundsCheckingPass());
 }
 
+static llvm::Reloc::Model getRelocModel(const CodeGenOptions &CodeGenOpts) {
+  // Keep this synced with the equivalent code in
+  // lib/Frontend/CompilerInvocation.cpp
+  llvm::Optional<llvm::Reloc::Model> RM;
+  RM = llvm::StringSwitch<llvm::Reloc::Model>(CodeGenOpts.RelocationModel)
+      .Case("static", llvm::Reloc::Static)
+      .Case("pic", llvm::Reloc::PIC_)
+      .Case("ropi", llvm::Reloc::ROPI)
+      .Case("rwpi", llvm::Reloc::RWPI)
+      .Case("ropi-rwpi", llvm::Reloc::ROPI_RWPI)
+      .Case("dynamic-no-pic", llvm::Reloc::DynamicNoPIC);
+  assert(RM.hasValue() && "invalid PIC model!");
+  return *RM;
+}
+
 void EmitAssemblyHelper::CreatePasses() {
   unsigned OptLevel = CodeGenOpts.OptimizationLevel;
   CodeGenOptions::InliningMethod Inlining = CodeGenOpts.getInlining();
@@ -168,7 +184,6 @@ void EmitAssemblyHelper::CreatePasses() {
   PassManagerBuilderWrapper PMBuilder(CodeGenOpts, LangOpts);
   PMBuilder.OptLevel = OptLevel;
   PMBuilder.SizeLevel = CodeGenOpts.OptimizeSize;
-  PMBuilder.BBVectorize = CodeGenOpts.VectorizeBB;
   PMBuilder.SLPVectorize = CodeGenOpts.VectorizeSLP;
   PMBuilder.LoopVectorize = CodeGenOpts.VectorizeLoop;
 
@@ -199,9 +214,9 @@ void EmitAssemblyHelper::CreatePasses() {
     // Respect always_inline.
     if (OptLevel == 0)
       // Do not insert lifetime intrinsics at -O0.
-      PMBuilder.Inliner = createAlwaysInlinerPass(false);
+      PMBuilder.Inliner = createAlwaysInlinerLegacyPass(false);
     else
-      PMBuilder.Inliner = createAlwaysInlinerPass();
+      PMBuilder.Inliner = createAlwaysInlinerLegacyPass();
     break;
   }
 
@@ -299,16 +314,7 @@ TargetMachine *EmitAssemblyHelper::CreateTargetMachine(bool MustCreateTM) {
     FeaturesStr = Features.getString();
   }
 
-  llvm::Reloc::Model RM = llvm::Reloc::Default;
-  if (CodeGenOpts.RelocationModel == "static") {
-    RM = llvm::Reloc::Static;
-  } else if (CodeGenOpts.RelocationModel == "pic") {
-    RM = llvm::Reloc::PIC_;
-  } else {
-    assert(CodeGenOpts.RelocationModel == "dynamic-no-pic" &&
-           "Invalid PIC model!");
-    RM = llvm::Reloc::DynamicNoPIC;
-  }
+  llvm::Reloc::Model RM = getRelocModel(CodeGenOpts);
 
   CodeGenOpt::Level OptLevel = CodeGenOpt::Default;
   switch (CodeGenOpts.OptimizationLevel) {
@@ -364,7 +370,6 @@ TargetMachine *EmitAssemblyHelper::CreateTargetMachine(bool MustCreateTM) {
     break;
   }
 
-  Options.LessPreciseFPMADOption = CodeGenOpts.LessPreciseFPMAD;
   Options.NoInfsFPMath = CodeGenOpts.NoInfsFPMath;
   Options.NoNaNsFPMath = CodeGenOpts.NoNaNsFPMath;
   Options.NoZerosInBSS = CodeGenOpts.NoZeroInitializedInBSS;

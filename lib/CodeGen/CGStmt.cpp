@@ -104,7 +104,7 @@ void CodeGenFunction::EmitBlock(llvm::BasicBlock *BB) {
   // Place the block after the current block, if possible, or else at
   // the end of the function.
   if (CurBB && CurBB->getParent())
-    CurFn->getBasicBlockList().insertAfter(CurBB, BB);
+    CurFn->getBasicBlockList().insertAfter(CurBB->getIterator(), BB);
   else
     CurFn->getBasicBlockList().push_back(BB);
   Builder.SetInsertPoint(BB);

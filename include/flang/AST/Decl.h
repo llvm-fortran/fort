@@ -738,13 +738,7 @@ private:
 
   FunctionDecl(Kind DK, FunctionKind FK, DeclContext *DC,
                const DeclarationNameInfo &NameInfo, QualType T,
-               int Attr)
-    : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
-      DeclContext(DK), ArgumentCount(0), Arguments(nullptr),
-      Result(nullptr), Body((Stmt*)nullptr) {
-      CustomBoolAttr1 = (Attr & Recursive) != 0;
-      SubDeclKind = FK;
-    }
+               int Attr);
 public:
   static FunctionDecl *Create(ASTContext &C, FunctionKind FK,
                               DeclContext *DC,
@@ -780,8 +774,8 @@ public:
 
   void setBody(Stmt *S);
   void setBody(Expr *E);
-  Stmt *getBody() const { return (Body.is<Stmt*>() ? Body.get<Stmt*>() : nullptr); }
-  Expr *getBodyExpr() const { return (Body.is<Expr*>() ? Body.get<Expr*>() : nullptr); }
+  Stmt *getBody() const;
+  Expr *getBodyExpr() const;
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }

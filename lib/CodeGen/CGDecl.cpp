@@ -142,11 +142,30 @@ CodeGenFunction::EquivSet CodeGenFunction::EmitEquivalenceSet(const EquivalenceS
     LocalVariablesInEquivSets.insert(std::make_pair(I.Var, Bounds.first));
   }
   EquivSet Set;
-  // FIXME: more accurate alignment?
-  Set.Ptr= Builder.Insert(new llvm::AllocaInst(CGM.Int8Ty,
+  const llvm::DataLayout &DL = CGM.getDataLayout();
+  Set.Ptr= Builder.Insert(new llvm::AllocaInst(CGM.Int8Ty, DL.getAllocaAddrSpace(),
                           llvm::ConstantInt::get(CGM.SizeTy, HighestBound - LowestBound),
                           CGM.getDataLayout().getTypeStoreSize(CGM.DoubleTy)),
                           "equivalence-set");
+#if 0
+  AllocaInst(Type *Ty, unsigned AddrSpace,
+             Value *ArraySize = nullptr,
+             const Twine &Name = "",
+             Instruction *InsertBefore = nullptr);
+  AllocaInst(Type *Ty, unsigned AddrSpace, Value *ArraySize,
+             const Twine &Name, BasicBlock *InsertAtEnd);
+
+  AllocaInst(Type *Ty, unsigned AddrSpace,
+             const Twine &Name, Instruction *InsertBefore = nullptr);
+  AllocaInst(Type *Ty, unsigned AddrSpace,
+             const Twine &Name, BasicBlock *InsertAtEnd);
+
+  AllocaInst(Type *Ty, unsigned AddrSpace, Value *ArraySize, unsigned Align,
+             const Twine &Name = "", Instruction *InsertBefore = nullptr);
+  AllocaInst(Type *Ty, unsigned AddrSpace, Value *ArraySize, unsigned Align,
+             const Twine &Name, BasicBlock *InsertAtEnd);
+
+#endif
   Set.LowestBound = LowestBound;
   EquivSets.insert(std::make_pair(S, Set));
   return Set;

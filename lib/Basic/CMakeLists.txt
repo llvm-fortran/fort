@@ -1,9 +1,12 @@
 set(LLVM_LINK_COMPONENTS mc)
 
 add_flang_library(flangBasic
+  CharInfo.cpp
   Diagnostic.cpp
   DiagnosticIDs.cpp
   IdentifierTable.cpp
+  TargetInfo.cpp
+  Targets.cpp
   Token.cpp
   TokenKinds.cpp
 )

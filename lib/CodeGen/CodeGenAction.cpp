@@ -17,7 +17,7 @@
 #include "flang/Frontend/CompilerInstance.h"
 #include "flang/Frontend/FrontendDiagnostic.h"
 #include "llvm/ADT/SmallString.h"
-#include "llvm/Bitcode/ReaderWriter.h"
+#include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/DiagnosticPrinter.h"
 #include "llvm/IR/Module.h"
@@ -33,6 +33,7 @@ using namespace llvm;
 
 namespace flang {
   class BackendConsumer : public ASTConsumer {
+
     virtual void anchor();
     DiagnosticsEngine &Diags;
     BackendAction Action;
@@ -65,7 +66,7 @@ namespace flang {
       LangOpts(langopts),
       AsmOutStream(OS),
       Context(), 
-      LLVMIRGeneration("LLVM IR Generation Time"),
+      LLVMIRGeneration("irgen", "LLVM IR Generation Time"),
       Gen(CreateLLVMCodeGen(Diags, infile, compopts, targetopts, C)),
       LinkModule(LinkModule)
     {
@@ -120,9 +121,8 @@ namespace flang {
 
       // Link LinkModule into this module if present, preserving its validity.
       if (LinkModule) {
-        if (Linker::LinkModules(
-                M, LinkModule.get(),
-                [=](const DiagnosticInfo &DI) { linkerDiagnosticHandler(DI); }))
+        if (Linker::linkModules(
+                *M, std::move(LinkModule)))
           return;
       }
 

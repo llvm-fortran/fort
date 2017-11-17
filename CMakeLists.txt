@@ -30,7 +30,8 @@ if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
       "--libdir"
       "--includedir"
       "--prefix"
-      "--src-root")
+      "--src-root"
+      "--cmakedir")
     execute_process(
       COMMAND ${CONFIG_COMMAND}
       RESULT_VARIABLE HAD_ERROR
@@ -55,6 +56,7 @@ if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
   list(GET CONFIG_OUTPUT 3 INCLUDE_DIR)
   list(GET CONFIG_OUTPUT 4 LLVM_OBJ_ROOT)
   list(GET CONFIG_OUTPUT 5 MAIN_SRC_DIR)
+  list(GET CONFIG_OUTPUT 6 LLVM_CONFIG_CMAKE_PATH)
 
   if(NOT MSVC_IDE)
     set(LLVM_ENABLE_ASSERTIONS ${ENABLE_ASSERTIONS}
@@ -69,10 +71,13 @@ if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
   set(LLVM_BINARY_DIR ${LLVM_OBJ_ROOT} CACHE PATH "Path to LLVM build tree")
   set(LLVM_MAIN_SRC_DIR ${MAIN_SRC_DIR} CACHE PATH "Path to LLVM source tree")
 
+  # Normalize LLVM_CMAKE_PATH. --cmakedir might contain backslashes.
+  # CMake assumes slashes as PATH.
+  file(TO_CMAKE_PATH ${LLVM_CONFIG_CMAKE_PATH} LLVM_CMAKE_PATH)
+
   find_program(LLVM_TABLEGEN_EXE "llvm-tblgen" ${LLVM_TOOLS_BINARY_DIR}
     NO_DEFAULT_PATH)
 
-  set(LLVM_CMAKE_PATH "${LLVM_BINARY_DIR}/share/llvm/cmake")
   set(LLVMCONFIG_FILE "${LLVM_CMAKE_PATH}/LLVMConfig.cmake")
   if(EXISTS ${LLVMCONFIG_FILE})
     list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_PATH}")
