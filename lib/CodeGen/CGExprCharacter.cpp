@@ -189,7 +189,7 @@ llvm::Value *CodeGenFunction::GetCharacterTypeLength(QualType T) {
 CharacterValueTy CodeGenFunction::GetCharacterValueFromPtr(llvm::Value *Ptr,
                                                            QualType StorageType) {
   return CharacterValueTy(Builder.CreateConstInBoundsGEP2_32(
-                      Ptr->getType()->getArrayElementType(),Ptr, 0, 0),
+                      Ptr->getType()->getPointerElementType(),Ptr, 0, 0),
                     GetCharacterTypeLength(StorageType));
 }
 
