@@ -100,8 +100,8 @@ private:
 
   /// CreateTargetMachine - Generates the TargetMachine.
   /// Returns Null if it is unable to create the target machine.
-  /// Some of our clang tests specify triples which are not built
-  /// into clang. This is okay because these tests check the generated
+  /// Some of the tests specify triples which are not built
+  /// into the compiler. This is okay because these tests check the generated
   /// IR, and they require DataLayout which depends on the triple.
   /// In this case, we allow this method to fail and not report an error.
   /// When MustCreateTM is used, we print an error if we are unable to load
@@ -285,7 +285,7 @@ TargetMachine *EmitAssemblyHelper::CreateTargetMachine(bool MustCreateTM) {
   }
 
   SmallVector<const char *, 16> BackendArgs;
-  BackendArgs.push_back("clang"); // Fake program name.
+  BackendArgs.push_back("flang"); // Fake program name.
   if (!CodeGenOpts.DebugPass.empty()) {
     BackendArgs.push_back("-debug-pass");
     BackendArgs.push_back(CodeGenOpts.DebugPass.c_str());

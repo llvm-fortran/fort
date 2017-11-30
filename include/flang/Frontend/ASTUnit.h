@@ -193,6 +193,6 @@ public:
 
 };
 
-} // namespace clang
+} // namespace flang
 
 #endif

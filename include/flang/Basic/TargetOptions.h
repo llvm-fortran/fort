@@ -53,6 +53,6 @@ public:
   std::vector<std::string> Features;
 };
 
-}  // end namespace clang
+}  // end namespace flang
 
 #endif
