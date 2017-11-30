@@ -1,4 +1,4 @@
-//===- Version.h - Clang Version Number -------------------------*- C++ -*-===//
+//===- Version.h - Flang Version Number -------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -9,54 +9,54 @@
 ///
 /// \file
 /// \brief Defines version macros and version-related utility functions
-/// for Clang.
+/// for Flang.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_CLANG_BASIC_VERSION_H
-#define LLVM_CLANG_BASIC_VERSION_H
+#ifndef LLVM_FLANG_BASIC_VERSION_H
+#define LLVM_FLANG_BASIC_VERSION_H
 
-#include "clang/Basic/Version.inc"
+#include "flang/Basic/Version.inc"
 #include "llvm/ADT/StringRef.h"
 
-namespace clang {
+namespace flang {
   /// \brief Retrieves the repository path (e.g., Subversion path) that
-  /// identifies the particular Clang branch, tag, or trunk from which this
-  /// Clang was built.
-  std::string getClangRepositoryPath();
+  /// identifies the particular Flang branch, tag, or trunk from which this
+  /// Flang was built.
+  std::string getFlangRepositoryPath();
 
   /// \brief Retrieves the repository path from which LLVM was built.
   ///
-  /// This supports LLVM residing in a separate repository from clang.
+  /// This supports LLVM residing in a separate repository from flang.
   std::string getLLVMRepositoryPath();
 
   /// \brief Retrieves the repository revision number (or identifer) from which
-  /// this Clang was built.
-  std::string getClangRevision();
+  /// this Flang was built.
+  std::string getFlangRevision();
 
   /// \brief Retrieves the repository revision number (or identifer) from which
   /// LLVM was built.
   ///
-  /// If Clang and LLVM are in the same repository, this returns the same
-  /// string as getClangRevision.
+  /// If Flang and LLVM are in the same repository, this returns the same
+  /// string as getFlangRevision.
   std::string getLLVMRevision();
 
   /// \brief Retrieves the full repository version that is an amalgamation of
-  /// the information in getClangRepositoryPath() and getClangRevision().
-  std::string getClangFullRepositoryVersion();
+  /// the information in getFlangRepositoryPath() and getFlangRevision().
+  std::string getFlangFullRepositoryVersion();
 
-  /// \brief Retrieves a string representing the complete clang version,
-  /// which includes the clang version number, the repository version,
+  /// \brief Retrieves a string representing the complete flang version,
+  /// which includes the flang version number, the repository version,
   /// and the vendor tag.
-  std::string getClangFullVersion();
+  std::string getFlangFullVersion();
 
-  /// \brief Like getClangFullVersion(), but with a custom tool name.
-  std::string getClangToolFullVersion(llvm::StringRef ToolName);
+  /// \brief Like getFlangFullVersion(), but with a custom tool name.
+  std::string getFlangToolFullVersion(llvm::StringRef ToolName);
 
-  /// \brief Retrieves a string representing the complete clang version suitable
-  /// for use in the CPP __VERSION__ macro, which includes the clang version
+  /// \brief Retrieves a string representing the complete flang version suitable
+  /// for use in the CPP __VERSION__ macro, which includes the flang version
   /// number, the repository version, and the vendor tag.
-  std::string getClangFullCPPVersion();
+  std::string getFlangFullCPPVersion();
 }
 
-#endif // LLVM_CLANG_BASIC_VERSION_H
+#endif // LLVM_FLANG_BASIC_VERSION_H

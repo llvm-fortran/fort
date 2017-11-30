@@ -224,9 +224,9 @@ else()
 endif()
 
 # Configure the Version.inc file.
-#configure_file(
-#  ${CMAKE_CURRENT_SOURCE_DIR}/include/flang/Basic/Version.inc.in
-#  ${CMAKE_CURRENT_BINARY_DIR}/include/flang/Basic/Version.inc)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/flang/Basic/Version.inc.in
+  ${CMAKE_CURRENT_BINARY_DIR}/include/flang/Basic/Version.inc)
 
 # Add appropriate flags for GCC
 if (LLVM_COMPILER_IS_GCC_COMPATIBLE)
