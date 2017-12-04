@@ -1016,7 +1016,8 @@ StmtResult Parser::ParseStatementFunction() {
 ///           [module-subprogram-part]
 ///           end-module-stmt
 bool Parser::ParseModule() {
-  return false;
+  // FIXME implement
+  return true;
 }
 
 /// ParseBlockData - Parse block data.

@@ -1,4 +1,4 @@
-//===-- CompilerInstance.h - Clang Compiler Instance ------------*- C++ -*-===//
+//===-- CompilerInstance.h - Flang Compiler Instance ------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -42,7 +42,7 @@ class Preprocessor;
 class Sema;
 class TargetInfo;
 
-/// CompilerInstance - Helper class for managing a single instance of the Clang
+/// CompilerInstance - Helper class for managing a single instance of the Flang
 /// compiler.
 ///
 /// The CompilerInstance serves two purposes:
@@ -50,7 +50,7 @@ class TargetInfo;
 ///      for example the preprocessor, the target information, and the AST
 ///      context.
 ///  (2) It provides utility routines for constructing and manipulating the
-///      common Clang objects.
+///      common Flang objects.
 ///
 /// The compiler instance generally owns the instance of all the objects that it
 /// manages. However, clients can still share objects by manually setting the

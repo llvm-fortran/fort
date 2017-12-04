@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef CLANG_CODEGEN_CODEGENFUNCTION_H
-#define CLANG_CODEGEN_CODEGENFUNCTION_H
+#ifndef FLANG_CODEGEN_CODEGENFUNCTION_H
+#define FLANG_CODEGEN_CODEGENFUNCTION_H
 
 #include "CGBuilder.h"
 #include "CGValue.h"
