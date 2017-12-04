@@ -16,6 +16,7 @@
 #include "flang/Frontend/VerifyDiagnosticConsumer.h"
 #include "flang/AST/ASTConsumer.h"
 #include "flang/Basic/TargetInfo.h"
+#include "flang/Basic/Version.h"
 #include "flang/Frontend/ASTConsumers.h"
 #include "flang/Parse/Parser.h"
 #include "flang/Sema/Sema.h"
@@ -246,6 +247,11 @@ static int Execute(llvm::Module *Module, const char * const *envp) {
   return EE->runFunctionAsMain(EntryFn, Args, envp);
 }
 */
+
+static void PrintVersion() {
+  raw_ostream &OS = llvm::outs();
+  OS << getFlangFullVersion() << '\n';
+}
 
 std::string GetOutputName(StringRef Filename,
                           BackendAction Action) {
@@ -542,6 +548,7 @@ static bool ParseFile(const std::string &Filename,
 int main(int argc, char **argv) {
   sys::PrintStackTraceOnErrorSignal(llvm::StringRef(argv[0]));
   PrettyStackTraceProgram X(argc, argv);
+  cl::SetVersionPrinter(PrintVersion);
   cl::ParseCommandLineOptions(argc, argv, "LLVM Fortran compiler");
 
   bool CanonicalPrefixes = true;
