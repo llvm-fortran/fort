@@ -237,9 +237,9 @@ if (APPLE)
   set(CMAKE_MODULE_LINKER_FLAGS "-Wl,-flat_namespace -Wl,-undefined -Wl,suppress")
 endif ()
 
-#configure_file(
-#  ${FLANG_SOURCE_DIR}/include/flang/Config/config.h.cmake
-#  ${FLANG_BINARY_DIR}/include/flang/Config/config.h)
+configure_file(
+  ${FLANG_SOURCE_DIR}/include/flang/Config/config.h.cmake
+  ${FLANG_BINARY_DIR}/include/flang/Config/config.h)
 
 #include(LLVMParseArguments)
 
@@ -328,6 +328,8 @@ macro(add_flang_executable name)
   add_llvm_executable( ${name} ${ARGN} )
   set_target_properties(${name} PROPERTIES FOLDER "Flang executables")
 endmacro(add_flang_executable)
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 include_directories(BEFORE
   ${CMAKE_CURRENT_BINARY_DIR}/include
