@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Basic/DiagnosticIDs.h"
-#include "flang/Basic/AllDiagnostics.h"
+#include "fort/Basic/DiagnosticIDs.h"
+#include "fort/Basic/AllDiagnostics.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/SmallString.h"
@@ -73,11 +73,11 @@ static const StaticDiagInfoRec StaticDiagInfo[] = {
   { diag::ENUM, DEFAULT_MAPPING, CLASS, SFINAE, ACCESS,           \
     NOWERROR, SHOWINSYSHEADER, CATEGORY, GROUP,                   \
     STR_SIZE(DESC, uint16_t), DESC },
-#include "flang/Basic/DiagnosticCommonKinds.inc"
-#include "flang/Basic/DiagnosticFrontendKinds.inc"
-#include "flang/Basic/DiagnosticLexKinds.inc"
-#include "flang/Basic/DiagnosticParseKinds.inc"
-#include "flang/Basic/DiagnosticSemaKinds.inc"
+#include "fort/Basic/DiagnosticCommonKinds.inc"
+#include "fort/Basic/DiagnosticFrontendKinds.inc"
+#include "fort/Basic/DiagnosticLexKinds.inc"
+#include "fort/Basic/DiagnosticParseKinds.inc"
+#include "fort/Basic/DiagnosticSemaKinds.inc"
 #undef DIAG
   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
@@ -409,13 +409,13 @@ struct flang::WarningOption {
 };
 
 #define GET_DIAG_ARRAYS
-#include "flang/Basic/DiagnosticGroups.inc"
+#include "fort/Basic/DiagnosticGroups.inc"
 #undef GET_DIAG_ARRAYS
 
 // Second the table of options, sorted by name for fast binary lookup.
 static const WarningOption OptionTable[] = {
 #define GET_DIAG_TABLE
-#include "flang/Basic/DiagnosticGroups.inc"
+#include "fort/Basic/DiagnosticGroups.inc"
 #undef GET_DIAG_TABLE
 };
 static const size_t OptionTableSize =

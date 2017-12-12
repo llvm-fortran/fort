@@ -14,7 +14,7 @@
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
 #include "CGIORuntime.h"
-#include "flang/AST/StmtVisitor.h"
+#include "fort/AST/StmtVisitor.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/InlineAsm.h"

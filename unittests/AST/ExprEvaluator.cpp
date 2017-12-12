@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/ASTContext.h"
-#include "flang/AST/Expr.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/AST/Expr.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 

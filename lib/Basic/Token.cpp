@@ -11,12 +11,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Basic/Token.h"
+#include "fort/Basic/Token.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/Twine.h"
-#include "flang/Basic/LLVM.h"
+#include "fort/Basic/LLVM.h"
 
 namespace flang {
 

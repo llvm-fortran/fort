@@ -7,9 +7,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/Decl.h"
-#include "flang/AST/Expr.h"
-#include "flang/AST/ExprVisitor.h"
+#include "fort/AST/Decl.h"
+#include "fort/AST/Expr.h"
+#include "fort/AST/ExprVisitor.h"
 
 namespace flang {
 

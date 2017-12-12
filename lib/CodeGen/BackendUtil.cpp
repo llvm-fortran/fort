@@ -7,12 +7,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/CodeGen/BackendUtil.h"
-#include "flang/Basic/Diagnostic.h"
-#include "flang/Basic/LangOptions.h"
-#include "flang/Basic/TargetOptions.h"
-#include "flang/Frontend/CodeGenOptions.h"
-#include "flang/Frontend/FrontendDiagnostic.h"
+#include "fort/CodeGen/BackendUtil.h"
+#include "fort/Basic/Diagnostic.h"
+#include "fort/Basic/LangOptions.h"
+#include "fort/Basic/TargetOptions.h"
+#include "fort/Frontend/CodeGenOptions.h"
+#include "fort/Frontend/FrontendDiagnostic.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/TargetTransformInfo.h"

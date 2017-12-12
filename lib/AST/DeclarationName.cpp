@@ -11,10 +11,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/ASTContext.h"
-#include "flang/AST/Decl.h"
-#include "flang/AST/DeclarationName.h"
-#include "flang/Basic/IdentifierTable.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/AST/Decl.h"
+#include "fort/AST/DeclarationName.h"
+#include "fort/Basic/IdentifierTable.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/FoldingSet.h"
 #include "llvm/Support/ErrorHandling.h"

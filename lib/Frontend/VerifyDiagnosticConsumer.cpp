@@ -11,11 +11,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Frontend/VerifyDiagnosticConsumer.h"
-#include "flang/Frontend/TextDiagnosticBuffer.h"
-#include "flang/Frontend/FrontendDiagnostic.h"
-#include "flang/Parse/Lexer.h"
-#include "flang/Basic/Diagnostic.h"
+#include "fort/Frontend/VerifyDiagnosticConsumer.h"
+#include "fort/Frontend/TextDiagnosticBuffer.h"
+#include "fort/Frontend/FrontendDiagnostic.h"
+#include "fort/Parse/Lexer.h"
+#include "fort/Basic/Diagnostic.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/MemoryBuffer.h"

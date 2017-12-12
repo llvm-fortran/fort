@@ -11,11 +11,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/Decl.h"
-#include "flang/AST/DeclContextInternals.h"
-#include "flang/AST/Expr.h"
-#include "flang/AST/Stmt.h"
-#include "flang/AST/ASTContext.h"
+#include "fort/AST/Decl.h"
+#include "fort/AST/DeclContextInternals.h"
+#include "fort/AST/Expr.h"
+#include "fort/AST/Stmt.h"
+#include "fort/AST/ASTContext.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace flang {
@@ -158,13 +158,13 @@ Decl *Decl::castFromDeclContext (const DeclContext *D) {
     case Decl::NAME:       \
       return static_cast<NAME##Decl*>(const_cast<DeclContext*>(D));
 #define DECL_CONTEXT_BASE(NAME)
-#include "flang/AST/DeclNodes.inc"
+#include "fort/AST/DeclNodes.inc"
     default:
 #define DECL(NAME, BASE)
 #define DECL_CONTEXT_BASE(NAME)                  \
       if (DK >= first##NAME && DK <= last##NAME) \
         return static_cast<NAME##Decl*>(const_cast<DeclContext*>(D));
-#include "flang/AST/DeclNodes.inc"
+#include "fort/AST/DeclNodes.inc"
       assert(false && "a decl that inherits DeclContext isn't handled");
       return 0;
   }
@@ -178,13 +178,13 @@ DeclContext *Decl::castToDeclContext(const Decl *D) {
     case Decl::NAME:       \
       return static_cast<NAME##Decl*>(const_cast<Decl*>(D));
 #define DECL_CONTEXT_BASE(NAME)
-#include "flang/AST/DeclNodes.inc"
+#include "fort/AST/DeclNodes.inc"
     default:
 #define DECL(NAME, BASE)
 #define DECL_CONTEXT_BASE(NAME)                                   \
       if (DK >= first##NAME && DK <= last##NAME)                  \
         return static_cast<NAME##Decl*>(const_cast<Decl*>(D));
-#include "flang/AST/DeclNodes.inc"
+#include "fort/AST/DeclNodes.inc"
       assert(false && "a decl that inherits DeclContext isn't handled");
       return 0;
   }

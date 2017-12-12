@@ -13,9 +13,9 @@
 
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
-#include "flang/AST/ASTContext.h"
-#include "flang/AST/ExprVisitor.h"
-#include "flang/Frontend/CodeGenOptions.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/AST/ExprVisitor.h"
+#include "fort/Frontend/CodeGenOptions.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Function.h"

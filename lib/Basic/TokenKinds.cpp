@@ -11,7 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Basic/TokenKinds.h"
+#include "fort/Basic/TokenKinds.h"
 #include <cassert>
 
 namespace flang {
@@ -20,7 +20,7 @@ static char const * const TokNames[] = {
 #define TOK(X)       #X,
 #define KEYWORD(X,Y) #X,
 #define FORMAT_SPEC(X,Y) #X,
-#include "flang/Basic/TokenKinds.def"
+#include "fort/Basic/TokenKinds.def"
   0
 };
 

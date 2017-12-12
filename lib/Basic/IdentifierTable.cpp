@@ -12,8 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Basic/IdentifierTable.h"
-#include "flang/Basic/LangOptions.h"
+#include "fort/Basic/IdentifierTable.h"
+#include "fort/Basic/LangOptions.h"
 #include "llvm/ADT/FoldingSet.h"
 #include "llvm/ADT/StringRef.h"
 #include <cstdio>
@@ -92,7 +92,7 @@ void IdentifierTable::AddPredefineds(const LangOptions &LangOpts) {
                 FLAGS, LangOpts, *this, true);
 #undef OPERATOR
 #define OPERATOR(NAME, FLAGS)
-#include "flang/Basic/TokenKinds.def"
+#include "fort/Basic/TokenKinds.def"
 }
 
 //===----------------------------------------------------------------------===//

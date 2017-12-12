@@ -11,11 +11,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Parse/Lexer.h"
-#include "flang/Parse/LexDiagnostic.h"
-#include "flang/Parse/Parser.h"
-#include "flang/Parse/FixedForm.h"
-#include "flang/Basic/Diagnostic.h"
+#include "fort/Parse/Lexer.h"
+#include "fort/Parse/LexDiagnostic.h"
+#include "fort/Parse/Parser.h"
+#include "fort/Parse/FixedForm.h"
+#include "fort/Basic/Diagnostic.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/SourceMgr.h"

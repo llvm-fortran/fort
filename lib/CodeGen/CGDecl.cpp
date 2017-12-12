@@ -13,10 +13,10 @@
 
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
-#include "flang/AST/Decl.h"
-#include "flang/AST/DeclVisitor.h"
-#include "flang/AST/Expr.h"
-#include "flang/AST/StorageSet.h"
+#include "fort/AST/Decl.h"
+#include "fort/AST/DeclVisitor.h"
+#include "fort/AST/Expr.h"
+#include "fort/AST/StorageSet.h"
 
 namespace flang {
 namespace CodeGen {

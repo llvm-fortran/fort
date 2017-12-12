@@ -11,7 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Frontend/TextDiagnosticPrinter.h"
+#include "fort/Frontend/TextDiagnosticPrinter.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"

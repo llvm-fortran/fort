@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/IOSpec.h"
-#include "flang/AST/ASTContext.h"
+#include "fort/AST/IOSpec.h"
+#include "fort/AST/ASTContext.h"
 
 namespace flang {
 

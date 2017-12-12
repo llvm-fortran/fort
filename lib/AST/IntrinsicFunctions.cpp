@@ -11,7 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/IntrinsicFunctions.h"
+#include "fort/AST/IntrinsicFunctions.h"
 #include <cassert>
 
 namespace flang {
@@ -19,7 +19,7 @@ namespace intrinsic {
 
 static char FunctionNames[][NUM_FUNCTIONS] = {
 #define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) #NAME,
-#include "flang/AST/IntrinsicFunctions.def"
+#include "fort/AST/IntrinsicFunctions.def"
   "\0"
 };
 
@@ -37,7 +37,7 @@ const char *getFunctionName(FunctionKind Kind) {
 
 static FunctionKind FunctionGenericKinds[] = {
   #define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) GENERICNAME,
-  #include "flang/AST/IntrinsicFunctions.def"
+  #include "fort/AST/IntrinsicFunctions.def"
 };
 
 FunctionKind getGenericFunctionKind(FunctionKind Function) {
@@ -46,7 +46,7 @@ FunctionKind getGenericFunctionKind(FunctionKind Function) {
 
 static Group FunctionGroups[] = {
   #define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) GROUP_NONE,
-  #include "flang/AST/IntrinsicFunctions.def"
+  #include "fort/AST/IntrinsicFunctions.def"
 };
 
 Group getFunctionGroup(FunctionKind Function) {
@@ -57,7 +57,7 @@ static void InitFunctionGroups() {
   #define INTRINSIC_GROUP(NAME, FIRST, LAST) \
     for(size_t I = FIRST; I <= LAST; ++I)    \
       FunctionGroups[I] = GROUP_ ## NAME;
-  #include "flang/AST/IntrinsicFunctions.def"
+  #include "fort/AST/IntrinsicFunctions.def"
 }
 
 static FunctionArgumentCountKind FunctionArgCounts[] = {
@@ -67,7 +67,7 @@ static FunctionArgumentCountKind FunctionArgCounts[] = {
   #define NUM_ARGS_1_OR_2 ArgumentCount1or2
   #define NUM_ARGS_2_OR_MORE ArgumentCount2orMore
   #define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) NUMARGS,
-  #include "flang/AST/IntrinsicFunctions.def"
+  #include "fort/AST/IntrinsicFunctions.def"
     ArgumentCount1,
 };
 

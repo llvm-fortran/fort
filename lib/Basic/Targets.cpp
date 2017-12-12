@@ -12,13 +12,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Basic/Diagnostic.h"
-#include "flang/Basic/LangOptions.h"
-#include "flang/Basic/MacroBuilder.h"
-#include "flang/Basic/TargetInfo.h"
-#include "flang/Basic/TargetOptions.h"
-#include "flang/Basic/Version.h"
-#include "flang/Frontend/CodeGenOptions.h"
+#include "fort/Basic/Diagnostic.h"
+#include "fort/Basic/LangOptions.h"
+#include "fort/Basic/MacroBuilder.h"
+#include "fort/Basic/TargetInfo.h"
+#include "fort/Basic/TargetOptions.h"
+#include "fort/Basic/Version.h"
+#include "fort/Frontend/CodeGenOptions.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringExtras.h"

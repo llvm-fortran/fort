@@ -15,9 +15,9 @@
 #define FLANG_CODEGEN_CODEGENMODULE_H
 
 #include "CodeGenTypes.h"
-#include "flang/AST/Decl.h"
-#include "flang/Basic/LangOptions.h"
-#include "flang/Frontend/CodeGenOptions.h"
+#include "fort/AST/Decl.h"
+#include "fort/Basic/LangOptions.h"
+#include "fort/Frontend/CodeGenOptions.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallPtrSet.h"

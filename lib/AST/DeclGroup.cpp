@@ -11,9 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/DeclGroup.h"
-#include "flang/AST/Decl.h"
-#include "flang/AST/ASTContext.h"
+#include "fort/AST/DeclGroup.h"
+#include "fort/AST/Decl.h"
+#include "fort/AST/ASTContext.h"
 #include "llvm/Support/Allocator.h"
 #include <type_traits>
 

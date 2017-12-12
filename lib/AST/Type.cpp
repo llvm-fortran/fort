@@ -11,9 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/Type.h"
-#include "flang/AST/ASTContext.h"
-#include "flang/AST/Expr.h"
+#include "fort/AST/Type.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/AST/Expr.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -78,7 +78,7 @@ RecordType::RecordType(ASTContext &C, const RecordDecl *RD, ArrayRef<FieldDecl*>
 static const char * TypeKindStrings[] = {
   #define INTEGER_KIND(NAME, VALUE) #VALUE ,
   #define FLOATING_POINT_KIND(NAME, VALUE) #VALUE ,
-  #include "flang/AST/BuiltinTypeKinds.def"
+  #include "fort/AST/BuiltinTypeKinds.def"
   "?"
 };
 

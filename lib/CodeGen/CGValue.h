@@ -15,8 +15,8 @@
 #ifndef FLANG_CODEGEN_CGVALUE_H
 #define FLANG_CODEGEN_CGVALUE_H
 
-#include "flang/AST/ASTContext.h"
-#include "flang/AST/Type.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/AST/Type.h"
 #include "llvm/IR/Value.h"
 
 namespace llvm {

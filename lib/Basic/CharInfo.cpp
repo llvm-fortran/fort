@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Basic/CharInfo.h"
+#include "fort/Basic/CharInfo.h"
 
 using namespace flang::charinfo;
 

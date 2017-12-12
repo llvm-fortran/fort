@@ -11,9 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Basic/Version.h"
-#include "flang/Basic/LLVM.h"
-#include "flang/Config/config.h"
+#include "fort/Basic/Version.h"
+#include "fort/Basic/LLVM.h"
+#include "fort/Config/config.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cstdlib>
 #include <cstring>

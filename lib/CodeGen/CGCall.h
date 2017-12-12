@@ -12,7 +12,7 @@
 
 #include "ABIInfo.h"
 #include "CGValue.h"
-#include "flang/AST/Type.h"
+#include "fort/AST/Type.h"
 #include "llvm/IR/Module.h"
 
 namespace flang   {

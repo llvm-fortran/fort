@@ -13,8 +13,8 @@
 
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
-#include "flang/AST/ASTContext.h"
-#include "flang/AST/ExprVisitor.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/AST/ExprVisitor.h"
 
 namespace flang {
 namespace CodeGen {

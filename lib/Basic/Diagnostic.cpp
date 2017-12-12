@@ -11,9 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Basic/Diagnostic.h"
-#include "flang/Basic/IdentifierTable.h"
-#include "flang/AST/Type.h"
+#include "fort/Basic/Diagnostic.h"
+#include "fort/Basic/IdentifierTable.h"
+#include "fort/AST/Type.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/ADT/StringExtras.h"

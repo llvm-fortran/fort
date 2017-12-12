@@ -11,11 +11,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Parse/Parser.h"
-#include "flang/Parse/ParseDiagnostic.h"
-#include "flang/AST/Expr.h"
-#include "flang/Sema/Ownership.h"
-#include "flang/Sema/Sema.h"
+#include "fort/Parse/Parser.h"
+#include "fort/Parse/ParseDiagnostic.h"
+#include "fort/AST/Expr.h"
+#include "fort/Sema/Ownership.h"
+#include "fort/Sema/Sema.h"
 
 namespace flang {
 

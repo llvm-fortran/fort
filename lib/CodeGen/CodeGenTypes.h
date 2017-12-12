@@ -16,9 +16,9 @@
 
 #include "CGCall.h"
 #include "CGABI.h"
-#include "flang/AST/Decl.h"
-#include "flang/AST/Type.h"
-#include "flang/Frontend/CodeGenOptions.h"
+#include "fort/AST/Decl.h"
+#include "fort/AST/Type.h"
+#include "fort/Frontend/CodeGenOptions.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/IR/Module.h"
 #include <vector>

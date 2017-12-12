@@ -13,8 +13,8 @@
 
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
-#include "flang/AST/ASTContext.h"
-#include "flang/AST/ExprVisitor.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/AST/ExprVisitor.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"

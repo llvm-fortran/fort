@@ -7,16 +7,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Sema/Sema.h"
-#include "flang/Sema/DeclSpec.h"
-#include "flang/Sema/SemaDiagnostic.h"
-#include "flang/Sema/SemaInternal.h"
-#include "flang/AST/ASTContext.h"
-#include "flang/AST/Decl.h"
-#include "flang/AST/Expr.h"
-#include "flang/AST/FormatSpec.h"
-#include "flang/AST/IOSpec.h"
-#include "flang/Basic/Diagnostic.h"
+#include "fort/Sema/Sema.h"
+#include "fort/Sema/DeclSpec.h"
+#include "fort/Sema/SemaDiagnostic.h"
+#include "fort/Sema/SemaInternal.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/AST/Decl.h"
+#include "fort/AST/Expr.h"
+#include "fort/AST/FormatSpec.h"
+#include "fort/AST/IOSpec.h"
+#include "fort/Basic/Diagnostic.h"
 
 namespace flang {
 

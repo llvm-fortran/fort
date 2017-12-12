@@ -11,7 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Frontend/TextDiagnosticBuffer.h"
+#include "fort/Frontend/TextDiagnosticBuffer.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/ADT/Twine.h"

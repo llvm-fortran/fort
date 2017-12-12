@@ -12,9 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Sema/Scope.h"
-#include "flang/AST/Expr.h"
-#include "flang/AST/StorageSet.h"
+#include "fort/Sema/Scope.h"
+#include "fort/AST/Expr.h"
+#include "fort/AST/StorageSet.h"
 #include <limits>
 
 namespace flang {

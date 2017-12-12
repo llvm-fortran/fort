@@ -14,7 +14,7 @@
 #ifndef FLANG_CODEGEN_IORUNTIME_H
 #define FLANG_CODEGEN_IORUNTIME_H
 
-#include "flang/AST/Stmt.h"
+#include "fort/AST/Stmt.h"
 
 namespace flang {
 namespace CodeGen {

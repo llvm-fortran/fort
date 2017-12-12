@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/FormatSpec.h"
-#include "flang/AST/ASTContext.h"
+#include "fort/AST/FormatSpec.h"
+#include "fort/AST/ASTContext.h"
 
 namespace flang {
 

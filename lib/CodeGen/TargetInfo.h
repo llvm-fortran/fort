@@ -15,8 +15,8 @@
 #ifndef FLANG_CODEGEN_TARGETINFO_H
 #define FLANG_CODEGEN_TARGETINFO_H
 
-#include "flang/AST/Type.h"
-#include "flang/Basic/LLVM.h"
+#include "fort/AST/Type.h"
+#include "fort/Basic/LLVM.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/SmallString.h"
 

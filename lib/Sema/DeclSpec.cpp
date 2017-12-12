@@ -11,9 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Sema/DeclSpec.h"
-#include "flang/AST/Expr.h"
-#include "flang/AST/Type.h"
+#include "fort/Sema/DeclSpec.h"
+#include "fort/AST/Expr.h"
+#include "fort/AST/Type.h"
 #include "llvm/ADT/ArrayRef.h"
 
 namespace flang {

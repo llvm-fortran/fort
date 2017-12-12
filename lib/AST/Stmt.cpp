@@ -11,11 +11,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/Stmt.h"
-#include "flang/AST/Expr.h"
-#include "flang/AST/StorageSet.h"
-#include "flang/AST/ASTContext.h"
-#include "flang/Basic/IdentifierTable.h"
+#include "fort/AST/Stmt.h"
+#include "fort/AST/Expr.h"
+#include "fort/AST/StorageSet.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/Basic/IdentifierTable.h"
 #include "llvm/ADT/StringRef.h"
 
 namespace flang {

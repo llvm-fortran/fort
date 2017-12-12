@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Parse/FixedForm.h"
-#include "flang/Parse/Parser.h"
+#include "fort/Parse/FixedForm.h"
+#include "fort/Parse/Parser.h"
 
 namespace flang {
 namespace fixedForm {

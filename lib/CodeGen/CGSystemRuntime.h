@@ -14,7 +14,7 @@
 #ifndef FLANG_CODEGEN_SYSTEMRUNTIME_H
 #define FLANG_CODEGEN_SYSTEMRUNTIME_H
 
-#include "flang/AST/Stmt.h"
+#include "fort/AST/Stmt.h"
 
 namespace llvm {
 class Value;

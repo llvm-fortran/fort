@@ -11,14 +11,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/CodeGen/ModuleBuilder.h"
+#include "fort/CodeGen/ModuleBuilder.h"
 #include "CodeGenModule.h"
-#include "flang/AST/ASTContext.h"
-#include "flang/AST/Decl.h"
-#include "flang/AST/Expr.h"
-#include "flang/Basic/Diagnostic.h"
-#include "flang/Basic/TargetInfo.h"
-#include "flang/Frontend/CodeGenOptions.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/AST/Decl.h"
+#include "fort/AST/Expr.h"
+#include "fort/Basic/Diagnostic.h"
+#include "fort/Basic/TargetInfo.h"
+#include "fort/Frontend/CodeGenOptions.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"

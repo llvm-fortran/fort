@@ -7,14 +7,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Parse/Parser.h"
-#include "flang/Parse/ParseDiagnostic.h"
-#include "flang/AST/Decl.h"
-#include "flang/AST/Expr.h"
-#include "flang/AST/Stmt.h"
-#include "flang/Basic/TokenKinds.h"
-#include "flang/Sema/DeclSpec.h"
-#include "flang/Sema/Sema.h"
+#include "fort/Parse/Parser.h"
+#include "fort/Parse/ParseDiagnostic.h"
+#include "fort/AST/Decl.h"
+#include "fort/AST/Expr.h"
+#include "fort/AST/Stmt.h"
+#include "fort/Basic/TokenKinds.h"
+#include "fort/Sema/DeclSpec.h"
+#include "fort/Sema/Sema.h"
 
 namespace flang {
 

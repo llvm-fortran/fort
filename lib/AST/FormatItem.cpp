@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/FormatItem.h"
-#include "flang/AST/ASTContext.h"
+#include "fort/AST/FormatItem.h"
+#include "fort/AST/ASTContext.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace flang {

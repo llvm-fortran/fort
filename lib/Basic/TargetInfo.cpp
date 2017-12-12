@@ -11,9 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Basic/TargetInfo.h"
-#include "flang/Basic/CharInfo.h"
-#include "flang/Basic/LangOptions.h"
+#include "fort/Basic/TargetInfo.h"
+#include "fort/Basic/CharInfo.h"
+#include "fort/Basic/LangOptions.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/ErrorHandling.h"

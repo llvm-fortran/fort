@@ -12,15 +12,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Sema/Sema.h"
-#include "flang/Sema/DeclSpec.h"
-#include "flang/Sema/SemaDiagnostic.h"
-#include "flang/AST/ASTContext.h"
-#include "flang/AST/Decl.h"
-#include "flang/AST/Expr.h"
-#include "flang/AST/Stmt.h"
-#include "flang/AST/StorageSet.h"
-#include "flang/Basic/Diagnostic.h"
+#include "fort/Sema/Sema.h"
+#include "fort/Sema/DeclSpec.h"
+#include "fort/Sema/SemaDiagnostic.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/AST/Decl.h"
+#include "fort/AST/Expr.h"
+#include "fort/AST/Stmt.h"
+#include "fort/AST/StorageSet.h"
+#include "fort/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace flang {

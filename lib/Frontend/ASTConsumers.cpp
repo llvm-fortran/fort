@@ -12,9 +12,9 @@
 //===----------------------------------------------------------------------===//
 
 #include <string>
-#include "flang/Frontend/ASTConsumers.h"
-#include "flang/AST/ASTContext.h"
-#include "flang/AST/ASTConsumer.h"
+#include "fort/Frontend/ASTConsumers.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/AST/ASTConsumer.h"
 
 using namespace flang;
 

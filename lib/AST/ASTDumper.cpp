@@ -11,15 +11,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/Expr.h"
-#include "flang/AST/Stmt.h"
-#include "flang/AST/ExprVisitor.h"
-#include "flang/AST/StmtVisitor.h"
-#include "flang/AST/DeclVisitor.h"
-#include "flang/AST/Type.h"
-#include "flang/AST/TypeVisitor.h"
-#include "flang/AST/FormatItem.h"
-#include "flang/Basic/LLVM.h"
+#include "fort/AST/Expr.h"
+#include "fort/AST/Stmt.h"
+#include "fort/AST/ExprVisitor.h"
+#include "fort/AST/StmtVisitor.h"
+#include "fort/AST/DeclVisitor.h"
+#include "fort/AST/Type.h"
+#include "fort/AST/TypeVisitor.h"
+#include "fort/AST/FormatItem.h"
+#include "fort/Basic/LLVM.h"
 #include "llvm/Support/raw_ostream.h"
 using namespace flang;
 

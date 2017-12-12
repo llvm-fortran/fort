@@ -197,7 +197,7 @@ endif()
 if( NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR )
   file(GLOB_RECURSE
     tablegenned_files_on_include_dir
-    "${FORT_SOURCE_DIR}/include/flang/*.inc")
+    "${FORT_SOURCE_DIR}/include/fort/*.inc")
   if( tablegenned_files_on_include_dir )
     message(FATAL_ERROR "Apparently there is a previous in-source build, "
 "probably as the result of running `configure' and `make' on "
@@ -225,8 +225,8 @@ endif()
 
 # Configure the Version.inc file.
 configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/flang/Basic/Version.inc.in
-  ${CMAKE_CURRENT_BINARY_DIR}/include/flang/Basic/Version.inc)
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/fort/Basic/Version.inc.in
+  ${CMAKE_CURRENT_BINARY_DIR}/include/fort/Basic/Version.inc)
 
 # Add appropriate flags for GCC
 if (LLVM_COMPILER_IS_GCC_COMPATIBLE)
@@ -238,8 +238,8 @@ if (APPLE)
 endif ()
 
 configure_file(
-  ${FORT_SOURCE_DIR}/include/flang/Config/config.h.cmake
-  ${FORT_BINARY_DIR}/include/flang/Config/config.h)
+  ${FORT_SOURCE_DIR}/include/fort/Config/config.h.cmake
+  ${FORT_BINARY_DIR}/include/fort/Config/config.h)
 
 #include(LLVMParseArguments)
 
@@ -287,13 +287,13 @@ macro(add_fort_library name)
     )
     if(NOT lib_path MATCHES "^[.][.]")
       file( GLOB_RECURSE headers
-        ${FORT_SOURCE_DIR}/include/flang/${lib_path}/*.h
-        ${FORT_SOURCE_DIR}/include/flang/${lib_path}/*.def
+        ${FORT_SOURCE_DIR}/include/fort/${lib_path}/*.h
+        ${FORT_SOURCE_DIR}/include/fort/${lib_path}/*.def
       )
       set_source_files_properties(${headers} PROPERTIES HEADER_FILE_ONLY ON)
 
       file( GLOB_RECURSE tds
-        ${FORT_SOURCE_DIR}/include/flang/${lib_path}/*.td
+        ${FORT_SOURCE_DIR}/include/fort/${lib_path}/*.td
       )
       source_group("TableGen descriptions" FILES ${tds})
       set_source_files_properties(${tds}} PROPERTIES HEADER_FILE_ONLY ON)

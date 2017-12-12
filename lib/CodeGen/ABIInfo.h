@@ -10,7 +10,7 @@
 #ifndef FLANG_CODEGEN_ABIINFO_H
 #define FLANG_CODEGEN_ABIINFO_H
 
-#include "flang/AST/Type.h"
+#include "fort/AST/Type.h"
 
 namespace llvm {
 

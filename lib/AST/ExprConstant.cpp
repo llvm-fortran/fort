@@ -11,11 +11,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/AST/ASTContext.h"
-#include "flang/AST/Decl.h"
-#include "flang/AST/Expr.h"
-#include "flang/AST/ExprVisitor.h"
-#include "flang/AST/ExprConstant.h"
+#include "fort/AST/ASTContext.h"
+#include "fort/AST/Decl.h"
+#include "fort/AST/Expr.h"
+#include "fort/AST/ExprVisitor.h"
+#include "fort/AST/ExprConstant.h"
 #include <limits>
 
 namespace flang {
