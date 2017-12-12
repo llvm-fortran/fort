@@ -1,4 +1,4 @@
-add_flang_library(flangParse
+add_fort_library(fortParse
   Lexer.cpp
   ParseDecl.cpp
   ParseSpecStmt.cpp
@@ -9,11 +9,11 @@ add_flang_library(flangParse
   FixedForm.cpp
 )
 
-add_dependencies(flangParse
-  FlangDeclNodes
-  FlangDiagnosticParse
+add_dependencies(fortParse
+  FortDeclNodes
+  FortDiagnosticParse
   )
 
-target_link_libraries(flangParse
-  flangAST
+target_link_libraries(fortParse
+  fortAST
   )

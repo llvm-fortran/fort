@@ -31,8 +31,8 @@ def err_fe_invalid_plugin_name : Error<
     "unable to find plugin '%0'">;
 def err_fe_expected_compiler_job : Error<
     "unable to handle compilation, expected exactly one compiler job in '%0'">;
-def err_fe_expected_flang_command : Error<
-    "expected a flang compiler command">;
+def err_fe_expected_fort_command : Error<
+    "expected a fort compiler command">;
 def err_fe_remap_missing_to_file : Error<
     "could not remap file '%0' to the contents of file '%1'">, DefaultFatal;
 def err_fe_remap_missing_from_file : Error<

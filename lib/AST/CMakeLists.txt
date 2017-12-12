@@ -1,6 +1,6 @@
 set(LLVM_LINK_COMPONENTS support)
 
-add_flang_library(flangAST
+add_fort_library(fortAST
   ASTContext.cpp
   Decl.cpp
   DeclGroup.cpp
@@ -17,14 +17,14 @@ add_flang_library(flangAST
   IntrinsicFunctions.cpp
   )
 
-add_dependencies(flangAST
-  FlangDiagnosticCommon
-  FlangDeclNodes
-  FlangStmtNodes
-  FlangExprNodes
+add_dependencies(fortAST
+  FortDiagnosticCommon
+  FortDeclNodes
+  FortStmtNodes
+  FortExprNodes
   )
 
-target_link_libraries(flangAST
+target_link_libraries(fortAST
   PRIVATE
-  flangBasic
+  fortBasic
   )

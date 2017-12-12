@@ -1,10 +1,10 @@
-message("Making Flang test configuration files")
+message("Making Fort test configuration files")
 
-set(FLANG_PATH_TO_LLVM_LIT ${FLANG_PATH_TO_LLVM_BUILD}/bin/llvm-lit)
-set(LLVM_SOURCE_DIR ${FLANG_PATH_TO_LLVM_SOURCE})
-set(LLVM_BINARY_DIR ${FLANG_PATH_TO_LLVM_BUILD})
-set(LLVM_TOOLS_DIR ${FLANG_PATH_TO_LLVM_BUILD}/tools)
-set(LLVM_LIBS_DIR ${FLANG_PATH_TO_LLVM_BUILD}/lib)
+set(FORT_PATH_TO_LLVM_LIT ${FORT_PATH_TO_LLVM_BUILD}/bin/llvm-lit)
+set(LLVM_SOURCE_DIR ${FORT_PATH_TO_LLVM_SOURCE})
+set(LLVM_BINARY_DIR ${FORT_PATH_TO_LLVM_BUILD})
+set(LLVM_TOOLS_DIR ${FORT_PATH_TO_LLVM_BUILD}/tools)
+set(LLVM_LIBS_DIR ${FORT_PATH_TO_LLVM_BUILD}/lib)
 
 #configure_file(lit.site.cfg.in  ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg)
 configure_lit_site_cfg(
@@ -14,31 +14,31 @@ configure_lit_site_cfg(
 
 configure_file(TestRunner.sh.in ${CMAKE_CURRENT_BINARY_DIR}/TestRunner.sh)
 
-option(FLANG_TEST_USE_VG "Run Flang tests under Valgrind" OFF)
-if(FLANG_TEST_USE_VG)
-  set(FLANG_TEST_EXTRA_ARGS ${FLANG_TEST_EXTRA_ARGS} "--vg")
+option(FORT_TEST_USE_VG "Run Fort tests under Valgrind" OFF)
+if(FORT_TEST_USE_VG)
+  set(FORT_TEST_EXTRA_ARGS ${FORT_TEST_EXTRA_ARGS} "--vg")
 endif ()
 
-list(APPEND FLANG_TEST_DEPS
-  flang
+list(APPEND FORT_TEST_DEPS
+  fort
   )
 
-set(FLANG_TEST_PARAMS
-  flang_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
+set(FORT_TEST_PARAMS
+  fort_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
   )
 
-if( NOT FLANG_BUILT_STANDALONE )
-  list(APPEND FLANG_TEST_DEPS
+if( NOT FORT_BUILT_STANDALONE )
+  list(APPEND FORT_TEST_DEPS
     llvm-config
     FileCheck
     )
 endif()
 
-add_lit_testsuite(check-flang "Running Flang regression tests"
+add_lit_testsuite(check-fort "Running Fort regression tests"
   ${CMAKE_CURRENT_BINARY_DIR}
-  PARAMS ${FLANG_TEST_PARAMS}
-  DEPENDS ${FLANG_TEST_DEPS}
-  ARGS ${FLANG_TEST_EXTRA_ARGS}
+  PARAMS ${FORT_TEST_PARAMS}
+  DEPENDS ${FORT_TEST_DEPS}
+  ARGS ${FORT_TEST_EXTRA_ARGS}
   )
-set_target_properties(check-flang PROPERTIES FOLDER "Flang tests")
+set_target_properties(check-fort PROPERTIES FOLDER "Fort tests")
 

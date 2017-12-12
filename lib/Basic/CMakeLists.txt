@@ -34,21 +34,21 @@ macro(find_first_existing_vc_file out_var path)
 endmacro()
 
 find_first_existing_vc_file(llvm_vc "${LLVM_MAIN_SRC_DIR}")
-find_first_existing_vc_file(flang_vc "${FLANG_SOURCE_DIR}")
+find_first_existing_vc_file(fort_vc "${FORT_SOURCE_DIR}")
 
 # The VC revision include that we want to generate.
 set(version_inc "${CMAKE_CURRENT_BINARY_DIR}/SVNVersion.inc")
 
 set(get_svn_script "${LLVM_CMAKE_PATH}/GetSVN.cmake")
 
-if(DEFINED llvm_vc AND DEFINED flang_vc)
+if(DEFINED llvm_vc AND DEFINED fort_vc)
   # Create custom target to generate the VC revision include.
   add_custom_command(OUTPUT "${version_inc}"
-    DEPENDS "${llvm_vc}" "${flang_vc}" "${get_svn_script}"
+    DEPENDS "${llvm_vc}" "${fort_vc}" "${get_svn_script}"
     COMMAND
     ${CMAKE_COMMAND} "-DFIRST_SOURCE_DIR=${LLVM_MAIN_SRC_DIR}"
                      "-DFIRST_NAME=LLVM"
-                     "-DSECOND_SOURCE_DIR=${FLANG_SOURCE_DIR}"
+                     "-DSECOND_SOURCE_DIR=${FORT_SOURCE_DIR}"
                      "-DSECOND_NAME=SVN"
                      "-DHEADER_FILE=${version_inc}"
                      -P "${get_svn_script}")
@@ -73,7 +73,7 @@ else()
   endif()
 endif()
 
-add_flang_library(flangBasic
+add_fort_library(fortBasic
   CharInfo.cpp
   Diagnostic.cpp
   DiagnosticIDs.cpp

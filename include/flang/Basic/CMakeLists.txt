@@ -1,16 +1,16 @@
-macro(flang_diag_gen component)
-  flang_tablegen(Diagnostic${component}Kinds.inc
-    -gen-flang-diags-defs -flang-component=${component}
+macro(fort_diag_gen component)
+  fort_tablegen(Diagnostic${component}Kinds.inc
+    -gen-fort-diags-defs -fort-component=${component}
     SOURCE Diagnostic.td
-    TARGET FlangDiagnostic${component})
-endmacro(flang_diag_gen)
+    TARGET FortDiagnostic${component})
+endmacro(fort_diag_gen)
 
 
-flang_diag_gen(Common)
-flang_diag_gen(Lex)
-flang_diag_gen(Parse)
-flang_diag_gen(Frontend)
-flang_diag_gen(Sema)
-flang_tablegen(DiagnosticGroups.inc -gen-flang-diag-groups
+fort_diag_gen(Common)
+fort_diag_gen(Lex)
+fort_diag_gen(Parse)
+fort_diag_gen(Frontend)
+fort_diag_gen(Sema)
+fort_tablegen(DiagnosticGroups.inc -gen-fort-diag-groups
   SOURCE Diagnostic.td
-  TARGET FlangDiagnosticGroups)
+  TARGET FortDiagnosticGroups)

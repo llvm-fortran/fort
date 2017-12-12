@@ -1,11 +1,11 @@
-flang_tablegen(DeclNodes.inc -gen-flang-decl-nodes
+fort_tablegen(DeclNodes.inc -gen-fort-decl-nodes
   SOURCE ../Basic/DeclNodes.td
-  TARGET FlangDeclNodes)
+  TARGET FortDeclNodes)
 
-flang_tablegen(StmtNodes.inc -gen-flang-stmt-nodes
+fort_tablegen(StmtNodes.inc -gen-fort-stmt-nodes
   SOURCE ../Basic/StmtNodes.td
-  TARGET FlangStmtNodes)
+  TARGET FortStmtNodes)
 
-flang_tablegen(ExprNodes.inc -gen-flang-expr-nodes
+fort_tablegen(ExprNodes.inc -gen-fort-expr-nodes
   SOURCE ../Basic/ExprNodes.td
-  TARGET FlangExprNodes)
+  TARGET FortExprNodes)

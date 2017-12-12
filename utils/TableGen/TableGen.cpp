@@ -34,22 +34,22 @@ enum ActionType {
 namespace {
   cl::opt<ActionType>
   Action(cl::desc("Action to perform:"),
-         cl::values(clEnumValN(GenFlangDiagsDefs, "gen-flang-diags-defs",
+         cl::values(clEnumValN(GenFlangDiagsDefs, "gen-fort-diags-defs",
                                "Generate Flang diagnostics definitions"),
-                    clEnumValN(GenFlangDiagGroups, "gen-flang-diag-groups",
+                    clEnumValN(GenFlangDiagGroups, "gen-fort-diag-groups",
                                "Generate Flang diagnostic groups"),
                     clEnumValN(GenFlangDiagsIndexName,
-                               "gen-flang-diags-index-name",
+                               "gen-fort-diags-index-name",
                                "Generate Flang diagnostic name index"),
-                    clEnumValN(GenFlangDeclNodes, "gen-flang-decl-nodes",
+                    clEnumValN(GenFlangDeclNodes, "gen-fort-decl-nodes",
                                "Generate Flang AST declaration nodes"),
-                    clEnumValN(GenFlangStmtNodes, "gen-flang-stmt-nodes",
+                    clEnumValN(GenFlangStmtNodes, "gen-fort-stmt-nodes",
                                "Generate Flang AST statement nodes"),
-                    clEnumValN(GenFlangExprNodes, "gen-flang-expr-nodes",
+                    clEnumValN(GenFlangExprNodes, "gen-fort-expr-nodes",
                                "Generate Flang AST expression nodes")));
 
   cl::opt<std::string>
-  FlangComponent("flang-component",
+  FlangComponent("fort-component",
                  cl::desc("Only use warnings from specified component"),
                  cl::value_desc("component"), cl::Hidden);
 

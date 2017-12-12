@@ -10,33 +10,33 @@ set( LLVM_LINK_COMPONENTS
   linker
   )
 
-add_flang_executable(flang
+add_fort_executable(fort
   Main.cpp
   )
 
-target_link_libraries(flang
-  flangAST
-  flangFrontend
-  flangParse
-  flangSema
-  flangBasic
-  flangCodeGen
+target_link_libraries(fort
+  fortAST
+  fortFrontend
+  fortParse
+  fortSema
+  fortBasic
+  fortCodeGen
   )
 
-set_target_properties(flang PROPERTIES VERSION ${FLANG_EXECUTABLE_VERSION})
+set_target_properties(fort PROPERTIES VERSION ${FORT_EXECUTABLE_VERSION})
 
 # TODO open issue
-#add_dependencies(flang flang-headers)
+#add_dependencies(fort fort-headers)
 
 if(UNIX)
-  set(flang_binary "flang${CMAKE_EXECUTABLE_SUFFIX}")
+  set(fort_binary "fort${CMAKE_EXECUTABLE_SUFFIX}")
 else()
-  set(flang_binary "${LLVM_BINARY_DIR}/bin/${CMAKE_CFG_INTDIR}/flang${CMAKE_EXECUTABLE_SUFFIX}")
+  set(fort_binary "${LLVM_BINARY_DIR}/bin/${CMAKE_CFG_INTDIR}/fort${CMAKE_EXECUTABLE_SUFFIX}")
 endif()
 
 set_property(DIRECTORY APPEND
-  PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${flang_pp})
+  PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${fort_pp})
 
-install(TARGETS flang
+install(TARGETS fort
   RUNTIME DESTINATION bin)
 

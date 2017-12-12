@@ -1,4 +1,4 @@
-add_flang_library(flangFrontend
+add_fort_library(fortFrontend
   ASTConsumers.cpp
   TextDiagnosticPrinter.cpp
   TextDiagnosticBuffer.cpp

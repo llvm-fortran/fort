@@ -14,10 +14,10 @@ else()
   endif()
 endif()
 
-# If we are not building as a part of LLVM, build Flang as an
+# If we are not building as a part of LLVM, build Fort as an
 # standalone project, using LLVM as an external library:
 if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
-  project(Flang)
+  project(Fort)
 
   # Rely on llvm-config.
   set(CONFIG_OUTPUT)
@@ -128,7 +128,7 @@ if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
         add_subdirectory(${LLVM_MAIN_SRC_DIR}/utils/count utils/count)
         add_subdirectory(${LLVM_MAIN_SRC_DIR}/utils/not utils/not)
         set(LLVM_UTILS_PROVIDED ON)
-        set(FLANG_TEST_DEPS FileCheck count not)
+        set(FORT_TEST_DEPS FileCheck count not)
       endif()
       set(UNITTEST_DIR ${LLVM_MAIN_SRC_DIR}/utils/unittest)
       if(EXISTS ${UNITTEST_DIR}/googletest/include/gtest/gtest.h
@@ -160,31 +160,31 @@ if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
     endif()
   endif()
 
-  set( FLANG_BUILT_STANDALONE 1 )
+  set( FORT_BUILT_STANDALONE 1 )
   set(BACKEND_PACKAGE_STRING "LLVM ${LLVM_PACKAGE_VERSION}")
 else()
   set(BACKEND_PACKAGE_STRING "${PACKAGE_STRING}")
 endif()
 
-set(FLANG_RESOURCE_DIR "" CACHE STRING
-  "Relative directory from the Flang binary to its resource files.")
+set(FORT_RESOURCE_DIR "" CACHE STRING
+  "Relative directory from the Fort binary to its resource files.")
 
 set(C_INCLUDE_DIRS "" CACHE STRING
-  "Colon separated list of directories flang will search for headers.")
+  "Colon separated list of directories fort will search for headers.")
 
 set(GCC_INSTALL_PREFIX "" CACHE PATH "Directory where gcc is installed." )
 set(DEFAULT_SYSROOT "" CACHE PATH
   "Default <path> to all compiler invocations for --sysroot=<path>." )
 
-set(FLANG_VENDOR "" CACHE STRING
+set(FORT_VENDOR "" CACHE STRING
   "Vendor-specific text for showing with version information.")
 
-if( FLANG_VENDOR )
-  add_definitions( -DFLANG_VENDOR="${FLANG_VENDOR} " )
+if( FORT_VENDOR )
+  add_definitions( -DFORT_VENDOR="${FORT_VENDOR} " )
 endif()
 
-set(FLANG_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(FLANG_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(FORT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(FORT_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 if( CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR AND NOT MSVC_IDE )
   message(FATAL_ERROR "In-source builds are not allowed. CMake would overwrite "
@@ -197,30 +197,30 @@ endif()
 if( NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR )
   file(GLOB_RECURSE
     tablegenned_files_on_include_dir
-    "${FLANG_SOURCE_DIR}/include/flang/*.inc")
+    "${FORT_SOURCE_DIR}/include/flang/*.inc")
   if( tablegenned_files_on_include_dir )
     message(FATAL_ERROR "Apparently there is a previous in-source build, "
 "probably as the result of running `configure' and `make' on "
-"${FLANG_SOURCE_DIR}. This may cause problems. The suspicious files are:\n"
+"${FORT_SOURCE_DIR}. This may cause problems. The suspicious files are:\n"
 "${tablegenned_files_on_include_dir}\nPlease clean the source directory.")
   endif()
 endif()
 
-# Compute the Flang version from the LLVM version.
-string(REGEX MATCH "[0-9]+\\.[0-9]+(\\.[0-9]+)?" FLANG_VERSION
+# Compute the Fort version from the LLVM version.
+string(REGEX MATCH "[0-9]+\\.[0-9]+(\\.[0-9]+)?" FORT_VERSION
   ${PACKAGE_VERSION})
-message(STATUS "Flang version: ${FLANG_VERSION}")
+message(STATUS "Fort version: ${FORT_VERSION}")
 
-string(REGEX REPLACE "([0-9]+)\\.[0-9]+(\\.[0-9]+)?" "\\1" FLANG_VERSION_MAJOR
-  ${FLANG_VERSION})
-string(REGEX REPLACE "[0-9]+\\.([0-9]+)(\\.[0-9]+)?" "\\1" FLANG_VERSION_MINOR
-  ${FLANG_VERSION})
-if (${FLANG_VERSION} MATCHES "[0-9]+\\.[0-9]+\\.[0-9]+")
-  set(FLANG_HAS_VERSION_PATCHLEVEL 1)
-  string(REGEX REPLACE "[0-9]+\\.[0-9]+\\.([0-9]+)" "\\1" FLANG_VERSION_PATCHLEVEL
-    ${FLANG_VERSION})
+string(REGEX REPLACE "([0-9]+)\\.[0-9]+(\\.[0-9]+)?" "\\1" FORT_VERSION_MAJOR
+  ${FORT_VERSION})
+string(REGEX REPLACE "[0-9]+\\.([0-9]+)(\\.[0-9]+)?" "\\1" FORT_VERSION_MINOR
+  ${FORT_VERSION})
+if (${FORT_VERSION} MATCHES "[0-9]+\\.[0-9]+\\.[0-9]+")
+  set(FORT_HAS_VERSION_PATCHLEVEL 1)
+  string(REGEX REPLACE "[0-9]+\\.[0-9]+\\.([0-9]+)" "\\1" FORT_VERSION_PATCHLEVEL
+    ${FORT_VERSION})
 else()
-  set(FLANG_HAS_VERSION_PATCHLEVEL 0)
+  set(FORT_HAS_VERSION_PATCHLEVEL 0)
 endif()
 
 # Configure the Version.inc file.
@@ -238,8 +238,8 @@ if (APPLE)
 endif ()
 
 configure_file(
-  ${FLANG_SOURCE_DIR}/include/flang/Config/config.h.cmake
-  ${FLANG_BINARY_DIR}/include/flang/Config/config.h)
+  ${FORT_SOURCE_DIR}/include/flang/Config/config.h.cmake
+  ${FORT_BINARY_DIR}/include/flang/Config/config.h)
 
 #include(LLVMParseArguments)
 
@@ -248,9 +248,9 @@ if(NOT MSVC)
   add_definitions(-std=c++11)
 endif()
 
-function(flang_tablegen)
+function(fort_tablegen)
   # Syntax:
-  # flang_tablegen output-file [tablegen-arg ...] SOURCE source-file
+  # fort_tablegen output-file [tablegen-arg ...] SOURCE source-file
   # [[TARGET cmake-target-name] [DEPENDS extra-dependency ...]]
   #
   # Generates a custom command for invoking tblgen as
@@ -264,36 +264,36 @@ function(flang_tablegen)
   cmake_parse_arguments(CTG "" "SOURCE;TARGET" "" ${ARGN})
 
   if( NOT CTG_SOURCE )
-    message(FATAL_ERROR "SOURCE source-file required by flang_tablegen")
+    message(FATAL_ERROR "SOURCE source-file required by fort_tablegen")
   endif()
 
   set( LLVM_TARGET_DEFINITIONS ${CTG_SOURCE} )
-  tablegen(FLANG ${CTG_UNPARSED_ARGUMENTS})
+  tablegen(FORT ${CTG_UNPARSED_ARGUMENTS})
 
   if(CTG_TARGET)
     add_public_tablegen_target(${CTG_TARGET})
-    set_target_properties( ${CTG_TARGET} PROPERTIES FOLDER "Flang tablegenning")
-    set_property(GLOBAL APPEND PROPERTY FLANG_TABLEGEN_TARGETS ${CTG_TARGET})
+    set_target_properties( ${CTG_TARGET} PROPERTIES FOLDER "Fort tablegenning")
+    set_property(GLOBAL APPEND PROPERTY FORT_TABLEGEN_TARGETS ${CTG_TARGET})
   endif()
-endfunction(flang_tablegen)
+endfunction(fort_tablegen)
 
-macro(add_flang_library name)
+macro(add_fort_library name)
   llvm_process_sources(srcs ${ARGN})
   if(MSVC_IDE OR XCODE)
     # Add public headers
     file(RELATIVE_PATH lib_path
-      ${FLANG_SOURCE_DIR}/lib/
+      ${FORT_SOURCE_DIR}/lib/
       ${CMAKE_CURRENT_SOURCE_DIR}
     )
     if(NOT lib_path MATCHES "^[.][.]")
       file( GLOB_RECURSE headers
-        ${FLANG_SOURCE_DIR}/include/flang/${lib_path}/*.h
-        ${FLANG_SOURCE_DIR}/include/flang/${lib_path}/*.def
+        ${FORT_SOURCE_DIR}/include/flang/${lib_path}/*.h
+        ${FORT_SOURCE_DIR}/include/flang/${lib_path}/*.def
       )
       set_source_files_properties(${headers} PROPERTIES HEADER_FILE_ONLY ON)
 
       file( GLOB_RECURSE tds
-        ${FLANG_SOURCE_DIR}/include/flang/${lib_path}/*.td
+        ${FORT_SOURCE_DIR}/include/flang/${lib_path}/*.td
       )
       source_group("TableGen descriptions" FILES ${tds})
       set_source_files_properties(${tds}} PROPERTIES HEADER_FILE_ONLY ON)
@@ -321,13 +321,13 @@ macro(add_flang_library name)
     LIBRARY DESTINATION lib${LLVM_LIBDIR_SUFFIX}
     ARCHIVE DESTINATION lib${LLVM_LIBDIR_SUFFIX}
     RUNTIME DESTINATION bin)
-  set_target_properties(${name} PROPERTIES FOLDER "Flang libraries")
-endmacro(add_flang_library)
+  set_target_properties(${name} PROPERTIES FOLDER "Fort libraries")
+endmacro(add_fort_library)
 
-macro(add_flang_executable name)
+macro(add_fort_executable name)
   add_llvm_executable( ${name} ${ARGN} )
-  set_target_properties(${name} PROPERTIES FOLDER "Flang executables")
-endmacro(add_flang_executable)
+  set_target_properties(${name} PROPERTIES FOLDER "Fort executables")
+endmacro(add_fort_executable)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -354,41 +354,41 @@ install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
 
 add_definitions( -D_GNU_SOURCE )
 
-# Flang version information
-set(FLANG_EXECUTABLE_VERSION
-     "${FLANG_VERSION_MAJOR}.${FLANG_VERSION_MINOR}" CACHE STRING
-    "Version number that will be placed into the flang executable, in the form XX.YY")
-set(LIBFLANG_LIBRARY_VERSION
-     "${FLANG_VERSION_MAJOR}.${FLANG_VERSION_MINOR}" CACHE STRING
-    "Version number that will be placed into the libflang library , in the form XX.YY")
-mark_as_advanced(FLANG_EXECUTABLE_VERSION LIBFLANG_LIBRARY_VERSION)
+# Fort version information
+set(FORT_EXECUTABLE_VERSION
+     "${FORT_VERSION_MAJOR}.${FORT_VERSION_MINOR}" CACHE STRING
+    "Version number that will be placed into the fort executable, in the form XX.YY")
+set(LIBFORT_LIBRARY_VERSION
+     "${FORT_VERSION_MAJOR}.${FORT_VERSION_MINOR}" CACHE STRING
+    "Version number that will be placed into the libfort library , in the form XX.YY")
+mark_as_advanced(FORT_EXECUTABLE_VERSION LIBFORT_LIBRARY_VERSION)
 
 add_subdirectory(utils/TableGen)
 
 add_subdirectory(include)
 
 # All targets below may depend on all tablegen'd files
-get_property(FLANG_TABLEGEN_TARGETS GLOBAL PROPERTY FLANG_TABLEGEN_TARGETS)
-list(APPEND LLVM_COMMON_DEPENDS ${FLANG_TABLEGEN_TARGETS})
+get_property(FORT_TABLEGEN_TARGETS GLOBAL PROPERTY FORT_TABLEGEN_TARGETS)
+list(APPEND LLVM_COMMON_DEPENDS ${FORT_TABLEGEN_TARGETS})
 
 add_subdirectory(lib)
 add_subdirectory(tools)
 
 if( LLVM_INCLUDE_TESTS )
   add_subdirectory(unittests)
-  list(APPEND FLANG_TEST_DEPS FlangUnitTests)
-    list(APPEND FLANG_TEST_PARAMS
-      flang_unit_site_config=${CMAKE_CURRENT_BINARY_DIR}/test/Unit/lit.site.cfg
+  list(APPEND FORT_TEST_DEPS FortUnitTests)
+    list(APPEND FORT_TEST_PARAMS
+      fort_unit_site_config=${CMAKE_CURRENT_BINARY_DIR}/test/Unit/lit.site.cfg
       )
   add_subdirectory(test)
 endif()
 
 # Workaround for MSVS10 to avoid the Dialog Hell
 # FIXME: This could be removed with future version of CMake.
-if( FLANG_BUILT_STANDALONE AND MSVC_VERSION EQUAL 1600 )
-  set(FLANG_SLN_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/Flang.sln")
-  if( EXISTS "${FLANG_SLN_FILENAME}" )
-    file(APPEND "${FLANG_SLN_FILENAME}" "\n# This should be regenerated!\n")
+if( FORT_BUILT_STANDALONE AND MSVC_VERSION EQUAL 1600 )
+  set(FORT_SLN_FILENAME "${CMAKE_CURRENT_BINARY_DIR}/Fort.sln")
+  if( EXISTS "${FORT_SLN_FILENAME}" )
+    file(APPEND "${FORT_SLN_FILENAME}" "\n# This should be regenerated!\n")
   endif()
 endif()
 

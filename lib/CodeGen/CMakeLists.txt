@@ -1,4 +1,4 @@
-add_flang_library(flangCodeGen
+add_fort_library(fortCodeGen
   ModuleBuilder.cpp
   CodeGenModule.cpp
   CodeGenFunction.cpp
@@ -24,7 +24,7 @@ add_flang_library(flangCodeGen
   CGSystemLibflang.cpp
 )
 
-target_link_libraries(flangCodeGen
-  flangAST
+target_link_libraries(fortCodeGen
+  fortAST
   LLVMCore
   )

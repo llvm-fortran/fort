@@ -1,4 +1,4 @@
-add_flang_library(flangSema
+add_fort_library(fortSema
   DeclSpec.cpp
   Scope.cpp
   Sema.cpp
@@ -15,6 +15,6 @@ add_flang_library(flangSema
   Spec.cpp
   )
 
-target_link_libraries(flangSema
-  flangAST
+target_link_libraries(fortSema
+  fortAST
   )
