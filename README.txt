@@ -2,43 +2,40 @@
 // Fortran Language Family Front-end
 //===----------------------------------------------------------------------===//
 
-flang:
-  n. 1. A miner's two-pointed pick.
+fort:
+  n. 1. A strong or fortified place.
 
-Flang is a Fortran front-end.
-
-Note: This project is not related to the project of the same name based on PGI's
-Fortran compiler which can be found at https://github.com/flang-compiler/flang.
-See https://github.com/llvm-flang/flang/issues/5 for details.
+Fort is a Fortran front-end.
 
 //===----------------------------------------------------------------------===//
-// Compiling Flang (master branch)
+// Compiling Fort (master branch)
 //===----------------------------------------------------------------------===//
 
-Download LLVM source and move to a branch with a reference known to work with
-Flang.
+Download LLVM source and move to a branch, release_50, with a reference known
+to work with Fort.
 
 > git clone https://github.com/llvm-mirror/llvm.git
 > cd llvm
 > git clone http://llvm.org/git/llvm.git
+> git checkout release_50
 
-Download the Flang source code within the LLVM tree, the two will be compiled
+Download the Fort source code within the LLVM tree, the two will be compiled
 together.
 
-> cd llvm/tools & git clone git://github.com/llvm-flang/flang.git
+> cd llvm/tools & git clone git://github.com/llvm-fortran/fort.git
 
-Compile LLVM and Flang together.
+Compile LLVM and Fort together.
 
 > mkdir build
 > cd build & cmake ../ -DCMAKE_INSTALL_PREFIX=/usr
 > cd build & make
 > cd build & make install
 
-You will also need to install the Flang standard library, which the Flang 
+You will also need to install the Fort standard library, which the Fort 
 compiler links to by default. This is built outside the LLVM tree.
 
-> git clone git://github.com/llvm-flang/libflangrt.git
-> cd libflangrt
+> git clone git://github.com/llvm-fortran/libfortrt.git
+> cd libfortrt
 > mkdir build
 > cd build & cmake ../ -DCMAKE_INSTALL_PREFIX=/usr
 > cd build & make
@@ -47,23 +44,23 @@ compiler links to by default. This is built outside the LLVM tree.
 Testing:
 
 > cmake -DLLVM_INCLUDE_TESTS=On ..
-> make check-flang
+> make check-fort
 
 If built within LLVM source tree, it should pick up test settings from it and
 running a separate make command should not be necessary. If you want to build
-tests in standalone flang build, make sure to add CMake flags that would
+tests in standalone fort build, make sure to add CMake flags that would
 install FileCheck with LLVM:
 
 > -DLLVM_INSTALL_UTILS=On -DLLVM_INCLUDE_TESTS=On
 
 //===----------------------------------------------------------------------===//
-// Using flang
+// Using fort
 //===----------------------------------------------------------------------===//
 
-Flang's driver will instruct the linker to link with the libflang runtime. 
-You can get libflang at https://github.com/llvm-flang/libflangrt.
-Once you have libflang, you'll need to tell flang where it is - you can use the
--L option (e.g. -L~/libflang).
+Fort's driver will instruct the linker to link with the libfort runtime. 
+You can get libfort at https://github.com/llvm-fortran/libfortrt.
+Once you have libfort, you'll need to tell fort where it is - you can use the
+-L option (e.g. -L~/libfort).
 
 //===----------------------------------------------------------------------===//
 // To Do List
@@ -81,7 +78,7 @@ Short term:
 Long term:
 
 * Preprocessor support
-* Flang driver (?)
+* Fort driver (?)
 * Parsing GNU modules
 * Add (or hoist) Clang style TargetInfo class template
 
