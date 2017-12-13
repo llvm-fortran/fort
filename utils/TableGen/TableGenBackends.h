@@ -1,4 +1,4 @@
-//===- TableGenBackends.h - Declarations for Flang TableGen Backends ------===//
+//===- TableGenBackends.h - Declarations for Fort TableGen Backends ------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file contains the declarations for all of the Flang TableGen
+// This file contains the declarations for all of the Fort TableGen
 // backends. A "TableGen backend" is just a function. See
 // "$LLVM_ROOT/utils/TableGen/TableGenBackends.h" for more info.
 //
@@ -23,15 +23,15 @@ namespace llvm {
 using llvm::raw_ostream;
 using llvm::RecordKeeper;
 
-namespace flang {
+namespace fort {
 
-void EmitFlangDeclContext(RecordKeeper &RK, raw_ostream &OS);
-void EmitFlangASTNodes(RecordKeeper &RK, raw_ostream &OS,
+void EmitFortDeclContext(RecordKeeper &RK, raw_ostream &OS);
+void EmitFortASTNodes(RecordKeeper &RK, raw_ostream &OS,
                        const std::string &N, const std::string &S);
 
-void EmitFlangDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
+void EmitFortDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
                         const std::string &Component);
-void EmitFlangDiagGroups(RecordKeeper &Records, raw_ostream &OS);
-void EmitFlangDiagsIndexName(RecordKeeper &Records, raw_ostream &OS);
+void EmitFortDiagGroups(RecordKeeper &Records, raw_ostream &OS);
+void EmitFortDiagsIndexName(RecordKeeper &Records, raw_ostream &OS);
 
-} // end namespace flang
+} // end namespace fort

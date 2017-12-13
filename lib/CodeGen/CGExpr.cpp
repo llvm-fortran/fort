@@ -22,7 +22,7 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/MDBuilder.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 /// CreateTempAlloca - This creates a alloca and inserts it into the entry
@@ -166,4 +166,4 @@ LValueTy CodeGenFunction::EmitLValue(const Expr *E) {
 }
 
 }
-} // end namespace flang
+} // end namespace fort

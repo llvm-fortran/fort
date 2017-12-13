@@ -18,7 +18,7 @@
 #include "llvm/ADT/Twine.h"
 #include "fort/Basic/LLVM.h"
 
-namespace flang {
+namespace fort {
 
 static inline bool isHorizontalWhitespace(char C) {
   return C == ' ' || C == '\t' || C == '\f' || C == '\v';
@@ -89,4 +89,4 @@ llvm::Twine Token::CleanCharContext() {
     llvm::Twine(llvm::StringRef(CurPtr, Start - CurPtr));
 }
 
-} //namespace flang
+} //namespace fort

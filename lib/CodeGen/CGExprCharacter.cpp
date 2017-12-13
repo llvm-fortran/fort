@@ -20,7 +20,7 @@
 #include "llvm/IR/Function.h"
 #include <string.h>
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 #define MANGLE_CHAR_FUNCTION(Str, Type) \
@@ -283,4 +283,4 @@ RValueTy CodeGenFunction::EmitIntrinsicCallCharacter(intrinsic::FunctionKind Fun
 }
 
 }
-} // end namespace flang
+} // end namespace fort

@@ -1,4 +1,4 @@
-! RUN: %flang -emit-llvm -o - %s
+! RUN: %fort -emit-llvm -o - %s
 
 SUBROUTINE SUB(LEN, IMAT)
   INTEGER LEN, IMAT(LEN, *)

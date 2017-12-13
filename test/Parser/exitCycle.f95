@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only < %s
+! RUN: %fort -fsyntax-only < %s
 PROGRAM test
 
   do i = 1,10

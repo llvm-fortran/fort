@@ -16,7 +16,7 @@
 #include "fort/AST/Type.h"
 #include "llvm/ADT/ArrayRef.h"
 
-namespace flang {
+namespace fort {
 
 DeclSpec::~DeclSpec() {}
 
@@ -83,4 +83,4 @@ void DeclSpec::setDimensions(ArrayRef<ArraySpec *> Dims) {
     Dimensions.push_back(*I);
 }
 
-} //namespace flang
+} //namespace fort

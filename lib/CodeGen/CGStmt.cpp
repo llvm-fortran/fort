@@ -21,7 +21,7 @@
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/CallSite.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 class StmtEmmitter : public ConstStmtVisitor<StmtEmmitter> {
@@ -522,4 +522,4 @@ void CodeGenFunction::EmitAssignment(LValueTy LHS, RValueTy RHS) {
 }
 
 }
-} // end namespace flang
+} // end namespace fort

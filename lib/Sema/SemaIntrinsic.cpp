@@ -16,7 +16,7 @@
 #include "fort/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 using namespace intrinsic;
 
@@ -591,4 +591,4 @@ bool Sema::CheckIntrinsicBitFunc(intrinsic::FunctionKind Function,
   return false;
 }
 
-} // end namespace flang
+} // end namespace fort

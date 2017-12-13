@@ -17,7 +17,7 @@
 #include "fort/AST/Stmt.h"
 #include "fort/Basic/Diagnostic.h"
 
-namespace flang {
+namespace fort {
 
 bool Sema::ActOnAttrSpec(SourceLocation Loc, DeclSpec &DS, DeclSpec::AS Val) {
   if (DS.hasAttributeSpec(Val)) {
@@ -475,4 +475,4 @@ void Sema::ActOnEndDerivedTypeDecl(ASTContext &C) {
   PopDeclContext();
 }
 
-} // namespace flang
+} // namespace fort

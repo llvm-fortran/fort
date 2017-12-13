@@ -18,7 +18,7 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/ErrorHandling.h"
 #include <map>
-using namespace flang;
+using namespace fort;
 
 //FIXME: add other diagnostics
 
@@ -94,7 +94,7 @@ static const StaticDiagInfoRec *GetDiagInfo(unsigned DiagID) {
   if (IsFirst) {
     for (unsigned i = 1; i != StaticDiagInfoSize; ++i) {
       assert(StaticDiagInfo[i-1].DiagID != StaticDiagInfo[i].DiagID &&
-             "Diag ID conflict, the enums at the start of flang::diag (in "
+             "Diag ID conflict, the enums at the start of fort::diag (in "
              "DiagnosticIDs.h) probably need to be increased");
 
       assert(StaticDiagInfo[i-1] < StaticDiagInfo[i] &&
@@ -243,7 +243,7 @@ static unsigned getBuiltinDiagClass(unsigned DiagID) {
 // Custom Diagnostic information
 //===----------------------------------------------------------------------===//
 
-namespace flang {
+namespace fort {
   namespace diag {
     class CustomDiagInfo {
       typedef std::pair<DiagnosticIDs::Level, std::string> DiagDesc;
@@ -283,7 +283,7 @@ namespace flang {
     };
 
   } // end diag namespace
-} // end flang namespace
+} // end fort namespace
 
 /// getDiagnosticLevel - Based on the way the client configured the
 /// DiagnosticsEngine object, classify the specified diagnostic ID into a Level,
@@ -394,7 +394,7 @@ DiagnosticIDs::getDiagnosticLevel(unsigned DiagID, unsigned DiagClass,
   return Result;
 }
 
-struct flang::WarningOption {
+struct fort::WarningOption {
   // Be safe with the size of 'NameLen' because we don't statically check if
   // the size will fit in the field; the struct size won't decrease with a
   // shorter type anyway.

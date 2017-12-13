@@ -11,7 +11,7 @@
 #include "fort/AST/ASTContext.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 IntegerDataEditDesc::IntegerDataEditDesc(SourceLocation Loc, tok::TokenKind Descriptor,
                                          IntegerConstantExpr *RepeatCount,
@@ -156,4 +156,4 @@ void FormatItemList::print(llvm::raw_ostream &O) {
 }
 
 
-} // end namespace flang
+} // end namespace fort

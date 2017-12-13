@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only -verify < %s
+! RUN: %fort -fsyntax-only -verify < %s
 PROGRAM intrintest
   INTRINSIC INT, MOD
   INTRINSIC :: ABS

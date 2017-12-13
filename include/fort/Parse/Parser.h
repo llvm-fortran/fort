@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_PARSER_PARSER_H__
-#define FLANG_PARSER_PARSER_H__
+#ifndef FORT_PARSER_PARSER_H__
+#define FORT_PARSER_PARSER_H__
 
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/Stmt.h"
@@ -33,7 +33,7 @@ namespace llvm {
   class SourceMgr;
 } // end namespace llvm
 
-namespace flang {
+namespace fort {
 
 class Action;
 class VarExpr;
@@ -174,9 +174,9 @@ public:
 
   typedef OpaquePtr<DeclGroupRef> DeclGroupPtrTy;
 
-  typedef flang::ExprResult ExprResult;
-  typedef flang::StmtResult StmtResult;
-  typedef flang::FormatItemResult FormatItemResult;
+  typedef fort::ExprResult ExprResult;
+  typedef fort::StmtResult StmtResult;
+  typedef fort::FormatItemResult FormatItemResult;
 
   bool isaIdentifier(const llvm::StringRef &ID) const {
     return Identifiers.isaIdentifier(ID);
@@ -567,6 +567,6 @@ private:
 
 };
 
-} // end flang namespace
+} // end fort namespace
 
 #endif

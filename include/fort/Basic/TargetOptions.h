@@ -8,12 +8,12 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// \brief Defines the flang::TargetOptions class.
+/// \brief Defines the fort::TargetOptions class.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_FRONTEND_TARGETOPTIONS_H
-#define LLVM_FLANG_FRONTEND_TARGETOPTIONS_H
+#ifndef LLVM_FORT_FRONTEND_TARGETOPTIONS_H
+#define LLVM_FORT_FRONTEND_TARGETOPTIONS_H
 
 #include <string>
 #include <vector>
@@ -21,7 +21,7 @@
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
 
-namespace flang {
+namespace fort {
 
 /// \brief Options for controlling the target.
 class TargetOptions : public llvm::RefCountedBase<TargetOptions> {
@@ -53,6 +53,6 @@ public:
   std::vector<std::string> Features;
 };
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

@@ -11,14 +11,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_FRONTEND_CODEGENOPTIONS_H
-#define LLVM_FLANG_FRONTEND_CODEGENOPTIONS_H
+#ifndef LLVM_FORT_FRONTEND_CODEGENOPTIONS_H
+#define LLVM_FORT_FRONTEND_CODEGENOPTIONS_H
 
 #include <string>
 #include <vector>
 #include <string.h>
 
-namespace flang {
+namespace fort {
 
 /// \brief Bitfields of CodeGenOptions, split out from CodeGenOptions to ensure
 /// that this large collection of bitfields is a trivial class type.
@@ -148,6 +148,6 @@ public:
   }
 };
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

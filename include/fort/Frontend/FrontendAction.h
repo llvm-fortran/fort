@@ -8,15 +8,15 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// \brief Defines the flang::FrontendAction interface and various convenience
-/// abstract classes (flang::ASTFrontendAction, flang::PluginASTAction,
-/// flang::PreprocessorFrontendAction, and flang::WrapperFrontendAction)
+/// \brief Defines the fort::FrontendAction interface and various convenience
+/// abstract classes (fort::ASTFrontendAction, fort::PluginASTAction,
+/// fort::PreprocessorFrontendAction, and fort::WrapperFrontendAction)
 /// derived from it.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_FRONTEND_FRONTENDACTION_H
-#define LLVM_FLANG_FRONTEND_FRONTENDACTION_H
+#ifndef LLVM_FORT_FRONTEND_FRONTENDACTION_H
+#define LLVM_FORT_FRONTEND_FRONTENDACTION_H
 
 #include "fort/Basic/LLVM.h"
 #include "fort/Basic/LangOptions.h"
@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 
-namespace flang {
+namespace fort {
 class ASTConsumer;
 class CompilerInstance;
 
@@ -186,6 +186,6 @@ protected:
 
 };
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

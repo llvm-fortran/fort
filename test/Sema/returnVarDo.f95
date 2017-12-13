@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only -verify < %s
+! RUN: %fort -fsyntax-only -verify < %s
 
 INTEGER FUNCTION I()
   DO I = 1,10

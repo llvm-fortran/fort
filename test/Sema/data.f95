@@ -1,5 +1,5 @@
-! RUN: %flang -fsyntax-only -verify < %s
-! RUN: %flang -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
+! RUN: %fort -fsyntax-only -verify < %s
+! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
 
 PROGRAM datatest
   INTEGER I, J, K, M, NNN, O, P, Q
@@ -116,7 +116,7 @@ subroutine sub4
   character(len=5) strArr(3), strArr2(3)
 
   data str1 / 'Hello' / str2(:) / 'World' / ! CHECK: str2 = 'World     '
-  data str3(2:4) / 'Flang' / ! CHECK: str3 = ' Fla      '
+  data str3(2:4) / 'Fort' / ! CHECK: str3 = ' For      '
 
   data strArr / 3*'foobar' / ! CHECK: strarr = (/'fooba', 'fooba', 'fooba' /)
   data strArr2(1) / 'Hello' /

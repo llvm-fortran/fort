@@ -24,7 +24,7 @@
 #include "fort/Basic/Diagnostic.h"
 #include "llvm/ADT/SmallString.h"
 
-namespace flang {
+namespace fort {
 
 /// Iterates over values in a DATA statement, taking repetitions into account.
 class DataValueIterator {
@@ -87,7 +87,7 @@ void DataValueIterator::advance() {
 /// expressions.
 class DataStmtEngine : public ExprVisitor<DataStmtEngine> {
   DataValueIterator &Values;
-  flang::Sema &Sem;
+  fort::Sema &Sem;
   ASTContext &Context;
   DiagnosticsEngine &Diags;
   SourceLocation DataStmtLoc;
@@ -100,7 +100,7 @@ class DataStmtEngine : public ExprVisitor<DataStmtEngine> {
   ExprResult getAndCheckAnyValue(QualType LHSType, const Expr *LHS);
   void getValueOnError();
 public:
-  DataStmtEngine(DataValueIterator &Vals, flang::Sema &S,
+  DataStmtEngine(DataValueIterator &Vals, fort::Sema &S,
                  DiagnosticsEngine &Diag, SourceLocation Loc)
     : Values(Vals), Sem(S), Context(S.getContext()),
       Diags(Diag), DataStmtLoc(Loc), Done(false),
@@ -433,4 +433,4 @@ ExprResult Sema::ActOnDATAConstantExpr(ASTContext &C,
                    : Value;
 }
 
-} // end namespace flang
+} // end namespace fort

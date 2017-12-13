@@ -12,14 +12,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_FRONTEND_COMMANDLINESOURCELOC_H
-#define LLVM_FLANG_FRONTEND_COMMANDLINESOURCELOC_H
+#ifndef LLVM_FORT_FRONTEND_COMMANDLINESOURCELOC_H
+#define LLVM_FORT_FRONTEND_COMMANDLINESOURCELOC_H
 
 #include "fort/Basic/LLVM.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 /// \brief A source location that has been parsed on the command line.
 struct ParsedSourceLocation {
@@ -59,18 +59,18 @@ namespace llvm {
     ///
     /// Source locations are of the form filename:line:column.
     template<>
-    class parser<flang::ParsedSourceLocation>
-      : public basic_parser<flang::ParsedSourceLocation> {
+    class parser<fort::ParsedSourceLocation>
+      : public basic_parser<fort::ParsedSourceLocation> {
     public:
       inline bool parse(Option &O, StringRef ArgName, StringRef ArgValue,
-                 flang::ParsedSourceLocation &Val);
+                 fort::ParsedSourceLocation &Val);
     };
 
     bool
-    parser<flang::ParsedSourceLocation>::
+    parser<fort::ParsedSourceLocation>::
     parse(Option &O, StringRef ArgName, StringRef ArgValue,
-          flang::ParsedSourceLocation &Val) {
-      using namespace flang;
+          fort::ParsedSourceLocation &Val) {
+      using namespace fort;
 
       Val = ParsedSourceLocation::FromString(ArgValue);
       if (Val.FileName.empty()) {

@@ -17,7 +17,7 @@
 #include "llvm/Support/Allocator.h"
 #include <type_traits>
 
-namespace flang {
+namespace fort {
 
 DeclGroup *DeclGroup::Create(ASTContext &C, Decl **Decls, unsigned NumDecls) {
   assert(NumDecls > 1 && "Invalid DeclGroup");
@@ -33,4 +33,4 @@ DeclGroup::DeclGroup(unsigned numdecls, Decl **decls) : NumDecls(numdecls) {
   memcpy(this + 1, decls, numdecls * sizeof(*decls));
 }
 
-} //namespace flang
+} //namespace fort

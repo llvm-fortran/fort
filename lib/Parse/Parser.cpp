@@ -29,7 +29,7 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallString.h"
 
-namespace flang {
+namespace fort {
 
 /// print - If a crash happens while the parser is active, print out a line
 /// indicating what the current token is.
@@ -1889,4 +1889,4 @@ Parser::StmtResult Parser::ParseEND_FORALLStmt() {
   return StmtResult();
 }
 
-} //namespace flang
+} //namespace fort

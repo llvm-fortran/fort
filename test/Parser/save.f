@@ -1,5 +1,5 @@
-C RUN: %flang -fsyntax-only %s
-C RUN: %flang -fsyntax-only -ast-print %s 2>&1 | %file_check %s
+C RUN: %fort -fsyntax-only %s
+C RUN: %fort -fsyntax-only -ast-print %s 2>&1 | %file_check %s
 
        SUBROUTINE FOO
        INTEGER SAVEALPHA

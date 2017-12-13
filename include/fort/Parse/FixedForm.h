@@ -7,15 +7,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_PARSER_FIXEDFORM_H
-#define FLANG_PARSER_FIXEDFORM_H
+#ifndef FORT_PARSER_FIXEDFORM_H
+#define FORT_PARSER_FIXEDFORM_H
 
 #include "fort/Basic/LLVM.h"
 #include "fort/Basic/TokenKinds.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/ArrayRef.h"
 
-namespace flang {
+namespace fort {
 namespace fixedForm {
 
 /// KeywordFilter - a set of given keyword(s).
@@ -123,6 +123,6 @@ public:
 
 } // end namespace fixedForm
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

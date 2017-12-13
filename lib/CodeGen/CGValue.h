@@ -12,8 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_CODEGEN_CGVALUE_H
-#define FLANG_CODEGEN_CGVALUE_H
+#ifndef FORT_CODEGEN_CGVALUE_H
+#define FORT_CODEGEN_CGVALUE_H
 
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/Type.h"
@@ -24,7 +24,7 @@ namespace llvm {
   class MDNode;
 }
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 class ComplexValueTy {
@@ -192,6 +192,6 @@ public:
 };
 
 }  // end namespace CodeGen
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

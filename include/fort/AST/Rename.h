@@ -10,13 +10,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_RENAME_H__
-#define FLANG_AST_RENAME_H__
+#ifndef FORT_AST_RENAME_H__
+#define FORT_AST_RENAME_H__
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/raw_stream.h"
 
-namespace flang {
+namespace fort {
 
 //===----------------------------------------------------------------------===//
 /// Rename - Used in a 'USE' statement to rename a module name to a local name.
@@ -33,6 +33,6 @@ public:
   }
 };
 
-} // end flang namespace
+} // end fort namespace
 
-#endif // FLANG_AST_RENAME_H__
+#endif // FORT_AST_RENAME_H__

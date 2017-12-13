@@ -1,4 +1,4 @@
-C RUN: %flang -ffixed-form -fsyntax-only < %s
+C RUN: %fort -ffixed-form -fsyntax-only < %s
 
        program test
         int eg er ii, i

@@ -17,7 +17,7 @@
 #include "fort/Sema/Ownership.h"
 #include "fort/Sema/Sema.h"
 
-namespace flang {
+namespace fort {
 
 /// ParseFORMATStmt - Parse the FORMAT statement.
 ///
@@ -278,4 +278,4 @@ Parser::FormatItemResult Parser::ParseFORMATItem() {
   return FormatItemResult(true);
 }
 
-} // end namespace flang
+} // end namespace fort

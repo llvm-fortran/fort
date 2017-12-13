@@ -27,7 +27,7 @@
 #include "llvm/IR/CallSite.h"
 #include "llvm/Transforms/Utils/Local.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 llvm::Type *CodeGenTypes::ConvertReturnType(QualType T,
@@ -461,4 +461,4 @@ RValueTy CodeGenFunction::GetInlinedArgumentValue(const VarDecl *VD) {
 }
 
 }
-} // end namespace flang
+} // end namespace fort

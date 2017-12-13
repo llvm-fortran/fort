@@ -11,12 +11,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_STORAGESET_H
-#define FLANG_AST_STORAGESET_H
+#ifndef FORT_AST_STORAGESET_H
+#define FORT_AST_STORAGESET_H
 
 #include "fort/Basic/LLVM.h"
 
-namespace flang {
+namespace fort {
 
 class ASTContext;
 class VarDecl;
@@ -95,7 +95,7 @@ private:
   CommonBlockSet(CommonBlockDecl *CBDecl);
 public:
 
-  static CommonBlockSet *Create(flang::ASTContext &C, CommonBlockDecl *CBDecl);
+  static CommonBlockSet *Create(fort::ASTContext &C, CommonBlockDecl *CBDecl);
 
   void setObjects(ASTContext &C, ArrayRef<Object> objects);
 
@@ -112,6 +112,6 @@ public:
   }
 };
 
-} // end flang namespace
+} // end fort namespace
 
 #endif

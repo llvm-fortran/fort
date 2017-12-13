@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only -verify < %s
+! RUN: %fort -fsyntax-only -verify < %s
 PROGRAM inc
 INCLUDE 22 ! expected-error {{expected 'FILENAME'}}
 INCLUDE '' ! expected-error {{empty filename}}

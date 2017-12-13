@@ -1,5 +1,5 @@
-! RUN: %flang -fsyntax-only -verify < %s
-! RUN: %flang -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
+! RUN: %fort -fsyntax-only -verify < %s
+! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
 ! This is more focused on double complex support and some
 ! obscure intrinsic overloads used by BLAS
 PROGRAM doubletest

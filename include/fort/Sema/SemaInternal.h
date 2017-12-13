@@ -7,22 +7,22 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_SEMA_SEMA_INTERNAL_H
-#define LLVM_FLANG_SEMA_SEMA_INTERNAL_H
+#ifndef LLVM_FORT_SEMA_SEMA_INTERNAL_H
+#define LLVM_FORT_SEMA_SEMA_INTERNAL_H
 
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/StmtVisitor.h"
 #include "fort/AST/FormatSpec.h"
 #include "fort/Sema/Sema.h"
 
-namespace flang {
+namespace fort {
 
 /// StmtLabelResolver - 'Sends' a notification
 /// about the statement labels declared after they are used
 /// to the statements that use them.
 class StmtLabelResolver : public StmtVisitor<StmtLabelResolver> {
   DiagnosticsEngine &Diags;
-  flang::Sema &Sema;
+  fort::Sema &Sema;
   StmtLabelScope::ForwardDecl Info;
   Stmt *StmtLabelDecl;
   bool Error;
@@ -44,7 +44,7 @@ public:
     else Error = true;
   }
 
-  StmtLabelResolver(flang::Sema &TheSema,
+  StmtLabelResolver(fort::Sema &TheSema,
                     DiagnosticsEngine &Diag)
     : Sema(TheSema), Diags(Diag),
       Info(nullptr, (Stmt*)nullptr) {}

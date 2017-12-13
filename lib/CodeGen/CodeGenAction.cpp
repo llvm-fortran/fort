@@ -28,10 +28,10 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/Timer.h"
 
-using namespace flang;
+using namespace fort;
 using namespace llvm;
 
-namespace flang {
+namespace fort {
   class BackendConsumer : public ASTConsumer {
 
     virtual void anchor();

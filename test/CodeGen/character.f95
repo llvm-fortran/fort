@@ -1,4 +1,4 @@
-! RUN: %flang -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | %file_check %s
 
 SUBROUTINE FOO(STR) ! CHECK: define void @foo_(i8* %str, i32 %str.length)
   CHARACTER*(*) STR
@@ -21,8 +21,8 @@ END
 SUBROUTINE SUB(C,C2)
   CHARACTER C
   CHARACTER*2 C2
-  IF(C.EQ.'A') RETURN   ! CHECK: call i32 @libflang_compare_char1(i8* {{.*}}, i64 1, i8* {{.*}}, i64 1)
-  IF(C2.NE.'HI') RETURN ! CHECK: call i32 @libflang_compare_char1(i8* {{.*}}, i64 2, i8* {{.*}}, i64 2)
+  IF(C.EQ.'A') RETURN   ! CHECK: call i32 @libfort_compare_char1(i8* {{.*}}, i64 1, i8* {{.*}}, i64 1)
+  IF(C2.NE.'HI') RETURN ! CHECK: call i32 @libfort_compare_char1(i8* {{.*}}, i64 2, i8* {{.*}}, i64 2)
 END
 
 PROGRAM test
@@ -31,16 +31,16 @@ PROGRAM test
   PARAMETER (Label = '...')
   LOGICAL L
 
-  STR = 'HELLO' ! CHECK: call void @libflang_assignment_char1
+  STR = 'HELLO' ! CHECK: call void @libfort_assignment_char1
   STR = STR
   STR = STR(1:1)
 
-  STR = STR // ' WORLD' ! CHECK: call void @libflang_concat_char1
+  STR = STR // ' WORLD' ! CHECK: call void @libfort_concat_char1
 
-  L = STR .EQ. STR      ! CHECK: call i32 @libflang_compare_char1
+  L = STR .EQ. STR      ! CHECK: call i32 @libfort_compare_char1
   CONTINUE              ! CHECK: icmp eq i32
 
-  L = STR .NE. STR      ! CHECK: call i32 @libflang_compare_char1
+  L = STR .NE. STR      ! CHECK: call i32 @libfort_compare_char1
   CONTINUE              ! CHECK: icmp ne i32
 
   CALL FOO(STR)

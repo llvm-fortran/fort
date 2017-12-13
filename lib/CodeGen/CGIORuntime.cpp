@@ -14,12 +14,12 @@
 #include "CGIORuntime.h"
 #include "CodeGenFunction.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 CGIORuntime::~CGIORuntime() {
 }
 
 }
-} // end namespace flang
+} // end namespace fort
 

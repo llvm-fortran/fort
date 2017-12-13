@@ -18,7 +18,7 @@
 #include "fort/AST/ExprConstant.h"
 #include <limits>
 
-namespace flang {
+namespace fort {
 
 ExprEvalScope::ExprEvalScope(ASTContext &C)
   : Context(C) {}
@@ -416,4 +416,4 @@ bool SubstringExpr::EvaluateRange(ASTContext &Ctx, uint64_t Len,
 }
 
 
-} // end namespace flang
+} // end namespace fort

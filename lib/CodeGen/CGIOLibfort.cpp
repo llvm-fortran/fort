@@ -1,4 +1,4 @@
-//===----- CGIOLibflang.cpp - Interface to Libflang IO Runtime -----------===//
+//===----- CGIOLibfort.cpp - Interface to Libfort IO Runtime -----------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This provides a class for IO statements code generation for the Libflang
+// This provides a class for IO statements code generation for the Libfort
 // runtime library.
 //
 //===----------------------------------------------------------------------===//
@@ -16,15 +16,15 @@
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
-class CGLibflangIORuntime : public CGIORuntime {
+class CGLibfortIORuntime : public CGIORuntime {
 
   llvm::StructType *WriteControllerType;
   uint64_t WriteControllerTypeSize;
 public:
-  CGLibflangIORuntime(CodeGenModule &CGM)
+  CGLibfortIORuntime(CodeGenModule &CGM)
     : CGIORuntime(CGM) {
     WriteControllerType = nullptr;
   }
@@ -36,7 +36,7 @@ public:
 };
 
 
-llvm::StructType *CGLibflangIORuntime::GetWriteControllerType() {
+llvm::StructType *CGLibfortIORuntime::GetWriteControllerType() {
   if(WriteControllerType)
     return WriteControllerType;
   llvm::Type *Types[] = {
@@ -51,13 +51,13 @@ llvm::StructType *CGLibflangIORuntime::GetWriteControllerType() {
   return WriteControllerType;
 }
 
-class CGLibflangWriteEmitter {
+class CGLibfortWriteEmitter {
   CodeGenModule &CGM;
   CodeGenFunction &CGF;
   llvm::Value *ControllerPtr;
-  LibflangTransferABI ABI;
+  LibfortTransferABI ABI;
 public:
-  CGLibflangWriteEmitter(CodeGenModule &cgm,
+  CGLibfortWriteEmitter(CodeGenModule &cgm,
                          CodeGenFunction &cgf,
                          llvm::Value *Controller)
     : CGM(cgm), CGF(cgf) {
@@ -76,17 +76,17 @@ public:
   void EmitWriteUnformattedChar(const Expr *E);
 };
 
-void CGLibflangWriteEmitter::EmitStart() {
+void CGLibfortWriteEmitter::EmitStart() {
   auto Func = CGM.GetRuntimeFunction1("write_start", ControllerPtr->getType());
   CGF.EmitCall1(Func, ControllerPtr);
 }
 
-void CGLibflangWriteEmitter::EmitEnd() {
+void CGLibfortWriteEmitter::EmitEnd() {
   auto Func = CGM.GetRuntimeFunction1("write_end", ControllerPtr->getType());
   CGF.EmitCall1(Func, ControllerPtr);
 }
 
-void CGLibflangWriteEmitter::EmitWriteUnformattedList(ArrayRef<Expr*> Values) {
+void CGLibfortWriteEmitter::EmitWriteUnformattedList(ArrayRef<Expr*> Values) {
   for(auto E : Values) {
     auto EType = E->getType();
     if(EType->isCharacterType())
@@ -96,7 +96,7 @@ void CGLibflangWriteEmitter::EmitWriteUnformattedList(ArrayRef<Expr*> Values) {
   }
 }
 
-void CGLibflangWriteEmitter::EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
+void CGLibfortWriteEmitter::EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
                                                          const Expr *E) {
   CGFunction Func;
   switch(BTy->getTypeSpec()) {
@@ -126,39 +126,39 @@ void CGLibflangWriteEmitter::EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
   CGF.EmitCall(Func.getFunction(), Func.getInfo(), ArgList, ArrayRef<Expr*>(), true);
 }
 
-void CGLibflangWriteEmitter::EmitWriteUnformattedChar(const Expr *E) {
+void CGLibfortWriteEmitter::EmitWriteUnformattedChar(const Expr *E) {
   auto Func = CGM.GetRuntimeFunction2("write_character", ControllerPtr->getType(),
                                       E->getType());
   CGF.EmitCall2(Func, ControllerPtr, CGF.EmitCharacterExpr(E));
 }
 
-void CGLibflangIORuntime::EmitWriteStmt(CodeGenFunction &CGF, const WriteStmt *S) {
+void CGLibfortIORuntime::EmitWriteStmt(CodeGenFunction &CGF, const WriteStmt *S) {
   // FIXME
   auto ControllerPtr = CGF.CreateTempAlloca(GetWriteControllerType(), "write");
   CGF.getBuilder().CreateMemSet(ControllerPtr, CGF.getBuilder().getInt8(0),
                                 WriteControllerTypeSize, 0);
-  CGLibflangWriteEmitter Writer(CGM, CGF, ControllerPtr);
+  CGLibfortWriteEmitter Writer(CGM, CGF, ControllerPtr);
 
   Writer.EmitStart();
   Writer.EmitWriteUnformattedList(S->getOutputList());
   Writer.EmitEnd();
 }
 
-void CGLibflangIORuntime::EmitPrintStmt(CodeGenFunction &CGF, const PrintStmt *S) {
+void CGLibfortIORuntime::EmitPrintStmt(CodeGenFunction &CGF, const PrintStmt *S) {
   // FIXME
   auto ControllerPtr = CGF.CreateTempAlloca(GetWriteControllerType(), "print");
   CGF.getBuilder().CreateMemSet(ControllerPtr, CGF.getBuilder().getInt8(0),
                                 WriteControllerTypeSize, 0);
-  CGLibflangWriteEmitter Writer(CGM, CGF, ControllerPtr);
+  CGLibfortWriteEmitter Writer(CGM, CGF, ControllerPtr);
 
   Writer.EmitStart();
   Writer.EmitWriteUnformattedList(S->getOutputList());
   Writer.EmitEnd();
 }
 
-CGIORuntime *CreateLibflangIORuntime(CodeGenModule &CGM) {
-  return new CGLibflangIORuntime(CGM);
+CGIORuntime *CreateLibfortIORuntime(CodeGenModule &CGM) {
+  return new CGLibfortIORuntime(CGM);
 }
 
 }
-} // end namespace flang
+} // end namespace fort

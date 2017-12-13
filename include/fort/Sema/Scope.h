@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_SEMA_SCOPE_H__
-#define FLANG_SEMA_SCOPE_H__
+#ifndef FORT_SEMA_SCOPE_H__
+#define FORT_SEMA_SCOPE_H__
 
 #include "fort/Basic/Diagnostic.h"
 #include "fort/AST/Stmt.h"
@@ -21,7 +21,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include <map>
 
-namespace flang {
+namespace fort {
 
 class Decl;
 class DeclContext;
@@ -427,6 +427,6 @@ class MainProgramScope : public ExecutableProgramUnitScope {
 class SubProgramScope : public ExecutableProgramUnitScope {
 };
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

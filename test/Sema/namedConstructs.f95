@@ -1,4 +1,4 @@
-! RUN: %flang -verify -fsyntax-only < %s
+! RUN: %fort -verify -fsyntax-only < %s
 PROGRAM test
 
   a: IF(.false.) THEN ! expected-note {{previous definition is here}}

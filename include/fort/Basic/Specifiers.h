@@ -12,10 +12,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_BASIC_SPECIFIERS_H
-#define FLANG_BASIC_SPECIFIERS_H
+#ifndef FORT_BASIC_SPECIFIERS_H
+#define FORT_BASIC_SPECIFIERS_H
 
-namespace flang {
+namespace fort {
   /// \brief [R404] Specifies the intrinsic type specifier.
   enum TypeSpecifierType {
     TST_unspecified,
@@ -62,6 +62,6 @@ namespace flang {
     AC_private
   };
 
-} // end namespace flang
+} // end namespace fort
 
-#endif // FLANG_BASIC_SPECIFIERS_H
+#endif // FORT_BASIC_SPECIFIERS_H

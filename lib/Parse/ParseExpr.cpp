@@ -22,7 +22,7 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/Twine.h"
 
-namespace flang {
+namespace fort {
 
 // ParseExpression - Expressions are level-5 expressions optionally involving
 // defined binary operators.
@@ -992,4 +992,4 @@ ExprResult Parser::ParseTypeConstructor(SourceLocation IDLoc, RecordDecl *Record
   return Actions.ActOnTypeConstructorExpr(Context, IDLoc, LParenLoc, RParenLoc, Record, Arguments);
 }
 
-} //namespace flang
+} //namespace fort

@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_SEMA_DECLSPEC_H__
-#define FLANG_SEMA_DECLSPEC_H__
+#ifndef FORT_SEMA_DECLSPEC_H__
+#define FORT_SEMA_DECLSPEC_H__
 
 #include "fort/Basic/SourceLocation.h"
 #include "fort/Basic/Specifiers.h"
@@ -25,7 +25,7 @@ namespace llvm {
   class raw_ostream;
 } // end llvm namespace
 
-namespace flang {
+namespace fort {
 
 class Expr;
 class ArraySpec;
@@ -38,45 +38,45 @@ class DeclSpec {
 public:
   // Import intrinsic type specifiers.
   typedef TypeSpecifierType TST;
-  static const TST TST_unspecified = flang::TST_unspecified;
-  static const TST TST_integer = flang::TST_integer;
-  static const TST TST_real = flang::TST_real;
-  static const TST TST_complex = flang::TST_complex;
-  static const TST TST_character = flang::TST_character;
-  static const TST TST_logical = flang::TST_logical;
-  static const TST TST_struct = flang::TST_struct;
+  static const TST TST_unspecified = fort::TST_unspecified;
+  static const TST TST_integer = fort::TST_integer;
+  static const TST TST_real = fort::TST_real;
+  static const TST TST_complex = fort::TST_complex;
+  static const TST TST_character = fort::TST_character;
+  static const TST TST_logical = fort::TST_logical;
+  static const TST TST_struct = fort::TST_struct;
 
   // Import attribute specifiers.
   typedef AttributeSpecifier AS;
-  static const AS AS_unspecified = flang::AS_unspecified;
-  static const AS AS_allocatable = flang::AS_allocatable;
-  static const AS AS_asynchronous = flang::AS_asynchronous;
-  static const AS AS_codimension = flang::AS_codimension;
-  static const AS AS_contiguous = flang::AS_contiguous;
-  static const AS AS_dimension = flang::AS_dimension;
-  static const AS AS_external = flang::AS_external;
-  static const AS AS_intrinsic = flang::AS_intrinsic;
-  static const AS AS_optional = flang::AS_optional;
-  static const AS AS_parameter = flang::AS_parameter;
-  static const AS AS_pointer = flang::AS_pointer;
-  static const AS AS_protected = flang::AS_protected;
-  static const AS AS_save = flang::AS_save;
-  static const AS AS_target = flang::AS_target;
-  static const AS AS_value = flang::AS_value;
-  static const AS AS_volatile = flang::AS_volatile;
+  static const AS AS_unspecified = fort::AS_unspecified;
+  static const AS AS_allocatable = fort::AS_allocatable;
+  static const AS AS_asynchronous = fort::AS_asynchronous;
+  static const AS AS_codimension = fort::AS_codimension;
+  static const AS AS_contiguous = fort::AS_contiguous;
+  static const AS AS_dimension = fort::AS_dimension;
+  static const AS AS_external = fort::AS_external;
+  static const AS AS_intrinsic = fort::AS_intrinsic;
+  static const AS AS_optional = fort::AS_optional;
+  static const AS AS_parameter = fort::AS_parameter;
+  static const AS AS_pointer = fort::AS_pointer;
+  static const AS AS_protected = fort::AS_protected;
+  static const AS AS_save = fort::AS_save;
+  static const AS AS_target = fort::AS_target;
+  static const AS AS_value = fort::AS_value;
+  static const AS AS_volatile = fort::AS_volatile;
 
   /// Import intent specifiers.
   typedef IntentSpecifier IS;
-  static const IS IS_unspecified = flang::IS_unspecified;
-  static const IS IS_in = flang::IS_in;
-  static const IS IS_out = flang::IS_out;
-  static const IS IS_inout = flang::IS_inout;
+  static const IS IS_unspecified = fort::IS_unspecified;
+  static const IS IS_in = fort::IS_in;
+  static const IS IS_out = fort::IS_out;
+  static const IS IS_inout = fort::IS_inout;
 
   /// Import access specifiers.
   typedef AccessSpecifier AC;
-  static const AC AC_unspecified = flang::AC_unspecified;
-  static const AC AC_public = flang::AC_public;
-  static const AC AC_private = flang::AC_private;
+  static const AC AC_unspecified = fort::AC_unspecified;
+  static const AC AC_public = fort::AC_public;
+  static const AC AC_private = fort::AC_private;
 
 private:
   /*TST*/unsigned TypeSpecType   : 3;
@@ -186,6 +186,6 @@ public:
   static bool classof(DeclSpec*) { return true; }
 };
 
-} // end flang namespace
+} // end fort namespace
 
 #endif

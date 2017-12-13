@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only -verify < %s
+! RUN: %fort -fsyntax-only -verify < %s
 PROGRAM vartest
   PARAMETER (Y = 2.0) ! expected-note {{previous definition is here}}
 

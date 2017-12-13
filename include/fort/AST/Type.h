@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_TYPE_H__
-#define FLANG_TYPE_H__
+#ifndef FORT_TYPE_H__
+#define FORT_TYPE_H__
 
 #include "fort/Basic/Specifiers.h"
 #include "fort/Basic/Diagnostic.h"
@@ -28,7 +28,7 @@ namespace llvm {
   class raw_ostream;
 } // end llvm namespace
 
-namespace flang {
+namespace fort {
   enum {
     TypeAlignmentInBits = 4,
     TypeAlignment = 1 << TypeAlignmentInBits
@@ -47,29 +47,29 @@ namespace llvm {
   template <typename T>
   class PointerLikeTypeTraits;
   template<>
-  class PointerLikeTypeTraits< ::flang::Type*> {
+  class PointerLikeTypeTraits< ::fort::Type*> {
   public:
-    static inline void *getAsVoidPointer(::flang::Type *P) { return P; }
-    static inline ::flang::Type *getFromVoidPointer(void *P) {
-      return static_cast< ::flang::Type*>(P);
+    static inline void *getAsVoidPointer(::fort::Type *P) { return P; }
+    static inline ::fort::Type *getFromVoidPointer(void *P) {
+      return static_cast< ::fort::Type*>(P);
     }
-    enum { NumLowBitsAvailable = flang::TypeAlignmentInBits };
+    enum { NumLowBitsAvailable = fort::TypeAlignmentInBits };
   };
   template<>
-  class PointerLikeTypeTraits< ::flang::ExtQuals*> {
+  class PointerLikeTypeTraits< ::fort::ExtQuals*> {
   public:
-    static inline void *getAsVoidPointer(::flang::ExtQuals *P) { return P; }
-    static inline ::flang::ExtQuals *getFromVoidPointer(void *P) {
-      return static_cast< ::flang::ExtQuals*>(P);
+    static inline void *getAsVoidPointer(::fort::ExtQuals *P) { return P; }
+    static inline ::fort::ExtQuals *getFromVoidPointer(void *P) {
+      return static_cast< ::fort::ExtQuals*>(P);
     }
-    enum { NumLowBitsAvailable = flang::TypeAlignmentInBits };
+    enum { NumLowBitsAvailable = fort::TypeAlignmentInBits };
   };
 
   template <>
-  struct isPodLike<flang::QualType> { static const bool value = true; };
+  struct isPodLike<fort::QualType> { static const bool value = true; };
 }
 
-namespace flang {
+namespace fort {
 
 class ASTContext;
 class Decl;
@@ -86,35 +86,35 @@ class Qualifiers {
 public:
   // Import attribute specifiers.
   typedef AttributeSpecifier AS;
-  static const AS AS_unspecified = flang::AS_unspecified;
-  static const AS AS_allocatable = flang::AS_allocatable;
-  static const AS AS_asynchronous = flang::AS_asynchronous;
-  static const AS AS_codimension = flang::AS_codimension;
-  static const AS AS_contiguous = flang::AS_contiguous;
-  static const AS AS_dimension = flang::AS_dimension;
-  static const AS AS_external = flang::AS_external;
-  static const AS AS_intrinsic = flang::AS_intrinsic;
-  static const AS AS_optional = flang::AS_optional;
-  static const AS AS_parameter = flang::AS_parameter;
-  static const AS AS_pointer = flang::AS_pointer;
-  static const AS AS_protected = flang::AS_protected;
-  static const AS AS_save = flang::AS_save;
-  static const AS AS_target = flang::AS_target;
-  static const AS AS_value = flang::AS_value;
-  static const AS AS_volatile = flang::AS_volatile;
+  static const AS AS_unspecified = fort::AS_unspecified;
+  static const AS AS_allocatable = fort::AS_allocatable;
+  static const AS AS_asynchronous = fort::AS_asynchronous;
+  static const AS AS_codimension = fort::AS_codimension;
+  static const AS AS_contiguous = fort::AS_contiguous;
+  static const AS AS_dimension = fort::AS_dimension;
+  static const AS AS_external = fort::AS_external;
+  static const AS AS_intrinsic = fort::AS_intrinsic;
+  static const AS AS_optional = fort::AS_optional;
+  static const AS AS_parameter = fort::AS_parameter;
+  static const AS AS_pointer = fort::AS_pointer;
+  static const AS AS_protected = fort::AS_protected;
+  static const AS AS_save = fort::AS_save;
+  static const AS AS_target = fort::AS_target;
+  static const AS AS_value = fort::AS_value;
+  static const AS AS_volatile = fort::AS_volatile;
 
   /// Import intent specifiers.
   typedef IntentSpecifier IS;
-  static const IS IS_unspecified = flang::IS_unspecified;
-  static const IS IS_in = flang::IS_in;
-  static const IS IS_out = flang::IS_out;
-  static const IS IS_inout = flang::IS_inout;
+  static const IS IS_unspecified = fort::IS_unspecified;
+  static const IS IS_in = fort::IS_in;
+  static const IS IS_out = fort::IS_out;
+  static const IS IS_inout = fort::IS_inout;
 
   /// Import access specifiers.
   typedef AccessSpecifier AC;
-  static const AC AC_unspecified = flang::AC_unspecified;
-  static const AC AC_public = flang::AC_public;
-  static const AC AC_private = flang::AC_private;
+  static const AC AC_unspecified = fort::AC_unspecified;
+  static const AC AC_public = fort::AC_public;
+  static const AC AC_private = fort::AC_private;
 
   enum TQ { // NOTE: These flags must be kept in sync with DeclSpec::TQ.
     Allocatable = 1 << 0,
@@ -422,30 +422,30 @@ public:
   }
 };
 
-} // end flang namespace
+} // end fort namespace
 
 namespace llvm {
 
 /// Implement simplify_type for QualType, so that we can dyn_cast from QualType
 /// to a specific Type class.
-template<> struct simplify_type<const ::flang::QualType> {
-  typedef const ::flang::Type *SimpleType;
-  static SimpleType getSimplifiedValue(const ::flang::QualType &Val) {
+template<> struct simplify_type<const ::fort::QualType> {
+  typedef const ::fort::Type *SimpleType;
+  static SimpleType getSimplifiedValue(const ::fort::QualType &Val) {
     return Val.getTypePtr();
   }
 };
-template<> struct simplify_type< ::flang::QualType>
-  : public simplify_type<const ::flang::QualType> {};
+template<> struct simplify_type< ::fort::QualType>
+  : public simplify_type<const ::fort::QualType> {};
 
 // Teach SmallPtrSet that QualType is "basically a pointer".
 template<>
-class PointerLikeTypeTraits<flang::QualType> {
+class PointerLikeTypeTraits<fort::QualType> {
 public:
-  static inline void *getAsVoidPointer(flang::QualType P) {
+  static inline void *getAsVoidPointer(fort::QualType P) {
     return P.getAsOpaquePtr();
   }
-  static inline flang::QualType getFromVoidPointer(void *P) {
-    return flang::QualType::getFromOpaquePtr(P);
+  static inline fort::QualType getFromVoidPointer(void *P) {
+    return fort::QualType::getFromOpaquePtr(P);
   }
   // Various qualifiers go in low bits.
   enum { NumLowBitsAvailable = 0 };
@@ -453,7 +453,7 @@ public:
 
 } // end namespace llvm
 
-namespace flang {
+namespace fort {
 
 /// \brief Base class that is common to both the \c ExtQuals and \c Type 
 /// classes, which allows \c QualType to access the common fields between the
@@ -1017,6 +1017,6 @@ inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB,
   return DB;
 }
 
-} // end flang namespace
+} // end fort namespace
 
 #endif

@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_CODEGEN_CODEGENTYPES_H
-#define FLANG_CODEGEN_CODEGENTYPES_H
+#ifndef FORT_CODEGEN_CODEGENTYPES_H
+#define FORT_CODEGEN_CODEGENTYPES_H
 
 #include "CGCall.h"
 #include "CGABI.h"
@@ -33,7 +33,7 @@ namespace llvm {
   class IntegerType;
 }
 
-namespace flang {
+namespace fort {
   class ASTContext;
   class TargetInfo;
 
@@ -123,6 +123,6 @@ public:
 };
 
 }  // end namespace CodeGen
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

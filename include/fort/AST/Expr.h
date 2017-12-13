@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_EXPR_H__
-#define FLANG_AST_EXPR_H__
+#ifndef FORT_AST_EXPR_H__
+#define FORT_AST_EXPR_H__
 
 #include "fort/AST/Type.h"
 #include "fort/AST/IntrinsicFunctions.h"
@@ -24,7 +24,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "fort/Basic/LLVM.h"
 
-namespace flang {
+namespace fort {
 
 class ASTContext;
 class IdentifierInfo;
@@ -1093,6 +1093,6 @@ public:
   }
 };
 
-} // end flang namespace
+} // end fort namespace
 
 #endif

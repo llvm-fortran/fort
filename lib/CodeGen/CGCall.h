@@ -7,15 +7,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_CODEGEN_CGCALL_H
-#define FLANG_CODEGEN_CGCALL_H
+#ifndef FORT_CODEGEN_CGCALL_H
+#define FORT_CODEGEN_CGCALL_H
 
 #include "ABIInfo.h"
 #include "CGValue.h"
 #include "fort/AST/Type.h"
 #include "llvm/IR/Module.h"
 
-namespace flang   {
+namespace fort   {
 namespace CodeGen {
 
 class CallArgList {
@@ -126,6 +126,6 @@ public:
 };
 
 }
-} // end namespace flang
+} // end namespace fort
 
 #endif

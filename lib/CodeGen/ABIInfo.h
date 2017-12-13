@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_CODEGEN_ABIINFO_H
-#define FLANG_CODEGEN_ABIINFO_H
+#ifndef FORT_CODEGEN_ABIINFO_H
+#define FORT_CODEGEN_ABIINFO_H
 
 #include "fort/AST/Type.h"
 
@@ -18,7 +18,7 @@ class Type;
 
 }
 
-namespace flang {
+namespace fort {
 
 /// ABIArgInfo - Helper class to encapsulate information about how a
 /// specific Fortran type should be passed to a function.
@@ -114,6 +114,6 @@ public:
   virtual void computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const = 0;
 };
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

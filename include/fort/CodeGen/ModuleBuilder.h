@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_CODEGEN_MODULEBUILDER_H
-#define LLVM_FLANG_CODEGEN_MODULEBUILDER_H
+#ifndef LLVM_FORT_CODEGEN_MODULEBUILDER_H
+#define LLVM_FORT_CODEGEN_MODULEBUILDER_H
 
 #include "fort/AST/ASTConsumer.h"
 #include "fort/Basic/TargetOptions.h"
@@ -24,7 +24,7 @@ namespace llvm {
   class Module;
 }
 
-namespace flang {
+namespace fort {
   class DiagnosticsEngine;
   class LangOptions;
 

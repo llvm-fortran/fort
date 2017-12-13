@@ -1,4 +1,4 @@
-! RUN: %flang -fdefault-integer-8 -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -fdefault-integer-8 -emit-llvm -o - %s | %file_check %s
 
 program test
   integer i ! CHECK: alloca i64

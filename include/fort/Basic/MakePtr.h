@@ -11,14 +11,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_BASIC_MAKEPTR_H
-#define LLVM_FLANG_BASIC_MAKEPTR_H
+#ifndef LLVM_FORT_BASIC_MAKEPTR_H
+#define LLVM_FORT_BASIC_MAKEPTR_H
 
-namespace flang {
+namespace fort {
 
 template <typename T> struct make_ptr       { typedef       T *type; };
 template <typename T> struct make_const_ptr { typedef const T *type; };
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

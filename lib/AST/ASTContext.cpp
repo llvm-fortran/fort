@@ -17,7 +17,7 @@
 #include "llvm/Support/ErrorHandling.h"
 
 
-namespace flang {
+namespace fort {
 
 ASTContext::ASTContext(llvm::SourceMgr &SM, LangOptions LangOpts)
   : SrcMgr(SM), LastSDM(0), LanguageOptions(LangOpts) {
@@ -271,4 +271,4 @@ QualType ASTContext::getRecordType(const RecordDecl *Record) {
   return QualType(newType, 0);
 }
 
-} //namespace flang
+} //namespace fort

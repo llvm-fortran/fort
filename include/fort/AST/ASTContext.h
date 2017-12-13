@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_ASTCONTEXT_H__
-#define FLANG_AST_ASTCONTEXT_H__
+#ifndef FORT_AST_ASTCONTEXT_H__
+#define FORT_AST_ASTCONTEXT_H__
 
 #include "fort/AST/Decl.h"
 #include "fort/AST/Type.h"
@@ -28,7 +28,7 @@ namespace llvm {
   struct fltSemantics;
 } // end llvm namespace
 
-namespace flang {
+namespace fort {
 
 class StoredDeclsMap;
 
@@ -228,7 +228,7 @@ private:
   friend class DeclContext;
 };
 
-} // end flang namespace
+} // end fort namespace
 
 // operator new and delete aren't allowed inside namespaces. The throw
 // specifications are mandated by the standard.
@@ -258,7 +258,7 @@ private:
 /// @param Alignment The alignment of the allocated memory (if the underlying
 ///                  allocator supports it).
 /// @return The allocated memory. Could be NULL.
-inline void *operator new(size_t Bytes, const flang::ASTContext &C,
+inline void *operator new(size_t Bytes, const fort::ASTContext &C,
                           size_t Alignment = 8) throw () {
   return C.Allocate(Bytes, Alignment);
 }
@@ -269,7 +269,7 @@ inline void *operator new(size_t Bytes, const flang::ASTContext &C,
 /// invoking it directly; see the new operator for more details. This operator
 /// is called implicitly by the compiler if a placement new expression using the
 /// ASTContext throws in the object constructor.
-inline void operator delete(void *Ptr, const flang::ASTContext &C, size_t size)
+inline void operator delete(void *Ptr, const fort::ASTContext &C, size_t size)
               throw () {
   C.Deallocate(Ptr, size);
 }
@@ -296,7 +296,7 @@ inline void operator delete(void *Ptr, const flang::ASTContext &C, size_t size)
 /// @param Alignment The alignment of the allocated memory (if the underlying
 ///                  allocator supports it).
 /// @return The allocated memory. Could be NULL.
-inline void *operator new[](size_t Bytes, const flang::ASTContext& C,
+inline void *operator new[](size_t Bytes, const fort::ASTContext& C,
                             size_t Alignment = 8) throw () {
   return C.Allocate(Bytes, Alignment);
 }
@@ -307,7 +307,7 @@ inline void *operator new[](size_t Bytes, const flang::ASTContext& C,
 /// invoking it directly; see the new[] operator for more details. This operator
 /// is called implicitly by the compiler if a placement new[] expression using
 /// the ASTContext throws in the object constructor.
-inline void operator delete[](void *Ptr, const flang::ASTContext &C, size_t size)
+inline void operator delete[](void *Ptr, const fort::ASTContext &C, size_t size)
               throw () {
   C.Deallocate(Ptr, size);
 }

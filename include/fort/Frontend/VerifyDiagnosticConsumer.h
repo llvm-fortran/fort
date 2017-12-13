@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_FRONTEND_VERIFYDIAGNOSTICSCLIENT_H
-#define LLVM_FLANG_FRONTEND_VERIFYDIAGNOSTICSCLIENT_H
+#ifndef LLVM_FORT_FRONTEND_VERIFYDIAGNOSTICSCLIENT_H
+#define LLVM_FORT_FRONTEND_VERIFYDIAGNOSTICSCLIENT_H
 
 #include "fort/Basic/Diagnostic.h"
 #include "fort/Parse/Lexer.h"
@@ -18,7 +18,7 @@
 #include <climits>
 #include <vector>
 
-namespace flang {
+namespace fort {
 
 class TextDiagnosticBuffer;
 class FileEntry;
@@ -235,6 +235,6 @@ public:
                                 llvm::ArrayRef<FixItHint>);
 };
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

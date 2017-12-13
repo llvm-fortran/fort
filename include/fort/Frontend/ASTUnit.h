@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_FRONTEND_ASTUNIT_H
-#define LLVM_FLANG_FRONTEND_ASTUNIT_H
+#ifndef LLVM_FORT_FRONTEND_ASTUNIT_H
+#define LLVM_FORT_FRONTEND_ASTUNIT_H
 
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/ASTConsumer.h"
@@ -34,7 +34,7 @@ namespace llvm {
   class MemoryBuffer;
 }
 
-namespace flang {
+namespace fort {
 class ASTContext;
 class ASTReader;
 class CodeCompleteConsumer;
@@ -193,6 +193,6 @@ public:
 
 };
 
-} // namespace flang
+} // namespace fort
 
 #endif

@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_CODEGEN_CODEGENFUNCTION_H
-#define FLANG_CODEGEN_CODEGENFUNCTION_H
+#ifndef FORT_CODEGEN_CODEGENFUNCTION_H
+#define FORT_CODEGEN_CODEGENFUNCTION_H
 
 #include "CGBuilder.h"
 #include "CGValue.h"
@@ -40,7 +40,7 @@ namespace llvm {
   class Type;
 }
 
-namespace flang {
+namespace fort {
   class ASTContext;
   class Decl;
 
@@ -505,6 +505,6 @@ public:
 };
 
 }  // end namespace CodeGen
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_FRONTEND_ASTCONSUMERS_H
-#define FLANG_FRONTEND_ASTCONSUMERS_H
+#ifndef FORT_FRONTEND_ASTCONSUMERS_H
+#define FORT_FRONTEND_ASTCONSUMERS_H
 
 #include "fort/Basic/LLVM.h"
 
@@ -20,7 +20,7 @@ namespace llvm {
   namespace sys { class Path; }
 }
 
-namespace flang {
+namespace fort {
 
 class ASTConsumer;
 
@@ -28,6 +28,6 @@ class ASTConsumer;
 // intended for debugging.
 ASTConsumer *CreateASTDumper(StringRef FilterString);
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

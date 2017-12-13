@@ -12,15 +12,15 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_DIAGNOSTICIDS_H
-#define LLVM_FLANG_DIAGNOSTICIDS_H
+#ifndef LLVM_FORT_DIAGNOSTICIDS_H
+#define LLVM_FORT_DIAGNOSTICIDS_H
 
 #include "fort/Basic/SourceLocation.h"
 #include "fort/Basic/LLVM.h"
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
 #include "llvm/ADT/StringRef.h"
 
-namespace flang {
+namespace fort {
   class DiagnosticsEngine;
   struct WarningOption;
 
@@ -276,6 +276,6 @@ private:
   friend class DiagnosticsEngine;
 };
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

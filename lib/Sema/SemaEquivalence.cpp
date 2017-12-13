@@ -23,7 +23,7 @@
 #include "fort/AST/ExprVisitor.h"
 #include "fort/Basic/Diagnostic.h"
 
-namespace flang {
+namespace fort {
 
 EquivalenceScope::InfluenceObject *EquivalenceScope::GetObject(ASTContext &C, VarDecl *Var) {
   auto Result = Objects.find(Var);
@@ -319,4 +319,4 @@ StmtResult Sema::ActOnEQUIVALENCE(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
-} // end namespace flang
+} // end namespace fort

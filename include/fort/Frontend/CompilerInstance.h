@@ -1,4 +1,4 @@
-//===-- CompilerInstance.h - Flang Compiler Instance ------------*- C++ -*-===//
+//===-- CompilerInstance.h - Fort Compiler Instance ------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_FRONTEND_COMPILERINSTANCE_H_
-#define LLVM_FLANG_FRONTEND_COMPILERINSTANCE_H_
+#ifndef LLVM_FORT_FRONTEND_COMPILERINSTANCE_H_
+#define LLVM_FORT_FRONTEND_COMPILERINSTANCE_H_
 
 #include "fort/Basic/Diagnostic.h"
 #include "fort/Frontend/CompilerInvocation.h"
@@ -27,7 +27,7 @@ class raw_fd_ostream;
 class Timer;
 }
 
-namespace flang {
+namespace fort {
 class ASTContext;
 class ASTConsumer;
 class ASTReader;
@@ -42,7 +42,7 @@ class Preprocessor;
 class Sema;
 class TargetInfo;
 
-/// CompilerInstance - Helper class for managing a single instance of the Flang
+/// CompilerInstance - Helper class for managing a single instance of the Fort
 /// compiler.
 ///
 /// The CompilerInstance serves two purposes:
@@ -50,7 +50,7 @@ class TargetInfo;
 ///      for example the preprocessor, the target information, and the AST
 ///      context.
 ///  (2) It provides utility routines for constructing and manipulating the
-///      common Flang objects.
+///      common Fort objects.
 ///
 /// The compiler instance generally owns the instance of all the objects that it
 /// manages. However, clients can still share objects by manually setting the
@@ -523,6 +523,6 @@ public:
 
 };
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

@@ -11,16 +11,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_SOURCELOCATION_H
-#define LLVM_FLANG_SOURCELOCATION_H
+#ifndef LLVM_FORT_SOURCELOCATION_H
+#define LLVM_FORT_SOURCELOCATION_H
 
 #include "llvm/Support/SMLoc.h"
 
-namespace flang {
+namespace fort {
 
 typedef llvm::SMLoc   SourceLocation;
 typedef llvm::SMRange SourceRange;
 
-} // end flang namespace
+} // end fort namespace
 
 #endif

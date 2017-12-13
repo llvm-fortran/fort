@@ -8,12 +8,12 @@
 //===----------------------------------------------------------------------===//
 //
 // This file forward declares and imports various common LLVM datatypes that
-// flang wants to use unqualified.
+// fort wants to use unqualified.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_BASIC_LLVM_H__
-#define FLANG_BASIC_LLVM_H__
+#ifndef FORT_BASIC_LLVM_H__
+#define FORT_BASIC_LLVM_H__
 
 // This should be the only #include, force #includes of all the others on
 // clients.
@@ -42,7 +42,7 @@ namespace llvm {
 }
 
 
-namespace flang {
+namespace fort {
   // Casting operators.
   using llvm::isa;
   using llvm::cast;
@@ -62,6 +62,6 @@ namespace flang {
   
   using llvm::raw_ostream;
   using llvm::raw_pwrite_stream;
-} // end namespace flang.
+} // end namespace fort.
 
 #endif

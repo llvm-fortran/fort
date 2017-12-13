@@ -19,9 +19,9 @@ add_fort_library(fortCodeGen
   CGArrayIntrinsic.cpp
   CGCall.cpp
   CGIORuntime.cpp
-  CGIOLibflang.cpp
+  CGIOLibfort.cpp
   CGSystemRuntime.cpp
-  CGSystemLibflang.cpp
+  CGSystemLibfort.cpp
 )
 
 target_link_libraries(fortCodeGen

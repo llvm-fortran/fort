@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only -verify < %s
+! RUN: %fort -fsyntax-only -verify < %s
 PROGRAM arrtest
   INTEGER I_ARR(30)
   INTEGER I_ARR2(30,20)

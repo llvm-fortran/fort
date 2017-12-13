@@ -10,7 +10,7 @@
 #include "fort/AST/IOSpec.h"
 #include "fort/AST/ASTContext.h"
 
-namespace flang {
+namespace fort {
 
 ExternalStarUnitSpec::ExternalStarUnitSpec(SourceLocation Loc, bool IsLabeled)
   : UnitSpec(US_ExternalStar, Loc, IsLabeled) {}
@@ -37,4 +37,4 @@ InternalUnitSpec *InternalUnitSpec::Create(ASTContext &C, SourceLocation Loc,
   return new(C) InternalUnitSpec(Loc, Value, IsLabeled);
 }
 
-} // end namespace flang
+} // end namespace fort

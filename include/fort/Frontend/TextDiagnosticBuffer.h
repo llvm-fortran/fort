@@ -11,14 +11,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_FRONTEND_TEXT_DIAGNOSTIC_BUFFER_H_
-#define LLVM_FLANG_FRONTEND_TEXT_DIAGNOSTIC_BUFFER_H_
+#ifndef LLVM_FORT_FRONTEND_TEXT_DIAGNOSTIC_BUFFER_H_
+#define LLVM_FORT_FRONTEND_TEXT_DIAGNOSTIC_BUFFER_H_
 
 #include "fort/Basic/Diagnostic.h"
 #include <vector>
 #include <string>
 
-namespace flang {
+namespace fort {
 
 class Lexer;
 
@@ -47,6 +47,6 @@ public:
   void FlushDiagnostics(DiagnosticsEngine &Diags) const;
 };
 
-} // end namspace flang
+} // end namspace fort
 
 #endif

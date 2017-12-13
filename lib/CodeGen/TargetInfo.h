@@ -12,8 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_CODEGEN_TARGETINFO_H
-#define FLANG_CODEGEN_TARGETINFO_H
+#ifndef FORT_CODEGEN_TARGETINFO_H
+#define FORT_CODEGEN_TARGETINFO_H
 
 #include "fort/AST/Type.h"
 #include "fort/Basic/LLVM.h"
@@ -26,7 +26,7 @@ namespace llvm {
   class Value;
 }
 
-namespace flang {
+namespace fort {
   class ABIInfo;
   class Decl;
 
@@ -51,4 +51,4 @@ namespace flang {
   };
 }
 
-#endif // FLANG_CODEGEN_TARGETINFO_H
+#endif // FORT_CODEGEN_TARGETINFO_H

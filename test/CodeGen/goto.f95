@@ -1,4 +1,4 @@
-! RUN: %flang -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | %file_check %s
 PROGRAM gototest
 
 1000 CONTINUE   ! CHECK: ; <label>:0

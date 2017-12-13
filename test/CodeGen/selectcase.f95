@@ -1,4 +1,4 @@
-! RUN: %flang -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | %file_check %s
 PROGRAM test
   INTEGER I, J
   CHARACTER (Len = 10) STR, NAME
@@ -20,7 +20,7 @@ PROGRAM test
   END SELECT
 
   STR = 'Hello World'
-  SELECT CASE(STR) ! CHECK:      call i32 @libflang_compare_char1
+  SELECT CASE(STR) ! CHECK:      call i32 @libfort_compare_char1
   CASE ('Hello')   ! CHECK-NEXT: icmp eq i32
     J = 0          ! CHECK-NEXT: br i1
   CASE ('A':'C', 'Foo')

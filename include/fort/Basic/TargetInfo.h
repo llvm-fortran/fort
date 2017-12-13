@@ -8,12 +8,12 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// \brief Defines the flang::TargetInfo interface.
+/// \brief Defines the fort::TargetInfo interface.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_BASIC_TARGETINFO_H
-#define LLVM_FLANG_BASIC_TARGETINFO_H
+#ifndef LLVM_FORT_BASIC_TARGETINFO_H
+#define LLVM_FORT_BASIC_TARGETINFO_H
 
 #if 0
 #include "fort/Basic/AddressSpaces.h"
@@ -39,7 +39,7 @@ namespace llvm {
 struct fltSemantics;
 }
 
-namespace flang {
+namespace fort {
 class DiagnosticsEngine;
 class LangOptions;
 class CodeGenOptions;
@@ -929,6 +929,6 @@ protected:
   }
 };
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

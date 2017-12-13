@@ -21,7 +21,7 @@
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/ADT/APFloat.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 class ComplexExprEmitter
@@ -322,4 +322,4 @@ llvm::Constant *CodeGenFunction::CreateComplexConstant(ComplexValueTy Value) {
 }
 
 }
-} // end namespace flang
+} // end namespace fort

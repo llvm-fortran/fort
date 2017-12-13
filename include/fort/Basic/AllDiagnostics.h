@@ -12,24 +12,24 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_ALL_DIAGNOSTICS_H
-#define LLVM_FLANG_ALL_DIAGNOSTICS_H
+#ifndef LLVM_FORT_ALL_DIAGNOSTICS_H
+#define LLVM_FORT_ALL_DIAGNOSTICS_H
 
 #include "fort/Frontend/FrontendDiagnostic.h"
 #include "fort/Parse/LexDiagnostic.h"
 #include "fort/Parse/ParseDiagnostic.h"
 #include "fort/Sema/SemaDiagnostic.h"
 
-namespace flang {
+namespace fort {
 template <size_t SizeOfStr, typename FieldType>
 class StringSizerHelper {
   char FIELD_TOO_SMALL[SizeOfStr <= FieldType(~0U) ? 1 : -1];
 public:
   enum { Size = SizeOfStr };
 };
-} // end namespace flang
+} // end namespace fort
 
-#define STR_SIZE(str, fieldTy) flang::StringSizerHelper<sizeof(str)-1, \
+#define STR_SIZE(str, fieldTy) fort::StringSizerHelper<sizeof(str)-1, \
                                                         fieldTy>::Size 
 
 #endif

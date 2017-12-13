@@ -17,7 +17,7 @@
 #include "fort/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 int64_t Sema::EvalAndCheckIntExpr(const Expr *E,
                                   int64_t ErrorValue) {
@@ -761,4 +761,4 @@ bool Sema::CheckRecursiveFunction(SourceLocation Loc) {
   return true;
 }
 
-} // end namespace flang
+} // end namespace fort

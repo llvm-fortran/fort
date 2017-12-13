@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_CODEGEN_CODEGENMODULE_H
-#define FLANG_CODEGEN_CODEGENMODULE_H
+#ifndef FORT_CODEGEN_CODEGENMODULE_H
+#define FORT_CODEGEN_CODEGENMODULE_H
 
 #include "CodeGenTypes.h"
 #include "fort/AST/Decl.h"
@@ -39,7 +39,7 @@ namespace llvm {
   class LLVMContext;
 }
 
-namespace flang {
+namespace fort {
   class ASTContext;
   class Decl;
   class Expr;
@@ -120,7 +120,7 @@ class CodeGenModule : public CodeGenTypeCache {
   llvm::LLVMContext &VMContext;
 
   CodeGenTypes Types;
-  LibflangABI RuntimeABI;
+  LibfortABI RuntimeABI;
   const TargetCodeGenInfo *TheTargetCodeGenInfo;
   CGIORuntime *IORuntime;
   CGSystemRuntime *SystemRuntime;
@@ -259,6 +259,6 @@ public:
 };
 
 }  // end namespace CodeGen
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

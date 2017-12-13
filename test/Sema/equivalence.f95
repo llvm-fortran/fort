@@ -1,4 +1,4 @@
-! RUN: %flang -verify -fsyntax-only < %s
+! RUN: %fort -verify -fsyntax-only < %s
 
 SUBROUTINE equivtest(JJ) ! expected-note {{'jj' is an argument defined here}}
   REAL A, B

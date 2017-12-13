@@ -16,7 +16,7 @@
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/ExprVisitor.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 class AggregateExprEmitter

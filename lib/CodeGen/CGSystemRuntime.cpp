@@ -14,7 +14,7 @@
 #include "CGSystemRuntime.h"
 #include "CodeGenFunction.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 CGSystemRuntime::~CGSystemRuntime() {
@@ -25,5 +25,5 @@ llvm::Value *CGSystemRuntime::EmitMalloc(CodeGenFunction &CGF, llvm::Type *T, ll
 }
 
 }
-} // end namespace flang
+} // end namespace fort
 

@@ -8,19 +8,19 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// \brief Defines the flang::VersionTuple class, which represents a version in
+/// \brief Defines the fort::VersionTuple class, which represents a version in
 /// the form major[.minor[.subminor]].
 ///
 //===----------------------------------------------------------------------===//
-#ifndef LLVM_FLANG_BASIC_VERSIONTUPLE_H
-#define LLVM_FLANG_BASIC_VERSIONTUPLE_H
+#ifndef LLVM_FORT_BASIC_VERSIONTUPLE_H
+#define LLVM_FORT_BASIC_VERSIONTUPLE_H
 
 #include "fort/Basic/LLVM.h"
 #include "llvm/ADT/Optional.h"
 #include <string>
 #include <tuple>
 
-namespace flang {
+namespace fort {
 
 /// \brief Represents a version number in the form major[.minor[.subminor[.build]]].
 class VersionTuple {
@@ -164,5 +164,5 @@ public:
 /// \brief Print a version number.
 raw_ostream& operator<<(raw_ostream &Out, const VersionTuple &V);
 
-} // end namespace flang
-#endif // LLVM_FLANG_BASIC_VERSIONTUPLE_H
+} // end namespace fort
+#endif // LLVM_FORT_BASIC_VERSIONTUPLE_H

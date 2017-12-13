@@ -7,12 +7,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_SEMADIAGNOSTIC_H
-#define LLVM_FLANG_SEMADIAGNOSTIC_H
+#ifndef LLVM_FORT_SEMADIAGNOSTIC_H
+#define LLVM_FORT_SEMADIAGNOSTIC_H
 
 #include "fort/Basic/Diagnostic.h"
 
-namespace flang {
+namespace fort {
   namespace diag {
     enum {
 #define DIAG(ENUM,FLAGS,DEFAULT_MAPPING,DESC,GROUP,\
@@ -23,6 +23,6 @@ namespace flang {
       NUM_BUILTIN_SEMA_DIAGNOSTICS
     };
   }  // end namespace diag
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

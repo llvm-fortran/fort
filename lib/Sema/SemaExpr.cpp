@@ -16,7 +16,7 @@
 #include "fort/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 /// Returns true if a type is a double precision real type.
 bool Sema::IsTypeDoublePrecisionReal(QualType T) const {
@@ -246,7 +246,7 @@ CheckAndApplyAssignmentConstraints(SourceLocation Loc, QualType LHSType,
       }
 
       // cast an array to appropriate type.
-      auto Action = ::flang::TypecheckAssignment(Context, LHSElementType, RHSElementType);
+      auto Action = ::fort::TypecheckAssignment(Context, LHSElementType, RHSElementType);
       if(Action == NoAction)
         return RHS;
       else if(Action == ImplicitCastAction)
@@ -263,7 +263,7 @@ CheckAndApplyAssignmentConstraints(SourceLocation Loc, QualType LHSType,
       LHSType = LHSElementType; // fallthrough
   }
 
-  auto Action = ::flang::TypecheckAssignment(Context, LHSType, RHSType);
+  auto Action = ::fort::TypecheckAssignment(Context, LHSType, RHSType);
   if(Action == NoAction)
     return RHS;
   else if(Action == ImplicitCastAction)
@@ -885,4 +885,4 @@ ExprResult Sema::ActOnStructureComponentExpr(ASTContext &C, SourceLocation Loc,
   return MemberExpr::Create(C, Loc, Target, Field, Field->getType());
 }
 
-} // namespace flang
+} // namespace fort

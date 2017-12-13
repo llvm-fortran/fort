@@ -15,7 +15,7 @@
 #include "llvm/ADT/APSInt.h"
 #include "llvm/ADT/StringRef.h"
 
-namespace flang {
+namespace fort {
 
 void APNumericStorage::setIntValue(ASTContext &C, const APInt &Val) {
   if (hasAllocation())
@@ -586,4 +586,4 @@ ImpliedShapeSpec *ImpliedShapeSpec::Create(ASTContext &C, SourceLocation Loc, Ex
   return new (C) ImpliedShapeSpec(Loc, LB);
 }
 
-} //namespace flang
+} //namespace fort

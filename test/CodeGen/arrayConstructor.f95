@@ -1,4 +1,4 @@
-! RUN: %flang -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | %file_check %s
 
 PROGRAM test ! CHECK: private constant [4 x i32] [i32 1, i32 2, i32 3, i32 4]
 

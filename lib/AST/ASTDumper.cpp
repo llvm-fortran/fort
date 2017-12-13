@@ -21,7 +21,7 @@
 #include "fort/AST/FormatItem.h"
 #include "fort/Basic/LLVM.h"
 #include "llvm/Support/raw_ostream.h"
-using namespace flang;
+using namespace fort;
 
 namespace {
 
@@ -898,7 +898,7 @@ void ASTDumper::dumpArraySpec(const ArraySpec *S) {
   } else OS << "<unknown array spec>";
 }
 
-namespace flang {
+namespace fort {
 
 void Decl::dump() const {
   dump(llvm::errs());

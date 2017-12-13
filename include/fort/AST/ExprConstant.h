@@ -7,13 +7,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_EXPR_CONSTANT_H
-#define FLANG_AST_EXPR_CONSTANT_H
+#ifndef FORT_AST_EXPR_CONSTANT_H
+#define FORT_AST_EXPR_CONSTANT_H
 
 #include "fort/Basic/LLVM.h"
 #include "llvm/ADT/DenseMap.h"
 
-namespace flang {
+namespace fort {
 
 class Expr;
 class VarDecl;

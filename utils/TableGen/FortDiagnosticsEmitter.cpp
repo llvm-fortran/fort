@@ -1,4 +1,4 @@
-//=- FlangDiagnosticsEmitter.cpp - Generate Flang diagnostics tables -*- C++ -*-
+//=- FortDiagnosticsEmitter.cpp - Generate Fort diagnostics tables -*- C++ -*-
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// These tablegen backends emit Flang diagnostics tables.
+// These tablegen backends emit Fort diagnostics tables.
 //
 //===----------------------------------------------------------------------===//
 
@@ -179,7 +179,7 @@ static void groupDiagnostics(const std::vector<Record*> &Diags,
   GroupSetTy ImplicitGroups;
 
   // Add all DiagGroup's to the DiagsInGroup list to make sure we pick up empty
-  // groups (these are warnings that GCC supports that flang never produces).
+  // groups (these are warnings that GCC supports that fort never produces).
   for (unsigned i = 0, e = DiagGroups.size(); i != e; ++i) {
     Record *Group = DiagGroups[i];
     GroupInfo &GI = DiagsInGroup[Group->getValueAsString("GroupName")];
@@ -470,10 +470,10 @@ static bool isError(const Record &Diag) {
   return ClsName == "CLASS_ERROR";
 }
 
-/// FlangDiagsDefsEmitter - The top-level class emits .def files containing
-/// declarations of Flang diagnostics.
-namespace flang {
-void EmitFlangDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
+/// FortDiagsDefsEmitter - The top-level class emits .def files containing
+/// declarations of Fort diagnostics.
+namespace fort {
+void EmitFortDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
                         const std::string &Component) {
   // Write the #if guard
   if (!Component.empty()) {
@@ -577,7 +577,7 @@ void EmitFlangDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
     OS << ")\n";
   }
 }
-} // end namespace flang
+} // end namespace fort
 
 //===----------------------------------------------------------------------===//
 // Warning Group Tables generation
@@ -592,8 +592,8 @@ static std::string getDiagCategoryEnum(llvm::StringRef name) {
   return enumName.str();
 }
   
-namespace flang {
-void EmitFlangDiagGroups(RecordKeeper &Records, raw_ostream &OS) {
+namespace fort {
+void EmitFortDiagGroups(RecordKeeper &Records, raw_ostream &OS) {
   // Compute a mapping from a DiagGroup to all of its parents.
   DiagGroupParentMap DGParentMap(Records);
 
@@ -708,7 +708,7 @@ void EmitFlangDiagGroups(RecordKeeper &Records, raw_ostream &OS) {
     OS << "CATEGORY(\"" << *I << "\", " << getDiagCategoryEnum(*I) << ")\n";
   OS << "#endif // GET_CATEGORY_TABLE\n\n";
 }
-} // end namespace flang
+} // end namespace fort
 
 //===----------------------------------------------------------------------===//
 // Diagnostic name index generation
@@ -736,9 +736,9 @@ struct RecordIndexElementSorter :
 
 } // end anonymous namespace.
 
-namespace flang {
+namespace fort {
 
-void EmitFlangDiagsIndexName(RecordKeeper &Records, raw_ostream &OS) {
+void EmitFortDiagsIndexName(RecordKeeper &Records, raw_ostream &OS) {
   const std::vector<Record*> &Diags =
     Records.getAllDerivedDefinitions("Diagnostic");
   
@@ -757,4 +757,4 @@ void EmitFlangDiagsIndexName(RecordKeeper &Records, raw_ostream &OS) {
     OS << "DIAG_NAME_INDEX(" << R.Name << ")\n";
   }
 }
-} // end namespace flang
+} // end namespace fort

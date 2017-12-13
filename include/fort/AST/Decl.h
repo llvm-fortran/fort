@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_DECL_H__
-#define FLANG_AST_DECL_H__
+#ifndef FORT_AST_DECL_H__
+#define FORT_AST_DECL_H__
 
 #include "fort/AST/DeclarationName.h"
 #include "fort/AST/Type.h"
@@ -29,7 +29,7 @@ namespace llvm {
   class SourceMgr;
 }
 
-namespace flang {
+namespace fort {
 
 class ASTContext;
 class DeclSpec;
@@ -59,14 +59,14 @@ class FieldDecl;
 class VarDecl;
 class FileScopeAsmDecl;
 
-} // end flang namespace
+} // end fort namespace
 
 namespace llvm {
 
 // DeclContext* is only 4-byte aligned on 32-bit systems.
 template<>
-  class PointerLikeTypeTraits<flang::DeclContext*> {
-  typedef flang::DeclContext* PT;
+  class PointerLikeTypeTraits<fort::DeclContext*> {
+  typedef fort::DeclContext* PT;
 public:
   static inline void *getAsVoidPointer(PT P) { return P; }
   static inline PT getFromVoidPointer(void *P) {
@@ -77,7 +77,7 @@ public:
 
 } // end llvm namespace
 
-namespace flang {
+namespace fort {
 
 //===----------------------------------------------------------------------===//
 /// Decl - Base class for declarations.
@@ -1052,14 +1052,14 @@ struct cast_convert_decl_context<ToTy, true> {
   }
 };
 
-} // end flang namespace
+} // end fort namespace
 
 namespace llvm {
 
 /// isa<T>(DeclContext*)
 template <typename To>
-struct isa_impl<To, ::flang::DeclContext> {
-  static bool doit(const ::flang::DeclContext &Val) {
+struct isa_impl<To, ::fort::DeclContext> {
+  static bool doit(const ::fort::DeclContext &Val) {
     return To::classofKind(Val.getDeclKind());
   }
 };
@@ -1067,60 +1067,60 @@ struct isa_impl<To, ::flang::DeclContext> {
 /// cast<T>(DeclContext*)
 template<class ToTy>
 struct cast_convert_val<ToTy,
-                        const ::flang::DeclContext,const ::flang::DeclContext> {
-  static const ToTy &doit(const ::flang::DeclContext &Val) {
-    return *::flang::cast_convert_decl_context<ToTy>::doit(&Val);
+                        const ::fort::DeclContext,const ::fort::DeclContext> {
+  static const ToTy &doit(const ::fort::DeclContext &Val) {
+    return *::fort::cast_convert_decl_context<ToTy>::doit(&Val);
   }
 };
 template<class ToTy>
-struct cast_convert_val<ToTy, ::flang::DeclContext, ::flang::DeclContext> {
-  static ToTy &doit(::flang::DeclContext &Val) {
-    return *::flang::cast_convert_decl_context<ToTy>::doit(&Val);
+struct cast_convert_val<ToTy, ::fort::DeclContext, ::fort::DeclContext> {
+  static ToTy &doit(::fort::DeclContext &Val) {
+    return *::fort::cast_convert_decl_context<ToTy>::doit(&Val);
   }
 };
 template<class ToTy>
 struct cast_convert_val<ToTy,
-                     const ::flang::DeclContext*, const ::flang::DeclContext*> {
-  static const ToTy *doit(const ::flang::DeclContext *Val) {
-    return ::flang::cast_convert_decl_context<ToTy>::doit(Val);
+                     const ::fort::DeclContext*, const ::fort::DeclContext*> {
+  static const ToTy *doit(const ::fort::DeclContext *Val) {
+    return ::fort::cast_convert_decl_context<ToTy>::doit(Val);
   }
 };
 template<class ToTy>
-struct cast_convert_val<ToTy, ::flang::DeclContext*, ::flang::DeclContext*> {
-  static ToTy *doit(::flang::DeclContext *Val) {
-    return ::flang::cast_convert_decl_context<ToTy>::doit(Val);
+struct cast_convert_val<ToTy, ::fort::DeclContext*, ::fort::DeclContext*> {
+  static ToTy *doit(::fort::DeclContext *Val) {
+    return ::fort::cast_convert_decl_context<ToTy>::doit(Val);
   }
 };
 
 /// Implement cast_convert_val for Decl -> DeclContext conversions.
 template<class FromTy>
-struct cast_convert_val< ::flang::DeclContext, FromTy, FromTy> {
-  static ::flang::DeclContext &doit(const FromTy &Val) {
+struct cast_convert_val< ::fort::DeclContext, FromTy, FromTy> {
+  static ::fort::DeclContext &doit(const FromTy &Val) {
     return *FromTy::castToDeclContext(&Val);
   }
 };
 
 template<class FromTy>
-struct cast_convert_val< ::flang::DeclContext, FromTy*, FromTy*> {
-  static ::flang::DeclContext *doit(const FromTy *Val) {
+struct cast_convert_val< ::fort::DeclContext, FromTy*, FromTy*> {
+  static ::fort::DeclContext *doit(const FromTy *Val) {
     return FromTy::castToDeclContext(Val);
   }
 };
 
 template<class FromTy>
-struct cast_convert_val< const ::flang::DeclContext, FromTy, FromTy> {
-  static const ::flang::DeclContext &doit(const FromTy &Val) {
+struct cast_convert_val< const ::fort::DeclContext, FromTy, FromTy> {
+  static const ::fort::DeclContext &doit(const FromTy &Val) {
     return *FromTy::castToDeclContext(&Val);
   }
 };
 
 template<class FromTy>
-struct cast_convert_val< const ::flang::DeclContext, FromTy*, FromTy*> {
-  static const ::flang::DeclContext *doit(const FromTy *Val) {
+struct cast_convert_val< const ::fort::DeclContext, FromTy*, FromTy*> {
+  static const ::fort::DeclContext *doit(const FromTy *Val) {
     return FromTy::castToDeclContext(Val);
   }
 };
 
 } // end namespace llvm
 
-#endif // FLANG_AST_DECL_H__
+#endif // FORT_AST_DECL_H__

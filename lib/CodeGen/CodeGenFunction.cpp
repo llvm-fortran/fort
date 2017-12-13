@@ -25,7 +25,7 @@
 #include "llvm/IR/MDBuilder.h"
 #include "llvm/IR/Operator.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn)
@@ -246,4 +246,4 @@ llvm::Type *CodeGenFunction::ConvertType(QualType T) const {
 }
 
 } // end namespace CodeGen
-} // end namespace flang
+} // end namespace fort

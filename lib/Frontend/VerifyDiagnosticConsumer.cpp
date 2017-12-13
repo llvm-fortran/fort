@@ -22,7 +22,7 @@
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 typedef VerifyDiagnosticConsumer::Directive Directive;
 typedef VerifyDiagnosticConsumer::DirectiveList DirectiveList;
@@ -643,4 +643,4 @@ Directive *Directive::create(bool RegexKind, SourceLocation DirectiveLoc,
   return new StandardDirective(DirectiveLoc, DiagnosticLoc, Text, Min, Max);
 }
 
-} // end namespace flang
+} // end namespace fort

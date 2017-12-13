@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only -verify < %s
+! RUN: %fort -fsyntax-only -verify < %s
 PROGRAM constants
   COMPLEX C
   PARAMETER (ZERO = 0.0)

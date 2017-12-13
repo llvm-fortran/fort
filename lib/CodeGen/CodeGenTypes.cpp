@@ -20,7 +20,7 @@
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Module.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 CodeGenTypes::CodeGenTypes(CodeGenModule &cgm)
@@ -202,6 +202,6 @@ CodeGenTypes::GetFunctionType(FortranABI &ABI,
   return Result;
 }
 
-} } // end namespace flang
+} } // end namespace fort
 
 

@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_PARSER_LEXER_H__
-#define FLANG_PARSER_LEXER_H__
+#ifndef FORT_PARSER_LEXER_H__
+#define FORT_PARSER_LEXER_H__
 
 #include "fort/Basic/LangOptions.h"
 #include "fort/Basic/Token.h"
@@ -30,7 +30,7 @@ class SourceMgr;
 
 } // end namespace llvm
 
-namespace flang {
+namespace fort {
 
 class DiagnosticsEngine;
 class CommentHandler;
@@ -413,6 +413,6 @@ public:
   virtual bool HandleComment(Lexer &Lexer, const SourceLocation& Loc, const llvm::StringRef &Comment) = 0;
 };
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

@@ -20,7 +20,7 @@
 #include "llvm/ADT/StringExtras.h"
 #include <algorithm>
 
-namespace flang {
+namespace fort {
 
 // These declarations are not currently used and will provoke warnings
 //static const enum llvm::raw_ostream::Colors noteColor =
@@ -62,4 +62,4 @@ void TextDiagnosticPrinter::HandleDiagnostic(DiagnosticsEngine::Level Level,
                       Ranges, FixIts, true);
 }
 
-} //namespace flang
+} //namespace fort

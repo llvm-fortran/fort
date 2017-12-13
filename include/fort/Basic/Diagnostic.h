@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_DIAGNOSTIC_H__
-#define FLANG_DIAGNOSTIC_H__
+#ifndef FORT_DIAGNOSTIC_H__
+#define FORT_DIAGNOSTIC_H__
 
 #include "fort/Basic/DiagnosticIDs.h"
 #include "fort/Basic/SourceLocation.h"
@@ -28,7 +28,7 @@ namespace llvm {
   class StringRef;
 } // end namespace llvm
 
-namespace flang {
+namespace fort {
 
 class DiagnosticClient;
 class DiagnosticBuilder;
@@ -828,6 +828,6 @@ public:
                                   llvm::ArrayRef<FixItHint>());
 };
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

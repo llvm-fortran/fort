@@ -7,15 +7,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_BASIC_CHARINFO_H
-#define LLVM_FLANG_BASIC_CHARINFO_H
+#ifndef LLVM_FORT_BASIC_CHARINFO_H
+#define LLVM_FORT_BASIC_CHARINFO_H
 
 #include "fort/Basic/LLVM.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/DataTypes.h"
 
-namespace flang {
+namespace fort {
 namespace charinfo {
   extern const uint16_t InfoTable[256];
 
@@ -193,6 +193,6 @@ LLVM_READONLY static inline bool isValidIdentifier(StringRef S) {
   return true;
 }
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

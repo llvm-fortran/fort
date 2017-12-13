@@ -1,4 +1,4 @@
-! RUN: %flang -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | %file_check %s
 
 SUBROUTINE SUB ! CHECK: define void @sub_()
 END            ! CHECK: ret void

@@ -26,7 +26,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include <sstream>
 
-namespace flang {
+namespace fort {
 
 Sema::Sema(ASTContext &ctxt, DiagnosticsEngine &D)
   : Context(ctxt), Diags(D), CurContext(0), IntrinsicFunctionMapping(LangOptions()),
@@ -1098,4 +1098,4 @@ QualType Sema::GetSingleDimArrayType(QualType ElTy, int Size) {
   return Context.getArrayType(ElTy, Dim);
 }
 
-} //namespace flang
+} //namespace fort

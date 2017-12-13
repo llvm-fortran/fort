@@ -1,27 +1,27 @@
 /* This generated file is for internal use. Do not include it from headers. */
 
-#ifdef FLANG_CONFIG_H
+#ifdef FORT_CONFIG_H
 #error config.h can only be included once
 #else
-#define FLANG_CONFIG_H
+#define FORT_CONFIG_H
 
 /* Bug report URL. */
 #define BUG_REPORT_URL "${BUG_REPORT_URL}"
 
 /* Default linker to use. */
-#define FLANG_DEFAULT_LINKER "${FLANG_DEFAULT_LINKER}"
+#define FORT_DEFAULT_LINKER "${FORT_DEFAULT_LINKER}"
 
 /* Default runtime library to use. */
-#define FLANG_DEFAULT_RTLIB "${FLANG_DEFAULT_RTLIB}"
+#define FORT_DEFAULT_RTLIB "${FORT_DEFAULT_RTLIB}"
 
 /* Default OpenMP runtime used by -fopenmp. */
-#define FLANG_DEFAULT_OPENMP_RUNTIME "${FLANG_DEFAULT_OPENMP_RUNTIME}"
+#define FORT_DEFAULT_OPENMP_RUNTIME "${FORT_DEFAULT_OPENMP_RUNTIME}"
 
 /* Multilib suffix for libdir. */
-#define FLANG_LIBDIR_SUFFIX "${FLANG_LIBDIR_SUFFIX}"
+#define FORT_LIBDIR_SUFFIX "${FORT_LIBDIR_SUFFIX}"
 
 /* Relative directory for resource files */
-#define FLANG_RESOURCE_DIR "${FLANG_RESOURCE_DIR}"
+#define FORT_RESOURCE_DIR "${FORT_RESOURCE_DIR}"
 
 /* Default <path> to all compiler invocations for --sysroot=<path>. */
 #define DEFAULT_SYSROOT "${DEFAULT_SYSROOT}"
@@ -30,13 +30,13 @@
 #define GCC_INSTALL_PREFIX "${GCC_INSTALL_PREFIX}"
 
 /* Define if we have libxml2 */
-#cmakedefine FLANG_HAVE_LIBXML ${FLANG_HAVE_LIBXML}
+#cmakedefine FORT_HAVE_LIBXML ${FORT_HAVE_LIBXML}
 
 /* Define if we have z3 and want to build it */
-#cmakedefine FLANG_ANALYZER_WITH_Z3 ${FLANG_ANALYZER_WITH_Z3}
+#cmakedefine FORT_ANALYZER_WITH_Z3 ${FORT_ANALYZER_WITH_Z3}
 
 /* Define if we have sys/resource.h (rlimits) */
-#cmakedefine FLANG_HAVE_RLIMITS ${FLANG_HAVE_RLIMITS}
+#cmakedefine FORT_HAVE_RLIMITS ${FORT_HAVE_RLIMITS}
 
 /* The LLVM product name and version */
 #define BACKEND_PACKAGE_STRING "${BACKEND_PACKAGE_STRING}"
@@ -51,8 +51,8 @@
 #cmakedefine01 ENABLE_X86_RELAX_RELOCATIONS
 
 /* Enable each functionality of modules */
-#cmakedefine FLANG_ENABLE_ARCMT
-#cmakedefine FLANG_ENABLE_OBJC_REWRITER
-#cmakedefine FLANG_ENABLE_STATIC_ANALYZER
+#cmakedefine FORT_ENABLE_ARCMT
+#cmakedefine FORT_ENABLE_OBJC_REWRITER
+#cmakedefine FORT_ENABLE_STATIC_ANALYZER
 
 #endif

@@ -12,8 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_FRONTEND_TEXT_DIAGNOSTIC_PRINTER_H_
-#define FLANG_FRONTEND_TEXT_DIAGNOSTIC_PRINTER_H_
+#ifndef FORT_FRONTEND_TEXT_DIAGNOSTIC_PRINTER_H_
+#define FORT_FRONTEND_TEXT_DIAGNOSTIC_PRINTER_H_
 
 #include "fort/Basic/Diagnostic.h"
 
@@ -23,7 +23,7 @@ namespace llvm {
   class SourceMgr;
 } // end namespace llvm
 
-namespace flang {
+namespace fort {
 
 class LangOptions;
 
@@ -40,6 +40,6 @@ public:
                                 llvm::ArrayRef<FixItHint> FixIts);
 };
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

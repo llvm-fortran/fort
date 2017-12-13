@@ -23,7 +23,7 @@
 #include "fort/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 void Sema::ActOnFunctionSpecificationPart() {
   /// If necessary, apply the implicit typing rules to the current function and its arguments.
@@ -251,4 +251,4 @@ void Sema::ActOnSpecificationPart() {
   CurSpecScope->ApplySaveSpecs(*this);
 }
 
-} // namespace flang
+} // namespace fort

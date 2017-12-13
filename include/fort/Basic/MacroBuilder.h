@@ -8,18 +8,18 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// \brief Defines the flang::MacroBuilder utility class.
+/// \brief Defines the fort::MacroBuilder utility class.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_BASIC_MACROBUILDER_H
-#define LLVM_FLANG_BASIC_MACROBUILDER_H
+#ifndef LLVM_FORT_BASIC_MACROBUILDER_H
+#define LLVM_FORT_BASIC_MACROBUILDER_H
 
 #include "fort/Basic/LLVM.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 class MacroBuilder {
   raw_ostream &Out;
@@ -43,6 +43,6 @@ public:
   }
 };
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

@@ -16,7 +16,7 @@
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/ASTConsumer.h"
 
-using namespace flang;
+using namespace fort;
 
 namespace {
 
@@ -35,7 +35,7 @@ public:
 
 }
 
-ASTConsumer *flang::CreateASTDumper(StringRef FilterString) {
+ASTConsumer *fort::CreateASTDumper(StringRef FilterString) {
   return new ASTPrinter(FilterString);
 }
 

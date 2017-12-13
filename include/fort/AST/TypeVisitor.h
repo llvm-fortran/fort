@@ -11,12 +11,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_AST_TYPEVISITOR_H
-#define LLVM_FLANG_AST_TYPEVISITOR_H
+#ifndef LLVM_FORT_AST_TYPEVISITOR_H
+#define LLVM_FORT_AST_TYPEVISITOR_H
 
 #include "fort/AST/Type.h"
 
-namespace flang {
+namespace fort {
 
 /// \brief An operation on a type.
 ///
@@ -61,6 +61,6 @@ public:
 
 #undef DISPATCH
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

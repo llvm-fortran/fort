@@ -19,7 +19,7 @@
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/Twine.h"
 
-namespace flang {
+namespace fort {
 
 bool DiagnosticsEngine::hadErrors() {
   return Client->getNumErrors() != 0;
@@ -665,4 +665,4 @@ FormatDiagnostic(const char *DiagStr, const char *DiagEnd,
 }
 
 
-} //namespace flang
+} //namespace fort

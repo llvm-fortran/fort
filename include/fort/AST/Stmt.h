@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_STMT_H__
-#define FLANG_AST_STMT_H__
+#ifndef FORT_AST_STMT_H__
+#define FORT_AST_STMT_H__
 
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/Expr.h"
@@ -22,7 +22,7 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "fort/Basic/LLVM.h"
 
-namespace flang {
+namespace fort {
 
 class Expr;
 class VarExpr;
@@ -1158,6 +1158,6 @@ public:
   }
 };
 
-} // end flang namespace
+} // end fort namespace
 
 #endif

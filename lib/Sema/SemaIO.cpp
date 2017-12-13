@@ -18,7 +18,7 @@
 #include "fort/AST/IOSpec.h"
 #include "fort/Basic/Diagnostic.h"
 
-namespace flang {
+namespace fort {
 
 StarFormatSpec *Sema::ActOnStarFormatSpec(ASTContext &C, SourceLocation Loc) {
   return StarFormatSpec::Create(C, Loc);
@@ -110,4 +110,4 @@ StmtResult Sema::ActOnWriteStmt(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
-} // end namespace flang
+} // end namespace fort

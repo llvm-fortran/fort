@@ -12,8 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_FORMATSPEC_H__
-#define FLANG_AST_FORMATSPEC_H__
+#ifndef FORT_AST_FORMATSPEC_H__
+#define FORT_AST_FORMATSPEC_H__
 
 #include "fort/Basic/SourceLocation.h"
 #include "fort/AST/Stmt.h"
@@ -21,7 +21,7 @@
 
 // FIXME: add dumping using ASTDumper
 
-namespace flang {
+namespace fort {
 
 class ASTContext;
 
@@ -107,6 +107,6 @@ public:
   }
 };
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

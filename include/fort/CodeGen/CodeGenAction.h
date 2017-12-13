@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_CODEGEN_CODE_GEN_ACTION_H
-#define LLVM_FLANG_CODEGEN_CODE_GEN_ACTION_H
+#ifndef LLVM_FORT_CODEGEN_CODE_GEN_ACTION_H
+#define LLVM_FORT_CODEGEN_CODE_GEN_ACTION_H
 
 #include "fort/Frontend/FrontendAction.h"
 
@@ -17,7 +17,7 @@ namespace llvm {
   class Module;
 }
 
-namespace flang {
+namespace fort {
 class BackendConsumer;
 
 class CodeGenAction : public ASTFrontendAction {

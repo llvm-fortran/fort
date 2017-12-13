@@ -1,4 +1,4 @@
-! RUN: %flang -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | %file_check %s
 PROGRAM test
-  STOP       ! CHECK: call void @libflang_stop()
+  STOP       ! CHECK: call void @libfort_stop()
 END PROGRAM

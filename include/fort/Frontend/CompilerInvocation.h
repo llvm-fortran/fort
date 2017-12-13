@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_FRONTEND_COMPILERINVOCATION_H_
-#define LLVM_FLANG_FRONTEND_COMPILERINVOCATION_H_
+#ifndef LLVM_FORT_FRONTEND_COMPILERINVOCATION_H_
+#define LLVM_FORT_FRONTEND_COMPILERINVOCATION_H_
 
 #include "fort/Basic/LangOptions.h"
 #include "fort/Basic/TargetOptions.h"
@@ -26,7 +26,7 @@ class ArgList;
 }
 }
 
-namespace flang {
+namespace fort {
 class CompilerInvocation;
 class DiagnosticsEngine;
 struct DiagnosticOptions {};
@@ -126,6 +126,6 @@ public:
   /// @}
 };
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

@@ -16,7 +16,7 @@
 #include "fort/Sema/DeclSpec.h"
 #include "fort/Sema/Sema.h"
 
-namespace flang {
+namespace fort {
 
 /// ParseDIMENSIONStmt - Parse the DIMENSION statement.
 ///
@@ -473,4 +473,4 @@ Parser::StmtResult Parser::ParseSAVEStmt() {
   return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
 
-} // end namespace flang
+} // end namespace fort

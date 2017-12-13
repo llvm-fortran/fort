@@ -11,10 +11,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_TOKENKINDS_H__
-#define LLVM_FLANG_TOKENKINDS_H__
+#ifndef LLVM_FORT_TOKENKINDS_H__
+#define LLVM_FORT_TOKENKINDS_H__
 
-namespace flang {
+namespace fort {
 namespace tok {
 
 /// TokenKind - This provides a simple uniform namespace for tokens from all
@@ -39,6 +39,6 @@ const char *getTokenName(enum TokenKind Kind);
 const char *getTokenSimpleSpelling(enum TokenKind Kind);
 
 }  // end namespace tok
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

@@ -12,8 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_DECLCONTEXTINTERNALS_H__
-#define FLANG_AST_DECLCONTEXTINTERNALS_H__
+#ifndef FORT_AST_DECLCONTEXTINTERNALS_H__
+#define FORT_AST_DECLCONTEXTINTERNALS_H__
 
 #include "fort/AST/Decl.h"
 #include "fort/AST/DeclarationName.h"
@@ -22,7 +22,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include <algorithm>
 
-namespace flang {
+namespace fort {
 
 class DependentDiagnostic;
 
@@ -138,6 +138,6 @@ public:
   static void DestroyAll(StoredDeclsMap *Map);
 };
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

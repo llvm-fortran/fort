@@ -1,4 +1,4 @@
-! RUN: %flang -emit-llvm -o - %s
+! RUN: %fort -emit-llvm -o - %s
 PROGRAM dowhiletest
   INTEGER I
   INTEGER J

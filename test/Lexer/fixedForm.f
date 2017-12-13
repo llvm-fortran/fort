@@ -1,5 +1,5 @@
       program hello
-C RUN: %flang -fsyntax-only %s
+C RUN: %fort -fsyntax-only %s
 C Comment
 * Another comment
       INT

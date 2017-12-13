@@ -10,7 +10,7 @@
 #include "fort/Parse/FixedForm.h"
 #include "fort/Parse/Parser.h"
 
-namespace flang {
+namespace fort {
 namespace fixedForm {
 
 KeywordFilter::KeywordFilter(tok::TokenKind K1, tok::TokenKind K2,
@@ -241,4 +241,4 @@ void Parser::LookForExecutableStmtKeyword(bool AtStartOfStatement) {
   }
 }
 
-} // end namespace flang
+} // end namespace fort

@@ -17,7 +17,7 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 QualType
 QualifierCollector::apply(const ASTContext &Context, QualType QT) const {
@@ -86,4 +86,4 @@ const char *BuiltinType::getTypeKindString(TypeKind Kind) {
   return TypeKindStrings[Kind];
 }
 
-} //namespace flang
+} //namespace fort

@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_CODEGEN_CGARRAY_H
-#define FLANG_CODEGEN_CGARRAY_H
+#ifndef FORT_CODEGEN_CGARRAY_H
+#define FORT_CODEGEN_CGARRAY_H
 
 #include "CGValue.h"
 #include "CodeGenFunction.h"
@@ -16,7 +16,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/DenseMap.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 /// ArrayValueExprEmitter - Emits the information about an array.
@@ -203,6 +203,6 @@ public:
 };
 
 }
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

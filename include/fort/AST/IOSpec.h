@@ -12,14 +12,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_IOSPEC_H__
-#define FLANG_AST_IOSPEC_H__
+#ifndef FORT_AST_IOSPEC_H__
+#define FORT_AST_IOSPEC_H__
 
 #include "fort/Basic/SourceLocation.h"
 #include "fort/AST/Expr.h"
 #include "fort/Basic/LLVM.h"
 
-namespace flang {
+namespace fort {
 
 class ASTContext;
 
@@ -85,6 +85,6 @@ public:
   }
 };
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

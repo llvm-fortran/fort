@@ -18,7 +18,7 @@
 #include "fort/AST/ASTContext.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 //===----------------------------------------------------------------------===//
 // DeclContext Implementation
@@ -424,4 +424,4 @@ void StoredDeclsMap::DestroyAll(StoredDeclsMap *Map) {
   }
 }
 
-} //namespace flang
+} //namespace fort

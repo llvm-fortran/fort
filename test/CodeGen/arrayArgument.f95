@@ -1,4 +1,4 @@
-! RUN: %flang -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | %file_check %s
 
 SUBROUTINE SUB(IARR, IARR2, LEN, RARR)
   INTEGER IARR(10), IARR2(*)

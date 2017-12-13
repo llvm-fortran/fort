@@ -1,4 +1,4 @@
-//===----- CGSystemLibflang.cpp - Interface to Libflang System Runtime -----===//
+//===----- CGSystemLibfort.cpp - Interface to Libfort System Runtime -----===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -11,12 +11,12 @@
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
-class CGLibflangSystemRuntime : public CGSystemRuntime {
+class CGLibfortSystemRuntime : public CGSystemRuntime {
 public:
-  CGLibflangSystemRuntime(CodeGenModule &CGM)
+  CGLibfortSystemRuntime(CodeGenModule &CGM)
     : CGSystemRuntime(CGM) {
   }
 
@@ -28,20 +28,20 @@ public:
   llvm::Value *EmitETIME(CodeGenFunction &CGF, ArrayRef<Expr*> Arguments);
 };
 
-void CGLibflangSystemRuntime::EmitInit(CodeGenFunction &CGF) {
+void CGLibfortSystemRuntime::EmitInit(CodeGenFunction &CGF) {
   auto Func = CGM.GetRuntimeFunction("sys_init", ArrayRef<CGType>());
   CallArgList ArgList;
   CGF.EmitCall(Func.getFunction(), Func.getInfo(), ArgList);
 }
 
-llvm::Value *CGLibflangSystemRuntime::EmitMalloc(CodeGenFunction &CGF, llvm::Value *Size) {
+llvm::Value *CGLibfortSystemRuntime::EmitMalloc(CodeGenFunction &CGF, llvm::Value *Size) {
   auto Func = CGM.GetRuntimeFunction1("malloc", CGM.SizeTy, CGM.VoidPtrTy);
   CallArgList ArgList;
   CGF.EmitCallArg(ArgList, Size, Func.getInfo()->getArguments()[0]);
   return CGF.EmitCall(Func.getFunction(), Func.getInfo(), ArgList).asScalar();
 }
 
-void CGLibflangSystemRuntime::EmitFree(CodeGenFunction &CGF, llvm::Value *Ptr) {
+void CGLibfortSystemRuntime::EmitFree(CodeGenFunction &CGF, llvm::Value *Ptr) {
   auto Func = CGM.GetRuntimeFunction1("free", CGM.VoidPtrTy);
   CallArgList ArgList;
   CGF.EmitCallArg(ArgList, Ptr->getType() == CGM.VoidPtrTy?
@@ -50,7 +50,7 @@ void CGLibflangSystemRuntime::EmitFree(CodeGenFunction &CGF, llvm::Value *Ptr) {
   CGF.EmitCall(Func.getFunction(), Func.getInfo(), ArgList);
 }
 
-llvm::Value *CGLibflangSystemRuntime::EmitETIME(CodeGenFunction &CGF, ArrayRef<Expr*> Arguments) {
+llvm::Value *CGLibfortSystemRuntime::EmitETIME(CodeGenFunction &CGF, ArrayRef<Expr*> Arguments) {
   auto RealTy = CGM.getContext().RealTy;
   auto RealPtrTy = llvm::PointerType::get(CGF.ConvertTypeForMem(RealTy) ,0);
   auto Func = CGM.GetRuntimeFunction2(
@@ -66,10 +66,10 @@ llvm::Value *CGLibflangSystemRuntime::EmitETIME(CodeGenFunction &CGF, ArrayRef<E
   return CGF.EmitCall(Func.getFunction(), Func.getInfo(), ArgList).asScalar();
 }
 
-CGSystemRuntime *CreateLibflangSystemRuntime(CodeGenModule &CGM) {
-  return new CGLibflangSystemRuntime(CGM);
+CGSystemRuntime *CreateLibfortSystemRuntime(CodeGenModule &CGM) {
+  return new CGLibfortSystemRuntime(CGM);
 }
 
 }
-} // end namespace flang
+} // end namespace fort
 

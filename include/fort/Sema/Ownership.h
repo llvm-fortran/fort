@@ -11,13 +11,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_SEMA_OWNERSHIP_H__
-#define FLANG_SEMA_OWNERSHIP_H__
+#ifndef FORT_SEMA_OWNERSHIP_H__
+#define FORT_SEMA_OWNERSHIP_H__
 
 #include "llvm/ADT/PointerIntPair.h"
 #include "llvm/ADT/SmallVector.h"
 
-namespace flang {
+namespace fort {
 
 class Decl;
 class Expr;
@@ -61,27 +61,27 @@ public:
   static OpaquePtr getFromOpaquePtr(void *P) { return OpaquePtr(P); }
 };
 
-} // end flang namespace
+} // end fort namespace
 
 namespace llvm {
   template <class T>
-  class PointerLikeTypeTraits<flang::OpaquePtr<T> > {
+  class PointerLikeTypeTraits<fort::OpaquePtr<T> > {
   public:
-    static inline void *getAsVoidPointer(flang::OpaquePtr<T> P) {
+    static inline void *getAsVoidPointer(fort::OpaquePtr<T> P) {
       // FIXME: Doesn't work? return P.getAs< void >();
       return P.getAsOpaquePtr();
     }
-    static inline flang::OpaquePtr<T> getFromVoidPointer(void *P) {
-      return flang::OpaquePtr<T>::getFromOpaquePtr(P);
+    static inline fort::OpaquePtr<T> getFromVoidPointer(void *P) {
+      return fort::OpaquePtr<T>::getFromOpaquePtr(P);
     }
     enum { NumLowBitsAvailable = 0 };
   };
 
   template <class T>
-  struct isPodLike<flang::OpaquePtr<T> > { static const bool value = true; };
+  struct isPodLike<fort::OpaquePtr<T> > { static const bool value = true; };
 }
 
-namespace flang {
+namespace fort {
 
 /// ActionResult - This structure is used while parsing and acting on
 /// expressions, stmts, etc.
@@ -123,6 +123,6 @@ typedef ActionResult<Expr*> ExprResult;
 typedef ActionResult<Stmt*> StmtResult;
 typedef ActionResult<FormatItem*> FormatItemResult;
 
-} // end flang namespace
+} // end fort namespace
 
 #endif

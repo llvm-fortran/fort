@@ -10,13 +10,13 @@
 //  This file defines the DeclVisitor interface.
 //
 //===----------------------------------------------------------------------===//
-#ifndef LLVM_FLANG_AST_DECLVISITOR_H
-#define LLVM_FLANG_AST_DECLVISITOR_H
+#ifndef LLVM_FORT_AST_DECLVISITOR_H
+#define LLVM_FORT_AST_DECLVISITOR_H
 
 #include "fort/Basic/MakePtr.h"
 #include "fort/AST/Decl.h"
 
-namespace flang {
+namespace fort {
 
 /// \brief A simple visitor class that helps create declaration visitors.
 template<template <typename> class Ptr, typename ImplClass, typename RetTy=void>
@@ -77,6 +77,6 @@ template<typename ImplClass, typename RetTy=void>
 class ConstDeclVisitor
  : public DeclVisitorBase<make_const_ptr, ImplClass, RetTy> {};
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

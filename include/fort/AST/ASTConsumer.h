@@ -11,10 +11,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_AST_ASTCONSUMER_H
-#define LLVM_FLANG_AST_ASTCONSUMER_H
+#ifndef LLVM_FORT_AST_ASTCONSUMER_H
+#define LLVM_FORT_AST_ASTCONSUMER_H
 
-namespace flang {
+namespace fort {
   class ASTContext;
   class FunctionDecl;
 
@@ -39,6 +39,6 @@ public:
   virtual void PrintStats() {}
 };
 
-} // end namespace flang.
+} // end namespace fort.
 
 #endif

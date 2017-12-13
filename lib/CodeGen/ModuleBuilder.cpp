@@ -23,7 +23,7 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
-using namespace flang;
+using namespace fort;
 
 namespace {
 
@@ -88,7 +88,7 @@ namespace {
 
 void CodeGenerator::anchor() { }
 
-CodeGenerator *flang::CreateLLVMCodeGen(DiagnosticsEngine &Diags,
+CodeGenerator *fort::CreateLLVMCodeGen(DiagnosticsEngine &Diags,
                                         const std::string& ModuleName,
                                         const CodeGenOptions &CGO,
                                         const TargetOptions &TO,

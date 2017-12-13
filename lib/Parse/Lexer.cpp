@@ -23,7 +23,7 @@
 
 // FIXME: Errors from diag:: for BOZ literals
 
-namespace flang {
+namespace fort {
 
 static void InitCharacterInfo();
 static bool isWhitespace(unsigned char c);
@@ -1759,4 +1759,4 @@ bool FormatDescriptorLexer::IsDone() const {
   return Offset >= Text.size();
 }
 
-} //namespace flang
+} //namespace fort

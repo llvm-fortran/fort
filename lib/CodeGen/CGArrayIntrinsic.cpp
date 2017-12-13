@@ -21,7 +21,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 RValueTy CodeGenFunction::
@@ -100,4 +100,4 @@ RValueTy CodeGenFunction::EmitArrayIntrinsic(intrinsic::FunctionKind Func,
 }
 
 }
-} // end namespace flang
+} // end namespace fort

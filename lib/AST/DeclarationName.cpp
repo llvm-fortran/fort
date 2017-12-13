@@ -20,7 +20,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 //===----------------------------------------------------------------------===//
 // DeclarationName Implementation
@@ -134,15 +134,15 @@ SourceLocation DeclarationNameInfo::getEndLoc() const {
   return SourceLocation();
 }
 
-} //namespace flang
+} //namespace fort
 
 //===----------------------------------------------------------------------===//
 // DenseMapInfo Implementation
 //===----------------------------------------------------------------------===//
 
 unsigned
-llvm::DenseMapInfo<flang::DeclarationName>::
-getHashValue(flang::DeclarationName N) {
+llvm::DenseMapInfo<fort::DeclarationName>::
+getHashValue(fort::DeclarationName N) {
   return DenseMapInfo<void*>::getHashValue(N.getAsOpaquePtr());
 }
 

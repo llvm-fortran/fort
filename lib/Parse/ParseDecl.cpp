@@ -17,7 +17,7 @@
 #include "fort/AST/Expr.h"
 #include "fort/Sema/Sema.h"
 
-namespace flang {
+namespace fort {
 
 /// ParseTypeDeclarationStmt - Parse a type-declaration-stmt construct.
 ///
@@ -666,4 +666,4 @@ bool Parser::ParseDerivedTypeComponentStmt() {
   return false;
 }
 
-} //namespace flang
+} //namespace fort

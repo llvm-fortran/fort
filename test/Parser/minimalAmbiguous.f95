@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only < %s
+! RUN: %fort -fsyntax-only < %s
 INTEGER I
 I = 0
 END

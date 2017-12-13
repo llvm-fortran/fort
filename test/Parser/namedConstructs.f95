@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only < %s
+! RUN: %fort -fsyntax-only < %s
 PROGRAM test
 
   a: IF(.false.) THEN

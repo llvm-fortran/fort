@@ -11,13 +11,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_AST_STMTVISITOR_H
-#define LLVM_FLANG_AST_STMTVISITOR_H
+#ifndef LLVM_FORT_AST_STMTVISITOR_H
+#define LLVM_FORT_AST_STMTVISITOR_H
 
 #include "fort/Basic/MakePtr.h"
 #include "fort/AST/Stmt.h"
 
-namespace flang {
+namespace fort {
 
 /// StmtVisitorBase - This class implements a simple visitor for Stmt
 /// subclasses.
@@ -72,6 +72,6 @@ template<typename ImplClass, typename RetTy=void>
 class ConstStmtVisitor
  : public StmtVisitorBase<make_const_ptr, ImplClass, RetTy> {};
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

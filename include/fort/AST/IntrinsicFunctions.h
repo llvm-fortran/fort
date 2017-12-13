@@ -11,14 +11,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_INTRINSICFUNCTIONS_H__
-#define FLANG_AST_INTRINSICFUNCTIONS_H__
+#ifndef FORT_AST_INTRINSICFUNCTIONS_H__
+#define FORT_AST_INTRINSICFUNCTIONS_H__
 
 #include "fort/Basic/IdentifierTable.h"
 #include "fort/Basic/LangOptions.h"
 #include "llvm/ADT/StringMap.h"
 
-namespace flang {
+namespace fort {
 namespace intrinsic {
 
 enum FunctionArgumentCountKind {
@@ -72,6 +72,6 @@ public:
 };
 
 }  // end namespace intrinsic
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

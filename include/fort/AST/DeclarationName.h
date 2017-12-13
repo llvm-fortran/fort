@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_DECLARATIONNAME_H__
-#define FLANG_AST_DECLARATIONNAME_H__
+#ifndef FORT_AST_DECLARATIONNAME_H__
+#define FORT_AST_DECLARATIONNAME_H__
 
 #include "fort/Basic/IdentifierTable.h"
 #include "fort/Basic/SourceLocation.h"
@@ -22,7 +22,7 @@ namespace llvm {
   template <typename T> struct DenseMapInfo;
 }
 
-namespace flang {
+namespace fort {
 
 class DeclarationNameTable;
 class IdentifierInfo;
@@ -246,32 +246,32 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
   return OS;
 }
 
-}  // end namespace flang
+}  // end namespace fort
 
 namespace llvm {
 
 /// Define DenseMapInfo so that DeclarationNames can be used as keys in DenseMap
 /// and DenseSets.
 template<>
-struct DenseMapInfo<flang::DeclarationName> {
-  static inline flang::DeclarationName getEmptyKey() {
-    return flang::DeclarationName::getEmptyMarker();
+struct DenseMapInfo<fort::DeclarationName> {
+  static inline fort::DeclarationName getEmptyKey() {
+    return fort::DeclarationName::getEmptyMarker();
   }
 
-  static inline flang::DeclarationName getTombstoneKey() {
-    return flang::DeclarationName::getTombstoneMarker();
+  static inline fort::DeclarationName getTombstoneKey() {
+    return fort::DeclarationName::getTombstoneMarker();
   }
 
-  static unsigned getHashValue(flang::DeclarationName);
+  static unsigned getHashValue(fort::DeclarationName);
 
   static inline bool
-  isEqual(flang::DeclarationName LHS, flang::DeclarationName RHS) {
+  isEqual(fort::DeclarationName LHS, fort::DeclarationName RHS) {
     return LHS == RHS;
   }
 };
 
 template <>
-struct isPodLike<flang::DeclarationName> { static const bool value = true; };
+struct isPodLike<fort::DeclarationName> { static const bool value = true; };
 
 }  // end namespace llvm
 

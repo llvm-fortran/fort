@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only -verify < %s
+! RUN: %fort -fsyntax-only -verify < %s
 PROGRAM paramtest
   PARAMETER (x=0, y = 2.5, c = 'A')
   PARAMETER (NUM = 0.1e4)

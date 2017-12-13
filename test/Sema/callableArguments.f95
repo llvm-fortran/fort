@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only < %s
+! RUN: %fort -fsyntax-only < %s
 ! NB: this test is for f77 style external arguments, not for f2003 procedure pointers
 
 SUBROUTINE SUB(F, G, H)

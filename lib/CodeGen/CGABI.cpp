@@ -9,7 +9,7 @@
 
 #include "CGABI.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 ABIArgInfo FortranABI::GetArgABI(QualType ArgType) {
@@ -30,23 +30,23 @@ ABIRetInfo FortranABI::GetRetABI(QualType RetType) {
   return ABIRetInfo(ABIRetInfo::Value);
 }
 
-ABIArgInfo LibflangABI::GetArgABI(QualType ArgType) {
+ABIArgInfo LibfortABI::GetArgABI(QualType ArgType) {
   if(ArgType->isComplexType() ||
      ArgType->isCharacterType())
     return ABIArgInfo(ABIArgInfo::Expand);
   return ABIArgInfo(ABIArgInfo::Value);
 }
 
-ABIRetInfo LibflangABI::GetRetABI(QualType RetType) {
+ABIRetInfo LibfortABI::GetRetABI(QualType RetType) {
   return FortranABI::GetRetABI(RetType);
 }
 
-ABIArgInfo LibflangTransferABI::GetArgABI(QualType ArgType) {
+ABIArgInfo LibfortTransferABI::GetArgABI(QualType ArgType) {
   if(ArgType->isCharacterType())
-    return LibflangABI::GetArgABI(ArgType);
+    return LibfortABI::GetArgABI(ArgType);
 
   return ABIArgInfo(ABIArgInfo::ReferenceAsVoidExtraSize);
 }
 
 }
-} // end namespace flang
+} // end namespace fort

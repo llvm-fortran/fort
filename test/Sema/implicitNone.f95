@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only -verify < %s
+! RUN: %fort -fsyntax-only -verify < %s
 PROGRAM imptest
   IMPLICIT NONE
   IMPLICIT REAL (Y) ! expected-error {{use of 'IMPLICIT' after 'IMPLICIT NONE'}}

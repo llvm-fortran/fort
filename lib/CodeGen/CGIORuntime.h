@@ -11,12 +11,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_CODEGEN_IORUNTIME_H
-#define FLANG_CODEGEN_IORUNTIME_H
+#ifndef FORT_CODEGEN_IORUNTIME_H
+#define FORT_CODEGEN_IORUNTIME_H
 
 #include "fort/AST/Stmt.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 class CodeGenFunction;
@@ -34,10 +34,10 @@ public:
   virtual void EmitPrintStmt(CodeGenFunction &CGF, const PrintStmt *S) = 0;
 };
 
-/// Creates an instance of a Libflang IO runtime class.
-CGIORuntime *CreateLibflangIORuntime(CodeGenModule &CGM);
+/// Creates an instance of a Libfort IO runtime class.
+CGIORuntime *CreateLibfortIORuntime(CodeGenModule &CGM);
 
 }
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

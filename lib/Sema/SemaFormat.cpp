@@ -17,7 +17,7 @@
 #include "fort/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 static void CheckPositive(DiagnosticsEngine &Diags, IntegerConstantExpr *E) {
   if(!E) return;
@@ -119,4 +119,4 @@ FormatItemResult Sema::ActOnFORMATFormatItemList(ASTContext &C, SourceLocation L
   return FormatItemList::Create(C, Loc, RepeatCount, Items);
 }
 
-} // end namespace flang
+} // end namespace fort

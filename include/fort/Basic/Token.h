@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_TOKEN_H__
-#define LLVM_FLANG_TOKEN_H__
+#ifndef LLVM_FORT_TOKEN_H__
+#define LLVM_FORT_TOKEN_H__
 
 #include "fort/Basic/TokenKinds.h"
 #include "fort/Basic/SourceLocation.h"
@@ -25,7 +25,7 @@ namespace llvm {
   class Twine;
 } // end llvm namespace
 
-namespace flang {
+namespace fort {
 
 class IdentifierInfo;
 
@@ -174,6 +174,6 @@ public:
   }
 };
 
-} // end namespace flang
+} // end namespace fort
 
 #endif

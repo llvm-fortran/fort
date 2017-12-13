@@ -14,7 +14,7 @@
 #include "fort/Basic/TokenKinds.h"
 #include <cassert>
 
-namespace flang {
+namespace fort {
 
 static char const * const TokNames[] = {
 #define TOK(X)       #X,
@@ -72,4 +72,4 @@ const char *tok::getTokenSimpleSpelling(enum TokenKind Kind) {
   return 0;
 }
 
-} //namespace flang
+} //namespace fort

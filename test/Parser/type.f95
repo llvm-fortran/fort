@@ -1,4 +1,4 @@
-! RUN: %flang -verify -fsyntax-only < %s
+! RUN: %fort -verify -fsyntax-only < %s
 PROGRAM typetest
   TYPE Point
     REAL X, Y

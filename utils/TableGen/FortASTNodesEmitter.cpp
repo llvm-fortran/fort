@@ -1,4 +1,4 @@
-//=== FlangASTNodesEmitter.cpp - Generate Flang AST node tables -*- C++ -*-===//
+//=== FortASTNodesEmitter.cpp - Generate Fort AST node tables -*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// These tablegen backends emit Flang AST node tables
+// These tablegen backends emit Fort AST node tables
 //
 //===----------------------------------------------------------------------===//
 
@@ -19,11 +19,11 @@
 #include <string>
 using namespace llvm;
 
-/// FlangASTNodesEmitter - The top-level class emits .inc files containing
-///  declarations of Flang statements.
+/// FortASTNodesEmitter - The top-level class emits .inc files containing
+///  declarations of Fort statements.
 ///
 namespace {
-class FlangASTNodesEmitter {
+class FortASTNodesEmitter {
   // A map from a node to each of its derived nodes.
   typedef std::multimap<Record*, Record*> ChildMap;
   typedef ChildMap::const_iterator ChildIterator;
@@ -53,7 +53,7 @@ class FlangASTNodesEmitter {
   std::pair<Record *, Record *> EmitNode (const ChildMap &Tree, raw_ostream& OS,
                                           Record *Base);
 public:
-  explicit FlangASTNodesEmitter(RecordKeeper &R, const std::string &N,
+  explicit FortASTNodesEmitter(RecordKeeper &R, const std::string &N,
                                 const std::string &S)
     : Records(R), Root(N, SMLoc(), R), BaseSuffix(S)
     {}
@@ -69,7 +69,7 @@ public:
 
 // Returns the first and last non-abstract subrecords
 // Called recursively to ensure that nodes remain contiguous
-std::pair<Record *, Record *> FlangASTNodesEmitter::EmitNode(
+std::pair<Record *, Record *> FortASTNodesEmitter::EmitNode(
                                                            const ChildMap &Tree,
                                                            raw_ostream &OS,
                                                            Record *Base) {
@@ -132,7 +132,7 @@ std::pair<Record *, Record *> FlangASTNodesEmitter::EmitNode(
   return std::make_pair(First, Last);
 }
 
-void FlangASTNodesEmitter::run(raw_ostream &OS) {
+void FortASTNodesEmitter::run(raw_ostream &OS) {
   emitSourceFileHeader("List of AST nodes of a particular kind", OS);
 
   // Write the preamble
@@ -174,15 +174,15 @@ void FlangASTNodesEmitter::run(raw_ostream &OS) {
   OS << "#undef ABSTRACT_" << macroName(Root.getName()) << "\n";
 }
 
-namespace flang {
-void EmitFlangASTNodes(RecordKeeper &RK, raw_ostream &OS,
+namespace fort {
+void EmitFortASTNodes(RecordKeeper &RK, raw_ostream &OS,
                        const std::string &N, const std::string &S) {
-  FlangASTNodesEmitter(RK, N, S).run(OS);
+  FortASTNodesEmitter(RK, N, S).run(OS);
 }
 
-// Emits and addendum to a .inc file to enumerate the flang declaration
+// Emits and addendum to a .inc file to enumerate the fort declaration
 // contexts.
-void EmitFlangDeclContext(RecordKeeper &Records, raw_ostream &OS) {
+void EmitFortDeclContext(RecordKeeper &Records, raw_ostream &OS) {
   // FIXME: Find a .td file format to allow for this to be represented better.
 
   emitSourceFileHeader("List of AST Decl nodes", OS);
@@ -226,4 +226,4 @@ void EmitFlangDeclContext(RecordKeeper &Records, raw_ostream &OS) {
   OS << "#undef DECL_CONTEXT\n";
   OS << "#undef DECL_CONTEXT_BASE\n";
 }
-} // end namespace flang
+} // end namespace fort

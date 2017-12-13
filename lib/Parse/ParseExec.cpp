@@ -23,7 +23,7 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 void Parser::CheckStmtOrder(SourceLocation Loc, StmtResult SR) {
   auto S = SR.get();
@@ -785,4 +785,4 @@ void Parser::ParseIOList(SmallVectorImpl<ExprResult> &List) {
   }
 }
 
-} //namespace flang
+} //namespace fort

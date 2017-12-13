@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_CODEGEN_SYSTEMRUNTIME_H
-#define FLANG_CODEGEN_SYSTEMRUNTIME_H
+#ifndef FORT_CODEGEN_SYSTEMRUNTIME_H
+#define FORT_CODEGEN_SYSTEMRUNTIME_H
 
 #include "fort/AST/Stmt.h"
 
@@ -21,7 +21,7 @@ class Value;
 class Type;
 }
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 class CodeGenFunction;
@@ -44,10 +44,10 @@ public:
   virtual llvm::Value *EmitETIME(CodeGenFunction &CGF, ArrayRef<Expr*> Arguments) = 0;
 };
 
-/// Creates an instance of a Libflang System runtime class.
-CGSystemRuntime *CreateLibflangSystemRuntime(CodeGenModule &CGM);
+/// Creates an instance of a Libfort System runtime class.
+CGSystemRuntime *CreateLibfortSystemRuntime(CodeGenModule &CGM);
 
 }
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

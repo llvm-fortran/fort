@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_CODEGEN_BACKEND_UTIL_H
-#define LLVM_FLANG_CODEGEN_BACKEND_UTIL_H
+#ifndef LLVM_FORT_CODEGEN_BACKEND_UTIL_H
+#define LLVM_FORT_CODEGEN_BACKEND_UTIL_H
 
 #include "fort/Basic/LLVM.h"
 
@@ -16,7 +16,7 @@ namespace llvm {
   class Module;
 }
 
-namespace flang {
+namespace fort {
   class DiagnosticsEngine;
   class CodeGenOptions;
   class TargetOptions;

@@ -24,7 +24,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/CFG.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 class ScalarExprEmitter
@@ -477,4 +477,4 @@ llvm::Value *CodeGenFunction::EmitBitOperation(intrinsic::FunctionKind Op,
 }
 
 }
-} // end namespace flang
+} // end namespace fort

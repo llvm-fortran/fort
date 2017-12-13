@@ -23,7 +23,7 @@
 #include "fort/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 void StmtLabelResolver::VisitAssignStmt(AssignStmt *S) {
   S->setAddress(StmtLabelReference(StmtLabelDecl));
@@ -849,4 +849,4 @@ StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc, SourceLocation
   return Result;
 }
 
-} // end namespace flang
+} // end namespace fort

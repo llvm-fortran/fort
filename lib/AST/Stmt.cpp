@@ -18,7 +18,7 @@
 #include "fort/Basic/IdentifierTable.h"
 #include "llvm/ADT/StringRef.h"
 
-namespace flang {
+namespace fort {
 
 //===----------------------------------------------------------------------===//
 // Statement Base Class
@@ -736,4 +736,4 @@ WriteStmt *WriteStmt::Create(ASTContext &C, SourceLocation Loc, UnitSpec *US,
   return new(C) WriteStmt(C, Loc, US, FS, OutList, StmtLabel);
 }
 
-} //namespace flang
+} //namespace fort

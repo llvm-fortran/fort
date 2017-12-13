@@ -33,7 +33,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/IR/Mangler.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 CodeGenModule::CodeGenModule(ASTContext &C, const CodeGenOptions &CGO,
@@ -58,8 +58,8 @@ CodeGenModule::CodeGenModule(ASTContext &C, const CodeGenOptions &CGO,
   Int8PtrPtrTy = Int8PtrTy->getPointerTo(0);
   RuntimeCC = llvm::CallingConv::C;
 
-  IORuntime = CreateLibflangIORuntime(*this);
-  SystemRuntime = CreateLibflangSystemRuntime(*this);
+  IORuntime = CreateLibfortIORuntime(*this);
+  SystemRuntime = CreateLibfortSystemRuntime(*this);
 }
 
 CodeGenModule::~CodeGenModule() {
@@ -89,7 +89,7 @@ llvm::Value *
 CodeGenModule::GetRuntimeFunction(StringRef Name,
                                   ArrayRef<llvm::Type*> ArgTypes,
                                   llvm::Type *ReturnType) {
-  llvm::SmallString<32> MangledName("libflang_");
+  llvm::SmallString<32> MangledName("libfort_");
   MangledName.append(Name);
   return GetCFunction(MangledName, ArgTypes, ReturnType);
 }
@@ -99,7 +99,7 @@ CodeGenModule::GetRuntimeFunction(StringRef Name,
                                   ArrayRef<CGType> ArgTypes,
                                   CGType ReturnType,
                                   FortranABI *ABI) {
-  llvm::SmallString<32> MangledName("libflang_");
+  llvm::SmallString<32> MangledName("libfort_");
   MangledName.append(Name);
 
   auto SearchResult = RuntimeFunctions.find(MangledName);
@@ -221,4 +221,4 @@ llvm::Value *CodeGenModule::EmitCommonBlock(const CommonBlockDecl *CB,
 }
 
 }
-} // end namespace flang
+} // end namespace fort

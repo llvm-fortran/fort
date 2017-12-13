@@ -42,7 +42,7 @@
 #include "llvm/Transforms/Utils/SymbolRewriter.h"
 #include <memory>
 
-using namespace flang;
+using namespace fort;
 using namespace llvm;
 
 namespace {
@@ -50,7 +50,7 @@ namespace {
 class EmitAssemblyHelper {
   DiagnosticsEngine &Diags;
   const CodeGenOptions &CodeGenOpts;
-  const flang::TargetOptions &TargetOpts;
+  const fort::TargetOptions &TargetOpts;
   const LangOptions &LangOpts;
   Module *TheModule;
 
@@ -116,7 +116,7 @@ private:
 public:
   EmitAssemblyHelper(DiagnosticsEngine &_Diags,
                      const CodeGenOptions &CGOpts,
-                     const flang::TargetOptions &TOpts,
+                     const fort::TargetOptions &TOpts,
                      const LangOptions &LOpts,
                      Module *M)
     : Diags(_Diags), CodeGenOpts(CGOpts), TargetOpts(TOpts), LangOpts(LOpts),
@@ -285,7 +285,7 @@ TargetMachine *EmitAssemblyHelper::CreateTargetMachine(bool MustCreateTM) {
   }
 
   SmallVector<const char *, 16> BackendArgs;
-  BackendArgs.push_back("flang"); // Fake program name.
+  BackendArgs.push_back("fort"); // Fake program name.
   if (!CodeGenOpts.DebugPass.empty()) {
     BackendArgs.push_back("-debug-pass");
     BackendArgs.push_back(CodeGenOpts.DebugPass.c_str());
@@ -498,9 +498,9 @@ void EmitAssemblyHelper::EmitAssembly(BackendAction Action,
   }
 }
 
-void flang::EmitBackendOutput(DiagnosticsEngine &Diags,
+void fort::EmitBackendOutput(DiagnosticsEngine &Diags,
                               const CodeGenOptions &CGOpts,
-                              const flang::TargetOptions &TOpts,
+                              const fort::TargetOptions &TOpts,
                               const LangOptions &LOpts, StringRef TDesc,
                               Module *M, BackendAction Action,
                               raw_pwrite_stream *OS) {

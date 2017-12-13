@@ -12,7 +12,7 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 
-using namespace flang;
+using namespace fort;
 
 bool CheckEvaluatable(ASTContext &C, const Expr *E, bool Value = true) {
   if(E->isEvaluatable(C) != Value) {

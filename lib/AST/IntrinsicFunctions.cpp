@@ -14,7 +14,7 @@
 #include "fort/AST/IntrinsicFunctions.h"
 #include <cassert>
 
-namespace flang {
+namespace fort {
 namespace intrinsic {
 
 static char FunctionNames[][NUM_FUNCTIONS] = {
@@ -95,4 +95,4 @@ FunctionMapping::Result FunctionMapping::Resolve(const IdentifierInfo *IDInfo) {
 }
 
 } // end namespace intrinsic
-} // end namespace flang
+} // end namespace fort

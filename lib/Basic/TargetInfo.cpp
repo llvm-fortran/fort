@@ -18,7 +18,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/ErrorHandling.h"
 #include <cstdlib>
-using namespace flang;
+using namespace fort;
 
 // TargetInfo Constructor.
 TargetInfo::TargetInfo(const llvm::Triple &T) : TargetOpts(), Triple(T) {

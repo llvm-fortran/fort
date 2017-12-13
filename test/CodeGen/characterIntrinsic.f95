@@ -1,4 +1,4 @@
-! RUN: %flang -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | %file_check %s
 PROGRAM test
   CHARACTER STR
   LOGICAL L
@@ -8,13 +8,13 @@ PROGRAM test
 
   I = len('Hello') ! CHECK: store i32 5
 
-  I = len_trim('Hello   ') ! CHECK: @libflang_lentrim_char1
+  I = len_trim('Hello   ') ! CHECK: @libfort_lentrim_char1
 
   STR = 'Hello'
 
-  I = index(STR, STR(:)) ! CHECK: call i{{.*}} @libflang_index_char1
+  I = index(STR, STR(:)) ! CHECK: call i{{.*}} @libfort_index_char1
 
   L = lle(STR, 'Hello')
-  L = lgt(STR, 'World') ! CHECK: call i32 @libflang_lexcompare_char1
+  L = lgt(STR, 'World') ! CHECK: call i32 @libfort_lexcompare_char1
 
 END PROGRAM

@@ -1,4 +1,4 @@
-! RUN: %flang -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | %file_check %s
 
 SUBROUTINE SUB(F, G) ! CHECK: void (i32*)* %f, i32 (float*)* %g
   EXTERNAL F

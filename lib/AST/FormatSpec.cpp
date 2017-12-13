@@ -10,7 +10,7 @@
 #include "fort/AST/FormatSpec.h"
 #include "fort/AST/ASTContext.h"
 
-namespace flang {
+namespace fort {
 
 StarFormatSpec::StarFormatSpec(SourceLocation Loc)
   : FormatSpec(FormatSpec::FS_Star, Loc) {}
@@ -49,4 +49,4 @@ VarLabelFormatSpec *VarLabelFormatSpec::Create(ASTContext &C, SourceLocation Loc
   return new (C) VarLabelFormatSpec(Loc, Var);
 }
 
-} //namespace flang
+} //namespace fort

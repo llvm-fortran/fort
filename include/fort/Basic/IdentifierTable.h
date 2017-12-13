@@ -12,15 +12,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_BASIC_IDENTIFIERTABLE_H__
-#define FLANG_BASIC_IDENTIFIERTABLE_H__
+#ifndef FORT_BASIC_IDENTIFIERTABLE_H__
+#define FORT_BASIC_IDENTIFIERTABLE_H__
 
 #include "TokenKinds.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/Twine.h"
 #include <string>
 
-namespace flang {
+namespace fort {
 
 class LangOptions;
 class IdentifierInfo;
@@ -336,6 +336,6 @@ public:
   void AddPredefineds(const LangOptions &LangOpts);
 };
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

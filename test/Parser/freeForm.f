@@ -1,4 +1,4 @@
-! RUN: %flang -ffree-form -fsyntax-only -verify < %s
+! RUN: %fort -ffree-form -fsyntax-only -verify < %s
 
 program test
   integer ii, i

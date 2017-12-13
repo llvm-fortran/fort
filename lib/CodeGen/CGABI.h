@@ -7,12 +7,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_CODEGEN_ABI_H
-#define FLANG_CODEGEN_ABI_H
+#ifndef FORT_CODEGEN_ABI_H
+#define FORT_CODEGEN_ABI_H
 
 #include "ABIInfo.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 class FortranABI {
@@ -22,20 +22,20 @@ public:
   virtual ABIRetInfo GetRetABI(QualType RetType);
 };
 
-class LibflangABI : public FortranABI {
+class LibfortABI : public FortranABI {
 public:
-  virtual ~LibflangABI() {}
+  virtual ~LibfortABI() {}
   ABIArgInfo GetArgABI(QualType ArgType);
   ABIRetInfo GetRetABI(QualType RetType);
 };
 
-class LibflangTransferABI : public LibflangABI {
+class LibfortTransferABI : public LibfortABI {
 public:
-  virtual ~LibflangTransferABI() {}
+  virtual ~LibfortTransferABI() {}
   ABIArgInfo GetArgABI(QualType ArgType);
 };
 
 }
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

@@ -12,8 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_SEMA_SEMA_H__
-#define FLANG_SEMA_SEMA_H__
+#ifndef FORT_SEMA_SEMA_H__
+#define FORT_SEMA_SEMA_H__
 
 #include "fort/Basic/Token.h"
 #include "fort/AST/FormatSpec.h"
@@ -29,7 +29,7 @@
 #include "fort/Basic/LLVM.h"
 #include <vector>
 
-namespace flang {
+namespace fort {
 
 class ASTContext;
 class DeclContext;
@@ -1070,6 +1070,6 @@ public:
 
 };
 
-} // end flang namespace
+} // end fort namespace
 
 #endif

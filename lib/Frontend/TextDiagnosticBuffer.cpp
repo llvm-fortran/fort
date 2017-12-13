@@ -16,7 +16,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/ADT/Twine.h"
 
-namespace flang {
+namespace fort {
 
 /// HandleDiagnostic - Store the errors, warnings, and notes that are
 /// reported.
@@ -52,4 +52,4 @@ void TextDiagnosticBuffer::FlushDiagnostics(DiagnosticsEngine &Diags) const {
     Diags.ReportNote(it->first,it->second);
 }
 
-} // end namespace flang
+} // end namespace fort

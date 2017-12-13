@@ -16,7 +16,7 @@
 #include "fort/Basic/Diagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 
-namespace flang {
+namespace fort {
 
 /// DimensionConstructor - constructs a specification
 /// for a dimension of a one dimensional array which is created
@@ -108,4 +108,4 @@ ExprResult Sema::ActOnArrayConstructorExpr(ASTContext &C, SourceLocation Loc,
   return ArrayConstructorExpr::Create(C, Loc, Elements, ReturnType);
 }
 
-} // namespace flang
+} // namespace fort

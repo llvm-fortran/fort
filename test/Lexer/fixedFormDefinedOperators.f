@@ -1,5 +1,5 @@
       program hello
-C RUN: %flang -fsyntax-only %s
+C RUN: %fort -fsyntax-only %s
       integer i
       logical l
       if(l . and. l) i = 2

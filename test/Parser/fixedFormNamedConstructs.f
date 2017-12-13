@@ -1,4 +1,4 @@
-* RUN: %flang -fsyntax-only %s
+* RUN: %fort -fsyntax-only %s
       PROGRAM test
       c:DOI=1,10
       ENDDOc

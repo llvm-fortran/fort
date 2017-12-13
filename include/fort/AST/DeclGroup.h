@@ -11,13 +11,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FLANG_AST_DECLGROUP_H__
-#define FLANG_AST_DECLGROUP_H__
+#ifndef FORT_AST_DECLGROUP_H__
+#define FORT_AST_DECLGROUP_H__
 
 #include "llvm/Support/DataTypes.h"
 #include <cassert>
 
-namespace flang {
+namespace fort {
 
 class ASTContext;
 class Decl;
@@ -130,20 +130,20 @@ public:
   }
 };
 
-} // end flang namespace
+} // end fort namespace
 
 namespace llvm {
   // DeclGroupRef is "like a pointer", implement PointerLikeTypeTraits.
   template <typename T>
   class PointerLikeTypeTraits;
   template <>
-  class PointerLikeTypeTraits<flang::DeclGroupRef> {
+  class PointerLikeTypeTraits<fort::DeclGroupRef> {
   public:
-    static inline void *getAsVoidPointer(flang::DeclGroupRef P) {
+    static inline void *getAsVoidPointer(fort::DeclGroupRef P) {
       return P.getAsOpaquePtr();
     }
-    static inline flang::DeclGroupRef getFromVoidPointer(void *P) {
-      return flang::DeclGroupRef::getFromOpaquePtr(P);
+    static inline fort::DeclGroupRef getFromVoidPointer(void *P) {
+      return fort::DeclGroupRef::getFromOpaquePtr(P);
     }
     enum { NumLowBitsAvailable = 0 };
   };

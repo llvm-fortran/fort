@@ -21,7 +21,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 llvm::ArrayType *CodeGenTypes::GetFixedSizeArrayType(const ArrayType *T,
@@ -854,4 +854,4 @@ void CodeGenFunction::EmitWhereStmt(const WhereStmt *S) {
 }
 
 }
-} // end namespace flang
+} // end namespace fort

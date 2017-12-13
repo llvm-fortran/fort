@@ -17,7 +17,7 @@
 #include "fort/AST/StorageSet.h"
 #include <limits>
 
-namespace flang {
+namespace fort {
 
 static StmtLabelInteger GetStmtLabelValue(const Expr *E) {
   if(const IntegerConstantExpr *IExpr =
@@ -186,4 +186,4 @@ CommonBlockDecl *CommonBlockScope::findOrInsert(ASTContext &C, DeclContext *DC,
   return Block;
 }
 
-} // end namespace flang
+} // end namespace fort

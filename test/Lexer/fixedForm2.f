@@ -1,5 +1,5 @@
-* RUN: %flang -fsyntax-only %s
-* RUN: %flang -fsyntax-only -ast-print %s 2>&1 | %file_check %s
+* RUN: %fort -fsyntax-only %s
+* RUN: %fort -fsyntax-only -ast-print %s 2>&1 | %file_check %s
 * an extract from chemm.f
       SUBROUTINE FOO(M, N, ALPHA, BETA)
       REAL M, N, ALPHA, BETA

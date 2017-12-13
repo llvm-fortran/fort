@@ -26,7 +26,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/CFG.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
@@ -316,7 +316,7 @@ ComplexValueTy CodeGenFunction::EmitComplexPowi(ComplexValueTy LHS, llvm::Value 
                                       ElementType, ElementType, RHS->getType(), ResultType);
   CallArgList Args;
   Args.add(LHS.Re);Args.add(LHS.Im);Args.add(RHS);
-  auto Result = CreateTempAlloca(ValueType,"libflang_complex_result");
+  auto Result = CreateTempAlloca(ValueType,"libfort_complex_result");
   Args.add(Result);
   EmitCall(Func.getFunction(), Func.getInfo(), Args);
   return EmitComplexLoad(Result);
@@ -331,7 +331,7 @@ ComplexValueTy CodeGenFunction::EmitComplexPow(ComplexValueTy LHS, ComplexValueT
   CallArgList Args;
   Args.add(LHS.Re);Args.add(LHS.Im);
   Args.add(RHS.Re);Args.add(RHS.Im);
-  auto Result = CreateTempAlloca(ValueType,"libflang_complex_result");
+  auto Result = CreateTempAlloca(ValueType,"libfort_complex_result");
   Args.add(Result);
   EmitCall(Func.getFunction(), Func.getInfo(), Args);
   return EmitComplexLoad(Result);
@@ -382,7 +382,7 @@ RValueTy CodeGenFunction::EmitIntrinsicCallComplexMath(intrinsic::FunctionKind F
   CallArgList Args;
   Args.add(Value.Re);Args.add(Value.Im);
   if(Function != intrinsic::ABS) {
-    auto Result = CreateTempAlloca(ValueType, "libflang_complex_result");
+    auto Result = CreateTempAlloca(ValueType, "libfort_complex_result");
     Args.add(Result);
     EmitCall(Func.getFunction(), Func.getInfo(), Args);
     return EmitComplexLoad(Result);
@@ -542,4 +542,4 @@ llvm::Value *CodeGenFunction::EmitInquiryIntrinsic(intrinsic::FunctionKind Func,
 }
 
 }
-} // end namespace flang
+} // end namespace fort

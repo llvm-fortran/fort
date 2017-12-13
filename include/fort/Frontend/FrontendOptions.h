@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_FLANG_FRONTEND_FRONTENDOPTIONS_H
-#define LLVM_FLANG_FRONTEND_FRONTENDOPTIONS_H
+#ifndef LLVM_FORT_FRONTEND_FRONTENDOPTIONS_H
+#define LLVM_FORT_FRONTEND_FRONTENDOPTIONS_H
 
 #include "fort/Frontend/CommandLineSourceLoc.h"
 #include "llvm/ADT/StringRef.h"
@@ -19,7 +19,7 @@ namespace llvm {
 class MemoryBuffer;
 }
 
-namespace flang {
+namespace fort {
 
 namespace frontend {
   enum ActionKind {
@@ -229,6 +229,6 @@ public:
   static InputKind getInputKindForExtension(StringRef Extension);
 };
 
-}  // end namespace flang
+}  // end namespace fort
 
 #endif

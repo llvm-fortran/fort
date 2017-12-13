@@ -18,7 +18,7 @@
 #include "fort/AST/Expr.h"
 #include "fort/AST/StorageSet.h"
 
-namespace flang {
+namespace fort {
 namespace CodeGen {
 
 class FuncDeclEmitter : public ConstDeclVisitor<FuncDeclEmitter> {

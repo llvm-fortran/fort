@@ -1,4 +1,4 @@
-C RUN: %flang -fsyntax-only -verify %s
+C RUN: %fort -fsyntax-only -verify %s
 
        PROGRAM test
        INTEGERI,TOI

@@ -1,4 +1,4 @@
-! RUN: %flang -fsyntax-only < %s
+! RUN: %fort -fsyntax-only < %s
 PROGRAM doubletest
   IMPLICIT NONE
   DOUBLE PRECISION DBL

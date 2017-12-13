@@ -1,4 +1,4 @@
-! RUN: %flang -fdefault-real-8 -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -fdefault-real-8 -emit-llvm -o - %s | %file_check %s
 
 program test
   real x             ! CHECK:      alloca double

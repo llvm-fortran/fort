@@ -11,7 +11,7 @@
 #include "fort/AST/Expr.h"
 #include "fort/AST/ExprVisitor.h"
 
-namespace flang {
+namespace fort {
 
 class ContiguousArrayChecker
   : public ConstExprVisitor<ContiguousArrayChecker, bool> {
@@ -77,4 +77,4 @@ bool Expr::IsArrayExprContiguous() const {
   return EV.Visit(this);
 }
 
-} // end namespace flang
+} // end namespace fort

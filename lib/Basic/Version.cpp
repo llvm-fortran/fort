@@ -1,4 +1,4 @@
-//===- Version.cpp - Flang Version Number -----------------------*- C++ -*-===//
+//===- Version.cpp - Fort Version Number -----------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file defines several version-related utility functions for Flang.
+// This file defines several version-related utility functions for Fort.
 //
 //===----------------------------------------------------------------------===//
 
@@ -22,11 +22,11 @@
 #  include "SVNVersion.inc"
 #endif
 
-namespace flang {
+namespace fort {
 
-std::string getFlangRepositoryPath() {
-#if defined(FLANG_REPOSITORY_STRING)
-  return FLANG_REPOSITORY_STRING;
+std::string getFortRepositoryPath() {
+#if defined(FORT_REPOSITORY_STRING)
+  return FORT_REPOSITORY_STRING;
 #else
 #ifdef SVN_REPOSITORY
   StringRef URL(SVN_REPOSITORY);
@@ -43,7 +43,7 @@ std::string getFlangRepositoryPath() {
   }
 
   // Strip off version from a build from an integration branch.
-  URL = URL.slice(0, URL.find("/src/tools/flang"));
+  URL = URL.slice(0, URL.find("/src/tools/fort"));
 
   // Trim path prefix off, assuming path came from standard cfe path.
   size_t Start = URL.find("cfe/");
@@ -63,7 +63,7 @@ std::string getLLVMRepositoryPath() {
 
   // Trim path prefix off, assuming path came from standard llvm path.
   // Leave "llvm/" prefix to distinguish the following llvm revision from the
-  // flang revision.
+  // fort revision.
   size_t Start = URL.find("llvm/");
   if (Start != StringRef::npos)
     URL = URL.substr(Start);
@@ -71,7 +71,7 @@ std::string getLLVMRepositoryPath() {
   return URL;
 }
 
-std::string getFlangRevision() {
+std::string getFortRevision() {
 #ifdef SVN_REVISION
   return SVN_REVISION;
 #else
@@ -87,11 +87,11 @@ std::string getLLVMRevision() {
 #endif
 }
 
-std::string getFlangFullRepositoryVersion() {
+std::string getFortFullRepositoryVersion() {
   std::string buf;
   llvm::raw_string_ostream OS(buf);
-  std::string Path = getFlangRepositoryPath();
-  std::string Revision = getFlangRevision();
+  std::string Path = getFortRepositoryPath();
+  std::string Revision = getFortRevision();
   if (!Path.empty() || !Revision.empty()) {
     OS << '(';
     if (!Path.empty())
@@ -115,37 +115,37 @@ std::string getFlangFullRepositoryVersion() {
   return OS.str();
 }
 
-std::string getFlangFullVersion() {
-  return getFlangToolFullVersion("flang");
+std::string getFortFullVersion() {
+  return getFortToolFullVersion("fort");
 }
 
-std::string getFlangToolFullVersion(StringRef ToolName) {
+std::string getFortToolFullVersion(StringRef ToolName) {
   std::string buf;
   llvm::raw_string_ostream OS(buf);
-#ifdef FLANG_VENDOR
-  OS << FLANG_VENDOR;
+#ifdef FORT_VENDOR
+  OS << FORT_VENDOR;
 #endif
-  OS << ToolName << " version " FLANG_VERSION_STRING " "
-     << getFlangFullRepositoryVersion();
+  OS << ToolName << " version " FORT_VERSION_STRING " "
+     << getFortFullRepositoryVersion();
 
   // If vendor supplied, include the base LLVM version as well.
-#ifdef FLANG_VENDOR
+#ifdef FORT_VENDOR
   OS << " (based on " << BACKEND_PACKAGE_STRING << ")";
 #endif
 
   return OS.str();
 }
 
-std::string getFlangFullCPPVersion() {
+std::string getFortFullCPPVersion() {
   // The version string we report in __VERSION__ is just a compacted version of
   // the one we report on the command line.
   std::string buf;
   llvm::raw_string_ostream OS(buf);
-#ifdef FLANG_VENDOR
-  OS << FLANG_VENDOR;
+#ifdef FORT_VENDOR
+  OS << FORT_VENDOR;
 #endif
-  OS << "Flang " FLANG_VERSION_STRING " " << getFlangFullRepositoryVersion();
+  OS << "Fort " FORT_VERSION_STRING " " << getFortFullRepositoryVersion();
   return OS.str();
 }
 
-} // end namespace flang
+} // end namespace fort

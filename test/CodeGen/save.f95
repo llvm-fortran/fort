@@ -1,4 +1,4 @@
-! RUN: %flang -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | %file_check %s
 
 SUBROUTINE SUB() ! CHECK: @sub_i_ = {{.*}} global i32
   INTEGER I      ! CHECK: @foo_mat_ = {{.*}} global [16 x float]

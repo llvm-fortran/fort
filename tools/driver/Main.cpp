@@ -82,7 +82,7 @@
 #include <memory>
 
 using namespace llvm;
-using namespace flang;
+using namespace fort;
 
 //===----------------------------------------------------------------------===//
 // Command line options.
@@ -213,31 +213,31 @@ static int Execute(llvm::Module *Module, const char * const *envp) {
     return -1;
   }
 
-  if(auto F = Module->getFunction("libflang_write_start")) {
+  if(auto F = Module->getFunction("libfort_write_start")) {
     EE->addGlobalMapping(F, (void*) &jit_write_start);
   }
-  if(auto F = Module->getFunction("libflang_write_end")) {
+  if(auto F = Module->getFunction("libfort_write_end")) {
     EE->addGlobalMapping(F, (void*) &jit_write_end);
   }
-  if(auto F = Module->getFunction("libflang_write_character")) {
+  if(auto F = Module->getFunction("libfort_write_character")) {
     EE->addGlobalMapping(F, (void*) &jit_write_character);
   }
-  if(auto F = Module->getFunction("libflang_write_integer")) {
+  if(auto F = Module->getFunction("libfort_write_integer")) {
     EE->addGlobalMapping(F, (void*) &jit_write_integer);
   }
-  if(auto F = Module->getFunction("libflang_write_logical")) {
+  if(auto F = Module->getFunction("libfort_write_logical")) {
     EE->addGlobalMapping(F, (void*) &jit_write_logical);
   }
-  if(auto F = Module->getFunction("libflang_assignment_char1")) {
+  if(auto F = Module->getFunction("libfort_assignment_char1")) {
     EE->addGlobalMapping(F, (void*) &jit_assignment_char1);
   }
-  if(auto F = Module->getFunction("libflang_malloc")) {
+  if(auto F = Module->getFunction("libfort_malloc")) {
     EE->addGlobalMapping(F, (void*) &malloc);
   }
-  if(auto F = Module->getFunction("libflang_free")) {
+  if(auto F = Module->getFunction("libfort_free")) {
     EE->addGlobalMapping(F, (void*) &free);
   }
-  if(auto F = Module->getFunction("libflang_sys_init")) {
+  if(auto F = Module->getFunction("libfort_sys_init")) {
     EE->addGlobalMapping(F, (void*) &jit_init);
   }
 
@@ -250,7 +250,7 @@ static int Execute(llvm::Module *Module, const char * const *envp) {
 
 static void PrintVersion() {
   raw_ostream &OS = llvm::outs();
-  OS << getFlangFullVersion() << '\n';
+  OS << getFortFullVersion() << '\n';
 }
 
 std::string GetOutputName(StringRef Filename,
@@ -350,7 +350,7 @@ static bool LinkFiles(ArrayRef<std::string> OutputFiles) {
     OS << " " << I;
   for(const std::string &I : LinkDirectories)
     OS << " -L " << I;
-  OS << " -l libflang";
+  OS << " -l libfort";
   for(const std::string &I : LinkLibraries)
     OS << " -l " << I;
   // Link with the math library.
@@ -463,7 +463,7 @@ static bool ParseFile(const std::string &Filename,
 
   // Emit
   if(!SyntaxOnly && !Diag.hadErrors()) {
-    std::shared_ptr<flang::TargetOptions> TargetOptions = std::make_shared<flang::TargetOptions>();
+    std::shared_ptr<fort::TargetOptions> TargetOptions = std::make_shared<fort::TargetOptions>();
     TargetOptions->Triple = TargetTriple.empty()? llvm::sys::getDefaultTargetTriple() :
                                                   TargetTriple;
     TargetOptions->CPU = llvm::sys::getHostCPUName();
@@ -473,7 +473,7 @@ static bool ParseFile(const std::string &Filename,
 
     auto CG = CreateLLVMCodeGen(Diag, Filename == ""? std::string("module") : Filename,
                                 CodeGenOptions(), *TargetOptions, *LLContext);
-    std::unique_ptr<flang::TargetInfo> TI(TargetInfo::CreateTargetInfo(Diag, TargetOptions));
+    std::unique_ptr<fort::TargetInfo> TI(TargetInfo::CreateTargetInfo(Diag, TargetOptions));
     Context.setTargetInfo(*TI);
     CG->Initialize(Context);
     CG->HandleTranslationUnit(Context);
