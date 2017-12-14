@@ -3,6 +3,7 @@ add_fort_unittest(exprEvaluatorTest
   )
 
 target_link_libraries(exprEvaluatorTest
+  PRIVATE
   fortAST
   fortFrontend
   fortParse
