@@ -7,17 +7,22 @@ fort:
 
 Fort is a Fortran front-end.
 
+Note: this is an "active developement" branch, expect breaking changes here or
+upstream.
+
 //===----------------------------------------------------------------------===//
 // Compiling Fort (master branch)
 //===----------------------------------------------------------------------===//
 
-Download LLVM source and move to a branch, release_50, with a reference known
-to work with Fort.
+Download LLVM source.
 
 > git clone https://github.com/llvm-mirror/llvm.git
 > cd llvm
+
+or
+
 > git clone http://llvm.org/git/llvm.git
-> git checkout release_50
+> cd llvm
 
 Download the Fort source code within the LLVM tree, the two will be compiled
 together.

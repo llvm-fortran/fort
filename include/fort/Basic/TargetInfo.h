@@ -48,6 +48,8 @@ class QualType;
 //class SourceLocation;
 class SourceManager;
 
+// TODO are all the fields in TargetInfo needed for Fort?
+
 /// \brief Exposes information about the current target.
 ///
 class TargetInfo : public llvm::RefCountedBase<TargetInfo> {

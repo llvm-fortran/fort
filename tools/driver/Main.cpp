@@ -248,8 +248,7 @@ static int Execute(llvm::Module *Module, const char * const *envp) {
 }
 */
 
-static void PrintVersion() {
-  raw_ostream &OS = llvm::outs();
+static void PrintVersion(raw_ostream &OS) {
   OS << getFortFullVersion() << '\n';
 }
 
@@ -310,7 +309,7 @@ static bool EmitFile(llvm::raw_pwrite_stream &Out,
     //if (Target.addPassesToEmitFile(PM, FOS, FileType, true)) {
     //  return true;
     //}
-    if( TM->addPassesToEmitFile(PM, Out, CGFT, true, nullptr, nullptr)){
+    if( TM->addPassesToEmitFile(PM, Out, CGFT, true, nullptr)){
       return false;
     }
 
@@ -495,7 +494,7 @@ static bool ParseFile(const std::string &Filename,
     llvm::TargetOptions Options;
 
     auto TM = TheTarget->createTargetMachine(TargetOptions->Triple, TargetOptions->CPU, "", Options,
-                                             Reloc::Static, CodeModel::Default,
+                                             Reloc::Static, llvm::None,
                                              TMOptLevel);
 
     if(!(EmitLLVM && OptLevel == 0)) {

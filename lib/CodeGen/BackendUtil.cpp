@@ -37,6 +37,7 @@
 #include "llvm/Transforms/IPO/AlwaysInliner.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Instrumentation.h"
+#include "llvm/Transforms/Instrumentation/BoundsChecking.h"
 #include "llvm/Transforms/ObjCARC.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Utils/SymbolRewriter.h"
@@ -152,7 +153,7 @@ private:
 
 static void addBoundsCheckingPass(const PassManagerBuilder &Builder,
                                     PassManagerBase &PM) {
-  PM.add(createBoundsCheckingPass());
+  PM.add(createBoundsCheckingLegacyPass());
 }
 
 static llvm::Reloc::Model getRelocModel(const CodeGenOptions &CodeGenOpts) {
@@ -270,7 +271,7 @@ TargetMachine *EmitAssemblyHelper::CreateTargetMachine(bool MustCreateTM) {
   //TargetMachine::setDataSections    (CodeGenOpts.DataSections);
 
   // FIXME: Parse this earlier.
-  llvm::CodeModel::Model CM;
+  Optional<llvm::CodeModel::Model> CM;
   if (CodeGenOpts.CodeModel == "small") {
     CM = llvm::CodeModel::Small;
   } else if (CodeGenOpts.CodeModel == "kernel") {
@@ -281,11 +282,11 @@ TargetMachine *EmitAssemblyHelper::CreateTargetMachine(bool MustCreateTM) {
     CM = llvm::CodeModel::Large;
   } else {
     assert(CodeGenOpts.CodeModel.empty() && "Invalid code model!");
-    CM = llvm::CodeModel::Default;
+    CM = llvm::None;
   }
 
   SmallVector<const char *, 16> BackendArgs;
-  BackendArgs.push_back("fort"); // Fake program name.
+  BackendArgs.push_back("fort"); // Fake program name. FIXME why?
   if (!CodeGenOpts.DebugPass.empty()) {
     BackendArgs.push_back("-debug-pass");
     BackendArgs.push_back(CodeGenOpts.DebugPass.c_str());
