@@ -16,7 +16,12 @@ to work with Fort.
 
 > git clone https://github.com/llvm-mirror/llvm.git
 > cd llvm
+> git checkout release_50
+
+or
+
 > git clone http://llvm.org/git/llvm.git
+> cd llvm
 > git checkout release_50
 
 Download the Fort source code within the LLVM tree, the two will be compiled
@@ -52,6 +57,13 @@ tests in standalone fort build, make sure to add CMake flags that would
 install FileCheck with LLVM:
 
 > -DLLVM_INSTALL_UTILS=On -DLLVM_INCLUDE_TESTS=On
+
+//===----------------------------------------------------------------------===//
+// Compiling Fort against LLVM trunk
+//===----------------------------------------------------------------------===//
+
+Try our `dirty` branch, build instructions are the same as for release. The goal
+is to eventually build Fort's `master` branch against the trunk.
 
 //===----------------------------------------------------------------------===//
 // Using fort
