@@ -1,12 +1,5 @@
 message("Making Fort test configuration files")
 
-set(FORT_PATH_TO_LLVM_LIT ${FORT_PATH_TO_LLVM_BUILD}/bin/llvm-lit)
-set(LLVM_SOURCE_DIR ${FORT_PATH_TO_LLVM_SOURCE})
-set(LLVM_BINARY_DIR ${FORT_PATH_TO_LLVM_BUILD})
-set(LLVM_TOOLS_DIR ${FORT_PATH_TO_LLVM_BUILD}/tools)
-set(LLVM_LIBS_DIR ${FORT_PATH_TO_LLVM_BUILD}/lib)
-
-#configure_file(lit.site.cfg.in  ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg)
 configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.in
   ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
