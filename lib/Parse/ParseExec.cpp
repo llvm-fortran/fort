@@ -336,44 +336,29 @@ Parser::StmtResult Parser::ParseGotoStmt() {
 ///     if-stmt :=
 ///       IF(scalar-logic-expr) action-stmt
 
-ExprResult Parser::ParseExpectedConditionExpression(const char *DiagAfter, bool *Failed) {
-  ExprResult Condition;
-  if (IsPresent(tok::logical_literal_constant)) {
-    Condition = ParseExpectedFollowupExpression(DiagAfter);
-  } else {
-    if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after,
-        DiagAfter)) {
-      if (Failed)
-        *Failed = true;
-      return ExprError();
-    }
-
-    Condition = ParseExpectedFollowupExpression("(");
-    if(Condition.isInvalid() && !SkipUntil(tok::r_paren, true, true)) {
-      if (Failed)
-        *Failed = true;
-      return Condition;
-    }
-
-    if (!ExpectAndConsume(tok::r_paren)) {
-      if (Failed)
-        *Failed = true;
-      return ExprError();
-    }
-  }
-
-  if (Failed)
-    *Failed = false;
+ExprResult Parser::ParseExpectedConditionExpression(const char *DiagAfter) {
+  if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after,
+      DiagAfter))
+    return ExprError();
+  ExprResult Condition = ParseExpectedFollowupExpression("(");
+  if(Condition.isInvalid()) return Condition;
+  if (!ExpectAndConsume(tok::r_paren))
+    return ExprError();
   return Condition;
 }
 
 Parser::StmtResult Parser::ParseIfStmt() {
   auto Loc = ConsumeToken();
 
-  bool BadCondition = false;
-  ExprResult Condition = ParseExpectedConditionExpression("IF", &BadCondition);
-  if (BadCondition)
+  ExprResult Condition;
+  if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after, "IF"))
     goto error;
+  Condition = ParseExpectedFollowupExpression("(");
+  if(Condition.isInvalid()) {
+    if(!SkipUntil(tok::r_paren, true, true))
+      goto error;
+  }
+  if (!ExpectAndConsume(tok::r_paren)) goto error;
 
   if(Features.FixedForm && !Tok.isAtStartOfStatement())
     ReLexAmbiguousIdentifier(FixedFormAmbiguities.getMatcherForKeywordsAfterIF());
@@ -402,12 +387,15 @@ error:
 // FIXME: fixed-form THENconstructname
 Parser::StmtResult Parser::ParseElseIfStmt() {
   auto Loc = ConsumeToken();
-
-  bool BadCondition = false;
-  ExprResult Condition = ParseExpectedConditionExpression("ELSE IF", &BadCondition);
-  if (BadCondition)
+  ExprResult Condition;
+  if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after, "ELSE IF"))
     goto error;
-
+  Condition = ParseExpectedFollowupExpression("(");
+  if(Condition.isInvalid()) {
+    if(!SkipUntil(tok::r_paren, true, true))
+      goto error;
+  }
+  if (!ExpectAndConsume(tok::r_paren)) goto error;
   if (!ExpectAndConsumeFixedFormAmbiguous(tok::kw_THEN, diag::err_expected_kw, "THEN"))
     goto error;
   ParseTrailingConstructName();
