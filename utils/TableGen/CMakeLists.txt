@@ -5,3 +5,4 @@ add_tablegen(fort-tblgen FORT
   FortDiagnosticsEmitter.cpp
   TableGen.cpp
   )
+set_target_properties(fort-tblgen PROPERTIES FOLDER "Fort tablegenning")
