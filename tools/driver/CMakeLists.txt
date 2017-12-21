@@ -15,6 +15,7 @@ add_fort_executable(fort
   )
 
 target_link_libraries(fort
+  PRIVATE
   fortAST
   fortFrontend
   fortParse
