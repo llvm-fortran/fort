@@ -8,7 +8,7 @@ fort:
 Fort is a Fortran front-end.
 
 Note: this is an "active developement" branch, expect breaking changes here or
-upstream.
+upstream. See "Getting help" section below for how to reach the maintainers.
 
 //===----------------------------------------------------------------------===//
 // Compiling Fort (master branch)
@@ -48,7 +48,7 @@ compiler links to by default. This is built outside the LLVM tree.
 
 Testing:
 
-> cmake -DLLVM_INCLUDE_TESTS=On ..
+> cmake ..
 > make check-fort
 
 If built within LLVM source tree, it should pick up test settings from it and
@@ -56,14 +56,7 @@ running a separate make command should not be necessary. If you want to build
 tests in standalone fort build, make sure to add CMake flags that would
 install FileCheck with LLVM:
 
-> -DLLVM_INSTALL_UTILS=On -DLLVM_INCLUDE_TESTS=On
-
-//===----------------------------------------------------------------------===//
-// Compiling Fort against LLVM trunk
-//===----------------------------------------------------------------------===//
-
-Try our `dirty` branch, build instructions are the same as for release. The goal
-is to eventually build Fort's `master` branch against the trunk.
+> -DLLVM_INSTALL_UTILS=On
 
 //===----------------------------------------------------------------------===//
 // Using fort
