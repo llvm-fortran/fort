@@ -1,4 +1,4 @@
-! RUN: %fort -fsyntax-only -verify < %s
+! RUN: %fort -fsyntax-only -verify %s
 PROGRAM paramtest
   PARAMETER (x=0, y = 2.5, c = 'A') ! expected-note {{previous definition is here}}
   REAL :: z
@@ -19,5 +19,7 @@ PROGRAM paramtest
   PARAMETER (epicFail = VAR + 1) ! expected-error {{parameter 'epicfail' must be initialized by a constant expression}}
 
   PARAMETER (x = 22) ! expected-error {{redefinition of 'x'}}
+
+  x = 22 ! expected-error {{Assignment to constant 'x'}}
 
 END PROGRAM paramtest

@@ -212,6 +212,8 @@ def err_expected_constant_expr : Error<
   "expected a constant expression">;
 def err_stmt_requires_consant_expr : Error<
   "statement requires a constant expression">;
+def err_assignment_to_const : Error<
+  "Assignment to constant %0">;
 
 def err_intrinsic_invalid_func : Error<
   "invalid function name %0 in an intrinsic statement">;

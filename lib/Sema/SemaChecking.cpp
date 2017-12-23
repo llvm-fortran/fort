@@ -736,7 +736,18 @@ bool Sema::CheckArrayArgumentsDimensionCompability(const Expr *E1, const Expr *E
                                E1->getSourceRange(), E2->getSourceRange());
 }
 
+/// Check is particular variable can be assigned to
 bool Sema::CheckVarIsAssignable(const VarExpr *E) {
+  auto Decl = E->getVarDecl();
+
+  // Assignment to a parameter (constant)
+  if(Decl->isParameter()) {
+    Diags.Report(E->getLocation(), diag::err_assignment_to_const)
+      << Decl->getIdentifier();
+    return false;
+  }
+
+  // Assignment to a loop variable
   for(auto I : CurLoopVars) {
     if(I->getVarDecl() == E->getVarDecl()) {
       Diags.Report(E->getLocation(), diag::err_var_not_assignable)
