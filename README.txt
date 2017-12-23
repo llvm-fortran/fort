@@ -80,6 +80,8 @@ Once you have libfort, you'll need to tell fort where it is - you can use the
 
 Gitter chat: https://gitter.im/llvm-fortran/Lobby
 
+Github issues: https://github.com/llvm-fortran/fort/issues
+
 //===----------------------------------------------------------------------===//
 // To Do List
 //===----------------------------------------------------------------------===//
