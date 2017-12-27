@@ -691,6 +691,8 @@ Parser::StmtResult Parser::ParseENDStmt(tok::TokenKind EndKw) {
       Expected = "end function"; Given = "function"; break;
     case tok::kw_ENDSUBROUTINE:
       Expected = "end subroutine"; Given = "subroutine"; break;
+    case tok::kw_ENDMODULE:
+      Expected = "end module"; Given = "module"; break;
     default: break;
     }
     Diag.Report(Tok.getLocation(), diag::err_expected_kw)
@@ -710,6 +712,8 @@ Parser::StmtResult Parser::ParseENDStmt(tok::TokenKind EndKw) {
     Kind = ConstructPartStmt::EndFunctionStmtClass; break;
   case tok::kw_ENDSUBROUTINE:
     Kind = ConstructPartStmt::EndSubroutineStmtClass; break;
+  case tok::kw_ENDMODULE:
+    Kind = ConstructPartStmt::EndModuleStmtClass; break;
   default:
     Kind = ConstructPartStmt::EndStmtClass; break;
   }
@@ -1016,8 +1020,30 @@ StmtResult Parser::ParseStatementFunction() {
 ///           [module-subprogram-part]
 ///           end-module-stmt
 bool Parser::ParseModule() {
-  // FIXME implement
-  return true;
+  StmtResult ModStmt;
+  if (Tok.is(tok::kw_MODULE)) {
+    ModStmt = ParseMODULEStmt();
+  }
+
+  ModuleStmt *MS = ModStmt.takeAs<ModuleStmt>();
+  const IdentifierInfo *IDInfo = MS->getModuleName();
+  SourceLocation NameLoc = MS->getNameLocation();
+
+  ModuleScope Scope; // FIXME needed?
+  Actions.ActOnModule(Context, Scope, IDInfo, NameLoc);
+
+  // TODO parse declarations and subprograms
+  /*
+  ParseModuleBody(tok::kw_ENDMODULE);
+  */
+  auto EndLoc = Tok.getLocation();
+  auto EndModuleStmt = ParseENDStmt(tok::kw_ENDMODULE);
+  if(EndModuleStmt.isUsable())
+    EndLoc = EndModuleStmt.get()->getLocation();
+
+  Actions.ActOnEndModule(EndLoc);
+
+  return EndModuleStmt.isInvalid();
 }
 
 /// ParseBlockData - Parse block data.
@@ -1260,6 +1286,30 @@ Parser::StmtResult Parser::ParsePROGRAMStmt() {
     return StmtError();
 
   return Actions.ActOnPROGRAM(Context, IDInfo, ProgramLoc, NameLoc,
+                              StmtLabel);
+}
+
+/// ParseMODULEStmt - If there is a MODULE statement, parse it.
+/// 
+///   [11.3] R1105:
+///     module-stmt :=
+///         MODULE module-name
+Parser::StmtResult Parser::ParseMODULEStmt() {
+  // Check to see if we start with a 'MODULE' statement.
+  const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
+  SourceLocation ModuleLoc = Tok.getLocation();
+  if (!isaKeyword(IDInfo->getName()) || Tok.isNot(tok::kw_MODULE))
+    return Actions.ActOnMODULE(Context, 0, ModuleLoc, ModuleLoc,
+                                StmtLabel);
+
+  // Parse module name
+  Lex();
+  SourceLocation NameLoc = Tok.getLocation();
+  IDInfo = Tok.getIdentifierInfo();
+  if(!ExpectAndConsume(tok::identifier))
+    return StmtError();
+
+  return Actions.ActOnMODULE(Context, IDInfo, ModuleLoc, NameLoc,
                               StmtLabel);
 }
 

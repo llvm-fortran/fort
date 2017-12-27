@@ -88,6 +88,16 @@ ProgramStmt *ProgramStmt::Create(ASTContext &C, const IdentifierInfo *ProgName,
 }
 
 //===----------------------------------------------------------------------===//
+// Module Statement
+//===----------------------------------------------------------------------===//
+
+ModuleStmt *ModuleStmt::Create(ASTContext &C, const IdentifierInfo *ModuleName,
+                                 SourceLocation Loc, SourceLocation NameLoc,
+                                 Expr *StmtLabel) {
+  return new (C) ModuleStmt(ModuleName, Loc, NameLoc, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Use Statement
 //===----------------------------------------------------------------------===//
 

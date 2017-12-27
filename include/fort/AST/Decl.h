@@ -839,12 +839,13 @@ public:
 
 class ModuleDecl : public DeclaratorDecl, public DeclContext {
 protected:
-  ModuleDecl(Kind DK, DeclContext *DC, const DeclarationNameInfo &NameInfo,
-             QualType T)
-    : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
-      DeclContext(DK) {
+  ModuleDecl(DeclContext *DC, const DeclarationNameInfo &NameInfo)
+    : DeclaratorDecl(Module, DC, NameInfo.getLoc(), NameInfo.getName(), QualType()),
+      DeclContext(Module) {
   }
 public:
+  static ModuleDecl *Create(ASTContext &C, DeclContext *DC,
+                            const DeclarationNameInfo &NameInfo);
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }

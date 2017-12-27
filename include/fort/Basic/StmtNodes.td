@@ -13,6 +13,7 @@ def ConstructPartStmt : Stmt;
 def DeclStmt : Stmt;
 def CompoundStmt : Stmt;
 def ProgramStmt : Stmt;
+def ModuleStmt : Stmt;
 def UseStmt : Stmt;
 def ImportStmt : Stmt;
 def ImplicitStmt : Stmt;

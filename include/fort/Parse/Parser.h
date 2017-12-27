@@ -432,6 +432,7 @@ private:
   // Stmt-level parsing methods.
   void LookForTopLevelStmtKeyword();
   StmtResult ParsePROGRAMStmt();
+  StmtResult ParseMODULEStmt();
   StmtResult ParseENDStmt(tok::TokenKind EndKw);
   StmtResult ParseUSEStmt();
   StmtResult ParseIMPORTStmt();

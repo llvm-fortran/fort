@@ -218,6 +218,15 @@ TranslationUnitDecl *TranslationUnitDecl::Create(ASTContext &C) {
 }
 
 //===----------------------------------------------------------------------===//
+// ModuleDecl Implementation
+//===----------------------------------------------------------------------===//
+
+ModuleDecl *ModuleDecl::Create(ASTContext &C, DeclContext *DC,
+                               const DeclarationNameInfo &NameInfo) {
+  return new (C) ModuleDecl(DC, NameInfo);
+}
+
+//===----------------------------------------------------------------------===//
 // MainProgramDecl Implementation
 //===----------------------------------------------------------------------===//
 

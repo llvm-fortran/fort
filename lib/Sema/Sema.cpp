@@ -298,10 +298,39 @@ MainProgramDecl *Sema::ActOnMainProgram(ASTContext &C, MainProgramScope &Scope,
   return Program;
 }
 
+ModuleDecl *Sema::ActOnModule(ASTContext &C, ModuleScope &Scope,
+                              const IdentifierInfo *IDInfo,
+                              SourceLocation NameLoc) {
+  bool Declare = true;
+  // Check if module name has been used before
+  if (auto Prev = LookupIdentifier(IDInfo)) {
+    Diags.Report(NameLoc, diag::err_redefinition) << IDInfo;
+    Diags.Report(Prev->getLocation(), diag::note_previous_definition);
+    Declare = false;
+  }
+
+  DeclarationName DN(IDInfo);
+  DeclarationNameInfo NameInfo(DN, NameLoc);
+  auto ParentDC = C.getTranslationUnitDecl();
+  auto Module = ModuleDecl::Create(C, ParentDC, NameInfo);
+  if(Declare)
+    ParentDC->addDecl(Module);
+  PushDeclContext(Module);
+  // TODO PushModule(Scope);
+  return Module;
+}
+
 void Sema::ActOnEndMainProgram(SourceLocation Loc) {
   assert(CurContext && "DeclContext imbalance!");
 
   PopExecutableProgramUnit(Loc);
+  PopDeclContext();
+}
+
+void Sema::ActOnEndModule(SourceLocation Loc) {
+  assert(CurContext && "DeclContext imbalance!");
+
+  // TODO PopModule(Loc);
   PopDeclContext();
 }
 
@@ -650,17 +679,33 @@ StmtResult Sema::ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,
   return Result;
 }
 
+StmtResult Sema::ActOnMODULE(ASTContext &C, const IdentifierInfo *ModuleName,
+                              SourceLocation Loc, SourceLocation NameLoc, Expr *StmtLabel) {
+  auto Result = ModuleStmt::Create(C, ModuleName, Loc, NameLoc, StmtLabel);
+  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  return Result;
+}
+
 StmtResult Sema::ActOnEND(ASTContext &C, SourceLocation Loc,
                           ConstructPartStmt::ConstructStmtClass Kind,
                           SourceLocation IDLoc, const IdentifierInfo *IDInfo,
                           Expr *StmtLabel) {
   const IdentifierInfo *SubprogramName;
   int SubprogramKind;
-  if(auto MainProgram = dyn_cast<MainProgramDecl>(CurContext)) {
+  bool Executable = true;
+  if(auto Module = dyn_cast<ModuleDecl>(CurContext)) {
+    // module
+    SubprogramName = Module->getIdentifier();
+    SubprogramKind = 0;
+    Executable = false;
+  }
+  else if(auto MainProgram = dyn_cast<MainProgramDecl>(CurContext)) {
+    // program
     SubprogramName = MainProgram->getIdentifier();
-    SubprogramKind = 0; // program
+    SubprogramKind = 0;
   }
   else {
+    // executable subprogram
     SubprogramName = cast<FunctionDecl>(CurContext)->getIdentifier();
     SubprogramKind = cast<FunctionDecl>(CurContext)->isSubroutine()? 2 : 1;
   }
@@ -678,7 +723,7 @@ StmtResult Sema::ActOnEND(ASTContext &C, SourceLocation Loc,
   auto Result = ConstructPartStmt::Create(C, Kind, Loc,
                                           ConstructName(IDLoc, IDInfo), StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  getCurrentBody()->Append(Result);
+  if (Executable) getCurrentBody()->Append(Result);
   return Result;
 }
 

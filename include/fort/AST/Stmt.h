@@ -174,6 +174,7 @@ public:
     EndProgramStmtClass,
     EndFunctionStmtClass,
     EndSubroutineStmtClass,
+    EndModuleStmtClass,
     EndDoStmtClass,
     ElseStmtClass,
     EndIfStmtClass,
@@ -307,6 +308,34 @@ public:
   static bool classof(const ProgramStmt*) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ProgramStmtClass;
+  }
+};
+
+
+/// ModuleStmt - first statement of a module
+///
+class ModuleStmt : public Stmt {
+  const IdentifierInfo *ModuleName;
+  SourceLocation NameLoc;
+
+  ModuleStmt(const IdentifierInfo *moduleName, SourceLocation Loc,
+              SourceLocation NameL, Expr *SLT)
+    : Stmt(ModuleStmtClass, Loc, SLT), ModuleName(moduleName), NameLoc(NameL) {}
+  ModuleStmt(const ModuleStmt &); // Do not implement!
+public:
+  static ModuleStmt *Create(ASTContext &C, const IdentifierInfo *ModuleName,
+                             SourceLocation L, SourceLocation NameL,
+                             Expr *StmtLabel);
+
+  /// getProgramName - Get the name of the program. This may be null.
+  const IdentifierInfo *getModuleName() const { return ModuleName; }
+
+  /// getNameLocation - Get the location of the program name.
+  SourceLocation getNameLocation() const { return NameLoc; }
+
+  static bool classof(const ModuleStmt*) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == ModuleStmtClass;
   }
 };
 

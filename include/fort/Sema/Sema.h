@@ -162,6 +162,12 @@ public:
   void ActOnTranslationUnit(TranslationUnitScope &Scope);
   void ActOnEndTranslationUnit();
 
+  /// module actions
+  ModuleDecl *ActOnModule(ASTContext &C, ModuleScope &Scope,
+                          const IdentifierInfo *IDInfo, SourceLocation NameLoc);
+
+  void ActOnEndModule(SourceLocation Loc);
+
   /// program unit actions
   MainProgramDecl *ActOnMainProgram(ASTContext &C, MainProgramScope &Scope,
                                     const IdentifierInfo *IDInfo, SourceLocation NameLoc);
@@ -325,6 +331,10 @@ public:
 
   // PROGRAM statement:
   StmtResult ActOnPROGRAM(ASTContext &C, const IdentifierInfo *ProgName,
+                          SourceLocation Loc, SourceLocation NameLoc, Expr *StmtLabel);
+
+  // MODULE statement:
+  StmtResult ActOnMODULE(ASTContext &C, const IdentifierInfo *ModuleName,
                           SourceLocation Loc, SourceLocation NameLoc, Expr *StmtLabel);
 
   // END PROGRAM / SUBROUTINE / FUNCTION statement:
