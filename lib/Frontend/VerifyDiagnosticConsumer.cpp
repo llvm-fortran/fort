@@ -511,7 +511,7 @@ static unsigned PrintExpected(DiagnosticsEngine &Diags, const llvm::SourceMgr &S
   for (DirectiveList::iterator I = DL.begin(), E = DL.end(); I != E; ++I) {
     Directive &D = **I;
 
-    Diags.ReportError(D.DirectiveLoc,llvm::Twine("Inconsistend verify directive: ")+D.Text);
+    Diags.ReportError(D.DirectiveLoc,llvm::Twine("Inconsistent verify directive: ")+D.Text);
   }
 
   return DL.size();

@@ -1025,6 +1025,9 @@ bool Parser::ParseModule() {
     ModStmt = ParseMODULEStmt();
   }
 
+  if (!ModStmt.isUsable())
+    return true;
+
   ModuleStmt *MS = ModStmt.takeAs<ModuleStmt>();
   const IdentifierInfo *IDInfo = MS->getModuleName();
   SourceLocation NameLoc = MS->getNameLocation();
@@ -1306,7 +1309,8 @@ Parser::StmtResult Parser::ParseMODULEStmt() {
   Lex();
   SourceLocation NameLoc = Tok.getLocation();
   IDInfo = Tok.getIdentifierInfo();
-  if(!ExpectAndConsume(tok::identifier))
+  if(!ExpectAndConsume(tok::identifier,
+                       diag::err_expected_ident_after, "module"))
     return StmtError();
 
   return Actions.ActOnMODULE(Context, IDInfo, ModuleLoc, NameLoc,
