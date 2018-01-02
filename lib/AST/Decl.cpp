@@ -226,6 +226,22 @@ ModuleDecl *ModuleDecl::Create(ASTContext &C, DeclContext *DC,
   return new (C) ModuleDecl(DC, NameInfo);
 }
 
+void ModuleDecl::setBody(Stmt *S) {
+  Body = S;
+}
+
+void ModuleDecl::setBody(Expr *E) {
+  Body = E;
+}
+
+Stmt *ModuleDecl::getBody() const {
+  return (Body.is<Stmt*>() ? Body.get<Stmt*>() : nullptr);
+}
+
+Expr *ModuleDecl::getBodyExpr() const {
+  return (Body.is<Expr*>() ? Body.get<Expr*>() : nullptr);
+}
+
 //===----------------------------------------------------------------------===//
 // MainProgramDecl Implementation
 //===----------------------------------------------------------------------===//

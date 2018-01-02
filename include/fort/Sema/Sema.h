@@ -150,6 +150,9 @@ public:
   void PushExecutableProgramUnit(ExecutableProgramUnitScope &Scope);
   void PopExecutableProgramUnit(SourceLocation Loc);
 
+  void PushModule(ModuleScope &Scope);
+  void PopModule(SourceLocation Loc);
+
   void PushProgramUnitScope(ExecutableProgramUnitScope &Scope);
   void PopExecutableProgramUnitScope(SourceLocation Loc);
 

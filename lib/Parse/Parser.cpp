@@ -1020,6 +1020,7 @@ StmtResult Parser::ParseStatementFunction() {
 ///           [module-subprogram-part]
 ///           end-module-stmt
 bool Parser::ParseModule() {
+  const tok::TokenKind EndKw = tok::kw_ENDMODULE;
   StmtResult ModStmt;
   if (Tok.is(tok::kw_MODULE)) {
     ModStmt = ParseMODULEStmt();
@@ -1035,10 +1036,12 @@ bool Parser::ParseModule() {
   ModuleScope Scope; // FIXME needed?
   Actions.ActOnModule(Context, Scope, IDInfo, NameLoc);
 
-  // TODO parse declarations and subprograms
-  /*
-  ParseModuleBody(tok::kw_ENDMODULE);
-  */
+  // Parse module specification part
+  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw))
+    ParseSpecificationPart();
+
+  // TODO parse module subprogram part
+
   auto EndLoc = Tok.getLocation();
   auto EndModuleStmt = ParseENDStmt(tok::kw_ENDMODULE);
   if(EndModuleStmt.isUsable())

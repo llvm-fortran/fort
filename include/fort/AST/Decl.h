@@ -838,6 +838,8 @@ public:
 };
 
 class ModuleDecl : public DeclaratorDecl, public DeclContext {
+private:
+  llvm::PointerUnion<Stmt*,Expr*> Body;
 protected:
   ModuleDecl(DeclContext *DC, const DeclarationNameInfo &NameInfo)
     : DeclaratorDecl(Module, DC, NameInfo.getLoc(), NameInfo.getName(), QualType()),
@@ -846,6 +848,11 @@ protected:
 public:
   static ModuleDecl *Create(ASTContext &C, DeclContext *DC,
                             const DeclarationNameInfo &NameInfo);
+
+  void setBody(Stmt *S);
+  void setBody(Expr *E);
+  Stmt *getBody() const;
+  Expr *getBodyExpr() const;
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }

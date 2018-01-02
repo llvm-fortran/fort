@@ -430,8 +430,9 @@ class SubProgramScope : public ExecutableProgramUnitScope {
 /// The scope of a module
 class ModuleScope {
 public:
-  StmtLabelScope StmtLabels;
-  ConstructNameScope NamedConstructs;
+  //StmtLabelScope StmtLabels;
+  //ConstructNameScope NamedConstructs;
+  BlockStmtBuilder Body;
 };
 
 }  // end namespace fort

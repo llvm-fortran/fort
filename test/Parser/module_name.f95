@@ -1,5 +1,6 @@
-! RUN: not %fort -fsyntax-only -verify %s 2>&1 | %file_check %s
+! RUN: %fort -fsyntax-only %s
 module mod
-end module
-module ! CHECK: expected identifier after 'module'
+  ! TODO:  integer, parameter :: n = 10
+  integer n
+  parameter(n = 10)
 end module

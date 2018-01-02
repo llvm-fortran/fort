@@ -157,6 +157,17 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
   CurSpecScope = nullptr;
 }
 
+void Sema::PushModule(ModuleScope &Scope) {
+  CurExecutableStmts = &Scope.Body;
+}
+
+void Sema::PopModule(SourceLocation Loc) {
+  auto Body = CurExecutableStmts->LeaveOuterBody(Context, Decl::castFromDeclContext(CurContext)->getLocation());
+  auto MD = dyn_cast<ModuleDecl>(CurContext);
+  assert(MD && "Expect module decalration");
+  MD->setBody(Body);
+}
+
 void BlockStmtBuilder::Enter(Entry S) {
   S.BeginOffset = StmtList.size();
   ControlFlowStack.push_back(S);
@@ -316,7 +327,7 @@ ModuleDecl *Sema::ActOnModule(ASTContext &C, ModuleScope &Scope,
   if(Declare)
     ParentDC->addDecl(Module);
   PushDeclContext(Module);
-  // TODO PushModule(Scope);
+  PushModule(Scope);
   return Module;
 }
 
@@ -330,7 +341,7 @@ void Sema::ActOnEndMainProgram(SourceLocation Loc) {
 void Sema::ActOnEndModule(SourceLocation Loc) {
   assert(CurContext && "DeclContext imbalance!");
 
-  // TODO PopModule(Loc);
+  PopModule(Loc);
   PopDeclContext();
 }
 
