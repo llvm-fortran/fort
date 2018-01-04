@@ -1037,13 +1037,13 @@ bool Parser::ParseModule() {
   Actions.ActOnModule(Context, Scope, IDInfo, NameLoc);
 
   // Parse module specification part
-  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw))
+  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw) && Tok.isNot(tok::kw_CONTAINS))
     ParseSpecificationPart();
 
   // TODO parse module subprogram part
 
   auto EndLoc = Tok.getLocation();
-  auto EndModuleStmt = ParseENDStmt(tok::kw_ENDMODULE);
+  auto EndModuleStmt = ParseENDStmt(EndKw);
   if(EndModuleStmt.isUsable())
     EndLoc = EndModuleStmt.get()->getLocation();
 

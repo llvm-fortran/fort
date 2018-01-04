@@ -161,6 +161,7 @@ KEYWORD(RETURN                 , KEYALL)
 KEYWORD(CALL                   , KEYALL)
 KEYWORD(ENUM                   , KEYALL)
 KEYWORD(MODULE                 , KEYNOTF77)
+KEYWORD(CONTAINS               , KEYNOTF77)
 KEYWORD(SUBMODULE              , KEYNOTF77)
 KEYWORD(BLOCK                  , KEYALL) // DATA defined below.
 KEYWORD(CYCLE                  , KEYNOTF77)
