@@ -159,6 +159,7 @@ void Sema::PopExecutableProgramUnit(SourceLocation Loc) {
 
 void Sema::PushModule(ModuleScope &Scope) {
   CurExecutableStmts = &Scope.Body;
+  CurSpecScope = &Scope.Specs;
 }
 
 void Sema::PopModule(SourceLocation Loc) {

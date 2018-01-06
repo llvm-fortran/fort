@@ -363,6 +363,7 @@ private:
   bool ParseRecursiveExternalSubprogram();
   bool ParseExecutableSubprogramBody(tok::TokenKind EndKw);
   bool ParseModule();
+  bool ParseModuleSubprogram();
   bool ParseBlockData();
 
   bool ParseRESULT();

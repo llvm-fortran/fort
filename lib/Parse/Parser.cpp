@@ -1022,10 +1022,10 @@ StmtResult Parser::ParseStatementFunction() {
 bool Parser::ParseModule() {
   const tok::TokenKind EndKw = tok::kw_ENDMODULE;
   StmtResult ModStmt;
-  if (Tok.is(tok::kw_MODULE)) {
-    ModStmt = ParseMODULEStmt();
-  }
+  // modle-stmt
+  assert(Tok.is(tok::kw_MODULE) && "Expecting MODULE keyword");
 
+  ModStmt = ParseMODULEStmt();
   if (!ModStmt.isUsable())
     return true;
 
@@ -1033,15 +1033,24 @@ bool Parser::ParseModule() {
   const IdentifierInfo *IDInfo = MS->getModuleName();
   SourceLocation NameLoc = MS->getNameLocation();
 
-  ModuleScope Scope; // FIXME needed?
+  ModuleScope Scope;
   Actions.ActOnModule(Context, Scope, IDInfo, NameLoc);
 
-  // Parse module specification part
-  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw) && Tok.isNot(tok::kw_CONTAINS))
+  // [specification-part]
+  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw) && Tok.isNot(tok::kw_CONTAINS)) {
+    // FIXME there are constraints on module specification part that need to be taken into account
     ParseSpecificationPart();
+    Actions.ActOnSpecificationPart();
+  }
 
-  // TODO parse module subprogram part
+  // [module-subprogram-part]
+  if (Tok.is(tok::kw_CONTAINS)) {
+    ConsumeToken();
+    while(!ParseModuleSubprogram())
+      /* parse all module subprograms */;
+  }
 
+  // end-module-stmt
   auto EndLoc = Tok.getLocation();
   auto EndModuleStmt = ParseENDStmt(EndKw);
   if(EndModuleStmt.isUsable())
@@ -1052,6 +1061,40 @@ bool Parser::ParseModule() {
   return EndModuleStmt.isInvalid();
 }
 
+/// Parse a subprogram in a module
+bool Parser::ParseModuleSubprogram() {
+  //Lex();
+  // END or END MODULE terminates parsing
+  if (Tok.is(tok::kw_END) || Tok.is(tok::kw_ENDMODULE))
+    return true;
+  
+  switch (Tok.getKind()) {
+  default:
+    // FIXME diagnostics
+    return true;
+    break;
+
+  case tok::kw_REAL:
+  case tok::kw_INTEGER:
+  case tok::kw_COMPLEX:
+  case tok::kw_CHARACTER:
+  case tok::kw_BYTE:
+  case tok::kw_LOGICAL:
+  case tok::kw_DOUBLEPRECISION:
+  case tok::kw_DOUBLECOMPLEX:
+    return ParseTypedExternalSubprogram(FunctionDecl::NoAttributes);
+    break;
+  case tok::kw_RECURSIVE:
+    return ParseRecursiveExternalSubprogram();
+    break;
+  case tok::kw_FUNCTION:
+  case tok::kw_SUBROUTINE:
+    return ParseExternalSubprogram();
+    break;
+  }
+
+  return false;
+}
 /// ParseBlockData - Parse block data.
 ///
 ///   [R1116]:
@@ -1301,17 +1344,14 @@ Parser::StmtResult Parser::ParsePROGRAMStmt() {
 ///     module-stmt :=
 ///         MODULE module-name
 Parser::StmtResult Parser::ParseMODULEStmt() {
-  // Check to see if we start with a 'MODULE' statement.
-  const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
+  assert(Tok.is(tok::kw_MODULE) && "Expect MODULE");
+  // Location of MODULE keyword
   SourceLocation ModuleLoc = Tok.getLocation();
-  if (!isaKeyword(IDInfo->getName()) || Tok.isNot(tok::kw_MODULE))
-    return Actions.ActOnMODULE(Context, 0, ModuleLoc, ModuleLoc,
-                                StmtLabel);
 
   // Parse module name
   Lex();
   SourceLocation NameLoc = Tok.getLocation();
-  IDInfo = Tok.getIdentifierInfo();
+  const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
   if(!ExpectAndConsume(tok::identifier,
                        diag::err_expected_ident_after, "module"))
     return StmtError();
