@@ -674,11 +674,11 @@ bool Parser::ParseMainProgram() {
   return EndProgStmt.isInvalid();
 }
 
-/// ParseENDStmt - Parse the END PROGRAM/FUNCTION/SUBROUTINE statement.
+/// ParseENDStmt - Parse the END PROGRAM/FUNCTION/SUBROUTINE/MODULE statement.
 ///
 ///   [R1103]:
 ///     end-program-stmt :=
-///         END [ PROGRAM/FUNCTION/SUBROUTINE [ program-name ] ]
+///         END [ PROGRAM/FUNCTION/SUBROUTINE/MODULE [ program-name ] ]
 Parser::StmtResult Parser::ParseENDStmt(tok::TokenKind EndKw) {
   ParseStatementLabel();
   if(Tok.isNot(tok::kw_END) && Tok.isNot(EndKw)) {
@@ -1063,7 +1063,6 @@ bool Parser::ParseModule() {
 
 /// Parse a subprogram in a module
 bool Parser::ParseModuleSubprogram() {
-  //Lex();
   // END or END MODULE terminates parsing
   if (Tok.is(tok::kw_END) || Tok.is(tok::kw_ENDMODULE))
     return true;
@@ -1095,6 +1094,7 @@ bool Parser::ParseModuleSubprogram() {
 
   return false;
 }
+
 /// ParseBlockData - Parse block data.
 ///
 ///   [R1116]:

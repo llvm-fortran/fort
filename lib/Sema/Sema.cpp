@@ -698,18 +698,17 @@ StmtResult Sema::ActOnMODULE(ASTContext &C, const IdentifierInfo *ModuleName,
   return Result;
 }
 
+/// Actions for END statement terminating an executable (sub)program or module
 StmtResult Sema::ActOnEND(ASTContext &C, SourceLocation Loc,
                           ConstructPartStmt::ConstructStmtClass Kind,
                           SourceLocation IDLoc, const IdentifierInfo *IDInfo,
                           Expr *StmtLabel) {
   const IdentifierInfo *SubprogramName;
   int SubprogramKind;
-  bool Executable = true;
   if(auto Module = dyn_cast<ModuleDecl>(CurContext)) {
     // module
     SubprogramName = Module->getIdentifier();
     SubprogramKind = 0;
-    Executable = false;
   }
   else if(auto MainProgram = dyn_cast<MainProgramDecl>(CurContext)) {
     // program
@@ -735,7 +734,7 @@ StmtResult Sema::ActOnEND(ASTContext &C, SourceLocation Loc,
   auto Result = ConstructPartStmt::Create(C, Kind, Loc,
                                           ConstructName(IDLoc, IDInfo), StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  if (Executable) getCurrentBody()->Append(Result);
+  getCurrentBody()->Append(Result);
   return Result;
 }
 

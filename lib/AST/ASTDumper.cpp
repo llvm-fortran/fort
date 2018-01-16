@@ -45,6 +45,7 @@ public:
   void dumpDeclContext(const DeclContext *Ctx);
   void VisitTranslationUnitDecl(const TranslationUnitDecl *D);
   void VisitMainProgramDecl(const MainProgramDecl *D);
+  void VisitModuleDecl(const ModuleDecl *D);
   void VisitFunctionDecl(const FunctionDecl *D);
   void VisitVarDecl(const VarDecl *D);
 
@@ -176,6 +177,15 @@ void ASTDumper::VisitTranslationUnitDecl(const TranslationUnitDecl *D) {
 
 void ASTDumper::VisitMainProgramDecl(const MainProgramDecl *D) {
   OS << "program " << D->getName() << "\n";
+  indent++;
+  dumpDeclContext(D);
+  indent--;
+  if(D->getBody())
+    dumpSubStmt(D->getBody());
+}
+
+void ASTDumper::VisitModuleDecl(const ModuleDecl *D) {
+  OS << "module " << D->getName() << "\n";
   indent++;
   dumpDeclContext(D);
   indent--;
@@ -363,6 +373,7 @@ void ASTDumper::VisitConstructPartStmt(const ConstructPartStmt *S) {
   switch(S->getConstructStmtClass()) {
   case ConstructPartStmt::EndStmtClass: OS << "end"; break;
   case ConstructPartStmt::EndProgramStmtClass: OS << "end program"; break;
+  case ConstructPartStmt::EndModuleStmtClass: OS << "end module"; break;
   case ConstructPartStmt::EndFunctionStmtClass: OS << "end function"; break;
   case ConstructPartStmt::EndSubroutineStmtClass: OS << "end subroutine"; break;
   case ConstructPartStmt::ElseStmtClass: OS << "else"; break;
