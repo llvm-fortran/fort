@@ -149,6 +149,9 @@ void CodeGenModule::EmitTopLevelDecl(const Decl *Declaration) {
     void VisitFunctionDecl(const FunctionDecl *D) {
       CG->EmitFunctionDecl(D);
     }
+    void VisitModuleDecl(const ModuleDecl *D) {
+      CG->EmitModuleDecl(D);
+    }
   };
   Visitor DV(this);
   DV.Visit(Declaration);
@@ -174,8 +177,12 @@ void CodeGenModule::EmitFunctionDecl(const FunctionDecl *Function) {
   CGF.EmitFunctionEpilogue(Function, FuncInfo.getInfo());
 }
 
-llvm::GlobalVariable *CodeGenModule::EmitGlobalVariable(StringRef FuncName, const VarDecl *Var,
-                                                        llvm::Constant *Initializer) {
+void CodeGenModule::EmitModuleDecl(const ModuleDecl *Module) {
+  // TBD
+}
+
+llvm::GlobalVariable *CodeGenModule::EmitSaveVariable(StringRef FuncName, const VarDecl *Var,
+                                                      llvm::Constant *Initializer) {
   auto T = getTypes().ConvertTypeForMem(Var->getType());
   return new llvm::GlobalVariable(TheModule, T,
                                   false, llvm::GlobalValue::InternalLinkage,
@@ -183,8 +190,8 @@ llvm::GlobalVariable *CodeGenModule::EmitGlobalVariable(StringRef FuncName, cons
                                   llvm::Twine(FuncName) + Var->getName() + "_");
 }
 
-llvm::GlobalVariable *CodeGenModule::EmitGlobalVariable(StringRef FuncName, StringRef VarName,
-                                                        llvm::Type *Type, llvm::Constant *Initializer) {
+llvm::GlobalVariable *CodeGenModule::EmitSaveVariable(StringRef FuncName, StringRef VarName,
+                                                      llvm::Type *Type, llvm::Constant *Initializer) {
   return new llvm::GlobalVariable(TheModule, Type,
                                   false, llvm::GlobalValue::InternalLinkage, Initializer,
                                   llvm::Twine(FuncName) + VarName + "_");

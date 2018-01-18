@@ -185,11 +185,13 @@ public:
 
   void EmitFunctionDecl(const FunctionDecl *Function);
 
-  llvm::GlobalVariable *EmitGlobalVariable(StringRef FuncName, const VarDecl *Var,
-                                           llvm::Constant *Initializer = nullptr);
+  void EmitModuleDecl(const ModuleDecl *Module);
 
-  llvm::GlobalVariable *EmitGlobalVariable(StringRef FuncName, StringRef VarName,
-                                           llvm::Type *Type, llvm::Constant *Initializer);
+  llvm::GlobalVariable *EmitSaveVariable(StringRef FuncName, const VarDecl *Var,
+                                         llvm::Constant *Initializer = nullptr);
+
+  llvm::GlobalVariable *EmitSaveVariable(StringRef FuncName, StringRef VarName,
+                                         llvm::Type *Type, llvm::Constant *Initializer);
 
   llvm::Value *EmitConstantArray(llvm::Constant *Array);
 

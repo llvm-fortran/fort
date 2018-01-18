@@ -135,8 +135,8 @@ void CodeGenFunction::EmitFunctionBody(const DeclContext *DC, const Stmt *S) {
 
 void CodeGenFunction::EmitFirstInvocationBlock(const DeclContext *DC,
                                                const Stmt *S) {
-  auto GlobalFirstInvocationFlag = CGM.EmitGlobalVariable(CurFn->getName(), "FIRST_INVOCATION",
-                                                          CGM.Int1Ty, Builder.getTrue());
+  auto GlobalFirstInvocationFlag = CGM.EmitSaveVariable(CurFn->getName(), "FIRST_INVOCATION",
+                                                        CGM.Int1Ty, Builder.getTrue());
   auto FirstInvocationBB = createBasicBlock("first-invocation");
   auto EndBB = createBasicBlock("first-invocation-end");
   Builder.CreateCondBr(Builder.CreateLoad(GlobalFirstInvocationFlag), FirstInvocationBB,

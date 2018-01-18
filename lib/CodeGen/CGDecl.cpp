@@ -56,7 +56,7 @@ void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
   llvm::Value *Ptr;
   auto Type = D->getType();
   if(Type.hasAttributeSpec(Qualifiers::AS_save) && !IsMainProgram) {
-    Ptr = CGM.EmitGlobalVariable(CurFn->getName(), D);
+    Ptr = CGM.EmitSaveVariable(CurFn->getName(), D);
     HasSavedVariables = true;
   } else {
     if(Type->isArrayType())
