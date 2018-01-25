@@ -119,6 +119,7 @@ CodeGenModule::GetRuntimeFunction(StringRef Name,
 }
 
 /// Produce IR function definition for a Fortran function
+/// using GNU Fortran conventions for name mangling
 CGFunction CodeGenModule::GetFunction(const FunctionDecl *Function) {
   auto SearchResult = Functions.find(Function);
   if(SearchResult != Functions.end())
@@ -134,8 +135,9 @@ CGFunction CodeGenModule::GetFunction(const FunctionDecl *Function) {
   if (DC && DC->isModule()) {
     llvm::SmallString<32> Prefix;
     auto Module = ModuleDecl::castFromDeclContext(DC);
+    Prefix.append("__");
     Prefix.append(Module->getName());
-    Prefix.push_back('_');
+    Prefix.append("_MOD_");
     PrefixRef = Prefix;
   }
 
