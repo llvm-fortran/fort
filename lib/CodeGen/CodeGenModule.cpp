@@ -118,6 +118,7 @@ CodeGenModule::GetRuntimeFunction(StringRef Name,
   return Result;
 }
 
+/// Produce IR function definition for a Fortran function
 CGFunction CodeGenModule::GetFunction(const FunctionDecl *Function) {
   auto SearchResult = Functions.find(Function);
   if(SearchResult != Functions.end())
@@ -125,10 +126,23 @@ CGFunction CodeGenModule::GetFunction(const FunctionDecl *Function) {
 
   auto FunctionInfo = Types.GetFunctionType(Function);
 
+  auto DC = Function->getDeclContext();
+
+  llvm::StringRef PrefixRef;
+
+  // Module name is prepended to function names defined inside of it
+  if (DC && DC->isModule()) {
+    llvm::SmallString<32> Prefix;
+    auto Module = ModuleDecl::castFromDeclContext(DC);
+    Prefix.append(Module->getName());
+    Prefix.push_back('_');
+    PrefixRef = Prefix;
+  }
+
+  auto FunctionName = PrefixRef + llvm::Twine(Function->getName()) + "_";
   auto Func = llvm::Function::Create(FunctionInfo->getFunctionType(),
                                      llvm::GlobalValue::ExternalLinkage,
-                                     llvm::Twine(Function->getName()) + "_",
-                                     &TheModule);
+                                     FunctionName, &TheModule);
 
   Func->setCallingConv(FunctionInfo->getCallingConv());
   auto Result = CGFunction(FunctionInfo, Func);
@@ -178,7 +192,25 @@ void CodeGenModule::EmitFunctionDecl(const FunctionDecl *Function) {
 }
 
 void CodeGenModule::EmitModuleDecl(const ModuleDecl *Module) {
-  // TBD
+  class ModuleDeclVisitor : public ConstDeclVisitor<ModuleDeclVisitor> {
+  public:
+    CodeGenModule *CG;
+
+    ModuleDeclVisitor(CodeGenModule *P) : CG(P) {}
+
+    void VisitFunctionDecl(const FunctionDecl *D) {
+      CG->EmitFunctionDecl(D);
+    }
+  };
+
+  ModuleDeclVisitor MV(this);
+
+  // Visit module declarations
+  auto I = Module->decls_begin();
+  for(auto E = Module->decls_end(); I!=E; ++I) {
+    if((*I)->getDeclContext() == Module)
+      MV.Visit(*I);
+  }
 }
 
 llvm::GlobalVariable *CodeGenModule::EmitSaveVariable(StringRef FuncName, const VarDecl *Var,
