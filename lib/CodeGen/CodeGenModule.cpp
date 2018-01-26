@@ -207,10 +207,7 @@ llvm::GlobalVariable *
 CodeGenModule::EmitSaveVariable(StringRef FuncName, const VarDecl *Var,
                                 llvm::Constant *Initializer) {
   auto T = getTypes().ConvertTypeForMem(Var->getType());
-  return new llvm::GlobalVariable(TheModule, T, false,
-                                  llvm::GlobalValue::InternalLinkage,
-                                  llvm::Constant::getNullValue(T),
-                                  llvm::Twine(FuncName) + Var->getName() + "_");
+  return EmitSaveVariable(FuncName, Var->getName(), T, Initializer);
 }
 
 llvm::GlobalVariable *
