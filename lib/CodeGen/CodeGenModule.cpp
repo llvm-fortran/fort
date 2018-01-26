@@ -12,26 +12,26 @@
 //===----------------------------------------------------------------------===//
 
 #include "CodeGenModule.h"
-#include "CodeGenFunction.h"
 #include "CGIORuntime.h"
 #include "CGSystemRuntime.h"
+#include "CodeGenFunction.h"
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/Decl.h"
 #include "fort/AST/DeclVisitor.h"
 #include "fort/Basic/Diagnostic.h"
 #include "fort/Frontend/CodeGenOptions.h"
 #include "llvm/ADT/APSInt.h"
-#include "llvm/ADT/Triple.h"
 #include "llvm/ADT/SmallString.h"
+#include "llvm/ADT/Triple.h"
+#include "llvm/IR/CallSite.h"
 #include "llvm/IR/CallingConv.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Mangler.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/Support/ConvertUTF.h"
 #include "llvm/Support/ErrorHandling.h"
-#include "llvm/IR/Mangler.h"
 
 namespace fort {
 namespace CodeGen {
@@ -39,9 +39,9 @@ namespace CodeGen {
 CodeGenModule::CodeGenModule(ASTContext &C, const CodeGenOptions &CGO,
                              llvm::Module &M, const llvm::DataLayout &TD,
                              DiagnosticsEngine &diags)
-  : Context(C), LangOpts(C.getLangOpts()), CodeGenOpts(CGO), TheModule(M),
-    Diags(diags), TheDataLayout(TD), VMContext(M.getContext()), Types(*this),
-    TheTargetCodeGenInfo(nullptr) {
+    : Context(C), LangOpts(C.getLangOpts()), CodeGenOpts(CGO), TheModule(M),
+      Diags(diags), TheDataLayout(TD), VMContext(M.getContext()), Types(*this),
+      TheTargetCodeGenInfo(nullptr) {
 
   llvm::LLVMContext &LLVMContext = M.getContext();
   VoidTy = llvm::Type::getVoidTy(LLVMContext);
@@ -63,52 +63,46 @@ CodeGenModule::CodeGenModule(ASTContext &C, const CodeGenOptions &CGO,
 }
 
 CodeGenModule::~CodeGenModule() {
-  if(IORuntime)
+  if (IORuntime)
     delete IORuntime;
 }
 
-void CodeGenModule::Release() {
-}
+void CodeGenModule::Release() {}
 
-llvm::Value*
-CodeGenModule::GetCFunction(StringRef Name,
-                            ArrayRef<llvm::Type*> ArgTypes,
-                            llvm::Type *ReturnType) {
-  if(auto Func = TheModule.getFunction(Name))
+llvm::Value *CodeGenModule::GetCFunction(StringRef Name,
+                                         ArrayRef<llvm::Type *> ArgTypes,
+                                         llvm::Type *ReturnType) {
+  if (auto Func = TheModule.getFunction(Name))
     return Func;
-  auto FType = llvm::FunctionType::get(ReturnType? ReturnType :
-                                       VoidTy, ArgTypes,
-                                       false);
+  auto FType = llvm::FunctionType::get(ReturnType ? ReturnType : VoidTy,
+                                       ArgTypes, false);
   auto Func = llvm::Function::Create(FType, llvm::GlobalValue::ExternalLinkage,
                                      Name, &TheModule);
   Func->setCallingConv(llvm::CallingConv::C);
   return Func;
 }
 
-llvm::Value *
-CodeGenModule::GetRuntimeFunction(StringRef Name,
-                                  ArrayRef<llvm::Type*> ArgTypes,
-                                  llvm::Type *ReturnType) {
+llvm::Value *CodeGenModule::GetRuntimeFunction(StringRef Name,
+                                               ArrayRef<llvm::Type *> ArgTypes,
+                                               llvm::Type *ReturnType) {
   llvm::SmallString<32> MangledName("libfort_");
   MangledName.append(Name);
   return GetCFunction(MangledName, ArgTypes, ReturnType);
 }
 
-CGFunction
-CodeGenModule::GetRuntimeFunction(StringRef Name,
-                                  ArrayRef<CGType> ArgTypes,
-                                  CGType ReturnType,
-                                  FortranABI *ABI) {
+CGFunction CodeGenModule::GetRuntimeFunction(StringRef Name,
+                                             ArrayRef<CGType> ArgTypes,
+                                             CGType ReturnType,
+                                             FortranABI *ABI) {
   llvm::SmallString<32> MangledName("libfort_");
   MangledName.append(Name);
 
   auto SearchResult = RuntimeFunctions.find(MangledName);
-  if(SearchResult != RuntimeFunctions.end())
+  if (SearchResult != RuntimeFunctions.end())
     return SearchResult->second;
 
-  auto FunctionInfo = Types.GetFunctionType(ABI? *ABI : RuntimeABI,
-                                            ArgTypes,
-                                            ReturnType);
+  auto FunctionInfo =
+      Types.GetFunctionType(ABI ? *ABI : RuntimeABI, ArgTypes, ReturnType);
   auto Func = llvm::Function::Create(FunctionInfo->getFunctionType(),
                                      llvm::GlobalValue::ExternalLinkage,
                                      llvm::Twine(MangledName), &TheModule);
@@ -122,7 +116,7 @@ CodeGenModule::GetRuntimeFunction(StringRef Name,
 /// using GNU Fortran conventions for name mangling
 CGFunction CodeGenModule::GetFunction(const FunctionDecl *Function) {
   auto SearchResult = Functions.find(Function);
-  if(SearchResult != Functions.end())
+  if (SearchResult != Functions.end())
     return SearchResult->second;
 
   auto FunctionInfo = Types.GetFunctionType(Function);
@@ -162,12 +156,8 @@ void CodeGenModule::EmitTopLevelDecl(const Decl *Declaration) {
     void VisitMainProgramDecl(const MainProgramDecl *D) {
       CG->EmitMainProgramDecl(D);
     }
-    void VisitFunctionDecl(const FunctionDecl *D) {
-      CG->EmitFunctionDecl(D);
-    }
-    void VisitModuleDecl(const ModuleDecl *D) {
-      CG->EmitModuleDecl(D);
-    }
+    void VisitFunctionDecl(const FunctionDecl *D) { CG->EmitFunctionDecl(D); }
+    void VisitModuleDecl(const ModuleDecl *D) { CG->EmitModuleDecl(D); }
   };
   Visitor DV(this);
   DV.Visit(Declaration);
@@ -200,41 +190,41 @@ void CodeGenModule::EmitModuleDecl(const ModuleDecl *Module) {
 
     ModuleDeclVisitor(CodeGenModule *P) : CG(P) {}
 
-    void VisitFunctionDecl(const FunctionDecl *D) {
-      CG->EmitFunctionDecl(D);
-    }
+    void VisitFunctionDecl(const FunctionDecl *D) { CG->EmitFunctionDecl(D); }
   };
 
   ModuleDeclVisitor MV(this);
 
   // Visit module declarations
   auto I = Module->decls_begin();
-  for(auto E = Module->decls_end(); I!=E; ++I) {
-    if((*I)->getDeclContext() == Module)
+  for (auto E = Module->decls_end(); I != E; ++I) {
+    if ((*I)->getDeclContext() == Module)
       MV.Visit(*I);
   }
 }
 
-llvm::GlobalVariable *CodeGenModule::EmitSaveVariable(StringRef FuncName, const VarDecl *Var,
-                                                      llvm::Constant *Initializer) {
+llvm::GlobalVariable *
+CodeGenModule::EmitSaveVariable(StringRef FuncName, const VarDecl *Var,
+                                llvm::Constant *Initializer) {
   auto T = getTypes().ConvertTypeForMem(Var->getType());
-  return new llvm::GlobalVariable(TheModule, T,
-                                  false, llvm::GlobalValue::InternalLinkage,
+  return new llvm::GlobalVariable(TheModule, T, false,
+                                  llvm::GlobalValue::InternalLinkage,
                                   llvm::Constant::getNullValue(T),
                                   llvm::Twine(FuncName) + Var->getName() + "_");
 }
 
-llvm::GlobalVariable *CodeGenModule::EmitSaveVariable(StringRef FuncName, StringRef VarName,
-                                                      llvm::Type *Type, llvm::Constant *Initializer) {
-  return new llvm::GlobalVariable(TheModule, Type,
-                                  false, llvm::GlobalValue::InternalLinkage, Initializer,
-                                  llvm::Twine(FuncName) + VarName + "_");
+llvm::GlobalVariable *
+CodeGenModule::EmitSaveVariable(StringRef FuncName, StringRef VarName,
+                                llvm::Type *Type, llvm::Constant *Initializer) {
+  return new llvm::GlobalVariable(
+      TheModule, Type, false, llvm::GlobalValue::InternalLinkage, Initializer,
+      llvm::Twine(FuncName) + VarName + "_");
 }
 
 llvm::Value *CodeGenModule::EmitConstantArray(llvm::Constant *Array) {
   // FIXME: fold identical values
-  return new llvm::GlobalVariable(TheModule, Array->getType(),
-                                  true, llvm::GlobalValue::PrivateLinkage, Array);
+  return new llvm::GlobalVariable(TheModule, Array->getType(), true,
+                                  llvm::GlobalValue::PrivateLinkage, Array);
 }
 
 llvm::Value *CodeGenModule::EmitCommonBlock(const CommonBlockDecl *CB,
@@ -242,7 +232,7 @@ llvm::Value *CodeGenModule::EmitCommonBlock(const CommonBlockDecl *CB,
                                             llvm::Constant *Initializer) {
   llvm::SmallString<32> Name;
   StringRef NameRef;
-  if(CB->getIdentifier()) {
+  if (CB->getIdentifier()) {
     Name.append(CB->getName());
     Name.push_back('_');
     NameRef = Name;
@@ -250,16 +240,16 @@ llvm::Value *CodeGenModule::EmitCommonBlock(const CommonBlockDecl *CB,
     NameRef = "__BLNK__"; // FIXME?
 
   auto Var = TheModule.getGlobalVariable(NameRef);
-  if(Var)
+  if (Var)
     return Var;
-  if(!Initializer)
+  if (!Initializer)
     Initializer = llvm::Constant::getNullValue(Type);
-  auto CBVar = new llvm::GlobalVariable(TheModule, Type,
-                                        false, llvm::GlobalValue::CommonLinkage,
+  auto CBVar = new llvm::GlobalVariable(TheModule, Type, false,
+                                        llvm::GlobalValue::CommonLinkage,
                                         Initializer, NameRef);
   CBVar->setAlignment(16); // FIXME: proper target dependent alignment value
   return CBVar;
 }
 
-}
+} // namespace CodeGen
 } // end namespace fort

@@ -28,33 +28,33 @@
 #include "llvm/Support/SpecialCaseList.h"
 
 namespace llvm {
-  class Module;
-  class Constant;
-  class ConstantInt;
-  class ConstantArray;
-  class Function;
-  class GlobalValue;
-  class DataLayout;
-  class FunctionType;
-  class LLVMContext;
-}
+class Module;
+class Constant;
+class ConstantInt;
+class ConstantArray;
+class Function;
+class GlobalValue;
+class DataLayout;
+class FunctionType;
+class LLVMContext;
+} // namespace llvm
 
 namespace fort {
-  class ASTContext;
-  class Decl;
-  class Expr;
-  class Stmt;
-  class NamedDecl;
-  class ValueDecl;
-  class VarDecl;
-  class LangOptions;
-  class DiagnosticsEngine;
-  class TargetCodeGenInfo;
+class ASTContext;
+class Decl;
+class Expr;
+class Stmt;
+class NamedDecl;
+class ValueDecl;
+class VarDecl;
+class LangOptions;
+class DiagnosticsEngine;
+class TargetCodeGenInfo;
 
 namespace CodeGen {
 
-  class CGIORuntime;
-  class CGSystemRuntime;
+class CGIORuntime;
+class CGSystemRuntime;
 
 struct CodeGenTypeCache {
   /// void
@@ -95,13 +95,11 @@ struct CodeGenTypeCache {
   union {
     unsigned char PointerAlignInBytes;
     unsigned char PointerSizeInBytes;
-    unsigned char SizeSizeInBytes;     // sizeof(size_t)
+    unsigned char SizeSizeInBytes; // sizeof(size_t)
   };
 
   llvm::CallingConv::ID RuntimeCC;
-  llvm::CallingConv::ID getRuntimeCC() const {
-    return RuntimeCC;
-  }
+  llvm::CallingConv::ID getRuntimeCC() const { return RuntimeCC; }
 };
 
 /// CodeGenModule - This class organizes the cross-function state that is used
@@ -116,7 +114,7 @@ class CodeGenModule : public CodeGenTypeCache {
   llvm::Module &TheModule;
   DiagnosticsEngine &Diags;
   const llvm::DataLayout &TheDataLayout;
-  //const TargetInfo &Target;
+  // const TargetInfo &Target;
   llvm::LLVMContext &VMContext;
 
   CodeGenTypes Types;
@@ -129,9 +127,7 @@ class CodeGenModule : public CodeGenTypeCache {
   /// used in this module.
   llvm::StringMap<CGFunction> RuntimeFunctions;
 
-  llvm::DenseMap<const FunctionDecl*, CGFunction> Functions;
-
-
+  llvm::DenseMap<const FunctionDecl *, CGFunction> Functions;
 
 public:
   CodeGenModule(ASTContext &C, const CodeGenOptions &CodeGenOpts,
@@ -146,31 +142,21 @@ public:
 
   llvm::LLVMContext &getLLVMContext() const { return VMContext; }
 
-  const llvm::DataLayout &getDataLayout() const {
-    return TheDataLayout;
-  }
+  const llvm::DataLayout &getDataLayout() const { return TheDataLayout; }
 
   CodeGenTypes &getTypes() { return Types; }
 
-  bool hasIORuntime() const {
-    return IORuntime != nullptr;
-  }
+  bool hasIORuntime() const { return IORuntime != nullptr; }
 
   /// getIORuntime() - Return a reference to the configured
   /// IO runtime.
-  CGIORuntime &getIORuntime() {
-    return *IORuntime;
-  }
+  CGIORuntime &getIORuntime() { return *IORuntime; }
 
-  bool hasSystemRuntime() const {
-    return SystemRuntime != nullptr;
-  }
+  bool hasSystemRuntime() const { return SystemRuntime != nullptr; }
 
   /// getSystemRuntime() - Return a reference to the configured
   /// system runtime.
-  CGSystemRuntime &getSystemRuntime() {
-    return *SystemRuntime;
-  }
+  CGSystemRuntime &getSystemRuntime() { return *SystemRuntime; }
 
   /// getTargetCodeGenInfo - Retun a reference to the configured
   /// target code gen information.
@@ -191,76 +177,69 @@ public:
                                          llvm::Constant *Initializer = nullptr);
 
   llvm::GlobalVariable *EmitSaveVariable(StringRef FuncName, StringRef VarName,
-                                         llvm::Type *Type, llvm::Constant *Initializer);
+                                         llvm::Type *Type,
+                                         llvm::Constant *Initializer);
 
   llvm::Value *EmitConstantArray(llvm::Constant *Array);
 
-  llvm::Value *EmitCommonBlock(const CommonBlockDecl *CB,
-                               llvm::Type *Type,
+  llvm::Value *EmitCommonBlock(const CommonBlockDecl *CB, llvm::Type *Type,
                                llvm::Constant *Initializer = nullptr);
 
-  llvm::Value *GetCFunction(StringRef Name,
-                            ArrayRef<llvm::Type*> ArgTypes,
+  llvm::Value *GetCFunction(StringRef Name, ArrayRef<llvm::Type *> ArgTypes,
                             llvm::Type *ReturnType = nullptr);
 
   llvm::Value *GetRuntimeFunction(StringRef Name,
-                                  ArrayRef<llvm::Type*> ArgTypes,
+                                  ArrayRef<llvm::Type *> ArgTypes,
                                   llvm::Type *ReturnType = nullptr);
 
-  CGFunction GetRuntimeFunction(StringRef Name,
-                                ArrayRef<CGType> ArgTypes,
+  CGFunction GetRuntimeFunction(StringRef Name, ArrayRef<CGType> ArgTypes,
                                 CGType ReturnType = CGType(),
                                 FortranABI *ABI = nullptr);
 
-  CGFunction GetRuntimeFunction1(StringRef Name,
-                                 CGType ArgType,
+  CGFunction GetRuntimeFunction1(StringRef Name, CGType ArgType,
                                  CGType ReturnType = CGType(),
                                  FortranABI *ABI = nullptr) {
-    return GetRuntimeFunction(Name, ArgType,
-                              ReturnType, ABI);
+    return GetRuntimeFunction(Name, ArgType, ReturnType, ABI);
   }
 
-  CGFunction GetRuntimeFunction2(StringRef Name,
-                                 CGType A1, CGType A2,
+  CGFunction GetRuntimeFunction2(StringRef Name, CGType A1, CGType A2,
                                  CGType ReturnType = CGType(),
                                  FortranABI *ABI = nullptr) {
-    CGType ArgTypes[] = { A1, A2 };
-    return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 2),
-                              ReturnType, ABI);
+    CGType ArgTypes[] = {A1, A2};
+    return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 2), ReturnType,
+                              ABI);
   }
 
-  CGFunction GetRuntimeFunction3(StringRef Name,
-                                 CGType A1, CGType A2, CGType A3,
+  CGFunction GetRuntimeFunction3(StringRef Name, CGType A1, CGType A2,
+                                 CGType A3, CGType ReturnType = CGType(),
+                                 FortranABI *ABI = nullptr) {
+    CGType ArgTypes[] = {A1, A2, A3};
+    return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 3), ReturnType,
+                              ABI);
+  }
+
+  CGFunction GetRuntimeFunction4(StringRef Name, CGType A1, CGType A2,
+                                 CGType A3, CGType A4,
                                  CGType ReturnType = CGType(),
                                  FortranABI *ABI = nullptr) {
-    CGType ArgTypes[] = { A1, A2, A3 };
-    return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 3),
-                              ReturnType, ABI);
+    CGType ArgTypes[] = {A1, A2, A3, A4};
+    return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 4), ReturnType,
+                              ABI);
   }
 
-  CGFunction GetRuntimeFunction4(StringRef Name,
-                                 CGType A1, CGType A2, CGType A3,
-                                 CGType A4, CGType ReturnType = CGType(),
+  CGFunction GetRuntimeFunction5(StringRef Name, CGType A1, CGType A2,
+                                 CGType A3, CGType A4, CGType A5,
+                                 CGType ReturnType = CGType(),
                                  FortranABI *ABI = nullptr) {
-    CGType ArgTypes[] = { A1, A2, A3, A4 };
-    return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 4),
-                              ReturnType, ABI);
-  }
-
-  CGFunction GetRuntimeFunction5(StringRef Name,
-                                 CGType A1, CGType A2, CGType A3,
-                                 CGType A4, CGType A5, CGType ReturnType = CGType(),
-                                 FortranABI *ABI = nullptr) {
-    CGType ArgTypes[] = { A1, A2, A3, A4, A5 };
-    return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 5),
-                              ReturnType, ABI);
+    CGType ArgTypes[] = {A1, A2, A3, A4, A5};
+    return GetRuntimeFunction(Name, llvm::makeArrayRef(ArgTypes, 5), ReturnType,
+                              ABI);
   }
 
   CGFunction GetFunction(const FunctionDecl *Function);
-
 };
 
-}  // end namespace CodeGen
-}  // end namespace fort
+} // end namespace CodeGen
+} // end namespace fort
 
 #endif
