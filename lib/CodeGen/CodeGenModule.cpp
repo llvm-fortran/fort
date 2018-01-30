@@ -112,6 +112,16 @@ CGFunction CodeGenModule::GetRuntimeFunction(StringRef Name,
   return Result;
 }
 
+/// Mangle name of a Fortran symbol inside of a module
+static std::string FortranNameMangle(StringRef ModuleName, StringRef SymName) {
+  // TODO may be consolidate name operations in one class
+  llvm::SmallString<256> Buffer;
+  llvm::raw_svector_ostream Out(Buffer);
+  Out << "__" << ModuleName << "_MOD_" << SymName << "_";
+
+  return Out.str();
+}
+
 /// Produce IR function definition for a Fortran function
 /// using GNU Fortran conventions for name mangling
 CGFunction CodeGenModule::GetFunction(const FunctionDecl *Function) {
@@ -120,22 +130,18 @@ CGFunction CodeGenModule::GetFunction(const FunctionDecl *Function) {
     return SearchResult->second;
 
   auto FunctionInfo = Types.GetFunctionType(Function);
-
   auto DC = Function->getDeclContext();
-
-  llvm::StringRef PrefixRef;
+  std::string NameStr;
 
   // Module name is prepended to function names defined inside of it
   if (DC && DC->isModule()) {
-    llvm::SmallString<32> Prefix;
     auto Module = ModuleDecl::castFromDeclContext(DC);
-    Prefix.append("__");
-    Prefix.append(Module->getName());
-    Prefix.append("_MOD_");
-    PrefixRef = Prefix;
+    NameStr = FortranNameMangle(Module->getName(), Function->getName());
+  } else {
+    NameStr = std::string(Function->getName()) + "_";
   }
 
-  auto FunctionName = PrefixRef + llvm::Twine(Function->getName()) + "_";
+  StringRef FunctionName(NameStr);
   auto Func = llvm::Function::Create(FunctionInfo->getFunctionType(),
                                      llvm::GlobalValue::ExternalLinkage,
                                      FunctionName, &TheModule);
@@ -187,13 +193,24 @@ void CodeGenModule::EmitModuleDecl(const ModuleDecl *Module) {
   class ModuleDeclVisitor : public ConstDeclVisitor<ModuleDeclVisitor> {
   public:
     CodeGenModule *CG;
+    StringRef ModName;
 
-    ModuleDeclVisitor(CodeGenModule *P) : CG(P) {}
+    ModuleDeclVisitor(CodeGenModule *P, StringRef N) : CG(P), ModName(N) {}
 
     void VisitFunctionDecl(const FunctionDecl *D) { CG->EmitFunctionDecl(D); }
+    void VisitVarDecl(const VarDecl *D) {
+      StringRef Name = FortranNameMangle(ModName, D->getName());
+      auto Type = CG->getTypes().ConvertTypeForMem(D->getType());
+
+      // FIXME implement constant initializers
+      llvm::Constant *Initializer = nullptr;
+      auto Init = D->getInit();
+
+      CG->EmitGlobalVariable(Name, Type, Initializer);
+    }
   };
 
-  ModuleDeclVisitor MV(this);
+  ModuleDeclVisitor MV(this, Module->getName());
 
   // Visit module declarations
   auto I = Module->decls_begin();
@@ -213,9 +230,16 @@ CodeGenModule::EmitSaveVariable(StringRef FuncName, const VarDecl *Var,
 llvm::GlobalVariable *
 CodeGenModule::EmitSaveVariable(StringRef FuncName, StringRef VarName,
                                 llvm::Type *Type, llvm::Constant *Initializer) {
-  return new llvm::GlobalVariable(
-      TheModule, Type, false, llvm::GlobalValue::InternalLinkage, Initializer,
-      llvm::Twine(FuncName) + VarName + "_");
+  return EmitGlobalVariable(llvm::Twine(FuncName) + VarName + "_", Type,
+                            Initializer);
+}
+
+llvm::GlobalVariable *
+CodeGenModule::EmitGlobalVariable(llvm::Twine Name, llvm::Type *Type,
+                                  llvm::Constant *Initializer) {
+  return new llvm::GlobalVariable(TheModule, Type, false,
+                                  llvm::GlobalValue::InternalLinkage,
+                                  Initializer, Name);
 }
 
 llvm::Value *CodeGenModule::EmitConstantArray(llvm::Constant *Array) {

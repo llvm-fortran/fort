@@ -180,6 +180,9 @@ public:
                                          llvm::Type *Type,
                                          llvm::Constant *Initializer);
 
+  llvm::GlobalVariable *EmitGlobalVariable(llvm::Twine Name, llvm::Type *Type,
+                                           llvm::Constant *Initializer);
+
   llvm::Value *EmitConstantArray(llvm::Constant *Array);
 
   llvm::Value *EmitCommonBlock(const CommonBlockDecl *CB, llvm::Type *Type,
