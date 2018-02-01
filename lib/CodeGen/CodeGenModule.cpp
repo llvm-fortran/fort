@@ -206,7 +206,8 @@ void CodeGenModule::EmitModuleDecl(const ModuleDecl *Module) {
       llvm::Constant *Initializer = nullptr;
       auto Init = D->getInit();
 
-      CG->EmitGlobalVariable(Name, Type, Initializer);
+      auto Var = CG->EmitGlobalVariable(Name, Type, Initializer);
+      CG->Variables.insert(std::make_pair(D, Var));
     }
   };
 

@@ -489,12 +489,13 @@ void CodeGenFunction::EmitCallStmt(const CallStmt *S) {
 void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
   auto RHS = S->getRHS();
   auto RHSType = RHS->getType();
+  auto LHS = S->getLHS();
 
-  if(S->getLHS()->getType()->isArrayType()) {
-    EmitArrayAssignment(S->getLHS(), S->getRHS());
+  if(LHS->getType()->isArrayType()) {
+    EmitArrayAssignment(LHS, RHS);
     return;
   }
-  auto Destination = EmitLValue(S->getLHS());
+  auto Destination = EmitLValue(LHS);
 
   if(RHSType->isIntegerType() || RHSType->isRealType()) {
     auto Value = EmitScalarExpr(RHS);
@@ -506,9 +507,9 @@ void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
     auto Value = EmitComplexExpr(RHS);
     EmitComplexStore(Value, Destination.getPointer());
   } else if(RHSType->isCharacterType())
-    EmitCharacterAssignment(S->getLHS(), S->getRHS());
+    EmitCharacterAssignment(LHS, RHS);
   else if(RHSType->isRecordType())
-    EmitAggregateAssignment(S->getLHS(), S->getRHS());
+    EmitAggregateAssignment(LHS, RHS);
 }
 
 void CodeGenFunction::EmitAssignment(LValueTy LHS, RValueTy RHS) {

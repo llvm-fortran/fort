@@ -177,7 +177,12 @@ void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func,
 llvm::Value *CodeGenFunction::GetVarPtr(const VarDecl *D) {
   if(D->isFunctionResult())
     return ReturnValuePtr;
-  return LocalVariables[D];
+
+  auto Local = LocalVariables[D];
+  if (Local)
+    return Local;
+
+  return CGM.getVariable(D);
 }
 
 llvm::Value *CodeGenFunction::GetRetVarPtr() {

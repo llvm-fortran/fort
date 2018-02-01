@@ -127,7 +127,11 @@ class CodeGenModule : public CodeGenTypeCache {
   /// used in this module.
   llvm::StringMap<CGFunction> RuntimeFunctions;
 
+  /// Functions defined in current module
   llvm::DenseMap<const FunctionDecl *, CGFunction> Functions;
+
+  /// Module variables
+  llvm::DenseMap<const VarDecl *, llvm::Value*> Variables;
 
 public:
   CodeGenModule(ASTContext &C, const CodeGenOptions &CodeGenOpts,
@@ -157,6 +161,9 @@ public:
   /// getSystemRuntime() - Return a reference to the configured
   /// system runtime.
   CGSystemRuntime &getSystemRuntime() { return *SystemRuntime; }
+
+  /// Return a variable configured on the module level
+  llvm::Value *getVariable(const VarDecl *D) { return Variables[D]; }
 
   /// getTargetCodeGenInfo - Retun a reference to the configured
   /// target code gen information.
