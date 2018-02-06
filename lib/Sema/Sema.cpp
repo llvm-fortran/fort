@@ -738,17 +738,31 @@ StmtResult Sema::ActOnEND(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
-StmtResult Sema::ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
+StmtResult Sema::ActOnUSE(ASTContext &C, SourceLocation Loc, UseStmt::ModuleNature MN,
                           const IdentifierInfo *ModName, Expr *StmtLabel) {
-  auto Result = UseStmt::Create(C, MN, ModName, StmtLabel);
-  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
-  return Result;
+  return ActOnUSE(C, Loc, MN, ModName, false, ArrayRef<UseStmt::RenamePair>(), StmtLabel);
 }
 
-StmtResult Sema::ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
+StmtResult Sema::ActOnUSE(ASTContext &C, SourceLocation Loc, UseStmt::ModuleNature MN,
                           const IdentifierInfo *ModName, bool OnlyList,
                           ArrayRef<UseStmt::RenamePair> RenameNames,
                           Expr *StmtLabel) {
+  // Find module that matches provided name in current translation unit
+  // FIXME this is temporary solution, until we implement module files
+  auto TU = C.getTranslationUnitDecl();
+  auto I = TU->decls_begin();
+  ModuleDecl *Module = nullptr;
+  for(auto E = TU->decls_end(); I!=E; ++I) {
+    if(((*I)->getDeclContext() == TU) && ((*I)->getKind() == Decl::Module)) {
+      auto M = ModuleDecl::castFromDecl(*I);
+      if (M->getName() == ModName->getName()) {
+	Module = M;
+      }
+    }
+  }
+  if(!Module) {
+    Diags.Report(Loc, diag::err_unknown_module) << ModName->getName();
+  }
   auto Result = UseStmt::Create(C, MN, ModName, OnlyList, RenameNames, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
   return Result;

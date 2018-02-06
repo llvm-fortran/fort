@@ -864,6 +864,12 @@ public:
   static ModuleDecl *castFromDeclContext(const DeclContext *DC) {
     return static_cast<ModuleDecl *>(const_cast<DeclContext*>(DC));
   }
+  static Decl *castToDecl(const ModuleDecl *D) {
+    return static_cast<Decl *>(const_cast<ModuleDecl*>(D));
+  }
+  static ModuleDecl *castFromDecl(const Decl *D) {
+    return static_cast<ModuleDecl *>(const_cast<Decl*>(D));
+  }
 };
 
 class SubmoduleDecl : public DeclaratorDecl, public DeclContext {

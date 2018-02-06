@@ -358,6 +358,8 @@ def err_record_member_not_sequence : Error<
 def err_no_member : Error<
   "no member named %0 in %1">;
 
-}
+} // END SemanticIssue
+
+def err_unknown_module: Error<"unknown module '%0'">; 
 
 }

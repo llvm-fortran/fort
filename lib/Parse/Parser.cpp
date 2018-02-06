@@ -1394,6 +1394,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
 
   // Eat optional '::'.
   ConsumeIfPresent(tok::coloncolon);
+  SourceLocation Loc = Tok.getLocation();
 
   const IdentifierInfo *ModuleName = Tok.getIdentifierInfo();
   if (!ExpectAndConsume(tok::identifier))
@@ -1406,7 +1407,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
       return StmtResult(true);
     }
 
-    return Actions.ActOnUSE(Context, MN, ModuleName, StmtLabel);
+    return Actions.ActOnUSE(Context, Loc, MN, ModuleName, StmtLabel);
   }
 
   bool OnlyUse = false;
@@ -1460,7 +1461,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
       break;
   }
 
-  return Actions.ActOnUSE(Context, MN, ModuleName, OnlyUse, RenameNames,
+  return Actions.ActOnUSE(Context, Loc, MN, ModuleName, OnlyUse, RenameNames,
                           StmtLabel);
 }
 

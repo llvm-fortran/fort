@@ -347,9 +347,9 @@ public:
                       Expr *StmtLabel);
 
   // USE statement:
-  StmtResult ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
+  StmtResult ActOnUSE(ASTContext &C, SourceLocation Loc, UseStmt::ModuleNature MN,
                       const IdentifierInfo *ModName, Expr *StmtLabel);
-  StmtResult ActOnUSE(ASTContext &C, UseStmt::ModuleNature MN,
+  StmtResult ActOnUSE(ASTContext &C, SourceLocation Loc, UseStmt::ModuleNature MN,
                       const IdentifierInfo *ModName, bool OnlyList,
                       ArrayRef<UseStmt::RenamePair> RenameNames,
                       Expr *StmtLabel);
