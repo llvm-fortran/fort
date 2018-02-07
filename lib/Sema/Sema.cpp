@@ -761,7 +761,19 @@ StmtResult Sema::ActOnUSE(ASTContext &C, SourceLocation Loc, UseStmt::ModuleNatu
     }
   }
   if(!Module) {
+    // Report error if module cannot be found
+    // FIXME failure to read a module file should be reported differently
     Diags.Report(Loc, diag::err_unknown_module) << ModName->getName();
+  } else {
+    auto D = Module->decls_begin();
+    for (auto E = Module->decls_end(); D!=E; ++D) {
+      // Add module declarations to current context
+      if ((*D)->getDeclContext() == Module) {
+        auto Decl = OutDecl::Create(C, CurContext,
+                                     DeclaratorDecl::castFromDecl(*D));
+        CurContext->addDecl(Decl);
+      }
+    }
   }
   auto Result = UseStmt::Create(C, MN, ModName, OnlyList, RenameNames, StmtLabel);
   if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);

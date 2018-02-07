@@ -317,6 +317,15 @@ SelfDecl *SelfDecl::Create(ASTContext &C, DeclContext *DC,
 }
 
 //===----------------------------------------------------------------------===//
+// OutDecl Implementation
+//===----------------------------------------------------------------------===//
+
+OutDecl *OutDecl::Create(ASTContext &C, DeclContext *DC,
+                           DeclaratorDecl *Self) {
+  return new(C) OutDecl(DC, Self);
+}
+
+//===----------------------------------------------------------------------===//
 // RecordDecl Implementation
 //===----------------------------------------------------------------------===//
 

@@ -667,18 +667,34 @@ ExprResult Parser::ParseNameOrCall() {
       return ExprError();
     return Actions.ActOnIntrinsicFunctionCallExpr(Context, IDLoc, IFunc, Arguments);
   } else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
-    // FIXME: allow subroutines, but errors in sema
-    if(!IsPresent(tok::l_paren))
-      return FunctionRefExpr::Create(Context, IDRange, Func);
-    if(!Func->isSubroutine()) {
-      return ParseCallExpression(IDLoc, Func);
+    return ParseFuncExpression(IDRange, IDLoc, Func);
+  }
+  else if (isa<OutDecl>(Declaration)) {
+    // Module declarations and such
+    OutDecl *OD = static_cast<OutDecl*>(Declaration);
+    auto D = OD->getDecl();
+    if (auto VD = dyn_cast<VarDecl>(D)) {
+      return VarExpr::Create(Context, IDRange, VD);
     }
-  } else if(isa<SelfDecl>(Declaration) && isa<FunctionDecl>(Actions.CurContext))
+    if (auto Func = dyn_cast<FunctionDecl>(D)) {
+      return ParseFuncExpression(IDRange, IDLoc, Func);
+    }
+  }
+  else if(isa<SelfDecl>(Declaration) && isa<FunctionDecl>(Actions.CurContext))
     return ParseRecursiveCallExpression(IDRange);
   else if(auto Record = dyn_cast<RecordDecl>(Declaration))
     return ParseTypeConstructor(IDLoc, Record);
   Diag.Report(IDLoc, diag::err_expected_var);
   return ExprError();
+}
+
+ExprResult Parser::ParseFuncExpression(SourceRange IDRange, SourceLocation IDLoc, FunctionDecl *Func) {
+  // FIXME: allow subroutines, but errors in sema
+  if(!IsPresent(tok::l_paren))
+    return FunctionRefExpr::Create(Context, IDRange, Func);
+  if(!Func->isSubroutine()) {
+    return ParseCallExpression(IDLoc, Func);
+  }
 }
 
 ExprResult Parser::ParseRecursiveCallExpression(SourceRange IDRange) {

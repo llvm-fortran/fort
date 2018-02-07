@@ -530,6 +530,8 @@ private:
   ExprResult ParseExpression();
   ExprResult ParseFunctionCallArgumentList(SmallVectorImpl<Expr*> &Args,
                                            SourceLocation &RParenLoc);
+  ExprResult ParseFuncExpression(SourceRange IDRange, SourceLocation IDLoc,
+                                 FunctionDecl *Func);
   ExprResult ParseRecursiveCallExpression(SourceRange IDRange);
   ExprResult ParseCallExpression(SourceLocation IDLoc, FunctionDecl *Function);
   ExprResult ParseArrayConstructor();

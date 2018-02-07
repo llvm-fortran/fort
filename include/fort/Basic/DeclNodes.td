@@ -38,5 +38,6 @@ def Named : Decl<1>;
       def Field : DDecl<Declarator>;
       def Var : DDecl<Declarator>;
       def Self : DDecl<Declarator>;
+      def Out : DDecl<Declarator>;
   def CommonBlock : DDecl<Named>;
 def FileScopeAsm : Decl;

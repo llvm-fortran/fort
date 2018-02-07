@@ -686,6 +686,9 @@ public:
   static bool classofKind(Kind K) {
     return K >= firstDeclarator && K <= lastDeclarator;
   }
+  static DeclaratorDecl *castFromDecl(const Decl *D) {
+    return static_cast<DeclaratorDecl*>(const_cast<Decl*>(D));
+  }
 };
 
 class MainProgramDecl : public DeclaratorDecl, public DeclContext {
@@ -811,6 +814,30 @@ public:
   static bool classof(const Decl *D) { return classofKind(D->getKind()); }
   static bool classof(const SelfDecl *D) { return true; }
   static bool classofKind(Kind K) { return K == Self; }
+};
+
+/// OutDecl - References a declaration in an outside context, such as
+/// module symbols
+class OutDecl : public DeclaratorDecl {
+  DeclaratorDecl *RefD;
+
+  OutDecl(DeclContext *DC, DeclaratorDecl *D)
+    : DeclaratorDecl(Out, DC, D->getLocation(),
+                     D->getIdentifier(),
+                     D->getType()),
+      RefD(D) {}
+
+public:
+  static OutDecl *Create(ASTContext &C, DeclContext *DC,
+                          DeclaratorDecl *Self);
+
+  DeclaratorDecl *getDecl() const {
+    return RefD;
+  }
+
+  static bool classof(const Decl *D) { return classofKind(D->getKind()); }
+  static bool classof(const OutDecl *D) { return true; }
+  static bool classofKind(Kind K) { return K == Out; }
 };
 
 /// Represents an intrinsic function declaration.
