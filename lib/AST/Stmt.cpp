@@ -101,20 +101,15 @@ ModuleStmt *ModuleStmt::Create(ASTContext &C, const IdentifierInfo *ModuleName,
 // Use Statement
 //===----------------------------------------------------------------------===//
 
-UseStmt::UseStmt(ASTContext &C, ModuleNature MN, const IdentifierInfo *modName,
-                 ArrayRef<RenamePair> RenameList, Expr *StmtLabel)
-  : ListStmt(C, UseStmtClass, SourceLocation(), RenameList, StmtLabel),
-    ModNature(MN), ModName(modName), Only(false) {}
-
 UseStmt *UseStmt::Create(ASTContext &C, ModuleNature MN,
                          const IdentifierInfo *modName,
                          Expr *StmtLabel) {
-  return  new (C) UseStmt(C, MN, modName, ArrayRef<RenamePair>(), StmtLabel);
+  return  new (C) UseStmt(C, MN, modName, RenameListTy(), StmtLabel);
 }
 
 UseStmt *UseStmt::Create(ASTContext &C, ModuleNature MN,
                          const IdentifierInfo *modName, bool Only,
-                         ArrayRef<RenamePair> RenameList,
+                         RenameListTy RenameList,
                          Expr *StmtLabel) {
   UseStmt *US = new (C) UseStmt(C, MN, modName, RenameList, StmtLabel);
   US->Only = Only;

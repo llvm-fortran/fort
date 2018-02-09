@@ -1428,7 +1428,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
     }
   }
 
-  SmallVector<UseStmt::RenamePair, 8> RenameNames;
+  UseStmt::RenameListTy RenameNames;
 
   if (!OnlyUse && Tok.is(tok::equalgreater)) {
     // They're using 'ONLY' as a non-keyword and renaming it.
@@ -1439,8 +1439,8 @@ Parser::StmtResult Parser::ParseUSEStmt() {
       return StmtResult(true);
     }
 
-    RenameNames.push_back(UseStmt::RenamePair(UseListFirstVar,
-                                              Tok.getIdentifierInfo()));
+    // What we are renaming from is the index into the table
+    RenameNames[Tok.getIdentifierInfo()] = UseListFirstVar;
     Lex();
     ConsumeIfPresent(tok::comma);
   }
@@ -1455,7 +1455,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
       Lex();
     }
 
-    RenameNames.push_back(UseStmt::RenamePair(LocalName, UseName));
+    RenameNames[UseName ? UseName : LocalName] = LocalName;
 
     if (!ConsumeIfPresent(tok::comma))
       break;

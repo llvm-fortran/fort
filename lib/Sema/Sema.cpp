@@ -740,12 +740,12 @@ StmtResult Sema::ActOnEND(ASTContext &C, SourceLocation Loc,
 
 StmtResult Sema::ActOnUSE(ASTContext &C, SourceLocation Loc, UseStmt::ModuleNature MN,
                           const IdentifierInfo *ModName, Expr *StmtLabel) {
-  return ActOnUSE(C, Loc, MN, ModName, false, ArrayRef<UseStmt::RenamePair>(), StmtLabel);
+  return ActOnUSE(C, Loc, MN, ModName, false, UseStmt::RenameListTy(), StmtLabel);
 }
 
 StmtResult Sema::ActOnUSE(ASTContext &C, SourceLocation Loc, UseStmt::ModuleNature MN,
                           const IdentifierInfo *ModName, bool OnlyList,
-                          ArrayRef<UseStmt::RenamePair> RenameNames,
+                          UseStmt::RenameListTy RenameNames,
                           Expr *StmtLabel) {
   // Find module that matches provided name in current translation unit
   // FIXME this is temporary solution, until we implement module files
@@ -765,12 +765,20 @@ StmtResult Sema::ActOnUSE(ASTContext &C, SourceLocation Loc, UseStmt::ModuleNatu
     // FIXME failure to read a module file should be reported differently
     Diags.Report(Loc, diag::err_unknown_module) << ModName->getName();
   } else {
-    auto D = Module->decls_begin();
-    for (auto E = Module->decls_end(); D!=E; ++D) {
+    auto DI = Module->decls_begin();
+    for (auto E = Module->decls_end(); DI!=E; ++DI) {
       // Add module declarations to current context
-      if ((*D)->getDeclContext() == Module) {
-        auto Decl = OutDecl::Create(C, CurContext,
-                                     DeclaratorDecl::castFromDecl(*D));
+      if ((*DI)->getDeclContext() == Module) {
+	auto Dtor = DeclaratorDecl::castFromDecl(*DI);
+
+	// Check if ID is on the rename/local list
+	auto I = RenameNames.find(Dtor->getIdentifier());
+	auto *LocalName = (I == RenameNames.end()) ? nullptr : (*I).second;
+
+	// Skip variables not on the list when ONLY is used
+	if (OnlyList && !LocalName) continue;
+
+        auto Decl = OutDecl::Create(C, CurContext, Dtor);
         CurContext->addDecl(Decl);
       }
     }

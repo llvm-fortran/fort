@@ -351,7 +351,7 @@ public:
                       const IdentifierInfo *ModName, Expr *StmtLabel);
   StmtResult ActOnUSE(ASTContext &C, SourceLocation Loc, UseStmt::ModuleNature MN,
                       const IdentifierInfo *ModName, bool OnlyList,
-                      ArrayRef<UseStmt::RenamePair> RenameNames,
+                      UseStmt::RenameListTy RenameNames,
                       Expr *StmtLabel);
 
   // IMPORT statement:

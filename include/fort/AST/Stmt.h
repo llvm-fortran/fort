@@ -346,31 +346,34 @@ public:
 
 /// UseStmt - A reference to the module it specifies.
 ///
-class UseStmt : public ListStmt<std::pair<const IdentifierInfo *,
-                                          const IdentifierInfo *> > {
+class UseStmt : public Stmt {
 public:
   enum ModuleNature {
     None,
     IntrinsicStmtClass,
     NonIntrinsic
   };
-  typedef std::pair<const IdentifierInfo *, const IdentifierInfo *> RenamePair;
+  typedef llvm::SmallDenseMap<const IdentifierInfo *, const IdentifierInfo *> RenameListTy;
 private:
   ModuleNature ModNature;
   const IdentifierInfo *ModName;
   bool Only;
+  RenameListTy RenameList;
 
   UseStmt(ASTContext &C, ModuleNature MN, const IdentifierInfo *modName,
-          ArrayRef<RenamePair> RenameList, Expr *StmtLabel);
+          RenameListTy RL, Expr *StmtLabel)
+    : Stmt(UseStmtClass, SourceLocation(), StmtLabel), RenameList(RL),
+      ModNature(MN), ModName(modName), Only(false) {}
 
-  void init(ASTContext &C, ArrayRef<RenamePair> RenameList);
+
+  void init(ASTContext &C, RenameListTy RenameList);
 public:
   static UseStmt *Create(ASTContext &C, ModuleNature MN,
                          const IdentifierInfo *modName,
                          Expr *StmtLabel);
   static UseStmt *Create(ASTContext &C, ModuleNature MN,
                          const IdentifierInfo *modName, bool Only,
-                         ArrayRef<RenamePair> RenameList,
+                         RenameListTy RenameList,
                          Expr *StmtLabel);
 
   /// Accessors:
