@@ -769,16 +769,19 @@ StmtResult Sema::ActOnUSE(ASTContext &C, SourceLocation Loc, UseStmt::ModuleNatu
     for (auto E = Module->decls_end(); DI!=E; ++DI) {
       // Add module declarations to current context
       if ((*DI)->getDeclContext() == Module) {
-	auto Dtor = DeclaratorDecl::castFromDecl(*DI);
+        auto Dtor = DeclaratorDecl::castFromDecl(*DI);
 
-	// Check if ID is on the rename/local list
-	auto I = RenameNames.find(Dtor->getIdentifier());
-	auto *LocalName = (I == RenameNames.end()) ? nullptr : (*I).second;
+        // Check if ID is on the rename/local list
+        auto I = RenameNames.find(Dtor->getIdentifier());
+        auto LocalName = (I == RenameNames.end()) ? nullptr : (*I).second;
 
-	// Skip variables not on the list when ONLY is used
-	if (OnlyList && !LocalName) continue;
+        // Skip variables not on the list when ONLY is used
+        if (OnlyList && !LocalName) continue;
 
         auto Decl = OutDecl::Create(C, CurContext, Dtor);
+        if (LocalName && LocalName != Decl->getIdentifier()) {
+          Decl->setDeclName(LocalName);
+	}
         CurContext->addDecl(Decl);
       }
     }

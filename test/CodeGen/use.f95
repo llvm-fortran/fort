@@ -9,9 +9,9 @@ module m
   end function
 end module
 program p
-  use m
+  use m, the_function => f
   implicit none 
   n = 4 ! CHECK: store i32 4, i32* @__m_MOD_n_
-  n = f(n) ! CHECK: call i32 @__m_MOD_f_(i32* @__m_MOD_n_)
+  n = the_function(n) ! CHECK: call i32 @__m_MOD_f_(i32* @__m_MOD_n_)
   print *, n
 end program
