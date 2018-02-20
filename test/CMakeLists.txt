@@ -21,7 +21,7 @@ set(FORT_TEST_PARAMS
 if( NOT FORT_BUILT_STANDALONE )
   list(APPEND FORT_TEST_DEPS
     llvm-config
-    FileCheck
+    FileCheck not
     )
 endif()
 
