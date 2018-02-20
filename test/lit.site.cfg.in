@@ -17,7 +17,6 @@ except KeyError,e:
     lit.fatal("unable to find %r parameter, use '--param=%s=VALUE'" % (key,key))
 
 # Let the main config do the real work.
-config.fort = "@FORT_BINARY_DIR@/bin/fort"
 config.test_dir = "@FORT_SOURCE_DIR@/test"
 config.file_check = "@LLVM_BINARY_DIR@/bin/FileCheck"
 lit_config.load_config(config, "@FORT_SOURCE_DIR@/test/lit.cfg")
