@@ -95,10 +95,6 @@ if (LLVM_ENABLE_SPHINX)
   if (SPHINX_FOUND)
     if (${SPHINX_OUTPUT_HTML})
       add_sphinx_target(html fort)
-      add_custom_command(TARGET docs-fort-html POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_CURRENT_SOURCE_DIR}/LibASTMatchersReference.html"
-        "${CMAKE_CURRENT_BINARY_DIR}/html/LibASTMatchersReference.html")
     endif()
     if (${SPHINX_OUTPUT_MAN})
       add_sphinx_target(man fort)
