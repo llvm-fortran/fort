@@ -135,9 +135,9 @@ public:
 namespace llvm {
   // DeclGroupRef is "like a pointer", implement PointerLikeTypeTraits.
   template <typename T>
-  class PointerLikeTypeTraits;
+  struct PointerLikeTypeTraits;
   template <>
-  class PointerLikeTypeTraits<fort::DeclGroupRef> {
+  struct PointerLikeTypeTraits<fort::DeclGroupRef> {
   public:
     static inline void *getAsVoidPointer(fort::DeclGroupRef P) {
       return P.getAsOpaquePtr();

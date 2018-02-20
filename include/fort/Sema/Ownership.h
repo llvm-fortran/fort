@@ -65,7 +65,7 @@ public:
 
 namespace llvm {
   template <class T>
-  class PointerLikeTypeTraits<fort::OpaquePtr<T> > {
+  struct PointerLikeTypeTraits<fort::OpaquePtr<T> > {
   public:
     static inline void *getAsVoidPointer(fort::OpaquePtr<T> P) {
       // FIXME: Doesn't work? return P.getAs< void >();

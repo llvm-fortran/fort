@@ -65,7 +65,7 @@ namespace llvm {
 
 // DeclContext* is only 4-byte aligned on 32-bit systems.
 template<>
-  class PointerLikeTypeTraits<fort::DeclContext*> {
+  struct PointerLikeTypeTraits<fort::DeclContext*> {
   typedef fort::DeclContext* PT;
 public:
   static inline void *getAsVoidPointer(PT P) { return P; }

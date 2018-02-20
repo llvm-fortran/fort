@@ -45,9 +45,9 @@ namespace fort {
 
 namespace llvm {
   template <typename T>
-  class PointerLikeTypeTraits;
+  struct PointerLikeTypeTraits;
   template<>
-  class PointerLikeTypeTraits< ::fort::Type*> {
+  struct PointerLikeTypeTraits< ::fort::Type*> {
   public:
     static inline void *getAsVoidPointer(::fort::Type *P) { return P; }
     static inline ::fort::Type *getFromVoidPointer(void *P) {
@@ -56,7 +56,7 @@ namespace llvm {
     enum { NumLowBitsAvailable = fort::TypeAlignmentInBits };
   };
   template<>
-  class PointerLikeTypeTraits< ::fort::ExtQuals*> {
+  struct PointerLikeTypeTraits< ::fort::ExtQuals*> {
   public:
     static inline void *getAsVoidPointer(::fort::ExtQuals *P) { return P; }
     static inline ::fort::ExtQuals *getFromVoidPointer(void *P) {
@@ -439,7 +439,7 @@ template<> struct simplify_type< ::fort::QualType>
 
 // Teach SmallPtrSet that QualType is "basically a pointer".
 template<>
-class PointerLikeTypeTraits<fort::QualType> {
+struct PointerLikeTypeTraits<fort::QualType> {
 public:
   static inline void *getAsVoidPointer(fort::QualType P) {
     return P.getAsOpaquePtr();
