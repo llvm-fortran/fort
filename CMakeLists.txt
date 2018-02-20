@@ -387,6 +387,12 @@ if( LLVM_INCLUDE_TESTS )
   add_subdirectory(test)
 endif()
 
+option(FORT_INCLUDE_DOCS "Generate build targets for the Fort docs."
+  ${LLVM_INCLUDE_DOCS})
+if( FORT_INCLUDE_DOCS )
+  add_subdirectory(docs)
+endif()
+
 # Workaround for MSVS10 to avoid the Dialog Hell
 # FIXME: This could be removed with future version of CMake.
 if( FORT_BUILT_STANDALONE AND MSVC_VERSION EQUAL 1600 )
