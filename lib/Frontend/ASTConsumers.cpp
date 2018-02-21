@@ -11,10 +11,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <string>
 #include "fort/Frontend/ASTConsumers.h"
-#include "fort/AST/ASTContext.h"
 #include "fort/AST/ASTConsumer.h"
+#include "fort/AST/ASTContext.h"
+#include <string>
 
 using namespace fort;
 
@@ -24,18 +24,15 @@ class ASTPrinter : public ASTConsumer {
 public:
   std::string FilterString;
 
-  ASTPrinter(StringRef Filter)
-    : FilterString(Filter) {
-  }
+  ASTPrinter(StringRef Filter) : FilterString(Filter) {}
 
   void HandleTranslationUnit(ASTContext &Ctx) {
     Ctx.getTranslationUnitDecl()->dump();
   }
 };
 
-}
+} // namespace
 
 ASTConsumer *fort::CreateASTDumper(StringRef FilterString) {
   return new ASTPrinter(FilterString);
 }
-

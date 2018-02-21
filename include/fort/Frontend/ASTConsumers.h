@@ -17,8 +17,10 @@
 #include "fort/Basic/LLVM.h"
 
 namespace llvm {
-  namespace sys { class Path; }
+namespace sys {
+class Path;
 }
+} // namespace llvm
 
 namespace fort {
 

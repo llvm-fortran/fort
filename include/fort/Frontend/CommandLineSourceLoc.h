@@ -33,8 +33,7 @@ public:
   static ParsedSourceLocation FromString(StringRef Str) {
     ParsedSourceLocation PSL;
     std::pair<StringRef, StringRef> ColSplit = Str.rsplit(':');
-    std::pair<StringRef, StringRef> LineSplit =
-      ColSplit.first.rsplit(':');
+    std::pair<StringRef, StringRef> LineSplit = ColSplit.first.rsplit(':');
 
     // If both tail splits were valid integers, return success.
     if (!ColSplit.second.getAsInteger(10, PSL.Column) &&
@@ -51,37 +50,36 @@ public:
   }
 };
 
-}
+} // namespace fort
 
 namespace llvm {
-  namespace cl {
-    /// \brief Command-line option parser that parses source locations.
-    ///
-    /// Source locations are of the form filename:line:column.
-    template<>
-    class parser<fort::ParsedSourceLocation>
-      : public basic_parser<fort::ParsedSourceLocation> {
-    public:
-      inline bool parse(Option &O, StringRef ArgName, StringRef ArgValue,
-                 fort::ParsedSourceLocation &Val);
-    };
+namespace cl {
+/// \brief Command-line option parser that parses source locations.
+///
+/// Source locations are of the form filename:line:column.
+template <>
+class parser<fort::ParsedSourceLocation>
+    : public basic_parser<fort::ParsedSourceLocation> {
+public:
+  inline bool parse(Option &O, StringRef ArgName, StringRef ArgValue,
+                    fort::ParsedSourceLocation &Val);
+};
 
-    bool
-    parser<fort::ParsedSourceLocation>::
-    parse(Option &O, StringRef ArgName, StringRef ArgValue,
-          fort::ParsedSourceLocation &Val) {
-      using namespace fort;
+bool parser<fort::ParsedSourceLocation>::parse(
+    Option &O, StringRef ArgName, StringRef ArgValue,
+    fort::ParsedSourceLocation &Val) {
+  using namespace fort;
 
-      Val = ParsedSourceLocation::FromString(ArgValue);
-      if (Val.FileName.empty()) {
-        errs() << "error: "
-               << "source location must be of the form filename:line:column\n";
-        return true;
-      }
-
-      return false;
-    }
+  Val = ParsedSourceLocation::FromString(ArgValue);
+  if (Val.FileName.empty()) {
+    errs() << "error: "
+           << "source location must be of the form filename:line:column\n";
+    return true;
   }
+
+  return false;
 }
+} // namespace cl
+} // namespace llvm
 
 #endif

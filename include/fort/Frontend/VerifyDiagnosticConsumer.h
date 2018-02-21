@@ -133,16 +133,17 @@ class FileEntry;
 ///   // expected-no-diagnostics
 /// \endcode
 ///
-class VerifyDiagnosticConsumer: public DiagnosticClient,
-                                public CommentHandler {
+class VerifyDiagnosticConsumer : public DiagnosticClient,
+                                 public CommentHandler {
 public:
   /// Directive - Abstract class representing a parsed verify directive.
   ///
   class Directive {
   public:
     static Directive *create(bool RegexKind, SourceLocation DirectiveLoc,
-                             SourceLocation DiagnosticLoc,
-                             StringRef Text, unsigned Min, unsigned Max);
+                             SourceLocation DiagnosticLoc, StringRef Text,
+                             unsigned Min, unsigned Max);
+
   public:
     /// Constant representing n or more matches.
     static const unsigned MaxCount = UINT_MAX;
@@ -152,7 +153,7 @@ public:
     const std::string Text;
     unsigned Min, Max;
 
-    virtual ~Directive() { }
+    virtual ~Directive() {}
 
     // Returns true if directive text is valid.
     // Otherwise returns false and populates E.
@@ -164,10 +165,10 @@ public:
   protected:
     Directive(SourceLocation DirectiveLoc, SourceLocation DiagnosticLoc,
               StringRef Text, unsigned Min, unsigned Max)
-      : DirectiveLoc(DirectiveLoc), DiagnosticLoc(DiagnosticLoc),
-        Text(Text), Min(Min), Max(Max) {
-    assert(DirectiveLoc.isValid() && "DirectiveLoc is invalid!");
-    assert(DiagnosticLoc.isValid() && "DiagnosticLoc is invalid!");
+        : DirectiveLoc(DirectiveLoc), DiagnosticLoc(DiagnosticLoc), Text(Text),
+          Min(Min), Max(Max) {
+      assert(DirectiveLoc.isValid() && "DirectiveLoc is invalid!");
+      assert(DiagnosticLoc.isValid() && "DiagnosticLoc is invalid!");
     }
 
   private:
@@ -175,7 +176,7 @@ public:
     void operator=(const Directive &) = delete;
   };
 
-  typedef std::vector<Directive*> DirectiveList;
+  typedef std::vector<Directive *> DirectiveList;
 
   /// ExpectedData - owns directive objects and deletes on destructor.
   ///
@@ -218,7 +219,7 @@ private:
 
 public:
   /// Create a new verifying diagnostic client, which will issue errors to
-  /// the currently-attached diagnostic client when a diagnostic does not match 
+  /// the currently-attached diagnostic client when a diagnostic does not match
   /// what is expected (as indicated in the source file).
   VerifyDiagnosticConsumer(DiagnosticsEngine &Diags);
   ~VerifyDiagnosticConsumer();
@@ -227,10 +228,11 @@ public:
 
   virtual void EndSourceFile();
 
-  virtual bool HandleComment(Lexer &Lexer, const SourceLocation& Loc, const llvm::StringRef &Comment);
+  virtual bool HandleComment(Lexer &Lexer, const SourceLocation &Loc,
+                             const llvm::StringRef &Comment);
 
-  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, SourceLocation L,
-                                const llvm::Twine &Msg,
+  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
+                                SourceLocation L, const llvm::Twine &Msg,
                                 llvm::ArrayRef<SourceRange>,
                                 llvm::ArrayRef<FixItHint>);
 };

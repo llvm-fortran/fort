@@ -25,7 +25,7 @@
 namespace llvm {
 class raw_fd_ostream;
 class Timer;
-}
+} // namespace llvm
 
 namespace fort {
 class ASTContext;
@@ -97,9 +97,9 @@ class CompilerInstance {
   /// \brief The set of top-level modules that has already been loaded,
   /// along with the module map
   llvm::DenseMap<const IdentifierInfo *, Module *> KnownModules;
-  
+
   /// \brief The location of the module-import keyword for the last module
-  /// import. 
+  /// import.
   SourceLocation LastModuleImportLoc;
 
   /// \brief Whether we should (re)build the global module index once we
@@ -121,7 +121,7 @@ class CompilerInstance {
 
     OutputFile(const std::string &filename, const std::string &tempFilename,
                raw_ostream *os)
-      : Filename(filename), TempFilename(tempFilename), OS(os) { }
+        : Filename(filename), TempFilename(tempFilename), OS(os) {}
   };
 
   /// The list of active output files.
@@ -129,6 +129,7 @@ class CompilerInstance {
 
   CompilerInstance(const CompilerInstance &) = delete;
   void operator=(const CompilerInstance &) = delete;
+
 public:
   CompilerInstance();
   ~CompilerInstance();
@@ -184,41 +185,29 @@ public:
 
   /// \brief Indicates whether we should (re)build the global module index.
   bool shouldBuildGlobalModuleIndex() const;
-  
+
   /// \brief Set the flag indicating whether we should (re)build the global
   /// module index.
-  void setBuildGlobalModuleIndex(bool Build) {
-    BuildGlobalModuleIndex = Build;
-  }
+  void setBuildGlobalModuleIndex(bool Build) { BuildGlobalModuleIndex = Build; }
 
   /// }
   /// @name Forwarding Methods
   /// {
 
-  CodeGenOptions &getCodeGenOpts() {
-    return Invocation->getCodeGenOpts();
-  }
+  CodeGenOptions &getCodeGenOpts() { return Invocation->getCodeGenOpts(); }
   const CodeGenOptions &getCodeGenOpts() const {
     return Invocation->getCodeGenOpts();
   }
 
-  FrontendOptions &getFrontendOpts() {
-    return Invocation->getFrontendOpts();
-  }
+  FrontendOptions &getFrontendOpts() { return Invocation->getFrontendOpts(); }
   const FrontendOptions &getFrontendOpts() const {
     return Invocation->getFrontendOpts();
   }
 
-  LangOptions &getLangOpts() {
-    return *Invocation->getLangOpts();
-  }
-  const LangOptions &getLangOpts() const {
-    return *Invocation->getLangOpts();
-  }
+  LangOptions &getLangOpts() { return *Invocation->getLangOpts(); }
+  const LangOptions &getLangOpts() const { return *Invocation->getLangOpts(); }
 
-  TargetOptions &getTargetOpts() {
-    return Invocation->getTargetOpts();
-  }
+  TargetOptions &getTargetOpts() { return Invocation->getTargetOpts(); }
   const TargetOptions &getTargetOpts() const {
     return Invocation->getTargetOpts();
   }
@@ -239,7 +228,7 @@ public:
   void setDiagnostics(DiagnosticsEngine *Value);
 
   DiagnosticClient &getDiagnosticConsumer() const {
-    assert(Diagnostics && Diagnostics->getClient() && 
+    assert(Diagnostics && Diagnostics->getClient() &&
            "Compiler instance has no diagnostic client!");
     return *Diagnostics->getClient();
   }
@@ -269,10 +258,8 @@ public:
     assert(SourceMgr && "Compiler instance has no source manager!");
     return *SourceMgr;
   }
-  
-  void resetAndLeakSourceManager() {
-    SourceMgr.resetWithoutRelease();
-  }
+
+  void resetAndLeakSourceManager() { SourceMgr.resetWithoutRelease(); }
 
   /// setSourceManager - Replace the current source manager.
   void setSourceManager(llvm::SourceMgr *Value);
@@ -289,9 +276,7 @@ public:
     return *PP;
   }
 
-  void resetAndLeakPreprocessor() {
-    PP.resetWithoutRelease();
-  }
+  void resetAndLeakPreprocessor() { PP.resetWithoutRelease(); }
 
   /// Replace the current preprocessor.
   void setPreprocessor(Preprocessor *Value);
@@ -306,10 +291,8 @@ public:
     assert(Context && "Compiler instance has no AST context!");
     return *Context;
   }
-  
-  void resetAndLeakASTContext() {
-    Context.resetWithoutRelease();
-  }
+
+  void resetAndLeakASTContext() { Context.resetWithoutRelease(); }
 
   /// setASTContext - Replace the current AST context.
   void setASTContext(ASTContext *Value);
@@ -317,7 +300,7 @@ public:
   /// \brief Replace the current Sema; the compiler instance takes ownership
   /// of S.
   void setSema(Sema *S);
-  
+
   /// }
   /// @name ASTConsumer
   /// {
@@ -341,14 +324,14 @@ public:
   /// @name Semantic analysis
   /// {
   bool hasSema() const { return TheSema.get() != nullptr; }
-  
-  Sema &getSema() const { 
+
+  Sema &getSema() const {
     assert(TheSema && "Compiler instance has no Sema object!");
     return *TheSema;
   }
-  
+
   Sema *takeSema() { return TheSema.release(); }
-  
+
   /// }
   /// @name Module Management
   /// {
@@ -396,7 +379,7 @@ public:
   /// attached to (and, then, owned by) the DiagnosticsEngine inside this AST
   /// unit.
   ///
-  /// \param ShouldOwnClient If Client is non-NULL, specifies whether 
+  /// \param ShouldOwnClient If Client is non-NULL, specifies whether
   /// the diagnostic object should take ownership of the client.
   void createDiagnostics(DiagnosticClient *Client = 0,
                          bool ShouldOwnClient = true);
@@ -420,8 +403,7 @@ public:
   ///
   /// \return The new object on success, or null on failure.
   static llvm::IntrusiveRefCntPtr<DiagnosticsEngine>
-  createDiagnostics(DiagnosticOptions *Opts,
-                    DiagnosticClient *Client = 0,
+  createDiagnostics(DiagnosticOptions *Opts, DiagnosticClient *Client = 0,
                     bool ShouldOwnClient = true,
                     const CodeGenOptions *CodeGenOpts = 0);
 
@@ -437,7 +419,7 @@ public:
 
   /// \brief Create the Sema object to be used for parsing.
   void createSema();
-  
+
   /// Create the frontend timer and replace any existing one with it.
   void createFrontendTimer();
 
@@ -449,21 +431,19 @@ public:
   /// atomically replace the target output on success).
   ///
   /// \return - Null on error.
-  llvm::raw_fd_ostream *
-  createDefaultOutputFile(bool Binary = true, StringRef BaseInput = "",
-                          StringRef Extension = "");
+  llvm::raw_fd_ostream *createDefaultOutputFile(bool Binary = true,
+                                                StringRef BaseInput = "",
+                                                StringRef Extension = "");
 
   /// Create a new output file and add it to the list of tracked output files,
   /// optionally deriving the output path name.
   ///
   /// \return - Null on error.
-  llvm::raw_fd_ostream *
-  createOutputFile(StringRef OutputPath,
-                   bool Binary, bool RemoveFileOnSignal,
-                   StringRef BaseInput,
-                   StringRef Extension,
-                   bool UseTemporary,
-                   bool CreateMissingDirectories = false);
+  llvm::raw_fd_ostream *createOutputFile(StringRef OutputPath, bool Binary,
+                                         bool RemoveFileOnSignal,
+                                         StringRef BaseInput,
+                                         StringRef Extension, bool UseTemporary,
+                                         bool CreateMissingDirectories = false);
 
   /// Create a new output file, optionally deriving the output path name.
   ///
@@ -491,13 +471,10 @@ public:
   /// \param TempPathName [out] - If given, the temporary file path name
   /// will be stored here on success.
   static llvm::raw_fd_ostream *
-  createOutputFile(StringRef OutputPath, std::string &Error,
-                   bool Binary, bool RemoveFileOnSignal,
-                   StringRef BaseInput,
-                   StringRef Extension,
-                   bool UseTemporary,
-                   bool CreateMissingDirectories,
-                   std::string *ResultPathName,
+  createOutputFile(StringRef OutputPath, std::string &Error, bool Binary,
+                   bool RemoveFileOnSignal, StringRef BaseInput,
+                   StringRef Extension, bool UseTemporary,
+                   bool CreateMissingDirectories, std::string *ResultPathName,
                    std::string *TempPathName);
 
   /// }
@@ -515,12 +492,11 @@ public:
   ///
   /// \return True on success.
   static bool InitializeSourceManager(const FrontendInputFile &Input,
-                DiagnosticsEngine &Diags,
-                llvm::SourceMgr &SrcMgr,
-                const FrontendOptions &Opts);
+                                      DiagnosticsEngine &Diags,
+                                      llvm::SourceMgr &SrcMgr,
+                                      const FrontendOptions &Opts);
 
   /// }
-
 };
 
 } // end namespace fort

@@ -18,9 +18,9 @@
 #include "fort/Basic/Diagnostic.h"
 
 namespace llvm {
-  class raw_ostream;
-  class SourceLocation;
-  class SourceMgr;
+class raw_ostream;
+class SourceLocation;
+class SourceMgr;
 } // end namespace llvm
 
 namespace fort {
@@ -29,13 +29,14 @@ class LangOptions;
 
 class TextDiagnosticPrinter : public DiagnosticClient {
   llvm::SourceMgr &SrcMgr;
+
 public:
   TextDiagnosticPrinter(llvm::SourceMgr &SM) : SrcMgr(SM) {}
   virtual ~TextDiagnosticPrinter();
 
   // TODO: Emit caret diagnostics and Highlight range.
-  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, SourceLocation L,
-                                const llvm::Twine &Msg,
+  virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
+                                SourceLocation L, const llvm::Twine &Msg,
                                 llvm::ArrayRef<SourceRange> Ranges,
                                 llvm::ArrayRef<FixItHint> FixIts);
 };

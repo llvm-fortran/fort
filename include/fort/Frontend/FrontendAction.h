@@ -36,8 +36,7 @@ class FrontendAction {
   CompilerInstance *Instance;
 
 private:
-  ASTConsumer* CreateWrappedASTConsumer(CompilerInstance &CI,
-                                        StringRef InFile);
+  ASTConsumer *CreateWrappedASTConsumer(CompilerInstance &CI, StringRef InFile);
 
 protected:
   /// @name Implementation Action Interface
@@ -71,8 +70,7 @@ protected:
   ///
   /// \return True on success; on failure ExecutionAction() and
   /// EndSourceFileAction() will not be called.
-  virtual bool BeginSourceFileAction(CompilerInstance &CI,
-                                     StringRef Filename) {
+  virtual bool BeginSourceFileAction(CompilerInstance &CI, StringRef Filename) {
     return true;
   }
 
@@ -126,18 +124,14 @@ public:
     CurrentASTUnit.get()->getOriginalSourceFileName();
   }
 
-  InputKind getCurrentFileKind() const {
-    return IK_None;
-  }
+  InputKind getCurrentFileKind() const { return IK_None; }
 
   ASTUnit &getCurrentASTUnit() const {
     assert(CurrentASTUnit && "No current AST unit!");
     return *CurrentASTUnit;
   }
 
-  ASTUnit *takeCurrentASTUnit() {
-    return CurrentASTUnit.release();
-  }
+  ASTUnit *takeCurrentASTUnit() { return CurrentASTUnit.release(); }
 
   /// @}
   /// @name Public Action Interface
@@ -183,9 +177,8 @@ protected:
   /// This will also take care of instantiating a code completion consumer if
   /// the user requested it and the action supports it.
   virtual void ExecuteAction();
-
 };
 
-}  // end namespace fort
+} // end namespace fort
 
 #endif

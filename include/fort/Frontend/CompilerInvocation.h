@@ -24,7 +24,7 @@ namespace llvm {
 namespace opt {
 class ArgList;
 }
-}
+} // namespace llvm
 
 namespace fort {
 class CompilerInvocation;
@@ -53,24 +53,21 @@ public:
   CompilerInvocationBase();
 
   CompilerInvocationBase(const CompilerInvocationBase &X);
-  
+
   LangOptions *getLangOpts() { return LangOpts.get(); }
   const LangOptions *getLangOpts() const { return LangOpts.get(); }
 
   TargetOptions &getTargetOpts() { return *TargetOpts.get(); }
-  const TargetOptions &getTargetOpts() const {
-    return *TargetOpts.get();
-  }
-
+  const TargetOptions &getTargetOpts() const { return *TargetOpts.get(); }
 };
-  
+
 /// \brief Helper class for holding the data necessary to invoke the compiler.
 ///
 /// This class is designed to represent an abstract "invocation" of the
 /// compiler, including data such as the include paths, the code generation
 /// options, the warning flags, and so on.
 class CompilerInvocation : public CompilerInvocationBase {
-  
+
   /// Options controlling IRgen and the backend.
   CodeGenOptions CodeGenOpts;
 
@@ -91,8 +88,8 @@ public:
   /// \param ArgEnd - The last element in the argument vector.
   /// \param Diags - The diagnostic engine to use for errors.
   static bool CreateFromArgs(CompilerInvocation &Res,
-                             const char* const *ArgBegin,
-                             const char* const *ArgEnd,
+                             const char *const *ArgBegin,
+                             const char *const *ArgEnd,
                              DiagnosticsEngine &Diags);
 
   /// \brief Get the directory where the compiler headers
@@ -104,24 +101,20 @@ public:
   /// \param MainAddr - The address of main (or some other function in the main
   /// executable), for finding the builtin compiler path.
   static std::string GetResourcesPath(const char *Argv0, void *MainAddr);
-  
-  /// \brief Retrieve a module hash string that is suitable for uniquely 
+
+  /// \brief Retrieve a module hash string that is suitable for uniquely
   /// identifying the conditions under which the module was built.
   std::string getModuleHash() const;
-  
+
   /// @}
   /// @name Option Subgroups
   /// @{
 
   CodeGenOptions &getCodeGenOpts() { return CodeGenOpts; }
-  const CodeGenOptions &getCodeGenOpts() const {
-    return CodeGenOpts;
-  }
+  const CodeGenOptions &getCodeGenOpts() const { return CodeGenOpts; }
 
   FrontendOptions &getFrontendOpts() { return FrontendOpts; }
-  const FrontendOptions &getFrontendOpts() const {
-    return FrontendOpts;
-  }
+  const FrontendOptions &getFrontendOpts() const { return FrontendOpts; }
 
   /// @}
 };

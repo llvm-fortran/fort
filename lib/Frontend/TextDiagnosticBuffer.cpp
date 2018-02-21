@@ -13,22 +13,23 @@
 
 #include "fort/Frontend/TextDiagnosticBuffer.h"
 #include "llvm/ADT/SmallString.h"
-#include "llvm/Support/ErrorHandling.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/Support/ErrorHandling.h"
 
 namespace fort {
 
 /// HandleDiagnostic - Store the errors, warnings, and notes that are
 /// reported.
 ///
-void TextDiagnosticBuffer::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, SourceLocation L,
+void TextDiagnosticBuffer::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
+                                            SourceLocation L,
                                             const llvm::Twine &Msg) {
   // Default implementation (Warnings/errors count).
   DiagnosticClient::HandleDiagnostic(DiagLevel, L, Msg);
 
   switch (DiagLevel) {
-  default: llvm_unreachable(
-                         "Diagnostic not handled during diagnostic buffering!");
+  default:
+    llvm_unreachable("Diagnostic not handled during diagnostic buffering!");
   case DiagnosticsEngine::Note:
     Notes.push_back(std::make_pair(L, Msg.str()));
     break;
@@ -45,11 +46,11 @@ void TextDiagnosticBuffer::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel, 
 void TextDiagnosticBuffer::FlushDiagnostics(DiagnosticsEngine &Diags) const {
   // FIXME: Flush the diagnostics in order.
   for (const_iterator it = err_begin(), ie = err_end(); it != ie; ++it)
-    Diags.ReportError(it->first,it->second);
+    Diags.ReportError(it->first, it->second);
   for (const_iterator it = warn_begin(), ie = warn_end(); it != ie; ++it)
-    Diags.ReportWarning(it->first,it->second);
+    Diags.ReportWarning(it->first, it->second);
   for (const_iterator it = note_begin(), ie = note_end(); it != ie; ++it)
-    Diags.ReportNote(it->first,it->second);
+    Diags.ReportNote(it->first, it->second);
 }
 
 } // end namespace fort

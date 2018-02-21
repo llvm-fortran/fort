@@ -13,16 +13,17 @@
 #include "fort/Basic/Diagnostic.h"
 
 namespace fort {
-  namespace diag {
-    enum {
-#define DIAG(ENUM,FLAGS,DEFAULT_MAPPING,DESC,GROUP,\
-             SFINAE,ACCESS,NOWERROR,SHOWINSYSHEADER,CATEGORY) ENUM,
+namespace diag {
+enum {
+#define DIAG(ENUM, FLAGS, DEFAULT_MAPPING, DESC, GROUP, SFINAE, ACCESS,        \
+             NOWERROR, SHOWINSYSHEADER, CATEGORY)                              \
+  ENUM,
 #define FRONTENDSTART
 #include "fort/Basic/DiagnosticFrontendKinds.inc"
 #undef DIAG
-      NUM_BUILTIN_FRONTEND_DIAGNOSTICS
-    };
-  }  // end namespace diag
-}  // end namespace fort
+  NUM_BUILTIN_FRONTEND_DIAGNOSTICS
+};
+} // end namespace diag
+} // end namespace fort
 
 #endif
