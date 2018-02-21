@@ -12,10 +12,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "fort/AST/Decl.h"
+#include "fort/AST/ASTContext.h"
 #include "fort/AST/DeclContextInternals.h"
 #include "fort/AST/Expr.h"
 #include "fort/AST/Stmt.h"
-#include "fort/AST/ASTContext.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace fort {
@@ -58,7 +58,8 @@ void DeclContext::removeDecl(Decl *D) {
       assert(I && "Decl not found in linked list");
       if (I->NextDeclInContext == D) {
         I->NextDeclInContext = D->NextDeclInContext;
-        if (D == LastDecl) LastDecl = I;
+        if (D == LastDecl)
+          LastDecl = I;
         break;
       }
     }
@@ -70,10 +71,12 @@ void DeclContext::removeDecl(Decl *D) {
   // Remove D from the lookup table if necessary.
   if (NamedDecl *ND = dyn_cast<NamedDecl>(D)) {
     // Remove only decls that have a name
-    if (!ND->getDeclName()) return;
+    if (!ND->getDeclName())
+      return;
 
     StoredDeclsMap *Map = LookupPtr;
-    if (!Map) return;
+    if (!Map)
+      return;
 
     StoredDeclsMap::iterator Pos = Map->find(ND->getDeclName());
     assert(Pos != Map->end() && "No lookup entry for decl");
@@ -85,8 +88,8 @@ void DeclContext::removeDecl(Decl *D) {
 /// in DCtx (and any other contexts linked to it or transparent contexts nested
 /// within it).
 void DeclContext::buildLookup(DeclContext *DCtx) {
-  for (decl_iterator
-         D = DCtx->decls_begin(), DEnd = DCtx->decls_end(); D != DEnd; ++D)
+  for (decl_iterator D = DCtx->decls_begin(), DEnd = DCtx->decls_end();
+       D != DEnd; ++D)
     // Insert this declaration into the lookup structure, but only if it's
     // semantically in its decl context.  During non-lazy lookup building, this
     // is implicitly enforced by addDecl.
@@ -95,8 +98,7 @@ void DeclContext::buildLookup(DeclContext *DCtx) {
         makeDeclVisibleInContextImpl(ND);
 }
 
-DeclContext::lookup_result
-DeclContext::lookup(DeclarationName Name) {
+DeclContext::lookup_result DeclContext::lookup(DeclarationName Name) {
   /// If there is no lookup data structure, build one now by walking
   /// all of the linked DeclContexts (in declaration order!) and
   /// inserting their values.
@@ -150,43 +152,43 @@ void DeclContext::makeDeclVisibleInContextImpl(NamedDecl *D) {
 
 Decl::~Decl() {}
 
-Decl *Decl::castFromDeclContext (const DeclContext *D) {
+Decl *Decl::castFromDeclContext(const DeclContext *D) {
   Decl::Kind DK = D->getDeclKind();
-  switch(DK) {
+  switch (DK) {
 #define DECL(NAME, BASE)
-#define DECL_CONTEXT(NAME) \
-    case Decl::NAME:       \
-      return static_cast<NAME##Decl*>(const_cast<DeclContext*>(D));
+#define DECL_CONTEXT(NAME)                                                     \
+  case Decl::NAME:                                                             \
+    return static_cast<NAME##Decl *>(const_cast<DeclContext *>(D));
 #define DECL_CONTEXT_BASE(NAME)
 #include "fort/AST/DeclNodes.inc"
-    default:
+  default:
 #define DECL(NAME, BASE)
-#define DECL_CONTEXT_BASE(NAME)                  \
-      if (DK >= first##NAME && DK <= last##NAME) \
-        return static_cast<NAME##Decl*>(const_cast<DeclContext*>(D));
+#define DECL_CONTEXT_BASE(NAME)                                                \
+  if (DK >= first##NAME && DK <= last##NAME)                                   \
+    return static_cast<NAME##Decl *>(const_cast<DeclContext *>(D));
 #include "fort/AST/DeclNodes.inc"
-      assert(false && "a decl that inherits DeclContext isn't handled");
-      return 0;
+    assert(false && "a decl that inherits DeclContext isn't handled");
+    return 0;
   }
 }
 
 DeclContext *Decl::castToDeclContext(const Decl *D) {
   Decl::Kind DK = D->getKind();
-  switch(DK) {
+  switch (DK) {
 #define DECL(NAME, BASE)
-#define DECL_CONTEXT(NAME) \
-    case Decl::NAME:       \
-      return static_cast<NAME##Decl*>(const_cast<Decl*>(D));
+#define DECL_CONTEXT(NAME)                                                     \
+  case Decl::NAME:                                                             \
+    return static_cast<NAME##Decl *>(const_cast<Decl *>(D));
 #define DECL_CONTEXT_BASE(NAME)
 #include "fort/AST/DeclNodes.inc"
-    default:
+  default:
 #define DECL(NAME, BASE)
-#define DECL_CONTEXT_BASE(NAME)                                   \
-      if (DK >= first##NAME && DK <= last##NAME)                  \
-        return static_cast<NAME##Decl*>(const_cast<Decl*>(D));
+#define DECL_CONTEXT_BASE(NAME)                                                \
+  if (DK >= first##NAME && DK <= last##NAME)                                   \
+    return static_cast<NAME##Decl *>(const_cast<Decl *>(D));
 #include "fort/AST/DeclNodes.inc"
-      assert(false && "a decl that inherits DeclContext isn't handled");
-      return 0;
+    assert(false && "a decl that inherits DeclContext isn't handled");
+    return 0;
   }
 }
 
@@ -226,20 +228,16 @@ ModuleDecl *ModuleDecl::Create(ASTContext &C, DeclContext *DC,
   return new (C) ModuleDecl(DC, NameInfo);
 }
 
-void ModuleDecl::setBody(Stmt *S) {
-  Body = S;
-}
+void ModuleDecl::setBody(Stmt *S) { Body = S; }
 
-void ModuleDecl::setBody(Expr *E) {
-  Body = E;
-}
+void ModuleDecl::setBody(Expr *E) { Body = E; }
 
 Stmt *ModuleDecl::getBody() const {
-  return (Body.is<Stmt*>() ? Body.get<Stmt*>() : nullptr);
+  return (Body.is<Stmt *>() ? Body.get<Stmt *>() : nullptr);
 }
 
 Expr *ModuleDecl::getBodyExpr() const {
-  return (Body.is<Expr*>() ? Body.get<Expr*>() : nullptr);
+  return (Body.is<Expr *>() ? Body.get<Expr *>() : nullptr);
 }
 
 //===----------------------------------------------------------------------===//
@@ -261,50 +259,45 @@ void MainProgramDecl::setBody(Stmt *S) {
 //===----------------------------------------------------------------------===//
 
 FunctionDecl::FunctionDecl(Kind DK, FunctionKind FK, DeclContext *DC,
-             const DeclarationNameInfo &NameInfo, QualType T,
-             int Attr)
-  : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
-    DeclContext(DK), ArgumentCount(0), Arguments(nullptr),
-    Result(nullptr), Body((Stmt*)nullptr) {
-    CustomBoolAttr1 = (Attr & Recursive) != 0;
-    SubDeclKind = FK;
-  }
+                           const DeclarationNameInfo &NameInfo, QualType T,
+                           int Attr)
+    : DeclaratorDecl(DK, DC, NameInfo.getLoc(), NameInfo.getName(), T),
+      DeclContext(DK), ArgumentCount(0), Arguments(nullptr), Result(nullptr),
+      Body((Stmt *)nullptr) {
+  CustomBoolAttr1 = (Attr & Recursive) != 0;
+  SubDeclKind = FK;
+}
 
 FunctionDecl *FunctionDecl::Create(ASTContext &C, FunctionKind FK,
                                    DeclContext *DC,
                                    const DeclarationNameInfo &NameInfo,
                                    QualType ReturnType, int Attr) {
-  return new(C) FunctionDecl(Function, FK, DC, NameInfo, ReturnType, Attr);
+  return new (C) FunctionDecl(Function, FK, DC, NameInfo, ReturnType, Attr);
 }
 
-void FunctionDecl::setBody(Stmt *S) {
-  Body = S;
-}
+void FunctionDecl::setBody(Stmt *S) { Body = S; }
 
-void FunctionDecl::setBody(Expr *E) {
-  Body = E;
-}
+void FunctionDecl::setBody(Expr *E) { Body = E; }
 
-void FunctionDecl::setArguments(ASTContext &C, ArrayRef<VarDecl*> ArgumentList) {
+void FunctionDecl::setArguments(ASTContext &C,
+                                ArrayRef<VarDecl *> ArgumentList) {
   assert(!Arguments);
-  if(ArgumentList.size()) {
+  if (ArgumentList.size()) {
     ArgumentCount = ArgumentList.size();
-    Arguments = new(C) VarDecl*[ArgumentCount];
-    for(unsigned I = 0; I < ArgumentCount; ++I)
+    Arguments = new (C) VarDecl *[ArgumentCount];
+    for (unsigned I = 0; I < ArgumentCount; ++I)
       Arguments[I] = ArgumentList[I];
   }
 }
 
-void FunctionDecl::setResult(VarDecl *VD) {
-  Result = VD;
-}
+void FunctionDecl::setResult(VarDecl *VD) { Result = VD; }
 
 Stmt *FunctionDecl::getBody() const {
-  return (Body.is<Stmt*>() ? Body.get<Stmt*>() : nullptr);
+  return (Body.is<Stmt *>() ? Body.get<Stmt *>() : nullptr);
 }
 
 Expr *FunctionDecl::getBodyExpr() const {
-  return (Body.is<Expr*>() ? Body.get<Expr*>() : nullptr);
+  return (Body.is<Expr *>() ? Body.get<Expr *>() : nullptr);
 }
 
 //===----------------------------------------------------------------------===//
@@ -313,16 +306,15 @@ Expr *FunctionDecl::getBodyExpr() const {
 
 SelfDecl *SelfDecl::Create(ASTContext &C, DeclContext *DC,
                            DeclaratorDecl *Self) {
-  return new(C) SelfDecl(DC, Self);
+  return new (C) SelfDecl(DC, Self);
 }
 
 //===----------------------------------------------------------------------===//
 // OutDecl Implementation
 //===----------------------------------------------------------------------===//
 
-OutDecl *OutDecl::Create(ASTContext &C, DeclContext *DC,
-                           DeclaratorDecl *Self) {
-  return new(C) OutDecl(DC, Self);
+OutDecl *OutDecl::Create(ASTContext &C, DeclContext *DC, DeclaratorDecl *Self) {
+  return new (C) OutDecl(DC, Self);
 }
 
 //===----------------------------------------------------------------------===//
@@ -331,9 +323,8 @@ OutDecl *OutDecl::Create(ASTContext &C, DeclContext *DC,
 
 RecordDecl *RecordDecl::Create(const ASTContext &C, DeclContext *DC,
                                SourceLocation StartLoc, SourceLocation IdLoc,
-                               const IdentifierInfo *Id,
-                               RecordDecl *PrevDecl) {
-  auto R = new(C) RecordDecl(Record, DC, StartLoc, IdLoc, Id, PrevDecl);
+                               const IdentifierInfo *Id, RecordDecl *PrevDecl) {
+  auto R = new (C) RecordDecl(Record, DC, StartLoc, IdLoc, Id, PrevDecl);
   return R;
 }
 
@@ -351,7 +342,7 @@ EnumConstantDecl *EnumConstantDecl::Create(ASTContext &C, DeclContext *DC,
 SourceRange EnumConstantDecl::getSourceRange() const {
   SourceLocation End = getLocation();
   if (Init)
-    End = Init->getLocation();  // FIXME: getLocEnd() ?
+    End = Init->getLocation(); // FIXME: getLocEnd() ?
   return SourceRange(getLocation(), End);
 }
 
@@ -369,43 +360,40 @@ FieldDecl *FieldDecl::Create(const ASTContext &C, DeclContext *DC,
 // IntrinsicFunctionDecl Implementation
 //===----------------------------------------------------------------------===//
 
-IntrinsicFunctionDecl *IntrinsicFunctionDecl::Create(ASTContext &C,
-                                                     DeclContext *DC,
-                                                     SourceLocation IDLoc,
-                                                     const IdentifierInfo *ID,
-                                                     QualType T,
-                                                     intrinsic::FunctionKind Function) {
-  return new(C) IntrinsicFunctionDecl(Decl::IntrinsicFunction, DC, IDLoc, ID,
-                                      T, Function);
+IntrinsicFunctionDecl *
+IntrinsicFunctionDecl::Create(ASTContext &C, DeclContext *DC,
+                              SourceLocation IDLoc, const IdentifierInfo *ID,
+                              QualType T, intrinsic::FunctionKind Function) {
+  return new (C) IntrinsicFunctionDecl(Decl::IntrinsicFunction, DC, IDLoc, ID,
+                                       T, Function);
 }
 
 //===----------------------------------------------------------------------===//
 // VarDecl Implementation
 //===----------------------------------------------------------------------===//
 
-VarDecl *VarDecl::Create(ASTContext &C, DeclContext *DC,
-                         SourceLocation IdLoc, const IdentifierInfo *Id,
-                         QualType T) {
+VarDecl *VarDecl::Create(ASTContext &C, DeclContext *DC, SourceLocation IdLoc,
+                         const IdentifierInfo *Id, QualType T) {
   return new (C) VarDecl(Var, DC, IdLoc, Id, T);
 }
 
 VarDecl *VarDecl::CreateArgument(ASTContext &C, DeclContext *DC,
-                                 SourceLocation IDLoc, const IdentifierInfo *ID) {
+                                 SourceLocation IDLoc,
+                                 const IdentifierInfo *ID) {
   auto Result = new (C) VarDecl(Var, DC, IDLoc, ID, QualType());
   Result->SubDeclKind = FunctionArgument;
   return Result;
 }
 
 VarDecl *VarDecl::CreateFunctionResult(ASTContext &C, DeclContext *DC,
-                                       SourceLocation IDLoc, const IdentifierInfo *ID) {
+                                       SourceLocation IDLoc,
+                                       const IdentifierInfo *ID) {
   auto Result = new (C) VarDecl(Var, DC, IDLoc, ID, QualType());
   Result->SubDeclKind = FunctionResult;
   return Result;
 }
 
-void VarDecl::setInit(Expr *E) const {
-  Init = E;
-}
+void VarDecl::setInit(Expr *E) const { Init = E; }
 
 void VarDecl::MutateIntoParameter(Expr *Value) {
   assert(!isParameter());
@@ -414,8 +402,8 @@ void VarDecl::MutateIntoParameter(Expr *Value) {
   SubDeclKind = ParameterVariable;
 }
 
-void VarDecl::MarkUsedAsVariable (SourceLocation Loc) {
-  if(SubDeclKind == UnusedSymbol)
+void VarDecl::MarkUsedAsVariable(SourceLocation Loc) {
+  if (SubDeclKind == UnusedSymbol)
     SubDeclKind = LocalVariable;
 }
 
@@ -423,10 +411,10 @@ void VarDecl::MarkUsedAsVariable (SourceLocation Loc) {
 // CommonBlockDecl Implementation
 //===----------------------------------------------------------------------===//
 
-CommonBlockDecl * CommonBlockDecl::Create(ASTContext &C, DeclContext *DC,
-                                          SourceLocation IDLoc,
-                                          const IdentifierInfo *IDInfo) {
-  return new(C) CommonBlockDecl(DC, IDLoc, IDInfo);
+CommonBlockDecl *CommonBlockDecl::Create(ASTContext &C, DeclContext *DC,
+                                         SourceLocation IDLoc,
+                                         const IdentifierInfo *IDInfo) {
+  return new (C) CommonBlockDecl(DC, IDLoc, IDInfo);
 }
 
 //===----------------------------------------------------------------------===//
@@ -458,4 +446,4 @@ void StoredDeclsMap::DestroyAll(StoredDeclsMap *Map) {
   }
 }
 
-} //namespace fort
+} // namespace fort

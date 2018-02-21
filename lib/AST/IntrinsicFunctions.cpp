@@ -20,12 +20,11 @@ namespace intrinsic {
 static char FunctionNames[][NUM_FUNCTIONS] = {
 #define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) #NAME,
 #include "fort/AST/IntrinsicFunctions.def"
-  "\0"
-};
+    "\0"};
 
 static void InitFunctionNames() {
-  for(unsigned I = 0; I < NUM_FUNCTIONS; ++I) {
-    for(auto Str = FunctionNames[I]; Str[0] != '\0'; ++Str)
+  for (unsigned I = 0; I < NUM_FUNCTIONS; ++I) {
+    for (auto Str = FunctionNames[I]; Str[0] != '\0'; ++Str)
       Str[0] = ::tolower(Str[0]);
   }
 }
@@ -36,8 +35,8 @@ const char *getFunctionName(FunctionKind Kind) {
 }
 
 static FunctionKind FunctionGenericKinds[] = {
-  #define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) GENERICNAME,
-  #include "fort/AST/IntrinsicFunctions.def"
+#define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) GENERICNAME,
+#include "fort/AST/IntrinsicFunctions.def"
 };
 
 FunctionKind getGenericFunctionKind(FunctionKind Function) {
@@ -45,8 +44,8 @@ FunctionKind getGenericFunctionKind(FunctionKind Function) {
 }
 
 static Group FunctionGroups[] = {
-  #define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) GROUP_NONE,
-  #include "fort/AST/IntrinsicFunctions.def"
+#define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) GROUP_NONE,
+#include "fort/AST/IntrinsicFunctions.def"
 };
 
 Group getFunctionGroup(FunctionKind Function) {
@@ -54,20 +53,20 @@ Group getFunctionGroup(FunctionKind Function) {
 }
 
 static void InitFunctionGroups() {
-  #define INTRINSIC_GROUP(NAME, FIRST, LAST) \
-    for(size_t I = FIRST; I <= LAST; ++I)    \
-      FunctionGroups[I] = GROUP_ ## NAME;
-  #include "fort/AST/IntrinsicFunctions.def"
+#define INTRINSIC_GROUP(NAME, FIRST, LAST)                                     \
+  for (size_t I = FIRST; I <= LAST; ++I)                                       \
+    FunctionGroups[I] = GROUP_##NAME;
+#include "fort/AST/IntrinsicFunctions.def"
 }
 
 static FunctionArgumentCountKind FunctionArgCounts[] = {
-  #define NUM_ARGS_1 ArgumentCount1
-  #define NUM_ARGS_2 ArgumentCount2
-  #define NUM_ARGS_3 ArgumentCount3
-  #define NUM_ARGS_1_OR_2 ArgumentCount1or2
-  #define NUM_ARGS_2_OR_MORE ArgumentCount2orMore
-  #define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) NUMARGS,
-  #include "fort/AST/IntrinsicFunctions.def"
+#define NUM_ARGS_1 ArgumentCount1
+#define NUM_ARGS_2 ArgumentCount2
+#define NUM_ARGS_3 ArgumentCount3
+#define NUM_ARGS_1_OR_2 ArgumentCount1or2
+#define NUM_ARGS_2_OR_MORE ArgumentCount2orMore
+#define INTRINSIC_FUNCTION(NAME, GENERICNAME, NUMARGS, VERSION) NUMARGS,
+#include "fort/AST/IntrinsicFunctions.def"
     ArgumentCount1,
 };
 
@@ -78,7 +77,7 @@ FunctionArgumentCountKind getFunctionArgumentCount(FunctionKind Function) {
 
 FunctionMapping::FunctionMapping(const LangOptions &) {
   InitFunctionNames();
-  for(unsigned I = 0; I < NUM_FUNCTIONS; ++I) {
+  for (unsigned I = 0; I < NUM_FUNCTIONS; ++I) {
     Mapping[getFunctionName(FunctionKind(I))] = FunctionKind(I);
   }
   InitFunctionGroups();
@@ -86,11 +85,11 @@ FunctionMapping::FunctionMapping(const LangOptions &) {
 
 FunctionMapping::Result FunctionMapping::Resolve(const IdentifierInfo *IDInfo) {
   auto It = Mapping.find(IDInfo->getName());
-  if(It == Mapping.end()) {
-    Result Res = { NUM_FUNCTIONS, true };
+  if (It == Mapping.end()) {
+    Result Res = {NUM_FUNCTIONS, true};
     return Res;
   }
-  Result Res = { It->getValue(), false };
+  Result Res = {It->getValue(), false};
   return Res;
 }
 

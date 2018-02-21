@@ -40,7 +40,7 @@ enum FunctionKind {
 /// Group - the list of function groups.
 enum Group {
   GROUP_NONE,
-#define INTRINSIC_GROUP(NAME, FIRST, LAST) GROUP_ ## NAME,
+#define INTRINSIC_GROUP(NAME, FIRST, LAST) GROUP_##NAME,
 #include "IntrinsicFunctions.def"
   NUM_GROUPS
 };
@@ -60,6 +60,7 @@ FunctionArgumentCountKind getFunctionArgumentCount(FunctionKind Function);
 /// Maps the intrinsic function identifiers to function IDs
 class FunctionMapping {
   llvm::StringMap<FunctionKind> Mapping;
+
 public:
   FunctionMapping(const LangOptions &Options);
 
@@ -71,7 +72,7 @@ public:
   Result Resolve(const IdentifierInfo *IDInfo);
 };
 
-}  // end namespace intrinsic
-}  // end namespace fort
+} // end namespace intrinsic
+} // end namespace fort
 
 #endif

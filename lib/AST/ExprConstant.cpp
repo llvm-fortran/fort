@@ -11,22 +11,21 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "fort/AST/ExprConstant.h"
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/Decl.h"
 #include "fort/AST/Expr.h"
 #include "fort/AST/ExprVisitor.h"
-#include "fort/AST/ExprConstant.h"
 #include <limits>
 
 namespace fort {
 
-ExprEvalScope::ExprEvalScope(ASTContext &C)
-  : Context(C) {}
+ExprEvalScope::ExprEvalScope(ASTContext &C) : Context(C) {}
 
 std::pair<int64_t, bool> ExprEvalScope::get(const Expr *E) const {
-  if(auto VE = dyn_cast<VarExpr>(E)) {
+  if (auto VE = dyn_cast<VarExpr>(E)) {
     auto Substitute = InlinedVars.find(VE->getVarDecl());
-    if(Substitute != InlinedVars.end())
+    if (Substitute != InlinedVars.end())
       return std::make_pair(Substitute->second, true);
   }
   return std::make_pair(int64_t(0), false);
@@ -34,18 +33,18 @@ std::pair<int64_t, bool> ExprEvalScope::get(const Expr *E) const {
 
 void ExprEvalScope::Assign(const VarDecl *Var, int64_t Value) {
   auto I = InlinedVars.find(Var);
-  if(I != InlinedVars.end())
+  if (I != InlinedVars.end())
     I->second = Value;
   else
     InlinedVars.insert(std::make_pair(Var, Value));
 }
 
-class ConstExprVerifier: public ConstExprVisitor<ConstExprVerifier,
-                                                 bool> {
+class ConstExprVerifier : public ConstExprVisitor<ConstExprVerifier, bool> {
   SmallVectorImpl<const Expr *> *NonConstants;
+
 public:
   ConstExprVerifier(SmallVectorImpl<const Expr *> *NonConst = nullptr)
-    : NonConstants(NonConst) {}
+      : NonConstants(NonConst) {}
 
   bool Eval(const Expr *E);
   bool VisitExpr(const Expr *E);
@@ -59,13 +58,13 @@ public:
 };
 
 bool ConstExprVerifier::Eval(const Expr *E) {
-  if(isa<ConstantExpr>(E))
+  if (isa<ConstantExpr>(E))
     return true;
   return Visit(E);
 }
 
 bool ConstExprVerifier::VisitExpr(const Expr *E) {
-  if(NonConstants)
+  if (NonConstants)
     NonConstants->push_back(E);
   return false;
 }
@@ -85,37 +84,38 @@ bool ConstExprVerifier::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
 }
 
 bool ConstExprVerifier::VisitVarExpr(const VarExpr *E) {
-  if(E->getVarDecl()->isParameter())
+  if (E->getVarDecl()->isParameter())
     return Eval(E->getVarDecl()->getInit());
-  if(NonConstants)
+  if (NonConstants)
     NonConstants->push_back(E);
   return false;
 }
 
-bool ConstExprVerifier::VisitArrayConstructorExpr(const ArrayConstructorExpr *E) {
-  for(auto I : E->getItems()) {
-    if(!Eval(I))
+bool ConstExprVerifier::VisitArrayConstructorExpr(
+    const ArrayConstructorExpr *E) {
+  for (auto I : E->getItems()) {
+    if (!Eval(I))
       return false;
   }
   return true;
 }
 
 bool ConstExprVerifier::VisitTypeConstructorExpr(const TypeConstructorExpr *E) {
-  for(auto I : E->getArguments()) {
-    if(!Eval(I))
+  for (auto I : E->getArguments()) {
+    if (!Eval(I))
       return false;
   }
   return true;
 }
 
 bool ConstExprVerifier::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
-  switch(E->getIntrinsicFunction()) {
+  switch (E->getIntrinsicFunction()) {
   case intrinsic::SELECTED_REAL_KIND:
-    //FIXME
+    // FIXME
     return false;
   case intrinsic::SELECTED_INT_KIND:
-    for(auto I : E->getArguments()) {
-      if(!Eval(I))
+    for (auto I : E->getArguments()) {
+      if (!Eval(I))
         return false;
     }
   case intrinsic::KIND:
@@ -130,24 +130,19 @@ bool ConstExprVerifier::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
 struct IntValueTy : public llvm::APInt {
 
   IntValueTy() {}
-  IntValueTy(uint64_t I) :
-    llvm::APInt(64, I, true) {}
+  IntValueTy(uint64_t I) : llvm::APInt(64, I, true) {}
 
-  template<typename T = int64_t>
-  bool IsProperSignedInt() const {
+  template <typename T = int64_t> bool IsProperSignedInt() const {
     auto u64 = getLimitedValue();
-    if(isNonNegative())
+    if (isNonNegative())
       return u64 <= uint64_t(std::numeric_limits<T>::max());
     else
       return T(int64_t(u64)) >= (std::numeric_limits<T>::min());
   }
 
-  void operator=(const llvm::APInt &I) {
-    llvm::APInt::operator =(I);
-  }
+  void operator=(const llvm::APInt &I) { llvm::APInt::operator=(I); }
 
-  template<typename T = int64_t>
-  bool Assign(const llvm::APInt &I) {
+  template <typename T = int64_t> bool Assign(const llvm::APInt &I) {
     auto u64 = I.getLimitedValue();
     *this = IntValueTy(u64);
     return true;
@@ -155,15 +150,14 @@ struct IntValueTy : public llvm::APInt {
 };
 
 /// Evaluates 64 bit signed integers.
-class IntExprEvaluator: public ConstExprVisitor<IntExprEvaluator,
-                                                bool> {
+class IntExprEvaluator : public ConstExprVisitor<IntExprEvaluator, bool> {
   IntValueTy Result;
   const ASTContext &Context;
   const ExprEvalScope *Scope;
+
 public:
-  IntExprEvaluator(const ASTContext &C,
-                   const ExprEvalScope *S)
-    : Context(C), Scope(S) {}
+  IntExprEvaluator(const ASTContext &C, const ExprEvalScope *S)
+      : Context(C), Scope(S) {}
 
   bool CheckResult(bool Overflow);
 
@@ -180,7 +174,7 @@ public:
 };
 
 int64_t IntExprEvaluator::getResult() const {
-  if(Result.IsProperSignedInt()) {
+  if (Result.IsProperSignedInt()) {
     auto val = Result.getLimitedValue();
     return int64_t(val);
   }
@@ -188,27 +182,26 @@ int64_t IntExprEvaluator::getResult() const {
 }
 
 bool IntExprEvaluator::Eval(const Expr *E) {
-  if(E->getType()->isIntegerType())
+  if (E->getType()->isIntegerType())
     return Visit(E);
   return false;
 }
 
 bool IntExprEvaluator::CheckResult(bool Overflow) {
-  if(Overflow || !Result.IsProperSignedInt())
+  if (Overflow || !Result.IsProperSignedInt())
     return false;
   return true;
 }
 
-bool IntExprEvaluator::VisitExpr(const Expr *E) {
-  return false;
-}
+bool IntExprEvaluator::VisitExpr(const Expr *E) { return false; }
 
 bool IntExprEvaluator::VisitIntegerConstantExpr(const IntegerConstantExpr *E) {
   return Result.Assign(E->getValue());
 }
 
 bool IntExprEvaluator::VisitUnaryExprMinus(const UnaryExpr *E) {
-  if(!Eval(E->getExpression())) return false;
+  if (!Eval(E->getExpression()))
+    return false;
   bool Overflow = false;
   Result = IntValueTy(0).ssub_ov(Result, Overflow);
   return CheckResult(Overflow);
@@ -219,12 +212,14 @@ bool IntExprEvaluator::VisitUnaryExprPlus(const UnaryExpr *E) {
 }
 
 bool IntExprEvaluator::VisitBinaryExpr(const BinaryExpr *E) {
-  if(!Eval(E->getRHS())) return false;
+  if (!Eval(E->getRHS()))
+    return false;
   IntValueTy RHS(Result);
-  if(!Eval(E->getLHS())) return false;
+  if (!Eval(E->getLHS()))
+    return false;
 
   bool Overflow = false;
-  switch(E->getOperator()) {
+  switch (E->getOperator()) {
   case BinaryExpr::Plus:
     Result = Result.sadd_ov(RHS, Overflow);
     break;
@@ -238,13 +233,14 @@ bool IntExprEvaluator::VisitBinaryExpr(const BinaryExpr *E) {
     Result = Result.sdiv_ov(RHS, Overflow);
     break;
   case BinaryExpr::Power: {
-    if(RHS.isNegative()) return false;
+    if (RHS.isNegative())
+      return false;
     uint64_t N = RHS.getLimitedValue();
     IntValueTy Sum(1);
-    for(uint64_t I = 0; I < N; ++I) {
+    for (uint64_t I = 0; I < N; ++I) {
       Overflow = false;
       Sum = Sum.smul_ov(Result, Overflow);
-      if(Overflow || !Sum.IsProperSignedInt())
+      if (Overflow || !Sum.IsProperSignedInt())
         return false;
     }
     Result = Sum;
@@ -258,11 +254,11 @@ bool IntExprEvaluator::VisitBinaryExpr(const BinaryExpr *E) {
 
 bool IntExprEvaluator::VisitVarExpr(const VarExpr *E) {
   auto VD = E->getVarDecl();
-  if(VD->isParameter())
+  if (VD->isParameter())
     return Eval(VD->getInit());
-  if(Scope) {
+  if (Scope) {
     auto Val = Scope->get(E);
-    if(Val.second) {
+    if (Val.second) {
       Result.Assign(llvm::APInt(64, Val.first, true));
       return true;
     }
@@ -272,38 +268,43 @@ bool IntExprEvaluator::VisitVarExpr(const VarExpr *E) {
 
 bool IntExprEvaluator::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
   auto Args = E->getArguments();
-  if(Args.empty())
+  if (Args.empty())
     return VisitExpr(E);
 
-  switch(E->getIntrinsicFunction()) {
+  switch (E->getIntrinsicFunction()) {
   case intrinsic::SELECTED_INT_KIND: {
-    if(!Eval(Args[0]))
+    if (!Eval(Args[0]))
       return false;
     auto Kind = Context.getSelectedIntKind(getResult());
-    Result.Assign(llvm::APInt(64, Kind == BuiltinType::NoKind? -1 :
-                    Context.getTypeKindBitWidth(Kind)/8, true));
+    Result.Assign(llvm::APInt(64,
+                              Kind == BuiltinType::NoKind
+                                  ? -1
+                                  : Context.getTypeKindBitWidth(Kind) / 8,
+                              true));
     return true;
   }
   case intrinsic::SELECTED_REAL_KIND:
-    //FIXME
+    // FIXME
     return false;
   case intrinsic::KIND: {
     auto T = Args[0]->getType().getSelfOrArrayElementType();
-    if(T->isCharacterType()) {
+    if (T->isCharacterType()) {
       Result.Assign(llvm::APInt(64, 1, true));
       return true;
     }
-    if(!T->isBuiltinType()) {
+    if (!T->isBuiltinType()) {
       Result.Assign(llvm::APInt(64, 4, true));
       return true;
     }
-    Result.Assign(llvm::APInt(64, Context.getTypeKindBitWidth(T->getBuiltinTypeKind())/8, true));
+    Result.Assign(llvm::APInt(
+        64, Context.getTypeKindBitWidth(T->getBuiltinTypeKind()) / 8, true));
     return true;
   }
   case intrinsic::BIT_SIZE: {
     auto T = Args[0]->getType().getSelfOrArrayElementType();
-    auto Val = T->isIntegerType()?
-                 Context.getTypeKindBitWidth(T->getBuiltinTypeKind()) : 1;
+    auto Val = T->isIntegerType()
+                   ? Context.getTypeKindBitWidth(T->getBuiltinTypeKind())
+                   : 1;
     Result.Assign(llvm::APInt(64, Val, true));
     return true;
   }
@@ -327,11 +328,11 @@ bool Expr::isEvaluatable(const ASTContext &Ctx) const {
   return EV.Eval(this);
 }
 
-void Expr::GatherNonEvaluatableExpressions(const ASTContext &Ctx,
-                                           SmallVectorImpl<const Expr*> &Result) {
+void Expr::GatherNonEvaluatableExpressions(
+    const ASTContext &Ctx, SmallVectorImpl<const Expr *> &Result) {
   ConstExprVerifier EV(&Result);
   EV.Eval(this);
-  if(Result.size() == 0)
+  if (Result.size() == 0)
     Result.push_back(this);
 }
 
@@ -341,16 +342,19 @@ uint64_t EvaluatedArraySpec::EvaluateOffset(int64_t Index) const {
   return uint64_t(I);
 }
 
-bool ArraySpec::Evaluate(EvaluatedArraySpec &Spec, const ASTContext &Ctx) const {
+bool ArraySpec::Evaluate(EvaluatedArraySpec &Spec,
+                         const ASTContext &Ctx) const {
   return false;
 }
 
-bool ExplicitShapeSpec::Evaluate(EvaluatedArraySpec &Spec, const ASTContext &Ctx) const {
-  if(getLowerBound()) {
-    if(!getLowerBound()->EvaluateAsInt(Spec.LowerBound, Ctx))
+bool ExplicitShapeSpec::Evaluate(EvaluatedArraySpec &Spec,
+                                 const ASTContext &Ctx) const {
+  if (getLowerBound()) {
+    if (!getLowerBound()->EvaluateAsInt(Spec.LowerBound, Ctx))
       return false;
-  } else Spec.LowerBound = 1;
-  if(!getUpperBound()->EvaluateAsInt(Spec.UpperBound, Ctx))
+  } else
+    Spec.LowerBound = 1;
+  if (!getUpperBound()->EvaluateAsInt(Spec.UpperBound, Ctx))
     return false;
   auto Sz = Spec.UpperBound - Spec.LowerBound + 1;
   assert(Sz > 0);
@@ -358,14 +362,13 @@ bool ExplicitShapeSpec::Evaluate(EvaluatedArraySpec &Spec, const ASTContext &Ctx
   return true;
 }
 
-static
-bool EvaluateDimensions(const ArrayType *T,
-                        llvm::MutableArrayRef<EvaluatedArraySpec> Dims,
-                        const ASTContext &Ctx) {
+static bool EvaluateDimensions(const ArrayType *T,
+                               llvm::MutableArrayRef<EvaluatedArraySpec> Dims,
+                               const ASTContext &Ctx) {
   assert(T->getDimensionCount() == Dims.size());
   auto Dimensions = T->getDimensions();
-  for(size_t I = 0; I < Dimensions.size(); ++I) {
-    if(!Dimensions[I]->Evaluate(Dims[I], Ctx))
+  for (size_t I = 0; I < Dimensions.size(); ++I) {
+    if (!Dimensions[I]->Evaluate(Dims[I], Ctx))
       return false;
   }
   return true;
@@ -375,16 +378,16 @@ bool ArrayElementExpr::EvaluateOffset(ASTContext &Ctx, uint64_t &Offset,
                                       const ExprEvalScope *Scope) const {
   auto ATy = getTarget()->getType()->asArrayType();
   SmallVector<EvaluatedArraySpec, 8> Dims(ATy->getDimensionCount());
-  if(!EvaluateDimensions(ATy, Dims, Ctx))
+  if (!EvaluateDimensions(ATy, Dims, Ctx))
     return false;
   auto Subscripts = getSubscripts();
   Offset = 0;
   uint64_t DimSizes = 0;
-  for(size_t I = 0; I < Dims.size(); ++I) {
+  for (size_t I = 0; I < Dims.size(); ++I) {
     int64_t Index;
-    if(!Subscripts[I]->EvaluateAsInt(Index, Ctx, Scope))
+    if (!Subscripts[I]->EvaluateAsInt(Index, Ctx, Scope))
       return false;
-    if(I == 0) {
+    if (I == 0) {
       Offset = Dims[I].EvaluateOffset(Index);
       DimSizes = Dims[I].Size;
     } else {
@@ -398,22 +401,25 @@ bool ArrayElementExpr::EvaluateOffset(ASTContext &Ctx, uint64_t &Offset,
 bool SubstringExpr::EvaluateRange(ASTContext &Ctx, uint64_t Len,
                                   uint64_t &Start, uint64_t &End,
                                   const ExprEvalScope *Scope) const {
-  if(StartingPoint) {
+  if (StartingPoint) {
     int64_t I;
-    if(!StartingPoint->EvaluateAsInt(I, Ctx, Scope))
+    if (!StartingPoint->EvaluateAsInt(I, Ctx, Scope))
       return false;
-    if(I < 1) return false;
+    if (I < 1)
+      return false;
     Start = I - 1;
-  } else Start = 0;
-  if(EndPoint) {
+  } else
+    Start = 0;
+  if (EndPoint) {
     int64_t I;
-    if(!EndPoint->EvaluateAsInt(I, Ctx, Scope))
+    if (!EndPoint->EvaluateAsInt(I, Ctx, Scope))
       return false;
-    if(I < 1 || (uint64_t)I > Len) return false;
+    if (I < 1 || (uint64_t)I > Len)
+      return false;
     End = I;
-  } else End = Len;
+  } else
+    End = Len;
   return true;
 }
-
 
 } // end namespace fort

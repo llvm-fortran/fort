@@ -13,24 +13,25 @@
 #ifndef LLVM_FORT_AST_DECLVISITOR_H
 #define LLVM_FORT_AST_DECLVISITOR_H
 
-#include "fort/Basic/MakePtr.h"
 #include "fort/AST/Decl.h"
+#include "fort/Basic/MakePtr.h"
 
 namespace fort {
 
 /// \brief A simple visitor class that helps create declaration visitors.
-template<template <typename> class Ptr, typename ImplClass, typename RetTy=void>
+template <template <typename> class Ptr, typename ImplClass,
+          typename RetTy = void>
 class DeclVisitorBase {
 public:
-
 #define PTR(CLASS) typename Ptr<CLASS>::type
-#define DISPATCH(NAME, CLASS) \
-  return static_cast<ImplClass*>(this)->Visit##NAME(static_cast<PTR(CLASS)>(D))
+#define DISPATCH(NAME, CLASS)                                                  \
+  return static_cast<ImplClass *>(this)->Visit##NAME(static_cast<PTR(CLASS)>(D))
 
   RetTy Visit(PTR(Decl) D) {
     switch (D->getKind()) {
-#define DECL(DERIVED, BASE) \
-      case Decl::DERIVED: DISPATCH(DERIVED##Decl, DERIVED##Decl);
+#define DECL(DERIVED, BASE)                                                    \
+  case Decl::DERIVED:                                                          \
+    DISPATCH(DERIVED##Decl, DERIVED##Decl);
 #define ABSTRACT_DECL(DECL)
 #include "fort/AST/DeclNodes.inc"
     }
@@ -39,20 +40,18 @@ public:
 
   // If the implementation chooses not to implement a certain visit
   // method, fall back to the parent.
-#define DECL(DERIVED, BASE) \
+#define DECL(DERIVED, BASE)                                                    \
   RetTy Visit##DERIVED##Decl(PTR(DERIVED##Decl) D) { DISPATCH(BASE, BASE); }
 #include "fort/AST/DeclNodes.inc"
 
   RetTy VisitDecl(PTR(Decl) D) { return RetTy(); }
 
-  RetTy Visit(PTR(DeclContext) D) {
-    DISPATCH(DeclContext, DeclContext);
-  }
+  RetTy Visit(PTR(DeclContext) D) { DISPATCH(DeclContext, DeclContext); }
 
   RetTy VisitDeclContext(PTR(DeclContext) Ctx) {
     auto I = Ctx->decls_begin();
-    for(auto E = Ctx->decls_end(); I!=E; ++I) {
-      if((*I)->getDeclContext() == Ctx)
+    for (auto E = Ctx->decls_end(); I != E; ++I) {
+      if ((*I)->getDeclContext() == Ctx)
         Visit(*I);
     }
     return RetTy();
@@ -66,17 +65,16 @@ public:
 ///
 /// This class does not preserve constness of Decl pointers (see also
 /// ConstDeclVisitor).
-template<typename ImplClass, typename RetTy=void>
-class DeclVisitor
- : public DeclVisitorBase<make_ptr, ImplClass, RetTy> {};
+template <typename ImplClass, typename RetTy = void>
+class DeclVisitor : public DeclVisitorBase<make_ptr, ImplClass, RetTy> {};
 
 /// \brief A simple visitor class that helps create declaration visitors.
 ///
 /// This class preserves constness of Decl pointers (see also DeclVisitor).
-template<typename ImplClass, typename RetTy=void>
+template <typename ImplClass, typename RetTy = void>
 class ConstDeclVisitor
- : public DeclVisitorBase<make_const_ptr, ImplClass, RetTy> {};
+    : public DeclVisitorBase<make_const_ptr, ImplClass, RetTy> {};
 
-}  // end namespace fort
+} // end namespace fort
 
 #endif

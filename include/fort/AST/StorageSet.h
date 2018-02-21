@@ -34,15 +34,17 @@ public:
 
 private:
   StorageSetClass ID;
+
 protected:
   StorageSet(StorageSetClass Class) : ID(Class) {}
-public:
 
+public:
   StorageSetClass getStorageSetClass() const { return ID; }
-  static bool classof(const StorageSet*) { return true; }
+  static bool classof(const StorageSet *) { return true; }
 };
 
-/// EquivalenceSet - Contains a set of objects which share the same memory block.
+/// EquivalenceSet - Contains a set of objects which share the same memory
+/// block.
 class EquivalenceSet : public StorageSet {
 public:
   class Object {
@@ -51,8 +53,7 @@ public:
     const Expr *E;
 
     Object() {}
-    Object(VarDecl *var, const Expr *e)
-      : Var(var), E(e) {}
+    Object(VarDecl *var, const Expr *e) : Var(var), E(e) {}
   };
 
 private:
@@ -60,15 +61,15 @@ private:
   unsigned ObjectCount;
 
   EquivalenceSet(ASTContext &C, ArrayRef<Object> objects);
-public:
 
+public:
   static EquivalenceSet *Create(ASTContext &C, ArrayRef<Object> Objects);
 
   ArrayRef<Object> getObjects() const {
     return ArrayRef<Object>(Objects, ObjectCount);
   }
 
-  static bool classof(const StorageSet* S) {
+  static bool classof(const StorageSet *S) {
     return S->getStorageSetClass() == EquivalenceSetClass;
   }
 };
@@ -83,8 +84,7 @@ public:
     EquivalenceSet *Equiv;
 
     Object() {}
-    Object(VarDecl *V)
-      : Var(V), Equiv(nullptr) {}
+    Object(VarDecl *V) : Var(V), Equiv(nullptr) {}
   };
 
 private:
@@ -93,8 +93,8 @@ private:
   CommonBlockDecl *Decl;
 
   CommonBlockSet(CommonBlockDecl *CBDecl);
-public:
 
+public:
   static CommonBlockSet *Create(fort::ASTContext &C, CommonBlockDecl *CBDecl);
 
   void setObjects(ASTContext &C, ArrayRef<Object> objects);
@@ -103,15 +103,13 @@ public:
     return ArrayRef<Object>(Objects, ObjectCount);
   }
 
-  CommonBlockDecl *getDecl() const {
-    return Decl;
-  }
+  CommonBlockDecl *getDecl() const { return Decl; }
 
-  static bool classof(const StorageSet* S) {
+  static bool classof(const StorageSet *S) {
     return S->getStorageSetClass() == CommonBlockSetClass;
   }
 };
 
-} // end fort namespace
+} // namespace fort
 
 #endif

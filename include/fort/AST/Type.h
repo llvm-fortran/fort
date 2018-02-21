@@ -14,60 +14,55 @@
 #ifndef FORT_TYPE_H__
 #define FORT_TYPE_H__
 
-#include "fort/Basic/Specifiers.h"
 #include "fort/Basic/Diagnostic.h"
+#include "fort/Basic/LLVM.h"
+#include "fort/Basic/Specifiers.h"
 #include "fort/Sema/Ownership.h"
-#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/APSInt.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/FoldingSet.h"
 #include "llvm/ADT/PointerUnion.h"
 #include "llvm/ADT/SmallVector.h"
-#include "fort/Basic/LLVM.h"
 
 namespace llvm {
-  class raw_ostream;
-} // end llvm namespace
+class raw_ostream;
+} // namespace llvm
 
 namespace fort {
-  enum {
-    TypeAlignmentInBits = 4,
-    TypeAlignment = 1 << TypeAlignmentInBits
-  };
+enum { TypeAlignmentInBits = 4, TypeAlignment = 1 << TypeAlignmentInBits };
 
-  class Type;
-  class ExtQuals;
-  class QualType;
-  class BuiltinType;
-  class CharacterType;
-  class FunctionType;
-  class RecordType;
-}
+class Type;
+class ExtQuals;
+class QualType;
+class BuiltinType;
+class CharacterType;
+class FunctionType;
+class RecordType;
+} // namespace fort
 
 namespace llvm {
-  template <typename T>
-  struct PointerLikeTypeTraits;
-  template<>
-  struct PointerLikeTypeTraits< ::fort::Type*> {
-  public:
-    static inline void *getAsVoidPointer(::fort::Type *P) { return P; }
-    static inline ::fort::Type *getFromVoidPointer(void *P) {
-      return static_cast< ::fort::Type*>(P);
-    }
-    enum { NumLowBitsAvailable = fort::TypeAlignmentInBits };
-  };
-  template<>
-  struct PointerLikeTypeTraits< ::fort::ExtQuals*> {
-  public:
-    static inline void *getAsVoidPointer(::fort::ExtQuals *P) { return P; }
-    static inline ::fort::ExtQuals *getFromVoidPointer(void *P) {
-      return static_cast< ::fort::ExtQuals*>(P);
-    }
-    enum { NumLowBitsAvailable = fort::TypeAlignmentInBits };
-  };
+template <typename T> struct PointerLikeTypeTraits;
+template <> struct PointerLikeTypeTraits<::fort::Type *> {
+public:
+  static inline void *getAsVoidPointer(::fort::Type *P) { return P; }
+  static inline ::fort::Type *getFromVoidPointer(void *P) {
+    return static_cast<::fort::Type *>(P);
+  }
+  enum { NumLowBitsAvailable = fort::TypeAlignmentInBits };
+};
+template <> struct PointerLikeTypeTraits<::fort::ExtQuals *> {
+public:
+  static inline void *getAsVoidPointer(::fort::ExtQuals *P) { return P; }
+  static inline ::fort::ExtQuals *getFromVoidPointer(void *P) {
+    return static_cast<::fort::ExtQuals *>(P);
+  }
+  enum { NumLowBitsAvailable = fort::TypeAlignmentInBits };
+};
 
-  template <>
-  struct isPodLike<fort::QualType> { static const bool value = true; };
-}
+template <> struct isPodLike<fort::QualType> {
+  static const bool value = true;
+};
+} // namespace llvm
 
 namespace fort {
 
@@ -118,9 +113,9 @@ public:
 
   enum TQ { // NOTE: These flags must be kept in sync with DeclSpec::TQ.
     Allocatable = 1 << 0,
-    Parameter   = 1 << 1,
-    Volatile    = 1 << 2,
-    APVMask     = (Allocatable | Parameter | Volatile)
+    Parameter = 1 << 1,
+    Volatile = 1 << 2,
+    APVMask = (Allocatable | Parameter | Volatile)
   };
 
   enum {
@@ -133,6 +128,7 @@ public:
     /// The fast qualifier mask.
     FastMask = (1 << FastWidth) - 1
   };
+
 private:
   // bits: |0  ...  14|15..17|18..19|20   ..   31|
   //       |Attributes|Intent|Access|AddressSpace|
@@ -146,7 +142,8 @@ private:
   static const uint32_t AccessAttrMask = 0x3 << AccessAttrShift;
   static const uint32_t AddressSpaceShift = 20;
   static const uint32_t AddressSpaceMask =
-    ~(AttrSpecMask | IntentAttrMask | AccessAttrMask);
+      ~(AttrSpecMask | IntentAttrMask | AccessAttrMask);
+
 public:
   Qualifiers() : Mask(0) {}
 
@@ -164,14 +161,10 @@ public:
   }
 
   // Serialize these qualifiers into an opaque representation.
-  unsigned getAsOpaqueValue() const {
-    return Mask;
-  }
+  unsigned getAsOpaqueValue() const { return Mask; }
 
   /// General attributes.
-  bool hasAttributeSpec(AS A) const {
-    return (Mask & AttrSpecMask) & A;
-  }
+  bool hasAttributeSpec(AS A) const { return (Mask & AttrSpecMask) & A; }
   bool hasAttributeSpecs() const { return Mask & AttrSpecMask; }
   unsigned getAttributeSpecs() const {
     return (Mask & AttrSpecMask) >> AttrSpecShift;
@@ -217,8 +210,8 @@ public:
   unsigned getAddressSpace() const { return Mask >> AddressSpaceShift; }
   void setAddressSpace(unsigned space) {
     assert(space <= MaxAddressSpace);
-    Mask = (Mask & ~AddressSpaceMask)
-         | (((uint32_t) space) << AddressSpaceShift);
+    Mask =
+        (Mask & ~AddressSpaceMask) | (((uint32_t)space) << AddressSpaceShift);
   }
   void removeAddressSpace() { setAddressSpace(0); }
   void addAddressSpace(unsigned space) {
@@ -250,10 +243,10 @@ public:
   /// \brief Add the qualifiers from the given set to this set, given that
   /// they don't conflict.
   void addConsistentQualifiers(Qualifiers qs) {
-    assert(getAddressSpace() == qs.getAddressSpace() ||
-           !hasAddressSpace() || !qs.hasAddressSpace());
-    assert(getIntentAttr() == qs.getIntentAttr() ||
-           !hasIntentAttr() || !qs.hasIntentAttr());
+    assert(getAddressSpace() == qs.getAddressSpace() || !hasAddressSpace() ||
+           !qs.hasAddressSpace());
+    assert(getIntentAttr() == qs.getIntentAttr() || !hasIntentAttr() ||
+           !qs.hasIntentAttr());
     assert(getAttributeSpecs() == qs.getAttributeSpecs() ||
            !hasAttributeSpecs() || !qs.hasAttributeSpecs());
     Mask |= qs.Mask;
@@ -287,44 +280,42 @@ public:
     return L;
   }
 
-  void Profile(llvm::FoldingSetNodeID &ID) const {
-    ID.AddInteger(Mask);
-  }
+  void Profile(llvm::FoldingSetNodeID &ID) const { ID.AddInteger(Mask); }
 };
 
-typedef std::pair<const Type*, Qualifiers> SplitQualType;
+typedef std::pair<const Type *, Qualifiers> SplitQualType;
 
 /// QualType - For efficiency, some of the more common attributes are stored as
 /// part of the type.
 class QualType {
   // Thankfully, these are efficiently composable.
-  llvm::PointerIntPair<llvm::PointerUnion<const Type*, const ExtQuals*>,
-                       Qualifiers::FastWidth> Value;
+  llvm::PointerIntPair<llvm::PointerUnion<const Type *, const ExtQuals *>,
+                       Qualifiers::FastWidth>
+      Value;
 
   const ExtQuals *getExtQualsUnsafe() const {
-    return Value.getPointer().get<const ExtQuals*>();
+    return Value.getPointer().get<const ExtQuals *>();
   }
 
   const Type *getTypePtrUnsafe() const {
-    return Value.getPointer().get<const Type*>();
+    return Value.getPointer().get<const Type *>();
   }
 
   const ExtQualsTypeCommonBase *getCommonPtr() const {
     assert(!isNull() && "Cannot retrieve a NULL type pointer");
-    uintptr_t CommonPtrVal
-      = reinterpret_cast<uintptr_t>(Value.getOpaqueValue());
+    uintptr_t CommonPtrVal =
+        reinterpret_cast<uintptr_t>(Value.getOpaqueValue());
     CommonPtrVal &= ~(uintptr_t)((1 << TypeAlignmentInBits) - 1);
-    return reinterpret_cast<ExtQualsTypeCommonBase*>(CommonPtrVal);
+    return reinterpret_cast<ExtQualsTypeCommonBase *>(CommonPtrVal);
   }
 
   friend class QualifierCollector;
+
 public:
   QualType() {}
 
-  explicit QualType(const Type *Ptr, unsigned Quals)
-    : Value(Ptr, Quals) {}
-  explicit QualType(const ExtQuals *Ptr, unsigned Quals)
-    : Value(Ptr, Quals) {}
+  explicit QualType(const Type *Ptr, unsigned Quals) : Value(Ptr, Quals) {}
+  explicit QualType(const ExtQuals *Ptr, unsigned Quals) : Value(Ptr, Quals) {}
 
   unsigned getLocalFastQualifiers() const { return Value.getInt(); }
   void setLocalFastQualifiers(unsigned Quals) { Value.setInt(Quals); }
@@ -340,9 +331,7 @@ public:
   SplitQualType split() const;
 
   /// \brief Returns the qualifiers for this type has.
-  Qualifiers getQualifiers() const {
-    return split().second;
-  }
+  Qualifiers getQualifiers() const { return split().second; }
 
   /// \brief Returns true if this type has the given attribute spec.
   bool hasAttributeSpec(Qualifiers::AS A) const {
@@ -353,13 +342,13 @@ public:
 
   static QualType getFromOpaquePtr(const void *Ptr) {
     QualType T;
-    T.Value.setFromOpaqueValue(const_cast<void*>(Ptr));
+    T.Value.setFromOpaqueValue(const_cast<void *>(Ptr));
     return T;
   }
 
   void addFastQualifiers(unsigned TQs) {
-    assert(!(TQs & ~Qualifiers::FastMask)
-           && "Non-fast qualifier bits set in mask!");
+    assert(!(TQs & ~Qualifiers::FastMask) &&
+           "Non-fast qualifier bits set in mask!");
     Value.setInt(Value.getInt() | TQs);
   }
 
@@ -381,29 +370,23 @@ public:
   /// "non-fast" qualifiers, e.g., those that are stored in an ExtQualType
   /// instance.
   bool hasLocalNonFastQualifiers() const {
-    return Value.getPointer().is<const ExtQuals*>();
+    return Value.getPointer().is<const ExtQuals *>();
   }
 
   bool isCanonical() const;
 
   /// isNull - Return true if this QualType doesn't point to a type yet.
-  bool isNull() const {
-    return Value.getPointer().isNull();
-  }
+  bool isNull() const { return Value.getPointer().isNull(); }
 
   /// \brief Determine whether this particular QualType instance has any
-  /// qualifiers, without looking through any typedefs that might add 
+  /// qualifiers, without looking through any typedefs that might add
   /// qualifiers at a different level.
   bool hasLocalQualifiers() const {
     return getLocalFastQualifiers() || hasLocalNonFastQualifiers();
   }
 
-  const Type &operator*() const {
-    return *getTypePtr();
-  }
-  const Type *operator->() const {
-    return getTypePtr();
-  }
+  const Type &operator*() const { return *getTypePtr(); }
+  const Type *operator->() const { return getTypePtr(); }
 
   /// operator==/!= - Indicate whether the specified types and qualifiers are
   /// identical.
@@ -422,24 +405,24 @@ public:
   }
 };
 
-} // end fort namespace
+} // namespace fort
 
 namespace llvm {
 
 /// Implement simplify_type for QualType, so that we can dyn_cast from QualType
 /// to a specific Type class.
-template<> struct simplify_type<const ::fort::QualType> {
+template <> struct simplify_type<const ::fort::QualType> {
   typedef const ::fort::Type *SimpleType;
   static SimpleType getSimplifiedValue(const ::fort::QualType &Val) {
     return Val.getTypePtr();
   }
 };
-template<> struct simplify_type< ::fort::QualType>
-  : public simplify_type<const ::fort::QualType> {};
+template <>
+struct simplify_type<::fort::QualType>
+    : public simplify_type<const ::fort::QualType> {};
 
 // Teach SmallPtrSet that QualType is "basically a pointer".
-template<>
-struct PointerLikeTypeTraits<fort::QualType> {
+template <> struct PointerLikeTypeTraits<fort::QualType> {
 public:
   static inline void *getAsVoidPointer(fort::QualType P) {
     return P.getAsOpaquePtr();
@@ -455,18 +438,18 @@ public:
 
 namespace fort {
 
-/// \brief Base class that is common to both the \c ExtQuals and \c Type 
+/// \brief Base class that is common to both the \c ExtQuals and \c Type
 /// classes, which allows \c QualType to access the common fields between the
 /// two.
 ///
 class ExtQualsTypeCommonBase {
   ExtQualsTypeCommonBase(const Type *BaseTy, QualType Canon)
-    : BaseType(BaseTy), CanonicalType(Canon) {}
+      : BaseType(BaseTy), CanonicalType(Canon) {}
 
   /// \brief The "base" type of an extended qualifiers type (\c ExtQuals) or
   /// a self-referential pointer (for \c Type).
   ///
-  /// This pointer allows an efficient mapping from a QualType to its 
+  /// This pointer allows an efficient mapping from a QualType to its
   /// underlying type pointer.
   const Type *const BaseType;
 
@@ -501,8 +484,8 @@ public:
   };
 
 private:
-  Type(const Type&);           // DO NOT IMPLEMENT.
-  void operator=(const Type&); // DO NOT IMPLEMENT.
+  Type(const Type &);           // DO NOT IMPLEMENT.
+  void operator=(const Type &); // DO NOT IMPLEMENT.
 
 protected:
   /// TypeClass bitfield - Enum that specifies what subclass this belongs to.
@@ -516,13 +499,14 @@ protected:
 
   Type *this_() { return this; }
   Type(TypeClass TC, QualType Canon)
-    : ExtQualsTypeCommonBase(this,
-                             Canon.isNull() ? QualType(this_(), 0) : Canon) {
+      : ExtQualsTypeCommonBase(this,
+                               Canon.isNull() ? QualType(this_(), 0) : Canon) {
     TypeBitsTC = TC;
     BuiltinTypeBitsKind = NoKind;
   }
 
   friend class ASTContext;
+
 public:
   TypeClass getTypeClass() const { return TypeClass(TypeBitsTC); }
 
@@ -532,9 +516,7 @@ public:
     return CanonicalType == QualType(this, 0);
   }
 
-  QualType getCanonicalTypeInternal() const {
-    return CanonicalType;
-  }
+  QualType getCanonicalTypeInternal() const { return CanonicalType; }
 
   /// Helper methods to distinguish type categories. All type predicates
   /// operate on the canonical type ignoring qualifiers.
@@ -569,9 +551,8 @@ public:
 /// VoidType
 class VoidType : public Type {
 protected:
-  friend class ASTContext;      // ASTContext creates these.
-  VoidType()
-    : Type(Void, QualType()) {}
+  friend class ASTContext; // ASTContext creates these.
+  VoidType() : Type(Void, QualType()) {}
 
 public:
   static bool classof(const Type *T) { return T->getTypeClass() == Void; }
@@ -590,18 +571,18 @@ public:
   };
 
 private:
-  friend class ASTContext;      // ASTContext creates these.
-  BuiltinType(TypeSpec TS, TypeKind K,
-              bool IsKindSpecified,
-              bool IsDoublePrecisionKindSpecified,
-              bool IsByteKindSpecified)
-    : Type(Builtin, QualType()) {
+  friend class ASTContext; // ASTContext creates these.
+  BuiltinType(TypeSpec TS, TypeKind K, bool IsKindSpecified,
+              bool IsDoublePrecisionKindSpecified, bool IsByteKindSpecified)
+      : Type(Builtin, QualType()) {
     BuiltinTypeBitsSpec = TS;
     BuiltinTypeBitsKind = K;
-    BuiltinTypeKindSpecified = IsKindSpecified? 1: 0;
-    BuiltinTypeDoublePrecisionKindSpecified = IsDoublePrecisionKindSpecified? 1: 0;
-    BuiltinTypeByteKindSpecified = IsByteKindSpecified? 1: 0;
+    BuiltinTypeKindSpecified = IsKindSpecified ? 1 : 0;
+    BuiltinTypeDoublePrecisionKindSpecified =
+        IsDoublePrecisionKindSpecified ? 1 : 0;
+    BuiltinTypeByteKindSpecified = IsByteKindSpecified ? 1 : 0;
   }
+
 public:
   TypeSpec getTypeSpec() const { return TypeSpec(BuiltinTypeBitsSpec); }
 
@@ -613,19 +594,11 @@ public:
     return BuiltinTypeDoublePrecisionKindSpecified != 0;
   }
 
-  bool isByteKindSpecified() const {
-    return BuiltinTypeByteKindSpecified != 0;
-  }
+  bool isByteKindSpecified() const { return BuiltinTypeByteKindSpecified != 0; }
 
-  bool isIntegerType() const {
-    return getTypeSpec() == Integer;
-  }
-  bool isRealType() const {
-    return getTypeSpec() == Real;
-  }
-  bool isComplexType() const {
-    return getTypeSpec() == Complex;
-  }
+  bool isIntegerType() const { return getTypeSpec() == Integer; }
+  bool isRealType() const { return getTypeSpec() == Real; }
+  bool isComplexType() const { return getTypeSpec() == Complex; }
   bool isIntegerOrRealType() const {
     auto Spec = getTypeSpec();
     return Spec == Integer || Spec == Real;
@@ -643,14 +616,11 @@ public:
 
   void Profile(llvm::FoldingSetNodeID &ID) {
     Profile(ID, getTypeSpec(), getBuiltinTypeKind(),
-            isKindExplicitlySpecified(),
-            isDoublePrecisionKindSpecified(),
+            isKindExplicitlySpecified(), isDoublePrecisionKindSpecified(),
             isByteKindSpecified());
   }
-  static void Profile(llvm::FoldingSetNodeID &ID,
-                      TypeSpec Spec, TypeKind Kind,
-                      bool KindSpecified,
-                      bool DoublePrecisionKindSpecified,
+  static void Profile(llvm::FoldingSetNodeID &ID, TypeSpec Spec, TypeKind Kind,
+                      bool KindSpecified, bool DoublePrecisionKindSpecified,
                       bool ByteKindSpecified) {
     ID.AddInteger(Spec);
     ID.AddInteger(Kind);
@@ -668,22 +638,14 @@ class CharacterType : public Type, public llvm::FoldingSetNode {
   uint64_t Length;
 
   friend class ASTContext;
-  CharacterType(uint64_t Len)
-    : Type(Character, QualType()), Length(Len) {}
+  CharacterType(uint64_t Len) : Type(Character, QualType()), Length(Len) {}
+
 public:
+  bool hasLength() const { return Length != 0; }
+  uint64_t getLength() const { return Length; }
 
-  bool hasLength() const {
-    return Length != 0;
-  }
-  uint64_t getLength() const {
-    return Length;
-  }
-
-  void Profile(llvm::FoldingSetNodeID &ID) {
-    Profile(ID, Length);
-  }
-  static void Profile(llvm::FoldingSetNodeID &ID,
-                      uint64_t Length) {
+  void Profile(llvm::FoldingSetNodeID &ID) { Profile(ID, Length); }
+  static void Profile(llvm::FoldingSetNodeID &ID, uint64_t Length) {
     ID.AddInteger(Length);
   }
 
@@ -693,11 +655,12 @@ public:
 
 /// PointerType - Allocatable types.
 class PointerType : public Type, public llvm::FoldingSetNode {
-  const Type *BaseType;     //< The type of the object pointed to.
+  const Type *BaseType; //< The type of the object pointed to.
   unsigned NumDims;
-  friend class ASTContext;  // ASTContext creates these.
+  friend class ASTContext; // ASTContext creates these.
   PointerType(const Type *BaseTy, unsigned Dims)
-    : Type(Pointer, QualType()), BaseType(BaseTy), NumDims(Dims) {}
+      : Type(Pointer, QualType()), BaseType(BaseTy), NumDims(Dims) {}
+
 public:
   const Type *getPointeeType() const { return BaseType; }
   unsigned getNumDimensions() const { return NumDims; }
@@ -725,40 +688,35 @@ private:
   QualType ElementType;
   ArraySpec **Dims;
   unsigned DimCount;
+
 protected:
   ArrayType(TypeClass tc, QualType et, QualType can)
-    : Type(tc, can), ElementType(et),
-      Dims(nullptr), DimCount(0) {}
-  ArrayType(ASTContext &C, TypeClass tc,
-            QualType et, QualType can,
-            ArrayRef<ArraySpec*> dims);
+      : Type(tc, can), ElementType(et), Dims(nullptr), DimCount(0) {}
+  ArrayType(ASTContext &C, TypeClass tc, QualType et, QualType can,
+            ArrayRef<ArraySpec *> dims);
 
-  friend class ASTContext;  // ASTContext creates these.
+  friend class ASTContext; // ASTContext creates these.
 public:
-
   static ArrayType *Create(ASTContext &C, QualType ElemTy,
-                           ArrayRef<ArraySpec*> Dims);
+                           ArrayRef<ArraySpec *> Dims);
 
   QualType getElementType() const { return ElementType; }
 
-  typedef ArraySpec**       dim_iterator;
+  typedef ArraySpec **dim_iterator;
 
   dim_iterator begin() const { return Dims; }
-  dim_iterator end()   const { return Dims + DimCount; }
+  dim_iterator end() const { return Dims + DimCount; }
   size_t getDimensionCount() const { return DimCount; }
-  ArrayRef<ArraySpec*> getDimensions() const {
-    return ArrayRef<ArraySpec*>(Dims, DimCount);
+  ArrayRef<ArraySpec *> getDimensions() const {
+    return ArrayRef<ArraySpec *>(Dims, DimCount);
   }
 
   /// EvaluateSize - Return true if the size of this array is a constant.
   bool EvaluateSize(uint64_t &Result, const ASTContext &Ctx) const;
 
-  void Profile(llvm::FoldingSetNodeID &ID) const {
-  }
+  void Profile(llvm::FoldingSetNodeID &ID) const {}
 
-  static bool classof(const Type *T) {
-    return T->getTypeClass() == Array;
-  }
+  static bool classof(const Type *T) { return T->getTypeClass() == Array; }
   static bool classof(const ArrayType *) { return true; }
 };
 
@@ -769,23 +727,17 @@ private:
   const FunctionDecl *Prototype;
   FunctionType(TypeClass tc, QualType can, QualType Result,
                const FunctionDecl *Proto)
-    : Type(tc, can), ResultType(Result), Prototype(Proto) {}
-public:
+      : Type(tc, can), ResultType(Result), Prototype(Proto) {}
 
+public:
   static FunctionType *Create(ASTContext &C, QualType ResultType,
                               const FunctionDecl *Prototype = nullptr);
 
-  QualType getReturnType() const {
-    return ResultType;
-  }
+  QualType getReturnType() const { return ResultType; }
 
-  const FunctionDecl *getPrototype() const {
-    return Prototype;
-  }
+  const FunctionDecl *getPrototype() const { return Prototype; }
 
-  bool hasPrototype() const {
-    return Prototype != nullptr;
-  }
+  bool hasPrototype() const { return Prototype != nullptr; }
 
   void Profile(llvm::FoldingSetNodeID &ID) const {
     Profile(ID, ResultType, Prototype);
@@ -796,43 +748,37 @@ public:
     ID.AddPointer(Proto);
   }
 
-
-  static bool classof(const Type *T) {
-    return T->getTypeClass() == Function;
-  }
+  static bool classof(const Type *T) { return T->getTypeClass() == Function; }
   static bool classof(const FunctionType *) { return true; }
 };
 
 /// RecordType - Record types.
 class RecordType : public Type, public llvm::FoldingSetNode {
   const RecordDecl *RecDecl;
-  FieldDecl** Elems;
+  FieldDecl **Elems;
   unsigned ElemCount;
 
 protected:
-  friend class ASTContext;  // ASTContext creates these.
-  RecordType(ASTContext &C, const RecordDecl *RD, ArrayRef<FieldDecl*> Elements);
-public:
+  friend class ASTContext; // ASTContext creates these.
+  RecordType(ASTContext &C, const RecordDecl *RD,
+             ArrayRef<FieldDecl *> Elements);
 
+public:
   FieldDecl *getElement(unsigned Idx) const { return Elems[Idx]; }
 
-  ArrayRef<FieldDecl*> getElements() const {
-    return ArrayRef<FieldDecl*>(Elems,ElemCount);
+  ArrayRef<FieldDecl *> getElements() const {
+    return ArrayRef<FieldDecl *>(Elems, ElemCount);
   }
 
-  unsigned getElementCount() const {
-    return ElemCount;
-  }
+  unsigned getElementCount() const { return ElemCount; }
 
-  const RecordDecl *getDecl() const {
-    return RecDecl;
-  }
+  const RecordDecl *getDecl() const { return RecDecl; }
 
   void Profile(llvm::FoldingSetNodeID &ID) {
     Profile(ID, RecDecl, getElements());
   }
   static void Profile(llvm::FoldingSetNodeID &ID, const RecordDecl *RecDecl,
-                      ArrayRef<FieldDecl*> Elems) {
+                      ArrayRef<FieldDecl *> Elems) {
     ID.AddPointer(RecDecl);
     for (auto I : Elems)
       ID.AddPointer(I);
@@ -855,10 +801,9 @@ class ExtQuals : public ExtQualsTypeCommonBase, public llvm::FoldingSetNode {
 
 public:
   ExtQuals(const Type *BaseTy, QualType Canon, Qualifiers Quals)
-    : ExtQualsTypeCommonBase(BaseTy,
-                             Canon.isNull() ? QualType(this_(), 0) : Canon),
-      Quals(Quals)
-  {}
+      : ExtQualsTypeCommonBase(BaseTy,
+                               Canon.isNull() ? QualType(this_(), 0) : Canon),
+        Quals(Quals) {}
 
   Qualifiers getQualifiers() const { return Quals; }
 
@@ -876,8 +821,8 @@ public:
   void Profile(llvm::FoldingSetNodeID &ID) const {
     Profile(ID, getBaseType(), Quals);
   }
-  static void Profile(llvm::FoldingSetNodeID &ID,
-                      const Type *BaseType, Qualifiers Quals) {
+  static void Profile(llvm::FoldingSetNodeID &ID, const Type *BaseType,
+                      Qualifiers Quals) {
     ID.AddPointer(BaseType);
     Quals.Profile(ID);
   }
@@ -895,7 +840,7 @@ public:
     addFastQualifiers(type.getLocalFastQualifiers());
     if (!type.hasLocalNonFastQualifiers())
       return type.getTypePtrUnsafe();
-      
+
     const ExtQuals *extQuals = type.getExtQualsUnsafe();
     addConsistentQualifiers(extQuals->getQualifiers());
     return extQuals->getBaseType();
@@ -905,7 +850,7 @@ public:
   QualType apply(const ASTContext &Context, QualType QT) const;
 
   /// Apply the collected qualifiers to the given type.
-  QualType apply(const ASTContext &Context, const Type* T) const;
+  QualType apply(const ASTContext &Context, const Type *T) const;
 };
 
 // Inline function definitions.
@@ -935,14 +880,12 @@ inline QualType QualType::getCanonicalType() const {
 }
 
 inline QualType QualType::getSelfOrArrayElementType() const {
-  if(auto ATy = getTypePtr()->asArrayType())
+  if (auto ATy = getTypePtr()->asArrayType())
     return ATy->getElementType();
   return *this;
 }
 
-inline bool Type::isVoidType() const {
-  return isa<VoidType>(CanonicalType);
-}
+inline bool Type::isVoidType() const { return isa<VoidType>(CanonicalType); }
 inline bool Type::isBuiltinType() const {
   return isa<BuiltinType>(CanonicalType);
 }
@@ -978,17 +921,15 @@ inline bool Type::isCharacterType() const {
 inline const CharacterType *Type::asCharacterType() const {
   return dyn_cast<CharacterType>(CanonicalType);
 }
-inline bool Type::isArrayType() const {
-  return isa<ArrayType>(CanonicalType);
-}
+inline bool Type::isArrayType() const { return isa<ArrayType>(CanonicalType); }
 inline bool Type::isArrayOfCharacterType() const {
-  if(const ArrayType *AT = dyn_cast<ArrayType>(CanonicalType)) {
+  if (const ArrayType *AT = dyn_cast<ArrayType>(CanonicalType)) {
     return AT->getElementType()->isCharacterType();
   }
   return false;
 }
 inline const ArrayType *Type::asArrayType() const {
-  if(const ArrayType *AT = dyn_cast<ArrayType>(CanonicalType)) {
+  if (const ArrayType *AT = dyn_cast<ArrayType>(CanonicalType)) {
     return AT;
   }
   return 0;
@@ -1017,6 +958,6 @@ inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB,
   return DB;
 }
 
-} // end fort namespace
+} // namespace fort
 
 #endif

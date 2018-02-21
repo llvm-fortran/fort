@@ -24,9 +24,9 @@
 #include <vector>
 
 namespace llvm {
-  template <typename T> class ArrayRef;
-  struct fltSemantics;
-} // end llvm namespace
+template <typename T> class ArrayRef;
+struct fltSemantics;
+} // namespace llvm
 
 namespace fort {
 
@@ -42,13 +42,13 @@ class TargetInfo;
 class ASTContext : public llvm::RefCountedBase<ASTContext> {
   ASTContext &this_() { return *this; }
 
-  mutable std::vector<Type*>            Types;
-  mutable llvm::FoldingSet<ExtQuals>    ExtQualNodes;
+  mutable std::vector<Type *> Types;
+  mutable llvm::FoldingSet<ExtQuals> ExtQualNodes;
   mutable llvm::FoldingSet<BuiltinType> BuiltinTypes;
   mutable llvm::FoldingSet<CharacterType> CharTypes;
   mutable llvm::FoldingSet<PointerType> PointerTypes;
-  mutable llvm::FoldingSet<ArrayType>   ArrayTypes;
-  mutable llvm::FoldingSet<RecordType>  RecordTypes;
+  mutable llvm::FoldingSet<ArrayType> ArrayTypes;
+  mutable llvm::FoldingSet<RecordType> RecordTypes;
   mutable llvm::FoldingSet<FunctionType> FunctionTypes;
 
   /// \brief The allocator used to create AST objects.
@@ -86,10 +86,10 @@ public:
     return BumpAlloc.Allocate(Size, Align);
   }
   void Deallocate(void *Ptr, size_t size) const {
-    BumpAlloc.Deallocate((const void*) Ptr, size);
+    BumpAlloc.Deallocate((const void *)Ptr, size);
   }
 
-  const LangOptions& getLangOpts() const { return LanguageOptions; }
+  const LangOptions &getLangOpts() const { return LanguageOptions; }
 
   // Builtin Types: [R404]
   QualType VoidTy;
@@ -126,30 +126,33 @@ public:
   QualType getQualTypeOtherKind(QualType Type, QualType KindType);
   QualType getTypeWithQualifers(QualType Type, Qualifiers Quals);
 
-  /// getBuiltinType - Return the unique reference for the specified builtin type.
+  /// getBuiltinType - Return the unique reference for the specified builtin
+  /// type.
   BuiltinType *getBuiltinType(BuiltinType::TypeSpec TS,
                               BuiltinType::TypeKind Kind,
                               bool IsKindExplicitlySpecified = false,
                               bool IsDoublePrecisionKindSpecified = false,
                               bool IsByteKindSpecified = false);
 
-  /// getComplexTypeElementType - Returns the type of an element in a complex pair.
+  /// getComplexTypeElementType - Returns the type of an element in a complex
+  /// pair.
   QualType getComplexTypeElementType(QualType Type);
 
   /// getComplexType - Returns the unique reference for a complex type
   /// with a given element type.
   QualType getComplexType(QualType ElementType);
 
-  /// getCharacterType - Return the unique reference for the specified character type.
+  /// getCharacterType - Return the unique reference for the specified character
+  /// type.
   CharacterType *getCharacterType(uint64_t Length) const;
 
   /// getPointerType - Return the uniqued reference to the type for a pointer to
   /// the specified type.
   PointerType *getPointerType(const Type *Ty, unsigned NumDims);
 
-  /// getArrayType - Return a non-unique reference to the type for an array of the
-  /// specified element type.
-  QualType getArrayType(QualType EltTy, ArrayRef<ArraySpec*> Dims);
+  /// getArrayType - Return a non-unique reference to the type for an array of
+  /// the specified element type.
+  QualType getArrayType(QualType EltTy, ArrayRef<ArraySpec *> Dims);
 
   /// getFunctionType - Return the unique reference to the type for an array of
   /// the specified function protototype.
@@ -165,10 +168,10 @@ public:
 
   /// getTypeDeclType - Return the unique reference to the type for
   /// the specified type declaration.
-  QualType getTypeDeclType(const TypeDecl *Decl,
-                           const TypeDecl *PrevDecl = 0) {
+  QualType getTypeDeclType(const TypeDecl *Decl, const TypeDecl *PrevDecl = 0) {
     assert(Decl && "Passed null for Decl param");
-    if (Decl->TypeForDecl) return QualType(Decl->TypeForDecl, 0);
+    if (Decl->TypeForDecl)
+      return QualType(Decl->TypeForDecl, 0);
 
     if (PrevDecl) {
       assert(PrevDecl->TypeForDecl && "previous decl has no TypeForDecl");
@@ -179,7 +182,7 @@ public:
     return getTypeDeclTypeSlow(Decl);
   }
 
-  const std::vector<Type*> &getTypes() const { return Types; }
+  const std::vector<Type *> &getTypes() const { return Types; }
 
   /// getQualifiedType - Returns a type with additional qualifiers.
   QualType getQualifiedType(QualType T, Qualifiers Qs) const {
@@ -199,16 +202,14 @@ public:
 
   /// getCanonicalType - Return the canonical (structural) type corresponding to
   /// the specified potentially non-canonical type.
-  QualType getCanonicalType(QualType T) const {
-    return T.getCanonicalType();
-  }
+  QualType getCanonicalType(QualType T) const { return T.getCanonicalType(); }
 
   const Type *getCanonicalType(const Type *T) const {
     return T->getCanonicalTypeInternal().getTypePtr();
   }
 
   /// \brief Returns the floating point semantics for the given real type.
-  const llvm::fltSemantics& getFPTypeSemantics(QualType Type);
+  const llvm::fltSemantics &getFPTypeSemantics(QualType Type);
 
   /// \brief Returns the amount of bits that an arithmetic type kind occupies.
   unsigned getTypeKindBitWidth(BuiltinType::TypeKind Kind) const;
@@ -228,7 +229,7 @@ private:
   friend class DeclContext;
 };
 
-} // end fort namespace
+} // namespace fort
 
 // operator new and delete aren't allowed inside namespaces. The throw
 // specifications are mandated by the standard.
@@ -241,14 +242,14 @@ private:
 /// ever changes, this operator will have to be changed, too.)
 ///
 /// Usage looks like this (assuming there's an ASTContext 'Context' in scope):
-/// 
+///
 /// @code
 /// // Default alignment (8)
 /// IntegerLiteral *Ex = new (Context) IntegerLiteral(arguments);
 /// // Specific alignment
 /// IntegerLiteral *Ex2 = new (Context, 4) IntegerLiteral(arguments);
 /// @endcode
-/// 
+///
 /// Please note that you cannot use delete on the pointer; it must be
 /// deallocated using an explicit destructor call followed by
 /// @c Context.Deallocate(Ptr).
@@ -259,7 +260,7 @@ private:
 ///                  allocator supports it).
 /// @return The allocated memory. Could be NULL.
 inline void *operator new(size_t Bytes, const fort::ASTContext &C,
-                          size_t Alignment = 8) throw () {
+                          size_t Alignment = 8) throw() {
   return C.Allocate(Bytes, Alignment);
 }
 
@@ -269,8 +270,8 @@ inline void *operator new(size_t Bytes, const fort::ASTContext &C,
 /// invoking it directly; see the new operator for more details. This operator
 /// is called implicitly by the compiler if a placement new expression using the
 /// ASTContext throws in the object constructor.
-inline void operator delete(void *Ptr, const fort::ASTContext &C, size_t size)
-              throw () {
+inline void operator delete(void *Ptr, const fort::ASTContext &C,
+                            size_t size) throw() {
   C.Deallocate(Ptr, size);
 }
 
@@ -279,14 +280,14 @@ inline void operator delete(void *Ptr, const fort::ASTContext &C, size_t size)
 /// null on error.
 ///
 /// Usage looks like this (assuming there's an ASTContext 'Context' in scope):
-/// 
+///
 /// @code
 /// // Default alignment (8)
 /// char *data = new (Context) char[10];
 /// // Specific alignment
 /// char *data = new (Context, 4) char[10];
 /// @endcode
-/// 
+///
 /// Please note that you cannot use delete on the pointer; it must be
 /// deallocated using an explicit destructor call followed by
 /// @c Context.Deallocate(Ptr).
@@ -296,8 +297,8 @@ inline void operator delete(void *Ptr, const fort::ASTContext &C, size_t size)
 /// @param Alignment The alignment of the allocated memory (if the underlying
 ///                  allocator supports it).
 /// @return The allocated memory. Could be NULL.
-inline void *operator new[](size_t Bytes, const fort::ASTContext& C,
-                            size_t Alignment = 8) throw () {
+inline void *operator new[](size_t Bytes, const fort::ASTContext &C,
+                            size_t Alignment = 8) throw() {
   return C.Allocate(Bytes, Alignment);
 }
 
@@ -307,8 +308,8 @@ inline void *operator new[](size_t Bytes, const fort::ASTContext& C,
 /// invoking it directly; see the new[] operator for more details. This operator
 /// is called implicitly by the compiler if a placement new[] expression using
 /// the ASTContext throws in the object constructor.
-inline void operator delete[](void *Ptr, const fort::ASTContext &C, size_t size)
-              throw () {
+inline void operator delete[](void *Ptr, const fort::ASTContext &C,
+                              size_t size) throw() {
   C.Deallocate(Ptr, size);
 }
 

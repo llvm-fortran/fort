@@ -15,9 +15,9 @@
 #ifndef FORT_AST_FORMATSPEC_H__
 #define FORT_AST_FORMATSPEC_H__
 
-#include "fort/Basic/SourceLocation.h"
 #include "fort/AST/Stmt.h"
 #include "fort/Basic/LLVM.h"
+#include "fort/Basic/SourceLocation.h"
 
 // FIXME: add dumping using ASTDumper
 
@@ -29,13 +29,15 @@ class ASTContext;
 class FormatSpec {
 protected:
   enum FormatType { FS_CharExpr, FS_Label, FS_Star, FS_VarLabel };
+
 private:
   FormatType ID;
   SourceLocation Loc;
+
 protected:
-  FormatSpec(FormatType id, SourceLocation L)
-    : ID(id), Loc(L) {}
+  FormatSpec(FormatType id, SourceLocation L) : ID(id), Loc(L) {}
   friend class ASTContext;
+
 public:
   SourceLocation getLocation() const { return Loc; }
 
@@ -46,6 +48,7 @@ public:
 /// StarFormatSpec - represents a '*' format specifier.
 class StarFormatSpec : public FormatSpec {
   StarFormatSpec(SourceLocation Loc);
+
 public:
   static StarFormatSpec *Create(ASTContext &C, SourceLocation Loc);
 
@@ -60,9 +63,10 @@ public:
 class CharacterExpFormatSpec : public FormatSpec {
   Expr *Fmt;
   CharacterExpFormatSpec(SourceLocation Loc, Expr *Fmt);
+
 public:
   static CharacterExpFormatSpec *Create(ASTContext &C, SourceLocation Loc,
-                                       Expr *Fmt);
+                                        Expr *Fmt);
 
   Expr *getFormat() const { return Fmt; }
 
@@ -76,6 +80,7 @@ public:
 class LabelFormatSpec : public FormatSpec {
   StmtLabelReference StmtLabel;
   LabelFormatSpec(SourceLocation Loc, StmtLabelReference Label);
+
 public:
   static LabelFormatSpec *Create(ASTContext &C, SourceLocation Loc,
                                  StmtLabelReference Label);
@@ -95,6 +100,7 @@ public:
 class VarLabelFormatSpec : public FormatSpec {
   VarExpr *Var;
   VarLabelFormatSpec(SourceLocation Loc, VarExpr *VarRef);
+
 public:
   static VarLabelFormatSpec *Create(ASTContext &C, SourceLocation Loc,
                                     VarExpr *Var);

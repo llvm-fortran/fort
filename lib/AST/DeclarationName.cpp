@@ -11,9 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "fort/AST/DeclarationName.h"
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/Decl.h"
-#include "fort/AST/DeclarationName.h"
 #include "fort/Basic/IdentifierTable.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/FoldingSet.h"
@@ -28,7 +28,8 @@ namespace fort {
 
 DeclarationName::NameKind DeclarationName::getNameKind() const {
   switch (getStoredNameKind()) {
-  default: break;
+  default:
+    break;
   case StoredIdentifier:
     return Identifier;
   }
@@ -82,8 +83,10 @@ int DeclarationName::compare(DeclarationName LHS, DeclarationName RHS) {
   case DeclarationName::Identifier: {
     IdentifierInfo *LII = LHS.getAsIdentifierInfo();
     IdentifierInfo *RII = RHS.getAsIdentifierInfo();
-    if (!LII) return RII ? -1 : 0;
-    if (!RII) return 1;
+    if (!LII)
+      return RII ? -1 : 0;
+    if (!RII)
+      return 1;
 
     return LII->getName().compare(RII->getName());
   }
@@ -134,15 +137,13 @@ SourceLocation DeclarationNameInfo::getEndLoc() const {
   return SourceLocation();
 }
 
-} //namespace fort
+} // namespace fort
 
 //===----------------------------------------------------------------------===//
 // DenseMapInfo Implementation
 //===----------------------------------------------------------------------===//
 
-unsigned
-llvm::DenseMapInfo<fort::DeclarationName>::
-getHashValue(fort::DeclarationName N) {
-  return DenseMapInfo<void*>::getHashValue(N.getAsOpaquePtr());
+unsigned llvm::DenseMapInfo<fort::DeclarationName>::getHashValue(
+    fort::DeclarationName N) {
+  return DenseMapInfo<void *>::getHashValue(N.getAsOpaquePtr());
 }
-

@@ -14,12 +14,12 @@
 #ifndef FORT_AST_DECLARATIONNAME_H__
 #define FORT_AST_DECLARATIONNAME_H__
 
+#include "fort/AST/Type.h"
 #include "fort/Basic/IdentifierTable.h"
 #include "fort/Basic/SourceLocation.h"
-#include "fort/AST/Type.h"
 
 namespace llvm {
-  template <typename T> struct DenseMapInfo;
+template <typename T> struct DenseMapInfo;
 }
 
 namespace fort {
@@ -35,17 +35,12 @@ class TypeSourceInfo;
 class DeclarationName {
 public:
   /// NameKind - The kind of name this object contains.
-  enum NameKind {
-    Identifier
-  };
+  enum NameKind { Identifier };
 
 private:
   /// StoredNameKind - The kind of name that is actually stored in the upper
   /// bits of the Ptr field. This is only used internally.
-  enum StoredNameKind {
-    StoredIdentifier = 0,
-    PtrMask = 0x03
-  };
+  enum StoredNameKind { StoredIdentifier = 0, PtrMask = 0x03 };
 
   /// Ptr - The lowest two bits are used to express what kind of name we're
   /// actually storing, using the values of NameKind. Depending on the kind of
@@ -78,7 +73,7 @@ public:
 
   // Construct a declaration name from an IdentifierInfo*.
   DeclarationName(const IdentifierInfo *II)
-    : Ptr(reinterpret_cast<uintptr_t>(II)) {
+      : Ptr(reinterpret_cast<uintptr_t>(II)) {
     assert((Ptr & PtrMask) == 0 && "Improperly aligned IdentifierInfo");
   }
 
@@ -115,11 +110,11 @@ public:
 
   /// getAsOpaquePtr - Get the representation of this declaration name as an
   /// opaque pointer.
-  void *getAsOpaquePtr() const { return reinterpret_cast<void*>(Ptr); }
+  void *getAsOpaquePtr() const { return reinterpret_cast<void *>(Ptr); }
 
   static DeclarationName getFromOpaquePtr(void *P) {
     DeclarationName N;
-    N.Ptr = reinterpret_cast<uintptr_t> (P);
+    N.Ptr = reinterpret_cast<uintptr_t>(P);
     return N;
   }
   static DeclarationName getFromOpaqueInteger(uintptr_t P) {
@@ -131,8 +126,9 @@ public:
   /// getFETokenInfo/setFETokenInfo - The language front-end is allowed to
   /// associate arbitrary metadata with some kinds of declaration names,
   /// including normal identifiers and conversion functions.
-  template<typename T>
-  T *getFETokenInfo() const { return static_cast<T*>(getFETokenInfoAsVoid()); }
+  template <typename T> T *getFETokenInfo() const {
+    return static_cast<T *>(getFETokenInfoAsVoid());
+  }
 
   void setFETokenInfo(void *T);
 
@@ -155,7 +151,7 @@ public:
   }
 
   static int compare(DeclarationName LHS, DeclarationName RHS);
-  
+
   void dump() const;
 };
 
@@ -188,8 +184,8 @@ inline bool operator>=(DeclarationName LHS, DeclarationName RHS) {
 class DeclarationNameTable {
   const ASTContext &Ctx;
 
-  DeclarationNameTable(const DeclarationNameTable&);            // NONCOPYABLE
-  DeclarationNameTable& operator=(const DeclarationNameTable&); // NONCOPYABLE
+  DeclarationNameTable(const DeclarationNameTable &);            // NONCOPYABLE
+  DeclarationNameTable &operator=(const DeclarationNameTable &); // NONCOPYABLE
 
 public:
   DeclarationNameTable(const ASTContext &C) : Ctx(C) {}
@@ -212,7 +208,7 @@ class DeclarationNameInfo {
 
 public:
   DeclarationNameInfo(DeclarationName Name, SourceLocation NameLoc)
-    : Name(Name), NameLoc(NameLoc) {}
+      : Name(Name), NameLoc(NameLoc) {}
 
   /// getName - Returns the embedded declaration name.
   DeclarationName getName() const { return Name; }
@@ -246,14 +242,13 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
   return OS;
 }
 
-}  // end namespace fort
+} // end namespace fort
 
 namespace llvm {
 
 /// Define DenseMapInfo so that DeclarationNames can be used as keys in DenseMap
 /// and DenseSets.
-template<>
-struct DenseMapInfo<fort::DeclarationName> {
+template <> struct DenseMapInfo<fort::DeclarationName> {
   static inline fort::DeclarationName getEmptyKey() {
     return fort::DeclarationName::getEmptyMarker();
   }
@@ -264,15 +259,16 @@ struct DenseMapInfo<fort::DeclarationName> {
 
   static unsigned getHashValue(fort::DeclarationName);
 
-  static inline bool
-  isEqual(fort::DeclarationName LHS, fort::DeclarationName RHS) {
+  static inline bool isEqual(fort::DeclarationName LHS,
+                             fort::DeclarationName RHS) {
     return LHS == RHS;
   }
 };
 
-template <>
-struct isPodLike<fort::DeclarationName> { static const bool value = true; };
+template <> struct isPodLike<fort::DeclarationName> {
+  static const bool value = true;
+};
 
-}  // end namespace llvm
+} // end namespace llvm
 
 #endif

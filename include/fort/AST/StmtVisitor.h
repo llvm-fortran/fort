@@ -14,29 +14,31 @@
 #ifndef LLVM_FORT_AST_STMTVISITOR_H
 #define LLVM_FORT_AST_STMTVISITOR_H
 
-#include "fort/Basic/MakePtr.h"
 #include "fort/AST/Stmt.h"
+#include "fort/Basic/MakePtr.h"
 
 namespace fort {
 
 /// StmtVisitorBase - This class implements a simple visitor for Stmt
 /// subclasses.
-template<template <typename> class Ptr, typename ImplClass, typename RetTy=void>
+template <template <typename> class Ptr, typename ImplClass,
+          typename RetTy = void>
 class StmtVisitorBase {
 public:
-
 #define PTR(CLASS) typename Ptr<CLASS>::type
-#define DISPATCH(NAME, CLASS) \
- return static_cast<ImplClass*>(this)->Visit ## NAME(static_cast<PTR(CLASS)>(S))
+#define DISPATCH(NAME, CLASS)                                                  \
+  return static_cast<ImplClass *>(this)->Visit##NAME(static_cast<PTR(CLASS)>(S))
 
   RetTy Visit(PTR(Stmt) S) {
 
     // Top switch stmt: dispatch to VisitFooStmt for each FooStmt.
     switch (S->getStmtClass()) {
-    default: llvm_unreachable("Unknown stmt kind!");
+    default:
+      llvm_unreachable("Unknown stmt kind!");
 #define ABSTRACT_STMT(STMT)
-#define STMT(CLASS, PARENT)                              \
-    case Stmt::CLASS ## Class: DISPATCH(CLASS, CLASS);
+#define STMT(CLASS, PARENT)                                                    \
+  case Stmt::CLASS##Class:                                                     \
+    DISPATCH(CLASS, CLASS);
 #include "fort/AST/StmtNodes.inc"
     }
   }
@@ -44,8 +46,8 @@ public:
   // If the implementation chooses not to implement a certain visit method, fall
   // back on VisitExpr or whatever else is the superclass.
 
-#define STMT(CLASS, PARENT)                                   \
-  RetTy Visit ## CLASS(PTR(CLASS) S) { DISPATCH(PARENT, PARENT); }
+#define STMT(CLASS, PARENT)                                                    \
+  RetTy Visit##CLASS(PTR(CLASS) S) { DISPATCH(PARENT, PARENT); }
 #define ABSTRACT_STMT(STMT) STMT
 #include "fort/AST/StmtNodes.inc"
 
@@ -60,18 +62,17 @@ public:
 ///
 /// This class does not preserve constness of Stmt pointers (see also
 /// ConstStmtVisitor).
-template<typename ImplClass, typename RetTy=void>
-class StmtVisitor
- : public StmtVisitorBase<make_ptr, ImplClass, RetTy> {};
+template <typename ImplClass, typename RetTy = void>
+class StmtVisitor : public StmtVisitorBase<make_ptr, ImplClass, RetTy> {};
 
 /// ConstStmtVisitor - This class implements a simple visitor for Stmt
 /// subclasses.
 ///
 /// This class preserves constness of Stmt pointers (see also StmtVisitor).
-template<typename ImplClass, typename RetTy=void>
+template <typename ImplClass, typename RetTy = void>
 class ConstStmtVisitor
- : public StmtVisitorBase<make_const_ptr, ImplClass, RetTy> {};
+    : public StmtVisitorBase<make_const_ptr, ImplClass, RetTy> {};
 
-}  // end namespace fort
+} // end namespace fort
 
 #endif

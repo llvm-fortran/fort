@@ -15,15 +15,15 @@
 #define LLVM_FORT_AST_ASTCONSUMER_H
 
 namespace fort {
-  class ASTContext;
-  class FunctionDecl;
+class ASTContext;
+class FunctionDecl;
 
 /// ASTConsumer - This is an abstract interface that should be implemented by
 /// clients that read ASTs.  This abstraction layer allows the client to be
 /// independent of the AST producer (e.g. parser vs AST dump file reader, etc).
 class ASTConsumer {
 public:
-  ASTConsumer() { }
+  ASTConsumer() {}
 
   virtual ~ASTConsumer() {}
 

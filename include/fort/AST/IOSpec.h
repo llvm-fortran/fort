@@ -15,9 +15,9 @@
 #ifndef FORT_AST_IOSPEC_H__
 #define FORT_AST_IOSPEC_H__
 
-#include "fort/Basic/SourceLocation.h"
 #include "fort/AST/Expr.h"
 #include "fort/Basic/LLVM.h"
+#include "fort/Basic/SourceLocation.h"
 
 namespace fort {
 
@@ -26,16 +26,18 @@ class ASTContext;
 class UnitSpec {
 public:
   enum UnitType { US_ExternalInt, US_ExternalStar, US_Internal };
+
 private:
   UnitType ID;
   SourceLocation Loc;
   /// is UNIT = used?
   bool Labeled;
+
 protected:
-  UnitSpec(UnitType id, SourceLocation L,
-           bool IsLabeled)
-    : ID(id), Loc(L), Labeled(IsLabeled) {}
+  UnitSpec(UnitType id, SourceLocation L, bool IsLabeled)
+      : ID(id), Loc(L), Labeled(IsLabeled) {}
   friend class ASTContext;
+
 public:
   SourceLocation getLocation() const { return Loc; }
 
@@ -48,6 +50,7 @@ public:
 
 class ExternalStarUnitSpec : public UnitSpec {
   ExternalStarUnitSpec(SourceLocation Loc, bool IsLabeled);
+
 public:
   static ExternalStarUnitSpec *Create(ASTContext &Context, SourceLocation Loc,
                                       bool IsLabeled);
@@ -60,6 +63,7 @@ public:
 class ExternalIntegerUnitSpec : public UnitSpec {
   Expr *E;
   ExternalIntegerUnitSpec(SourceLocation Loc, Expr *Value, bool IsLabeled);
+
 public:
   static ExternalIntegerUnitSpec *Create(ASTContext &C, SourceLocation Loc,
                                          Expr *Value, bool IsLabeled);
@@ -74,6 +78,7 @@ public:
 class InternalUnitSpec : public UnitSpec {
   Expr *E;
   InternalUnitSpec(SourceLocation Loc, Expr *Value, bool IsLabeled);
+
 public:
   static InternalUnitSpec *Create(ASTContext &C, SourceLocation Loc,
                                   Expr *Value, bool IsLabeled);

@@ -13,22 +13,22 @@
 namespace fort {
 
 StarFormatSpec::StarFormatSpec(SourceLocation Loc)
-  : FormatSpec(FormatSpec::FS_Star, Loc) {}
+    : FormatSpec(FormatSpec::FS_Star, Loc) {}
 
 StarFormatSpec *StarFormatSpec::Create(ASTContext &C, SourceLocation Loc) {
   return new (C) StarFormatSpec(Loc);
 }
 
 CharacterExpFormatSpec::CharacterExpFormatSpec(SourceLocation Loc, Expr *F)
-  : FormatSpec(FormatSpec::FS_CharExpr, Loc), Fmt(F) {}
+    : FormatSpec(FormatSpec::FS_CharExpr, Loc), Fmt(F) {}
 
-CharacterExpFormatSpec *CharacterExpFormatSpec::Create(ASTContext &C, SourceLocation Loc,
-                                                   Expr *Fmt) {
+CharacterExpFormatSpec *
+CharacterExpFormatSpec::Create(ASTContext &C, SourceLocation Loc, Expr *Fmt) {
   return new (C) CharacterExpFormatSpec(Loc, Fmt);
 }
 
 LabelFormatSpec::LabelFormatSpec(SourceLocation Loc, StmtLabelReference Label)
-  : FormatSpec(FormatSpec::FS_Label, Loc), StmtLabel(Label) {}
+    : FormatSpec(FormatSpec::FS_Label, Loc), StmtLabel(Label) {}
 
 LabelFormatSpec *LabelFormatSpec::Create(ASTContext &C, SourceLocation Loc,
                                          StmtLabelReference Label) {
@@ -42,11 +42,11 @@ void LabelFormatSpec::setLabel(StmtLabelReference Label) {
 }
 
 VarLabelFormatSpec::VarLabelFormatSpec(SourceLocation Loc, VarExpr *VarRef)
-  : FormatSpec(FormatSpec::FS_VarLabel, Loc), Var(VarRef) {}
+    : FormatSpec(FormatSpec::FS_VarLabel, Loc), Var(VarRef) {}
 
-VarLabelFormatSpec *VarLabelFormatSpec::Create(ASTContext &C, SourceLocation Loc,
-                                               VarExpr *Var) {
+VarLabelFormatSpec *
+VarLabelFormatSpec::Create(ASTContext &C, SourceLocation Loc, VarExpr *Var) {
   return new (C) VarLabelFormatSpec(Loc, Var);
 }
 
-} //namespace fort
+} // namespace fort

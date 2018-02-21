@@ -12,15 +12,14 @@
 //===----------------------------------------------------------------------===//
 
 #include "fort/AST/ASTContext.h"
-#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/ErrorHandling.h"
-
 
 namespace fort {
 
 ASTContext::ASTContext(llvm::SourceMgr &SM, LangOptions LangOpts)
-  : SrcMgr(SM), LastSDM(0), LanguageOptions(LangOpts) {
+    : SrcMgr(SM), LastSDM(0), LanguageOptions(LangOpts) {
   TUDecl = TranslationUnitDecl::Create(*this);
   InitBuiltinTypes();
 }
@@ -37,63 +36,75 @@ void ASTContext::InitBuiltinTypes() {
 
   auto Opts = getLangOpts();
   auto ByteKind = Type::Int1;
-  auto IntKind = Opts.DefaultInt8? Type::Int8 : Type::Int4;
-  auto RealKind = Opts.DefaultReal8? Type::Real8 : Type::Real4;
+  auto IntKind = Opts.DefaultInt8 ? Type::Int8 : Type::Int4;
+  auto RealKind = Opts.DefaultReal8 ? Type::Real8 : Type::Real4;
   auto DblKind = Type::Real8;
-  if(Opts.DefaultReal8 && !Opts.DefaultDouble8)
+  if (Opts.DefaultReal8 && !Opts.DefaultDouble8)
     DblKind = Type::Real16;
 
   IntegerTy = QualType(getBuiltinType(BuiltinType::Integer, IntKind), 0);
 
   RealTy = QualType(getBuiltinType(BuiltinType::Real, RealKind), 0);
-  DoublePrecisionTy = QualType(getBuiltinType(BuiltinType::Real, DblKind,
-                                              false, true), 0);
+  DoublePrecisionTy =
+      QualType(getBuiltinType(BuiltinType::Real, DblKind, false, true), 0);
 
   ComplexTy = QualType(getBuiltinType(BuiltinType::Complex, RealKind), 0);
-  DoubleComplexTy = QualType(getBuiltinType(BuiltinType::Complex, DblKind,
-                                            false, true), 0);
+  DoubleComplexTy =
+      QualType(getBuiltinType(BuiltinType::Complex, DblKind, false, true), 0);
 
   LogicalTy = QualType(getBuiltinType(BuiltinType::Logical, IntKind), 0);
-  ByteTy = QualType(getBuiltinType(BuiltinType::Logical, ByteKind,
-                                   false, false, true), 0);
+  ByteTy = QualType(
+      getBuiltinType(BuiltinType::Logical, ByteKind, false, false, true), 0);
 
   CharacterTy = QualType(getCharacterType(1), 0);
   NoLengthCharacterTy = QualType(getCharacterType(0), 0);
 }
 
-const llvm::fltSemantics&  ASTContext::getFPTypeSemantics(QualType Type) {
-  switch(Type->getBuiltinTypeKind()) {
-  case BuiltinType::Real4:  return llvm::APFloat::IEEEsingle();
-  case BuiltinType::Real8:  return llvm::APFloat::IEEEdouble();
-  case BuiltinType::Real16: return llvm::APFloat::IEEEquad();
-  default: break;
+const llvm::fltSemantics &ASTContext::getFPTypeSemantics(QualType Type) {
+  switch (Type->getBuiltinTypeKind()) {
+  case BuiltinType::Real4:
+    return llvm::APFloat::IEEEsingle();
+  case BuiltinType::Real8:
+    return llvm::APFloat::IEEEdouble();
+  case BuiltinType::Real16:
+    return llvm::APFloat::IEEEquad();
+  default:
+    break;
   }
   llvm_unreachable("invalid real type");
 }
 
 unsigned ASTContext::getTypeKindBitWidth(BuiltinType::TypeKind Kind) const {
-  switch(Kind) {
-  case BuiltinType::Int1: return 8;
-  case BuiltinType::Int2: return 16;
-  case BuiltinType::Int4: return 32;
-  case BuiltinType::Int8: return 64;
-  case BuiltinType::Real4: return 32;
-  case BuiltinType::Real8: return 64;
-  case BuiltinType::Real16: return 128;
-  default: break;
+  switch (Kind) {
+  case BuiltinType::Int1:
+    return 8;
+  case BuiltinType::Int2:
+    return 16;
+  case BuiltinType::Int4:
+    return 32;
+  case BuiltinType::Int8:
+    return 64;
+  case BuiltinType::Real4:
+    return 32;
+  case BuiltinType::Real8:
+    return 64;
+  case BuiltinType::Real16:
+    return 128;
+  default:
+    break;
   }
   llvm_unreachable("invalid built in type kind");
   return 0;
 }
 
 BuiltinType::TypeKind ASTContext::getSelectedIntKind(int64_t Range) const {
-  if(Range <= 2)
+  if (Range <= 2)
     return BuiltinType::Int1;
-  else if(Range <= 4)
+  else if (Range <= 4)
     return BuiltinType::Int2;
-  else if(Range <= 9)
+  else if (Range <= 9)
     return BuiltinType::Int4;
-  else if(Range <= 18)
+  else if (Range <= 18)
     return BuiltinType::Int8;
   // NB: add Range <= 38 for Int16
   return BuiltinType::NoKind;
@@ -103,7 +114,8 @@ BuiltinType::TypeKind ASTContext::getSelectedIntKind(int64_t Range) const {
 //                   Type creation/memoization methods
 //===----------------------------------------------------------------------===//
 
-QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals) const {
+QualType ASTContext::getExtQualType(const Type *BaseType,
+                                    Qualifiers Quals) const {
   // Check if we've already instantiated this type.
   llvm::FoldingSetNodeID ID;
   ExtQuals::Profile(ID, BaseType, Quals);
@@ -121,7 +133,7 @@ QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals) cons
     Canon = getExtQualType(CanonSplit.first, CanonSplit.second);
 
     // Re-find the insert position.
-    (void) ExtQualNodes.FindNodeOrInsertPos(ID, InsertPos);
+    (void)ExtQualNodes.FindNodeOrInsertPos(ID, InsertPos);
   }
 
   ExtQuals *EQ = new (*this, TypeAlignment) ExtQuals(BaseType, Canon, Quals);
@@ -132,26 +144,28 @@ QualType ASTContext::getExtQualType(const Type *BaseType, Qualifiers Quals) cons
 QualType ASTContext::getQualTypeOtherKind(QualType Type, QualType KindType) {
   auto BTy = Type->asBuiltinType();
   auto DesiredBTy = KindType->asBuiltinType();
-  if(BTy->getBuiltinTypeKind() == DesiredBTy->getBuiltinTypeKind())
+  if (BTy->getBuiltinTypeKind() == DesiredBTy->getBuiltinTypeKind())
     return Type;
   auto Split = Type.split();
-  return getExtQualType(getBuiltinType(BTy->getTypeSpec(), DesiredBTy->getBuiltinTypeKind(),
-                                       DesiredBTy->isKindExplicitlySpecified(),
-                                       DesiredBTy->isDoublePrecisionKindSpecified(),
-                                       DesiredBTy->isByteKindSpecified()), Split.second);
+  return getExtQualType(
+      getBuiltinType(BTy->getTypeSpec(), DesiredBTy->getBuiltinTypeKind(),
+                     DesiredBTy->isKindExplicitlySpecified(),
+                     DesiredBTy->isDoublePrecisionKindSpecified(),
+                     DesiredBTy->isByteKindSpecified()),
+      Split.second);
 }
 
 // NB: this assumes that real and complex have have the same default kind.
 QualType ASTContext::getComplexTypeElementType(QualType Type) {
   assert(Type->isComplexType());
-  if(Type->getBuiltinTypeKind() != RealTy->getBuiltinTypeKind())
+  if (Type->getBuiltinTypeKind() != RealTy->getBuiltinTypeKind())
     return getQualTypeOtherKind(RealTy, Type);
   return RealTy;
 }
 
 QualType ASTContext::getComplexType(QualType ElementType) {
   assert(ElementType->isRealType());
-  if(ElementType->getBuiltinTypeKind() != ComplexTy->getBuiltinTypeKind())
+  if (ElementType->getBuiltinTypeKind() != ComplexTy->getBuiltinTypeKind())
     return getQualTypeOtherKind(ComplexTy, ElementType);
   return ComplexTy;
 }
@@ -168,16 +182,15 @@ BuiltinType *ASTContext::getBuiltinType(BuiltinType::TypeSpec TS,
                                         bool IsByteKindSpecified) {
   llvm::FoldingSetNodeID ID;
   BuiltinType::Profile(ID, TS, Kind, IsKindExplicitlySpecified,
-                       IsDoublePrecisionKindSpecified,
-                       IsByteKindSpecified);
+                       IsDoublePrecisionKindSpecified, IsByteKindSpecified);
 
   void *InsertPos = 0;
   if (auto BT = BuiltinTypes.FindNodeOrInsertPos(ID, InsertPos))
     return BT;
 
-  auto BT = new (*this, TypeAlignment) BuiltinType(TS, Kind, IsKindExplicitlySpecified,
-                                                   IsDoublePrecisionKindSpecified,
-                                                   IsByteKindSpecified);
+  auto BT = new (*this, TypeAlignment)
+      BuiltinType(TS, Kind, IsKindExplicitlySpecified,
+                  IsDoublePrecisionKindSpecified, IsByteKindSpecified);
   Types.push_back(BT);
   BuiltinTypes.InsertNode(BT, InsertPos);
   return BT;
@@ -217,21 +230,21 @@ PointerType *ASTContext::getPointerType(const Type *Ty, unsigned NumDims) {
 
 /// getArrayType - Return the unique reference to the type for an array of the
 /// specified element type.
-QualType ASTContext::getArrayType(QualType EltTy,
-                                  ArrayRef<ArraySpec*> Dims) {
-  ArrayType *New = new (*this, TypeAlignment) ArrayType(*this, Type::Array, EltTy,
-                                                        QualType(), Dims);
+QualType ASTContext::getArrayType(QualType EltTy, ArrayRef<ArraySpec *> Dims) {
+  ArrayType *New = new (*this, TypeAlignment)
+      ArrayType(*this, Type::Array, EltTy, QualType(), Dims);
   Types.push_back(New);
   return QualType(New, 0);
 }
 
-QualType ASTContext::getFunctionType(QualType ResultType, const FunctionDecl *Prototype) {
+QualType ASTContext::getFunctionType(QualType ResultType,
+                                     const FunctionDecl *Prototype) {
   llvm::FoldingSetNodeID ID;
   FunctionType::Profile(ID, ResultType, Prototype);
 
   void *InsertPos = 0;
   FunctionType *Result = FunctionTypes.FindNodeOrInsertPos(ID, InsertPos);
-  if(!Result) {
+  if (!Result) {
     Result = FunctionType::Create(*this, ResultType, Prototype);
     Types.push_back(Result);
     FunctionTypes.InsertNode(Result, InsertPos);
@@ -255,20 +268,23 @@ QualType ASTContext::getTypeDeclTypeSlow(const TypeDecl *Decl) {
 }
 
 QualType ASTContext::getRecordType(const RecordDecl *Record) {
-  if (Record->TypeForDecl) return QualType(Record->TypeForDecl, 0);
+  if (Record->TypeForDecl)
+    return QualType(Record->TypeForDecl, 0);
 
-  SmallVector<FieldDecl*, 8> Fields;
+  SmallVector<FieldDecl *, 8> Fields;
   unsigned Idx = 0;
-  for(auto I = Record->decls_begin(), End = Record->decls_end(); I != End; ++I, ++Idx) {
-    if(auto Field = dyn_cast<FieldDecl>(*I)) {
+  for (auto I = Record->decls_begin(), End = Record->decls_end(); I != End;
+       ++I, ++Idx) {
+    if (auto Field = dyn_cast<FieldDecl>(*I)) {
       Fields.push_back(Field);
       Field->setIndex(Idx);
     }
   }
-  RecordType *newType = new (*this, TypeAlignment) RecordType(*this, Record, Fields);
+  RecordType *newType =
+      new (*this, TypeAlignment) RecordType(*this, Record, Fields);
   Record->TypeForDecl = newType;
   Types.push_back(newType);
   return QualType(newType, 0);
 }
 
-} //namespace fort
+} // namespace fort

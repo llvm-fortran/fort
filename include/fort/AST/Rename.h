@@ -24,15 +24,15 @@ namespace fort {
 class Rename {
   llvm::StringRef LocalName;
   llvm::StringRef UseName;
+
 public:
-  Rename(llvm::StringRef LN, llvm::StringRef UN)
-    : LocalName(LN), UseName(UN) {}
+  Rename(llvm::StringRef LN, llvm::StringRef UN) : LocalName(LN), UseName(UN) {}
 
   friend llvm::raw_ostream &operator<<(llvm::raw_ostream &O, const Rename &RN) {
     return O << RN.LocalName << " => " << RN.UseName;
   }
 };
 
-} // end fort namespace
+} // namespace fort
 
 #endif // FORT_AST_RENAME_H__

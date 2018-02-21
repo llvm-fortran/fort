@@ -11,14 +11,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "fort/AST/Expr.h"
-#include "fort/AST/Stmt.h"
-#include "fort/AST/ExprVisitor.h"
-#include "fort/AST/StmtVisitor.h"
 #include "fort/AST/DeclVisitor.h"
+#include "fort/AST/Expr.h"
+#include "fort/AST/ExprVisitor.h"
+#include "fort/AST/FormatItem.h"
+#include "fort/AST/Stmt.h"
+#include "fort/AST/StmtVisitor.h"
 #include "fort/AST/Type.h"
 #include "fort/AST/TypeVisitor.h"
-#include "fort/AST/FormatItem.h"
 #include "fort/Basic/LLVM.h"
 #include "llvm/Support/raw_ostream.h"
 using namespace fort;
@@ -26,12 +26,13 @@ using namespace fort;
 namespace {
 
 class ASTDumper : public ConstStmtVisitor<ASTDumper>,
-  public ConstExprVisitor<ASTDumper>,
-  public ConstDeclVisitor<ASTDumper>,
-  public TypeVisitor<ASTDumper> {
+                  public ConstExprVisitor<ASTDumper>,
+                  public ConstDeclVisitor<ASTDumper>,
+                  public TypeVisitor<ASTDumper> {
   raw_ostream &OS;
 
   int indent;
+
 public:
   ASTDumper(raw_ostream &os) : OS(os), indent(0) {}
 
@@ -100,9 +101,10 @@ public:
 
   // expressions
   void dumpExpr(const Expr *E);
-  void dumpExprList(ArrayRef<Expr*> List);
+  void dumpExprList(ArrayRef<Expr *> List);
   void dumpExprOrNull(const Expr *E) {
-    if(E) dumpExpr(E);
+    if (E)
+      dumpExpr(E);
   }
 
   void VisitIntegerConstantExpr(const IntegerConstantExpr *E);
@@ -135,24 +137,18 @@ public:
 
   // array specification
   void dumpArraySpec(const ArraySpec *S);
-
 };
 
 } // end anonymous namespace
 
 // utilities
 
+void ASTDumper::dumpCompoundPartStart(const char *Name) { OS << Name << ' '; }
 
-void ASTDumper::dumpCompoundPartStart(const char *Name) {
-  OS << Name << ' ';
-}
-
-void ASTDumper::dumpCompoundPartEnd() {
-  OS << "\n";
-}
+void ASTDumper::dumpCompoundPartEnd() { OS << "\n"; }
 
 void ASTDumper::dumpIndent() {
-  for(int i = 0; i < indent; ++i)
+  for (int i = 0; i < indent; ++i)
     OS << "  ";
 }
 
@@ -165,8 +161,8 @@ void ASTDumper::dumpDecl(const Decl *D) {
 
 void ASTDumper::dumpDeclContext(const DeclContext *Ctx) {
   auto I = Ctx->decls_begin();
-  for(auto E = Ctx->decls_end(); I!=E; ++I) {
-    if((*I)->getDeclContext() == Ctx)
+  for (auto E = Ctx->decls_end(); I != E; ++I) {
+    if ((*I)->getDeclContext() == Ctx)
       dumpDecl(*I);
   }
 }
@@ -180,7 +176,7 @@ void ASTDumper::VisitMainProgramDecl(const MainProgramDecl *D) {
   indent++;
   dumpDeclContext(D);
   indent--;
-  if(D->getBody())
+  if (D->getBody())
     dumpSubStmt(D->getBody());
 }
 
@@ -189,26 +185,29 @@ void ASTDumper::VisitModuleDecl(const ModuleDecl *D) {
   indent++;
   dumpDeclContext(D);
   indent--;
-  if(D->getBody())
+  if (D->getBody())
     dumpSubStmt(D->getBody());
 }
 
 void ASTDumper::VisitFunctionDecl(const FunctionDecl *D) {
-  if(!D->getType().isNull()) {
+  if (!D->getType().isNull()) {
     D->getType().print(OS);
     OS << ' ';
   }
-  OS << (D->isNormalFunction()? "function " : (D->isStatementFunction()? "stmt function " : "subroutine "))
+  OS << (D->isNormalFunction()
+             ? "function "
+             : (D->isStatementFunction() ? "stmt function " : "subroutine "))
      << D->getName() << "(";
   auto Args = D->getArguments();
-  for(size_t I = 0; I < Args.size(); ++I) {
-    if(I) OS << ", ";
+  for (size_t I = 0; I < Args.size(); ++I) {
+    if (I)
+      OS << ", ";
     OS << cast<VarDecl>(Args[I])->getName();
   }
 
-  if(D->isStatementFunction()) {
+  if (D->isStatementFunction()) {
     OS << ") = ";
-    if(D->getBodyExpr())
+    if (D->getBodyExpr())
       dumpExpr(D->getBodyExpr());
     OS << "\n";
   } else {
@@ -216,18 +215,18 @@ void ASTDumper::VisitFunctionDecl(const FunctionDecl *D) {
     indent++;
     dumpDeclContext(D);
     indent--;
-    if(D->getBody())
+    if (D->getBody())
       dumpSubStmt(D->getBody());
   }
 }
 
 void ASTDumper::VisitVarDecl(const VarDecl *D) {
-  if(!D->getType().isNull()) {
+  if (!D->getType().isNull()) {
     D->getType().print(OS);
     OS << ' ';
   }
   OS << D->getName();
-  if(D->hasInit()) {
+  if (D->hasInit()) {
     OS << " = ";
     dumpExpr(D->getInit());
   }
@@ -289,15 +288,17 @@ void ASTDumper::dumpType(QualType T) {
 }
 
 void ASTDumper::VisitBuiltinType(const BuiltinType *T, Qualifiers QS) {
-  if(T->isDoublePrecisionKindSpecified()) {
-    if(T->isRealType())
+  if (T->isDoublePrecisionKindSpecified()) {
+    if (T->isRealType())
       OS << "double precision";
-    else OS << "double complex";
-  } else if(T->isByteKindSpecified()) {
+    else
+      OS << "double complex";
+  } else if (T->isByteKindSpecified()) {
     OS << "byte";
   } else {
     switch (T->getTypeSpec()) {
-    default: assert(false && "Invalid built-in type!");
+    default:
+      assert(false && "Invalid built-in type!");
     case BuiltinType::Integer:
       OS << "integer";
       break;
@@ -313,7 +314,7 @@ void ASTDumper::VisitBuiltinType(const BuiltinType *T, Qualifiers QS) {
     }
   }
 
-  if(T->isKindExplicitlySpecified()) {
+  if (T->isKindExplicitlySpecified()) {
     OS << " (Kind=" << BuiltinType::getTypeKindString(T->getBuiltinTypeKind());
     OS << ")";
   }
@@ -321,7 +322,7 @@ void ASTDumper::VisitBuiltinType(const BuiltinType *T, Qualifiers QS) {
 
 void ASTDumper::VisitCharacterType(const CharacterType *T, Qualifiers QS) {
   OS << "character";
-  if(T->hasLength() && T->getLength() > 1)
+  if (T->hasLength() && T->getLength() > 1)
     OS << " (Len=" << T->getLength() << ")";
 }
 
@@ -332,7 +333,7 @@ void ASTDumper::VisitArrayType(const ArrayType *T, Qualifiers QS) {
 
 void ASTDumper::VisitFunctionType(const FunctionType *T, Qualifiers QS) {
   OS << "procedure (";
-  if(T->hasPrototype())
+  if (T->hasPrototype())
     OS << T->getPrototype()->getName();
   OS << ")";
 }
@@ -350,7 +351,7 @@ void ASTDumper::dumpStmt(const Stmt *S) {
 }
 
 void ASTDumper::dumpSubStmt(const Stmt *S) {
-  if(isa<BlockStmt>(S))
+  if (isa<BlockStmt>(S))
     dumpStmt(S);
   else {
     ++indent;
@@ -360,29 +361,52 @@ void ASTDumper::dumpSubStmt(const Stmt *S) {
 }
 
 void ASTDumper::dumpConstructNamePrefix(ConstructName Name) {
-  if(Name.isUsable())
+  if (Name.isUsable())
     OS << Name.IDInfo->getName() << ": ";
 }
 
 void ASTDumper::dumpConstructNameSuffix(ConstructName Name) {
-  if(Name.isUsable())
+  if (Name.isUsable())
     OS << " " << Name.IDInfo->getName();
 }
 
 void ASTDumper::VisitConstructPartStmt(const ConstructPartStmt *S) {
-  switch(S->getConstructStmtClass()) {
-  case ConstructPartStmt::EndStmtClass: OS << "end"; break;
-  case ConstructPartStmt::EndProgramStmtClass: OS << "end program"; break;
-  case ConstructPartStmt::EndModuleStmtClass: OS << "end module"; break;
-  case ConstructPartStmt::EndFunctionStmtClass: OS << "end function"; break;
-  case ConstructPartStmt::EndSubroutineStmtClass: OS << "end subroutine"; break;
-  case ConstructPartStmt::ElseStmtClass: OS << "else"; break;
-  case ConstructPartStmt::EndIfStmtClass: OS << "end if"; break;
-  case ConstructPartStmt::EndDoStmtClass: OS << "end do"; break;
-  case ConstructPartStmt::EndSelectStmtClass: OS << "end select"; break;
-  case ConstructPartStmt::ElseWhereStmtClass: OS << "else where"; break;
-  case ConstructPartStmt::EndWhereStmtClass: OS << "end where"; break;
-  default: break;
+  switch (S->getConstructStmtClass()) {
+  case ConstructPartStmt::EndStmtClass:
+    OS << "end";
+    break;
+  case ConstructPartStmt::EndProgramStmtClass:
+    OS << "end program";
+    break;
+  case ConstructPartStmt::EndModuleStmtClass:
+    OS << "end module";
+    break;
+  case ConstructPartStmt::EndFunctionStmtClass:
+    OS << "end function";
+    break;
+  case ConstructPartStmt::EndSubroutineStmtClass:
+    OS << "end subroutine";
+    break;
+  case ConstructPartStmt::ElseStmtClass:
+    OS << "else";
+    break;
+  case ConstructPartStmt::EndIfStmtClass:
+    OS << "end if";
+    break;
+  case ConstructPartStmt::EndDoStmtClass:
+    OS << "end do";
+    break;
+  case ConstructPartStmt::EndSelectStmtClass:
+    OS << "end select";
+    break;
+  case ConstructPartStmt::ElseWhereStmtClass:
+    OS << "else where";
+    break;
+  case ConstructPartStmt::EndWhereStmtClass:
+    OS << "end where";
+    break;
+  default:
+    break;
   }
   dumpConstructNameSuffix(S->getName());
   OS << "\n";
@@ -395,8 +419,9 @@ void ASTDumper::VisitDeclStmt(const DeclStmt *S) {
 
 void ASTDumper::VisitCompoundStmt(const CompoundStmt *S) {
   auto Body = S->getBody();
-  for(size_t I = 0; I < Body.size(); ++I) {
-    if(I) OS<<"&";
+  for (size_t I = 0; I < Body.size(); ++I) {
+    if (I)
+      OS << "&";
     dumpStmt(Body[I]);
   }
 }
@@ -404,7 +429,8 @@ void ASTDumper::VisitCompoundStmt(const CompoundStmt *S) {
 void ASTDumper::VisitProgramStmt(const ProgramStmt *S) {
   const IdentifierInfo *Name = S->getProgramName();
   OS << "program";
-  if (Name) OS << ":  '" << Name->getName() << "'";
+  if (Name)
+    OS << ":  '" << Name->getName() << "'";
   OS << "\n";
 }
 
@@ -433,8 +459,7 @@ void ASTDumper::VisitImplicitStmt(const ImplicitStmt *S) {
 }
 
 void ASTDumper::VisitDimensionStmt(const DimensionStmt *S) {
-  OS << "dimension " << S->getVariableName()->getNameStart()
-     << "\n";
+  OS << "dimension " << S->getVariableName()->getNameStart() << "\n";
 }
 
 void ASTDumper::VisitExternalStmt(const ExternalStmt *S) {
@@ -451,7 +476,7 @@ void ASTDumper::VisitIntrinsicStmt(const IntrinsicStmt *S) {
 
 void ASTDumper::VisitSaveStmt(const SaveStmt *S) {
   dumpCompoundPartStart("save");
-  if(S->getIdentifier())
+  if (S->getIdentifier())
     OS << S->getIdentifier()->getName();
   dumpCompoundPartEnd();
 }
@@ -475,9 +500,9 @@ void ASTDumper::VisitDataStmt(const DataStmt *S) {
 void ASTDumper::VisitBlockStmt(const BlockStmt *S) {
   indent++;
   auto Body = S->getStatements();
-  for(size_t I = 0; I < Body.size(); ++I) {
+  for (size_t I = 0; I < Body.size(); ++I) {
     auto S = Body[I];
-    if(isa<ConstructPartStmt>(S) && I == Body.size()-1){
+    if (isa<ConstructPartStmt>(S) && I == Body.size() - 1) {
       indent--;
       dumpStmt(S);
       return;
@@ -489,7 +514,7 @@ void ASTDumper::VisitBlockStmt(const BlockStmt *S) {
 
 void ASTDumper::VisitAssignStmt(const AssignStmt *S) {
   OS << "assign ";
-  if(S->getAddress().Statement)
+  if (S->getAddress().Statement)
     dumpExpr(S->getAddress().Statement->getStmtLabel());
   OS << " to ";
   dumpExpr(S->getDestination());
@@ -504,7 +529,7 @@ void ASTDumper::VisitAssignedGotoStmt(const AssignedGotoStmt *S) {
 
 void ASTDumper::VisitGotoStmt(const GotoStmt *S) {
   OS << "goto ";
-  if(S->getDestination().Statement)
+  if (S->getDestination().Statement)
     dumpExpr(S->getDestination().Statement->getStmtLabel());
   OS << "\n";
 }
@@ -512,33 +537,34 @@ void ASTDumper::VisitGotoStmt(const GotoStmt *S) {
 void ASTDumper::VisitComputedGotoStmt(const ComputedGotoStmt *S) {
   OS << "goto (";
   auto Targets = S->getTargets();
-  for(size_t I = 0; I < Targets.size(); ++I) {
-    if(I) OS << ", ";
-    if(Targets[I].Statement)
+  for (size_t I = 0; I < Targets.size(); ++I) {
+    if (I)
+      OS << ", ";
+    if (Targets[I].Statement)
       dumpExpr(Targets[I].Statement->getStmtLabel());
   }
   OS << ") ";
-  if(S->getExpression())
+  if (S->getExpression())
     dumpExpr(S->getExpression());
   OS << "\n";
 }
 
-void ASTDumper::VisitIfStmt(const IfStmt* S) {
+void ASTDumper::VisitIfStmt(const IfStmt *S) {
   dumpConstructNamePrefix(S->getName());
   OS << "if ";
   dumpExpr(S->getCondition());
   OS << "\n";
 
-  if(S->getThenStmt())
+  if (S->getThenStmt())
     dumpSubStmt(S->getThenStmt());
-  if(S->getElseStmt())
+  if (S->getElseStmt())
     dumpSubStmt(S->getElseStmt());
 }
 
 void ASTDumper::VisitDoStmt(const DoStmt *S) {
   dumpConstructNamePrefix(S->getName());
-  OS<<"do ";
-  if(S->getTerminatingStmt().Statement) {
+  OS << "do ";
+  if (S->getTerminatingStmt().Statement) {
     dumpExpr(S->getTerminatingStmt().Statement->getStmtLabel());
     OS << " ";
   }
@@ -547,12 +573,12 @@ void ASTDumper::VisitDoStmt(const DoStmt *S) {
   dumpExpr(S->getInitialParameter());
   OS << ", ";
   dumpExpr(S->getTerminalParameter());
-  if(S->getIncrementationParameter()) {
+  if (S->getIncrementationParameter()) {
     OS << ", ";
     dumpExpr(S->getIncrementationParameter());
   }
   OS << "\n";
-  if(S->getBody())
+  if (S->getBody())
     dumpSubStmt(S->getBody());
 }
 
@@ -561,20 +587,20 @@ void ASTDumper::VisitDoWhileStmt(const DoWhileStmt *S) {
   OS << "do while(";
   dumpExpr(S->getCondition());
   OS << ")\n";
-  if(S->getBody())
+  if (S->getBody())
     dumpSubStmt(S->getBody());
 }
 
 void ASTDumper::VisitCycleStmt(const CycleStmt *S) {
   OS << "cycle";
-  if(S->getLoopName().isUsable())
+  if (S->getLoopName().isUsable())
     OS << ' ' << S->getLoopName().IDInfo->getName();
   OS << "\n";
 }
 
 void ASTDumper::VisitExitStmt(const ExitStmt *S) {
   OS << "exit";
-  if(S->getLoopName().isUsable())
+  if (S->getLoopName().isUsable())
     OS << ' ' << S->getLoopName().IDInfo->getName();
   OS << "\n";
 }
@@ -584,7 +610,7 @@ void ASTDumper::VisitSelectCaseStmt(const SelectCaseStmt *S) {
   OS << "select case(";
   dumpExprOrNull(S->getOperand());
   OS << ")\n";
-  if(S->getBody())
+  if (S->getBody())
     dumpSubStmt(S->getBody());
 }
 
@@ -594,7 +620,7 @@ void ASTDumper::VisitCaseStmt(const CaseStmt *S) {
   OS << ")";
   dumpConstructNameSuffix(S->getName());
   OS << "\n";
-  if(S->getBody())
+  if (S->getBody())
     dumpSubStmt(S->getBody());
 }
 
@@ -602,7 +628,7 @@ void ASTDumper::VisitDefaultCaseStmt(const DefaultCaseStmt *S) {
   OS << "case default";
   dumpConstructNameSuffix(S->getName());
   OS << "\n";
-  if(S->getBody())
+  if (S->getBody())
     dumpSubStmt(S->getBody());
 }
 
@@ -610,15 +636,13 @@ void ASTDumper::VisitWhereStmt(const WhereStmt *S) {
   OS << "where (";
   dumpExprOrNull(S->getMask());
   OS << ")\n";
-  if(S->getThenStmt())
+  if (S->getThenStmt())
     dumpSubStmt(S->getThenStmt());
-  if(S->getElseStmt())
+  if (S->getElseStmt())
     dumpSubStmt(S->getElseStmt());
 }
 
-void ASTDumper::VisitContinueStmt(const ContinueStmt *S) {
-  OS << "continue\n";
-}
+void ASTDumper::VisitContinueStmt(const ContinueStmt *S) { OS << "continue\n"; }
 
 void ASTDumper::VisitStopStmt(const StopStmt *S) {
   OS << "stop ";
@@ -660,7 +684,7 @@ void ASTDumper::VisitWriteStmt(const WriteStmt *S) {
 void ASTDumper::VisitFormatStmt(const FormatStmt *S) {
   OS << "format ";
   S->getItemList()->print(OS);
-  if(S->getUnlimitedItemList())
+  if (S->getUnlimitedItemList())
     S->getUnlimitedItemList()->print(OS);
   OS << "\n";
 }
@@ -671,10 +695,11 @@ void ASTDumper::dumpExpr(const Expr *E) {
   ConstExprVisitor<ASTDumper>::Visit(E);
 }
 
-void ASTDumper::dumpExprList(ArrayRef<Expr*> List) {
-  for(size_t I = 0; I < List.size(); ++I) {
-    if(I) OS << ", ";
-    if(List[I])
+void ASTDumper::dumpExprList(ArrayRef<Expr *> List) {
+  for (size_t I = 0; I < List.size(); ++I) {
+    if (I)
+      OS << ", ";
+    if (List[I])
       dumpExpr(List[I]);
   }
 }
@@ -683,14 +708,14 @@ void ASTDumper::VisitIntegerConstantExpr(const IntegerConstantExpr *E) {
   OS << E->getValue();
 }
 
-void ASTDumper::VisitRealConstantExpr(const RealConstantExpr *E)  {
+void ASTDumper::VisitRealConstantExpr(const RealConstantExpr *E) {
   llvm::SmallVector<char, 32> Str;
   E->getValue().toString(Str);
   Str.push_back('\0');
   OS << Str.begin();
 }
 
-void ASTDumper::VisitComplexConstantExpr(const ComplexConstantExpr *E)  {
+void ASTDumper::VisitComplexConstantExpr(const ComplexConstantExpr *E) {
   OS << '(';
   dumpExpr(E->getRealPart());
   OS << ',';
@@ -698,19 +723,17 @@ void ASTDumper::VisitComplexConstantExpr(const ComplexConstantExpr *E)  {
   OS << ')';
 }
 
-void ASTDumper::VisitCharacterConstantExpr(const CharacterConstantExpr *E)  {
+void ASTDumper::VisitCharacterConstantExpr(const CharacterConstantExpr *E) {
   OS << "'" << E->getValue() << "'";
 }
 
-void ASTDumper::VisitBOZConstantExpr(const BOZConstantExpr *E) {
+void ASTDumper::VisitBOZConstantExpr(const BOZConstantExpr *E) {}
 
+void ASTDumper::VisitLogicalConstantExpr(const LogicalConstantExpr *E) {
+  OS << (E->isTrue() ? "true" : "false");
 }
 
-void ASTDumper::VisitLogicalConstantExpr(const LogicalConstantExpr *E)  {
-  OS << (E->isTrue()? "true" : "false");
-}
-
-void ASTDumper::VisitRepeatedConstantExpr(const RepeatedConstantExpr *E)  {
+void ASTDumper::VisitRepeatedConstantExpr(const RepeatedConstantExpr *E) {
   OS << E->getRepeatCount() << "*";
   dumpExpr(E->getExpression());
 }
@@ -719,7 +742,8 @@ void ASTDumper::VisitVarExpr(const VarExpr *E) {
   OS << E->getVarDecl()->getName();
 }
 
-void ASTDumper::VisitUnresolvedIdentifierExpr(const UnresolvedIdentifierExpr *E) {
+void ASTDumper::VisitUnresolvedIdentifierExpr(
+    const UnresolvedIdentifierExpr *E) {
   OS << E->getIdentifier()->getName();
 }
 
@@ -727,17 +751,25 @@ void ASTDumper::VisitUnaryExpr(const UnaryExpr *E) {
   OS << '(';
   const char *op = "";
   switch (E->getOperator()) {
-  default: break;
-  case UnaryExpr::Not:   op = ".NOT."; break;
-  case UnaryExpr::Plus:  op = "+";     break;
-  case UnaryExpr::Minus: op = "-";     break;
+  default:
+    break;
+  case UnaryExpr::Not:
+    op = ".NOT.";
+    break;
+  case UnaryExpr::Plus:
+    op = "+";
+    break;
+  case UnaryExpr::Minus:
+    op = "-";
+    break;
   }
   OS << op;
   dumpExpr(E->getExpression());
   OS << ')';
 }
 
-void ASTDumper::VisitDefinedUnaryOperatorExpr(const DefinedUnaryOperatorExpr *E) {
+void ASTDumper::VisitDefinedUnaryOperatorExpr(
+    const DefinedUnaryOperatorExpr *E) {
   OS << '(' << E->getIdentifierInfo()->getName();
   dumpExpr(E->getExpression());
   OS << ')';
@@ -745,22 +777,24 @@ void ASTDumper::VisitDefinedUnaryOperatorExpr(const DefinedUnaryOperatorExpr *E)
 
 void ASTDumper::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
   auto Type = E->getType().getSelfOrArrayElementType();
-  if(Type->isIntegerType())
+  if (Type->isIntegerType())
     OS << "int(";
-  else if(Type->isRealType())
+  else if (Type->isRealType())
     OS << "real(";
-  else if(Type->isComplexType())
+  else if (Type->isComplexType())
     OS << "cmplx(";
-  else if(Type->isLogicalType())
+  else if (Type->isLogicalType())
     OS << "logical(";
   else {
     dumpType(Type);
     OS << "(";
   }
   dumpExpr(E->getExpression());
-  if(auto BTy = Type->asBuiltinType()) {
-    if(BTy->isKindExplicitlySpecified() || BTy->isDoublePrecisionKindSpecified())
-       OS << ",Kind=" << BuiltinType::getTypeKindString(BTy->getBuiltinTypeKind());
+  if (auto BTy = Type->asBuiltinType()) {
+    if (BTy->isKindExplicitlySpecified() ||
+        BTy->isDoublePrecisionKindSpecified())
+      OS << ",Kind="
+         << BuiltinType::getTypeKindString(BTy->getBuiltinTypeKind());
   }
   OS << ')';
 }
@@ -770,30 +804,64 @@ void ASTDumper::VisitBinaryExpr(const BinaryExpr *E) {
   dumpExpr(E->getLHS());
   const char *op = 0;
   switch (E->getOperator()) {
-  default: break;
-  case BinaryExpr::Eqv:              op = ".EQV.";  break;
-  case BinaryExpr::Neqv:             op = ".NEQV."; break;
-  case BinaryExpr::Or:               op = ".OR.";   break;
-  case BinaryExpr::And:              op = ".AND.";  break;
-  case BinaryExpr::Equal:            op = "==";     break;
-  case BinaryExpr::NotEqual:         op = "/=";     break;
-  case BinaryExpr::LessThan:         op = "<";      break;
-  case BinaryExpr::LessThanEqual:    op = "<=";     break;
-  case BinaryExpr::GreaterThan:      op = ">";      break;
-  case BinaryExpr::GreaterThanEqual: op = ">=";     break;
-  case BinaryExpr::Concat:           op = "//";     break;
-  case BinaryExpr::Plus:             op = "+";      break;
-  case BinaryExpr::Minus:            op = "-";      break;
-  case BinaryExpr::Multiply:         op = "*";      break;
-  case BinaryExpr::Divide:           op = "/";      break;
-  case BinaryExpr::Power:            op = "**";     break;
+  default:
+    break;
+  case BinaryExpr::Eqv:
+    op = ".EQV.";
+    break;
+  case BinaryExpr::Neqv:
+    op = ".NEQV.";
+    break;
+  case BinaryExpr::Or:
+    op = ".OR.";
+    break;
+  case BinaryExpr::And:
+    op = ".AND.";
+    break;
+  case BinaryExpr::Equal:
+    op = "==";
+    break;
+  case BinaryExpr::NotEqual:
+    op = "/=";
+    break;
+  case BinaryExpr::LessThan:
+    op = "<";
+    break;
+  case BinaryExpr::LessThanEqual:
+    op = "<=";
+    break;
+  case BinaryExpr::GreaterThan:
+    op = ">";
+    break;
+  case BinaryExpr::GreaterThanEqual:
+    op = ">=";
+    break;
+  case BinaryExpr::Concat:
+    op = "//";
+    break;
+  case BinaryExpr::Plus:
+    op = "+";
+    break;
+  case BinaryExpr::Minus:
+    op = "-";
+    break;
+  case BinaryExpr::Multiply:
+    op = "*";
+    break;
+  case BinaryExpr::Divide:
+    op = "/";
+    break;
+  case BinaryExpr::Power:
+    op = "**";
+    break;
   }
   OS << op;
   dumpExpr(E->getRHS());
   OS << ')';
 }
 
-void ASTDumper::VisitDefinedBinaryOperatorExpr(const DefinedBinaryOperatorExpr *E) {
+void ASTDumper::VisitDefinedBinaryOperatorExpr(
+    const DefinedBinaryOperatorExpr *E) {
   OS << '(';
   dumpExpr(E->getLHS());
   OS << E->getIdentifierInfo()->getName();
@@ -861,9 +929,9 @@ void ASTDumper::VisitImpliedDoExpr(const ImpliedDoExpr *E) {
   dumpExpr(E->getInitialParameter());
   OS << ", ";
   dumpExpr(E->getTerminalParameter());
-  if(E->getIncrementationParameter()) {
-     OS << ", ";
-     dumpExpr(E->getIncrementationParameter());
+  if (E->getIncrementationParameter()) {
+    OS << ", ";
+    dumpExpr(E->getIncrementationParameter());
   }
   OS << ')';
 }
@@ -894,62 +962,53 @@ void ASTDumper::VisitStridedRangeExpr(const StridedRangeExpr *E) {
 
 // array specification
 void ASTDumper::dumpArraySpec(const ArraySpec *S) {
-  if(auto Explicit = dyn_cast<ExplicitShapeSpec>(S)) {
-    if(Explicit->getLowerBound()) {
+  if (auto Explicit = dyn_cast<ExplicitShapeSpec>(S)) {
+    if (Explicit->getLowerBound()) {
       dumpExpr(Explicit->getLowerBound());
       OS << ':';
     }
     dumpExpr(Explicit->getUpperBound());
-  } else if(auto Implied = dyn_cast<ImpliedShapeSpec>(S)) {
-    if(Implied->getLowerBound()) {
-      dumpExpr(Implied ->getLowerBound());
+  } else if (auto Implied = dyn_cast<ImpliedShapeSpec>(S)) {
+    if (Implied->getLowerBound()) {
+      dumpExpr(Implied->getLowerBound());
       OS << ':';
     }
     OS << '*';
-  } else OS << "<unknown array spec>";
+  } else
+    OS << "<unknown array spec>";
 }
 
 namespace fort {
 
-void Decl::dump() const {
-  dump(llvm::errs());
-}
+void Decl::dump() const { dump(llvm::errs()); }
 void Decl::dump(llvm::raw_ostream &OS) const {
   ASTDumper SV(OS);
   SV.dumpDecl(this);
 }
 
-void QualType::dump() const {
-  print(llvm::errs());
-}
+void QualType::dump() const { print(llvm::errs()); }
 
 void QualType::print(raw_ostream &OS) const {
   ASTDumper SV(OS);
   SV.dumpType(*this);
 }
 
-void Stmt::dump() const {
-  dump(llvm::errs());
-}
+void Stmt::dump() const { dump(llvm::errs()); }
 void Stmt::dump(llvm::raw_ostream &OS) const {
   ASTDumper SV(OS);
   SV.dumpStmt(this);
 }
 
-void Expr::dump() const {
-  dump(llvm::errs());
-}
+void Expr::dump() const { dump(llvm::errs()); }
 void Expr::dump(llvm::raw_ostream &OS) const {
   ASTDumper SV(OS);
   SV.dumpExpr(this);
 }
 
-void ArraySpec::dump() const {
-  dump(llvm::errs());
-}
+void ArraySpec::dump() const { dump(llvm::errs()); }
 void ArraySpec::dump(llvm::raw_ostream &OS) const {
   ASTDumper SV(OS);
   SV.dumpArraySpec(this);
 }
 
-}
+} // namespace fort

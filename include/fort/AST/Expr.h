@@ -14,15 +14,15 @@
 #ifndef FORT_AST_EXPR_H__
 #define FORT_AST_EXPR_H__
 
-#include "fort/AST/Type.h"
 #include "fort/AST/IntrinsicFunctions.h"
+#include "fort/AST/Type.h"
+#include "fort/Basic/LLVM.h"
 #include "fort/Basic/SourceLocation.h"
-#include "llvm/Support/Casting.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/SourceMgr.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/StringRef.h"
-#include "fort/Basic/LLVM.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace fort {
 
@@ -41,10 +41,10 @@ public:
   enum ExprClass {
     NoExprClass = 0,
 #define EXPR(CLASS, PARENT) CLASS##Class,
-#define EXPR_RANGE(BASE, FIRST, LAST) \
-        first##BASE##Constant=FIRST##Class, last##BASE##Constant=LAST##Class,
-#define LAST_EXPR_RANGE(BASE, FIRST, LAST) \
-        first##BASE##Constant=FIRST##Class, last##BASE##Constant=LAST##Class
+#define EXPR_RANGE(BASE, FIRST, LAST)                                          \
+  first##BASE##Constant = FIRST##Class, last##BASE##Constant = LAST##Class,
+#define LAST_EXPR_RANGE(BASE, FIRST, LAST)                                     \
+  first##BASE##Constant = FIRST##Class, last##BASE##Constant = LAST##Class
 #define ABSTRACT_EXPR(STMT)
 #include "fort/AST/ExprNodes.inc"
   };
@@ -54,11 +54,12 @@ private:
   ExprClass ExprID;
   SourceLocation Loc;
   friend class ASTContext;
+
 protected:
   Expr(ExprClass ET, QualType T, SourceLocation L) : ExprID(ET), Loc(L) {
     setType(T);
   }
-  //virtual ~Expr() {}
+  // virtual ~Expr() {}
 
 public:
   QualType getType() const { return Ty; }
@@ -85,7 +86,7 @@ public:
   /// GatherNonEvaluatableExpressions - if an expression can't be evaluated,
   /// gathers the child expressions which can't be evaluated.
   void GatherNonEvaluatableExpressions(const ASTContext &Ctx,
-                                       SmallVectorImpl<const Expr*> &Result);
+                                       SmallVectorImpl<const Expr *> &Result);
 
   /// IsArrayExprContiguous - Return true if this is a contiguous array
   /// expression, i.e. without strides or single element sections in upper
@@ -106,22 +107,25 @@ private:
     Expr **Arguments;
     Expr *Argument;
   };
-public:
-  MultiArgumentExpr(ASTContext &C, ArrayRef<Expr*> Args);
 
-  ArrayRef<Expr*> getArguments() const {
-    return NumArguments == 1? ArrayRef<Expr*>(Argument) :
-                              ArrayRef<Expr*>(Arguments,NumArguments);
+public:
+  MultiArgumentExpr(ASTContext &C, ArrayRef<Expr *> Args);
+
+  ArrayRef<Expr *> getArguments() const {
+    return NumArguments == 1 ? ArrayRef<Expr *>(Argument)
+                             : ArrayRef<Expr *>(Arguments, NumArguments);
   }
 };
 
 /// ConstantExpr - The base class for all constant expressions.
 class ConstantExpr : public Expr {
-  Expr *Kind;                   // Optional Kind Selector
+  Expr *Kind; // Optional Kind Selector
   SourceLocation MaxLoc;
+
 protected:
-  ConstantExpr(ExprClass Ty, QualType T, SourceLocation Loc, SourceLocation MLoc)
-    : Expr(Ty, T, Loc), Kind(0), MaxLoc(MLoc) {}
+  ConstantExpr(ExprClass Ty, QualType T, SourceLocation Loc,
+               SourceLocation MLoc)
+      : Expr(Ty, T, Loc), Kind(0), MaxLoc(MLoc) {}
   virtual ~ConstantExpr() {}
 
 public:
@@ -132,10 +136,13 @@ public:
 
   static bool classof(const Expr *E) {
     ExprClass ETy = E->getExprClass();
-    return ETy == Expr::ConstantExprClass || ETy == Expr::CharacterConstantExprClass ||
-      ETy == Expr::IntegerConstantExprClass || ETy == Expr::RealConstantExprClass ||
-      ETy == Expr::ComplexConstantExprClass ||
-      ETy == Expr::BOZConstantExprClass || ETy == Expr::LogicalConstantExprClass;
+    return ETy == Expr::ConstantExprClass ||
+           ETy == Expr::CharacterConstantExprClass ||
+           ETy == Expr::IntegerConstantExprClass ||
+           ETy == Expr::RealConstantExprClass ||
+           ETy == Expr::ComplexConstantExprClass ||
+           ETy == Expr::BOZConstantExprClass ||
+           ETy == Expr::LogicalConstantExprClass;
   }
   static bool classof(const ConstantExpr *) { return true; }
 };
@@ -151,17 +158,17 @@ public:
 class APNumericStorage {
   unsigned BitWidth;
   union {
-    uint64_t VAL;    ///< Used to store the <= 64 bits integer value.
-    uint64_t *pVal;  ///< Used to store the >64 bits integer value.
+    uint64_t VAL;   ///< Used to store the <= 64 bits integer value.
+    uint64_t *pVal; ///< Used to store the >64 bits integer value.
   };
 
   bool hasAllocation() const { return llvm::APInt::getNumWords(BitWidth) > 1; }
 
-  APNumericStorage(const APNumericStorage&); // do not implement
-  APNumericStorage& operator=(const APNumericStorage&); // do not implement
+  APNumericStorage(const APNumericStorage &);            // do not implement
+  APNumericStorage &operator=(const APNumericStorage &); // do not implement
 
 protected:
-  APNumericStorage() : BitWidth(0), VAL(0) { }
+  APNumericStorage() : BitWidth(0), VAL(0) {}
 
   llvm::APInt getIntValue() const {
     unsigned NumWords = llvm::APInt::getNumWords(BitWidth);
@@ -174,8 +181,8 @@ protected:
 };
 
 class APIntStorage : public APNumericStorage {
-public:  
-  llvm::APInt getValue() const { return getIntValue(); } 
+public:
+  llvm::APInt getValue() const { return getIntValue(); }
   void setValue(ASTContext &C, const llvm::APInt &Val) { setIntValue(C, Val); }
 };
 
@@ -185,19 +192,19 @@ GetIEEEFloatSemantics(const llvm::APInt &api) {
     return llvm::APFloat::IEEEhalf();
   else if (api.getBitWidth() == 32)
     return llvm::APFloat::IEEEsingle();
-  else if (api.getBitWidth()==64)
+  else if (api.getBitWidth() == 64)
     return llvm::APFloat::IEEEdouble();
-  else if (api.getBitWidth()==128)
+  else if (api.getBitWidth() == 128)
     return llvm::APFloat::IEEEquad();
   llvm_unreachable("Unknown float semantic.");
 }
 
-class APFloatStorage : public APNumericStorage {  
+class APFloatStorage : public APNumericStorage {
 public:
   llvm::APFloat getValue() const {
     llvm::APInt Int = getIntValue();
     return llvm::APFloat(GetIEEEFloatSemantics(Int), Int);
-  } 
+  }
   void setValue(ASTContext &C, const llvm::APFloat &Val) {
     setIntValue(C, Val.bitcastToAPInt());
   }
@@ -205,8 +212,7 @@ public:
 
 class IntegerConstantExpr : public ConstantExpr {
   APIntStorage Num;
-  IntegerConstantExpr(ASTContext &C, SourceRange Range,
-                      StringRef Data);
+  IntegerConstantExpr(ASTContext &C, SourceRange Range, StringRef Data);
   IntegerConstantExpr(ASTContext &C, SourceRange Range, APInt Value);
   virtual ~IntegerConstantExpr() {}
 
@@ -230,14 +236,13 @@ public:
 class RealConstantExpr : public ConstantExpr {
 private:
   APFloatStorage Num;
-  RealConstantExpr(ASTContext &C, SourceRange Range,
-                   llvm::StringRef Data, QualType Type);
+  RealConstantExpr(ASTContext &C, SourceRange Range, llvm::StringRef Data,
+                   QualType Type);
   virtual ~RealConstantExpr() {}
 
 public:
   static RealConstantExpr *Create(ASTContext &C, SourceRange Range,
-                                  llvm::StringRef Data,
-                                  QualType Type);
+                                  llvm::StringRef Data, QualType Type);
 
   APFloat getValue() const { return Num.getValue(); }
 
@@ -250,8 +255,8 @@ public:
 class ComplexConstantExpr : public ConstantExpr {
 private:
   Expr *Re, *Im;
-  ComplexConstantExpr(ASTContext &C, SourceRange Range,
-                      Expr *Real, Expr *Imaginary, QualType Type);
+  ComplexConstantExpr(ASTContext &C, SourceRange Range, Expr *Real,
+                      Expr *Imaginary, QualType Type);
   virtual ~ComplexConstantExpr() {}
 
 public:
@@ -272,9 +277,10 @@ class CharacterConstantExpr : public ConstantExpr {
   char *Data;
 
   CharacterConstantExpr(char *Str, SourceRange Range, QualType T);
-  CharacterConstantExpr(ASTContext &C, SourceRange Range,
-                        StringRef Data, QualType T);
+  CharacterConstantExpr(ASTContext &C, SourceRange Range, StringRef Data,
+                        QualType T);
   virtual ~CharacterConstantExpr() {}
+
 public:
   static CharacterConstantExpr *Create(ASTContext &C, SourceRange Range,
                                        StringRef Data, QualType T);
@@ -284,9 +290,11 @@ public:
   }
 
   /// CreateCopyWithCompatibleLength - if the 'this' string has the same length
-  /// as the type, it returns 'this'. Otherwise it creates a new CharacterConstantExpr
-  /// which has the length adjusted to match the length of the character type.
-  CharacterConstantExpr *CreateCopyWithCompatibleLength(ASTContext &C, QualType T);
+  /// as the type, it returns 'this'. Otherwise it creates a new
+  /// CharacterConstantExpr which has the length adjusted to match the length of
+  /// the character type.
+  CharacterConstantExpr *CreateCopyWithCompatibleLength(ASTContext &C,
+                                                        QualType T);
 
   const char *getValue() const { return Data; }
 
@@ -299,11 +307,12 @@ public:
 class BOZConstantExpr : public ConstantExpr {
 public:
   enum BOZKind { Hexadecimal, Octal, BinaryExprClass };
+
 private:
   APIntStorage Num;
   BOZKind Kind;
-  BOZConstantExpr(ASTContext &C, SourceLocation Loc,
-                  SourceLocation MaxLoc, llvm::StringRef Data);
+  BOZConstantExpr(ASTContext &C, SourceLocation Loc, SourceLocation MaxLoc,
+                  llvm::StringRef Data);
   virtual ~BOZConstantExpr() {}
 
 public:
@@ -327,8 +336,8 @@ public:
 class LogicalConstantExpr : public ConstantExpr {
   bool Val;
 
-  LogicalConstantExpr(ASTContext &C, SourceRange Range,
-                      llvm::StringRef Data, QualType T);
+  LogicalConstantExpr(ASTContext &C, SourceRange Range, llvm::StringRef Data,
+                      QualType T);
   virtual ~LogicalConstantExpr() {}
 
 public:
@@ -349,9 +358,9 @@ public:
 class RepeatedConstantExpr : public Expr {
   IntegerConstantExpr *RepeatCount;
   Expr *E;
-  RepeatedConstantExpr(SourceLocation Loc,
-                       IntegerConstantExpr *Repeat,
+  RepeatedConstantExpr(SourceLocation Loc, IntegerConstantExpr *Repeat,
                        Expr *Expression);
+
 public:
   static RepeatedConstantExpr *Create(ASTContext &C, SourceLocation Loc,
                                       IntegerConstantExpr *RepeatCount,
@@ -375,11 +384,10 @@ class DesignatorExpr : public Expr {
 protected:
   Expr *Target;
 
-  DesignatorExpr(ExprClass EClass,QualType T,SourceLocation Loc,
-                 Expr *E)
-    : Expr(EClass, T, Loc), Target(E) {}
-public:
+  DesignatorExpr(ExprClass EClass, QualType T, SourceLocation Loc, Expr *E)
+      : Expr(EClass, T, Loc), Target(E) {}
 
+public:
   Expr *getTarget() const { return Target; }
 
   SourceLocation getLocStart() const;
@@ -395,16 +403,14 @@ public:
 /// MemberExpr - structure component.
 class MemberExpr : public DesignatorExpr {
   const FieldDecl *Field;
-  MemberExpr(ASTContext &C, SourceLocation Loc, Expr *E,
-             const FieldDecl *F, QualType T);
-public:
-  static MemberExpr *Create(ASTContext &C, SourceLocation Loc,
-                            Expr *Target, const FieldDecl *Field,
-                            QualType T);
+  MemberExpr(ASTContext &C, SourceLocation Loc, Expr *E, const FieldDecl *F,
+             QualType T);
 
-  const FieldDecl *getField() const {
-    return Field;
-  }
+public:
+  static MemberExpr *Create(ASTContext &C, SourceLocation Loc, Expr *Target,
+                            const FieldDecl *Field, QualType T);
+
+  const FieldDecl *getField() const { return Field; }
 
   static bool classof(const Expr *E) {
     return E->getExprClass() == Expr::MemberExprClass;
@@ -417,20 +423,19 @@ public:
 class SubstringExpr : public DesignatorExpr {
 private:
   Expr *StartingPoint, *EndPoint;
-  SubstringExpr(ASTContext &C, SourceLocation Loc, Expr *E,
-                Expr *Start, Expr *End);
+  SubstringExpr(ASTContext &C, SourceLocation Loc, Expr *E, Expr *Start,
+                Expr *End);
+
 public:
-  static SubstringExpr *Create(ASTContext &C, SourceLocation Loc,
-                               Expr *Target, Expr *StartingPoint,
-                               Expr *EndPoint);
+  static SubstringExpr *Create(ASTContext &C, SourceLocation Loc, Expr *Target,
+                               Expr *StartingPoint, Expr *EndPoint);
 
   Expr *getStartingPoint() const { return StartingPoint; }
   Expr *getEndPoint() const { return EndPoint; }
 
   /// Returns true if the range of the substring can be evaluated.
-  bool EvaluateRange(ASTContext &Ctx, uint64_t Len,
-                     uint64_t &Start, uint64_t &End,
-                     const ExprEvalScope *Scope = nullptr) const;
+  bool EvaluateRange(ASTContext &Ctx, uint64_t Len, uint64_t &Start,
+                     uint64_t &End, const ExprEvalScope *Scope = nullptr) const;
 
   SourceLocation getLocEnd() const;
 
@@ -445,15 +450,13 @@ public:
 class ArrayElementExpr : public DesignatorExpr, public MultiArgumentExpr {
 
   ArrayElementExpr(ASTContext &C, SourceLocation Loc, Expr *E,
-                   ArrayRef<Expr*> Subs);
+                   ArrayRef<Expr *> Subs);
+
 public:
   static ArrayElementExpr *Create(ASTContext &C, SourceLocation Loc,
-                                  Expr *Target,
-                                  ArrayRef<Expr*> Subscripts);
+                                  Expr *Target, ArrayRef<Expr *> Subscripts);
 
-  ArrayRef<Expr*> getSubscripts() const {
-    return getArguments();
-  }
+  ArrayRef<Expr *> getSubscripts() const { return getArguments(); }
 
   /// Returns true if the offset of the given element can be evaluated.
   bool EvaluateOffset(ASTContext &Ctx, uint64_t &Offset,
@@ -472,15 +475,14 @@ public:
 class ArraySectionExpr : public DesignatorExpr, public MultiArgumentExpr {
 
   ArraySectionExpr(ASTContext &C, SourceLocation Loc, Expr *E,
-                   ArrayRef<Expr*> Subscripts, QualType T);
+                   ArrayRef<Expr *> Subscripts, QualType T);
+
 public:
   static ArraySectionExpr *Create(ASTContext &C, SourceLocation Loc,
-                                  Expr *Target, ArrayRef<Expr*> Subscripts,
+                                  Expr *Target, ArrayRef<Expr *> Subscripts,
                                   QualType T);
 
-  ArrayRef<Expr*> getSubscripts() const {
-    return getArguments();
-  }
+  ArrayRef<Expr *> getSubscripts() const { return getArguments(); }
 
   SourceLocation getLocEnd() const;
 
@@ -494,15 +496,13 @@ public:
 /// ImplicitArrayOperationExpr - base class for implicit array operations.
 class ImplicitArrayOperationExpr : public Expr {
   Expr *E;
-protected:
-  ImplicitArrayOperationExpr(ExprClass Class, SourceLocation Loc,
-                             Expr *e)
-    : Expr(Class, e->getType(), Loc), E(e) {}
-public:
 
-  Expr *getExpression() const {
-    return E;
-  }
+protected:
+  ImplicitArrayOperationExpr(ExprClass Class, SourceLocation Loc, Expr *e)
+      : Expr(Class, e->getType(), Loc), E(e) {}
+
+public:
+  Expr *getExpression() const { return E; }
 
   SourceLocation getLocStart() const;
   SourceLocation getLocEnd() const;
@@ -519,15 +519,14 @@ public:
 class ImplicitArrayPackExpr : public ImplicitArrayOperationExpr {
 
   ImplicitArrayPackExpr(SourceLocation Loc, Expr *E);
+
 public:
   static ImplicitArrayPackExpr *Create(ASTContext &C, Expr *E);
 
   static bool classof(const Expr *E) {
     return E->getExprClass() == ImplicitArrayPackExprClass;
   }
-  static bool classof(const ImplicitArrayPackExpr *) {
-    return true;
-  }
+  static bool classof(const ImplicitArrayPackExpr *) { return true; }
 };
 
 //===----------------------------------------------------------------------===//
@@ -535,15 +534,14 @@ public:
 class ImplicitTempArrayExpr : public ImplicitArrayOperationExpr {
 
   ImplicitTempArrayExpr(SourceLocation Loc, Expr *E);
+
 public:
   static ImplicitTempArrayExpr *Create(ASTContext &C, Expr *E);
 
   static bool classof(const Expr *E) {
     return E->getExprClass() == ImplicitTempArrayExprClass;
   }
-  static bool classof(const ImplicitTempArrayExpr *) {
-    return true;
-  }
+  static bool classof(const ImplicitTempArrayExpr *) { return true; }
 };
 
 //===----------------------------------------------------------------------===//
@@ -551,8 +549,8 @@ public:
 /// EvaluatedArraySpec - represents an evaluated array specification.
 class EvaluatedArraySpec {
 public:
-  int64_t  LowerBound;
-  int64_t  UpperBound;
+  int64_t LowerBound;
+  int64_t UpperBound;
   uint64_t Size;
 
   uint64_t EvaluateOffset(int64_t Index) const;
@@ -568,10 +566,12 @@ public:
     k_AssumedSize,
     k_ImpliedShape
   };
+
 private:
   ArraySpecKind Kind;
-  ArraySpec(const ArraySpec&);
-  const ArraySpec &operator=(const ArraySpec&);
+  ArraySpec(const ArraySpec &);
+  const ArraySpec &operator=(const ArraySpec &);
+
 protected:
   ArraySpec(ArraySpecKind K);
   virtual ~ArraySpec() {}
@@ -605,8 +605,7 @@ class ExplicitShapeSpec : public ArraySpec {
 
 public:
   static ExplicitShapeSpec *Create(ASTContext &C, Expr *UB);
-  static ExplicitShapeSpec *Create(ASTContext &C, Expr *LB,
-                                   Expr *UB);
+  static ExplicitShapeSpec *Create(ASTContext &C, Expr *LB, Expr *UB);
 
   Expr *getLowerBound() const { return LowerBound; }
   Expr *getUpperBound() const { return UpperBound; }
@@ -634,6 +633,7 @@ class AssumedShapeSpec : public ArraySpec {
 
   AssumedShapeSpec();
   AssumedShapeSpec(Expr *LB);
+
 public:
   static AssumedShapeSpec *Create(ASTContext &C);
   static AssumedShapeSpec *Create(ASTContext &C, Expr *LB);
@@ -655,6 +655,7 @@ public:
 ///         :
 class DeferredShapeSpec : public ArraySpec {
   DeferredShapeSpec();
+
 public:
   static DeferredShapeSpec *Create(ASTContext &C);
 
@@ -676,6 +677,7 @@ class ImpliedShapeSpec : public ArraySpec {
 
   ImpliedShapeSpec(SourceLocation L);
   ImpliedShapeSpec(SourceLocation L, Expr *LB);
+
 public:
   static ImpliedShapeSpec *Create(ASTContext &C, SourceLocation Loc);
   static ImpliedShapeSpec *Create(ASTContext &C, SourceLocation Loc, Expr *LB);
@@ -697,6 +699,7 @@ class FunctionRefExpr : public Expr {
 
   FunctionRefExpr(SourceLocation Loc, SourceLocation LocEnd,
                   const FunctionDecl *Func, QualType T);
+
 public:
   static FunctionRefExpr *Create(ASTContext &C, SourceRange Range,
                                  const FunctionDecl *Function);
@@ -717,6 +720,7 @@ class VarExpr : public Expr {
   const VarDecl *Variable;
 
   VarExpr(SourceLocation Loc, SourceLocation LocEnd, const VarDecl *Var);
+
 public:
   static VarExpr *Create(ASTContext &C, SourceRange Range, VarDecl *VD);
   static VarExpr *Create(ASTContext &C, SourceLocation L, VarDecl *VD) {
@@ -742,8 +746,8 @@ class UnresolvedIdentifierExpr : public Expr {
   const IdentifierInfo *IDInfo;
 
   UnresolvedIdentifierExpr(ASTContext &C, SourceLocation Loc,
-                           SourceLocation LocEnd,
-                           const IdentifierInfo *ID);
+                           SourceLocation LocEnd, const IdentifierInfo *ID);
+
 public:
   static UnresolvedIdentifierExpr *Create(ASTContext &C, SourceRange Range,
                                           const IdentifierInfo *IDInfo);
@@ -772,13 +776,16 @@ public:
     // Level-1 operand.
     Defined
   };
+
 protected:
   Operator Op;
   Expr *E;
   UnaryExpr(ExprClass ET, QualType T, SourceLocation Loc, Operator op, Expr *e)
-    : Expr(ET, T, Loc), Op(op), E(e) {}
+      : Expr(ET, T, Loc), Op(op), E(e) {}
+
 public:
-  static UnaryExpr *Create(ASTContext &C, SourceLocation Loc, Operator Op, Expr *E);
+  static UnaryExpr *Create(ASTContext &C, SourceLocation Loc, Operator Op,
+                           Expr *E);
 
   Operator getOperator() const { return Op; }
 
@@ -797,6 +804,7 @@ public:
 class DefinedUnaryOperatorExpr : public UnaryExpr {
   IdentifierInfo *II;
   DefinedUnaryOperatorExpr(SourceLocation Loc, Expr *E, IdentifierInfo *IDInfo);
+
 public:
   static DefinedUnaryOperatorExpr *Create(ASTContext &C, SourceLocation Loc,
                                           Expr *E, IdentifierInfo *IDInfo);
@@ -841,12 +849,14 @@ public:
     Divide,
     Power
   };
+
 protected:
   Operator Op;
   Expr *LHS, *RHS;
   BinaryExpr(ExprClass ET, QualType T, SourceLocation Loc, Operator op,
              Expr *lhs, Expr *rhs)
-    : Expr(ET, T, Loc), Op(op), LHS(lhs), RHS(rhs) {}
+      : Expr(ET, T, Loc), Op(op), LHS(lhs), RHS(rhs) {}
+
 public:
   static BinaryExpr *Create(ASTContext &C, SourceLocation Loc, Operator Op,
                             QualType Type, Expr *LHS, Expr *RHS);
@@ -872,9 +882,11 @@ class DefinedBinaryOperatorExpr : public BinaryExpr {
   IdentifierInfo *II;
   DefinedBinaryOperatorExpr(SourceLocation Loc, Expr *LHS, Expr *RHS,
                             IdentifierInfo *IDInfo)
-    // FIXME: The type here needs to be calculated.
-    : BinaryExpr(Expr::DefinedBinaryOperatorExprClass, QualType(), Loc, Defined,
-                 LHS, RHS), II(IDInfo) {}
+      // FIXME: The type here needs to be calculated.
+      : BinaryExpr(Expr::DefinedBinaryOperatorExprClass, QualType(), Loc,
+                   Defined, LHS, RHS),
+        II(IDInfo) {}
+
 public:
   static DefinedBinaryOperatorExpr *Create(ASTContext &C, SourceLocation Loc,
                                            Expr *LHS, Expr *RHS,
@@ -900,6 +912,7 @@ public:
 class ImplicitCastExpr : public Expr {
   Expr *E;
   ImplicitCastExpr(SourceLocation Loc, QualType Dest, Expr *e);
+
 public:
   static ImplicitCastExpr *Create(ASTContext &C, SourceLocation Loc,
                                   QualType Dest, Expr *E);
@@ -918,11 +931,12 @@ public:
 /// CallExpr - represents a call to a function.
 class CallExpr : public Expr, public MultiArgumentExpr {
   FunctionDecl *Function;
-  CallExpr(ASTContext &C, SourceLocation Loc,
-           FunctionDecl *Func, ArrayRef<Expr*> Args);
+  CallExpr(ASTContext &C, SourceLocation Loc, FunctionDecl *Func,
+           ArrayRef<Expr *> Args);
+
 public:
-  static CallExpr *Create(ASTContext &C, SourceLocation Loc,
-                          FunctionDecl *Func, ArrayRef<Expr*> Args);
+  static CallExpr *Create(ASTContext &C, SourceLocation Loc, FunctionDecl *Func,
+                          ArrayRef<Expr *> Args);
 
   FunctionDecl *getFunction() const { return Function; }
 
@@ -938,16 +952,16 @@ public:
 class IntrinsicCallExpr : public Expr, public MultiArgumentExpr {
   intrinsic::FunctionKind Function;
   IntrinsicCallExpr(ASTContext &C, SourceLocation Loc,
-                            intrinsic::FunctionKind Func,
-                            ArrayRef<Expr*> Args,
-                            QualType ReturnType);
+                    intrinsic::FunctionKind Func, ArrayRef<Expr *> Args,
+                    QualType ReturnType);
+
 public:
   static IntrinsicCallExpr *Create(ASTContext &C, SourceLocation Loc,
-                                           intrinsic::FunctionKind Func,
-                                           ArrayRef<Expr*> Arguments,
-                                           QualType ReturnType);
+                                   intrinsic::FunctionKind Func,
+                                   ArrayRef<Expr *> Arguments,
+                                   QualType ReturnType);
 
-  intrinsic::FunctionKind getIntrinsicFunction() const { return Function;  }
+  intrinsic::FunctionKind getIntrinsicFunction() const { return Function; }
 
   SourceLocation getLocEnd() const;
 
@@ -963,24 +977,22 @@ class ImpliedDoExpr : public Expr {
   MultiArgumentExpr DoList;
   Expr *Init, *Terminate, *Increment;
 
-  ImpliedDoExpr(ASTContext &C, SourceLocation Loc,
-                VarDecl *Var, ArrayRef<Expr*> Body,
-                Expr *InitialParam, Expr *TerminalParam,
+  ImpliedDoExpr(ASTContext &C, SourceLocation Loc, VarDecl *Var,
+                ArrayRef<Expr *> Body, Expr *InitialParam, Expr *TerminalParam,
                 Expr *IncrementationParam);
+
 public:
   static ImpliedDoExpr *Create(ASTContext &C, SourceLocation Loc,
-                               VarDecl *DoVar, ArrayRef<Expr*> Body,
+                               VarDecl *DoVar, ArrayRef<Expr *> Body,
                                Expr *InitialParam, Expr *TerminalParam,
                                Expr *IncrementationParam);
 
   VarDecl *getVarDecl() const { return DoVar; }
-  ArrayRef<Expr*> getBody() const { return DoList.getArguments(); }
+  ArrayRef<Expr *> getBody() const { return DoList.getArguments(); }
   Expr *getInitialParameter() const { return Init; }
   Expr *getTerminalParameter() const { return Terminate; }
   Expr *getIncrementationParameter() const { return Increment; }
-  bool hasIncrementationParameter() const {
-    return Increment != nullptr;
-  }
+  bool hasIncrementationParameter() const { return Increment != nullptr; }
 
   SourceLocation getLocEnd() const;
 
@@ -993,12 +1005,13 @@ public:
 /// ArrayConstructorExpr - (/ /)
 class ArrayConstructorExpr : public Expr, protected MultiArgumentExpr {
   ArrayConstructorExpr(ASTContext &C, SourceLocation Loc,
-                       ArrayRef<Expr*> Items, QualType Ty);
+                       ArrayRef<Expr *> Items, QualType Ty);
+
 public:
   static ArrayConstructorExpr *Create(ASTContext &C, SourceLocation Loc,
-                                      ArrayRef<Expr*> Items, QualType Ty);
+                                      ArrayRef<Expr *> Items, QualType Ty);
 
-  ArrayRef<Expr*> getItems() const { return getArguments(); }
+  ArrayRef<Expr *> getItems() const { return getArguments(); }
 
   SourceLocation getLocEnd() const;
 
@@ -1012,23 +1025,22 @@ public:
 class TypeConstructorExpr : public Expr, public MultiArgumentExpr {
   const RecordDecl *Record;
   TypeConstructorExpr(ASTContext &C, SourceLocation Loc,
-                      const RecordDecl *record,
-                      ArrayRef<Expr*> Arguments, QualType T);
+                      const RecordDecl *record, ArrayRef<Expr *> Arguments,
+                      QualType T);
+
 public:
   static TypeConstructorExpr *Create(ASTContext &C, SourceLocation Loc,
                                      const RecordDecl *Record,
-                                     ArrayRef<Expr*> Arguments);
+                                     ArrayRef<Expr *> Arguments);
 
-  const RecordDecl *getRecord() const {
-    return Record;
-  }
+  const RecordDecl *getRecord() const { return Record; }
 
   SourceLocation getLocEnd() const;
 
   static bool classof(const Expr *E) {
     return E->getExprClass() == TypeConstructorExprClass;
   }
-  static bool classof(const TypeConstructorExpr*) { return true; }
+  static bool classof(const TypeConstructorExpr *) { return true; }
 };
 
 /// RangeExpr - [E1] : [E2]
@@ -1037,22 +1049,15 @@ class RangeExpr : public Expr {
 
 protected:
   RangeExpr(ExprClass Class, SourceLocation Loc, Expr *First, Expr *Second);
-public:
-  static RangeExpr *Create(ASTContext &C, SourceLocation Loc,
-                           Expr *First, Expr *Second);
 
-  Expr *getFirstExpr() const {
-    return E1;
-  }
-  Expr *getSecondExpr() const {
-    return E2;
-  }
-  bool hasFirstExpr() const {
-    return E1 != nullptr;
-  }
-  bool hasSecondExpr() const {
-    return E2 != nullptr;
-  }
+public:
+  static RangeExpr *Create(ASTContext &C, SourceLocation Loc, Expr *First,
+                           Expr *Second);
+
+  Expr *getFirstExpr() const { return E1; }
+  Expr *getSecondExpr() const { return E2; }
+  bool hasFirstExpr() const { return E1 != nullptr; }
+  bool hasSecondExpr() const { return E2 != nullptr; }
   void setFirstExpr(Expr *E);
   void setSecondExpr(Expr *E);
 
@@ -1069,30 +1074,23 @@ public:
 class StridedRangeExpr : public RangeExpr {
   Expr *Stride;
 
-  StridedRangeExpr(SourceLocation Loc, Expr *First, Expr *Second,
-                   Expr *stride);
+  StridedRangeExpr(SourceLocation Loc, Expr *First, Expr *Second, Expr *stride);
+
 public:
   static StridedRangeExpr *Create(ASTContext &C, SourceLocation Loc,
-                                  Expr *First, Expr *Second,
-                                  Expr *Stride);
+                                  Expr *First, Expr *Second, Expr *Stride);
 
-  Expr *getStride() const {
-    return Stride;
-  }
-  bool hasStride() const {
-    return Stride != nullptr;
-  }
+  Expr *getStride() const { return Stride; }
+  bool hasStride() const { return Stride != nullptr; }
 
   SourceLocation getLocEnd() const;
 
   static bool classof(const Expr *E) {
     return E->getExprClass() == StridedRangeExprClass;
   }
-  static bool classof(const StridedRangeExpr *) {
-    return true;
-  }
+  static bool classof(const StridedRangeExpr *) { return true; }
 };
 
-} // end fort namespace
+} // namespace fort
 
 #endif

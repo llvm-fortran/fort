@@ -16,11 +16,11 @@
 
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/Expr.h"
-#include "fort/Sema/Ownership.h"
-#include "fort/Basic/Token.h"
-#include "fort/Basic/SourceLocation.h"
-#include "llvm/ADT/ArrayRef.h"
 #include "fort/Basic/LLVM.h"
+#include "fort/Basic/SourceLocation.h"
+#include "fort/Basic/Token.h"
+#include "fort/Sema/Ownership.h"
+#include "llvm/ADT/ArrayRef.h"
 
 namespace fort {
 
@@ -37,10 +37,10 @@ public:
   enum StmtClass {
     NoStmtClass = 0,
 #define STMT(CLASS, PARENT) CLASS##Class,
-#define STMT_RANGE(BASE, FIRST, LAST) \
-        first##BASE##Constant=FIRST##Class, last##BASE##Constant=LAST##Class,
-#define LAST_STMT_RANGE(BASE, FIRST, LAST) \
-        first##BASE##Constant=FIRST##Class, last##BASE##Constant=LAST##Class
+#define STMT_RANGE(BASE, FIRST, LAST)                                          \
+  first##BASE##Constant = FIRST##Class, last##BASE##Constant = LAST##Class,
+#define LAST_STMT_RANGE(BASE, FIRST, LAST)                                     \
+  first##BASE##Constant = FIRST##Class, last##BASE##Constant = LAST##Class
 #define ABSTRACT_STMT(STMT)
 #include "fort/AST/StmtNodes.inc"
   };
@@ -53,24 +53,23 @@ private:
   SourceLocation Loc;
   Expr *StmtLabel;
 
-  Stmt(const Stmt &);           // Do not implement!
+  Stmt(const Stmt &); // Do not implement!
   friend class ASTContext;
+
 protected:
   // Make vanilla 'new' and 'delete' illegal for Stmts.
-  void* operator new(size_t bytes) noexcept {
+  void *operator new(size_t bytes) noexcept {
     assert(0 && "Stmts cannot be allocated with regular 'new'.");
     return 0;
   }
-  void operator delete(void* data) noexcept {
+  void operator delete(void *data) noexcept {
     assert(0 && "Stmts cannot be released with regular 'delete'.");
   }
 
   Stmt(StmtClass ID, SourceLocation L, Expr *SLT)
-    : StmtID(ID),
-      IsStmtLabelUsed(0),
-      IsStmtLabelUsedAsGotoTarget(0),
-      IsStmtLabelUsedAsAssignTarget(0),
-      Loc(L), StmtLabel(SLT) {}
+      : StmtID(ID), IsStmtLabelUsed(0), IsStmtLabelUsedAsGotoTarget(0),
+        IsStmtLabelUsedAsAssignTarget(0), Loc(L), StmtLabel(SLT) {}
+
 public:
   virtual ~Stmt();
 
@@ -79,9 +78,7 @@ public:
 
   /// getLocation - Get the location of the statement.
   SourceLocation getLocation() const { return Loc; }
-  void setLocation(SourceLocation L) {
-    Loc = L;
-  }
+  void setLocation(SourceLocation L) { Loc = L; }
 
   virtual SourceLocation getLocStart() const { return Loc; }
   virtual SourceLocation getLocEnd() const { return Loc; }
@@ -98,13 +95,9 @@ public:
     StmtLabel = E;
   }
 
-  bool isStmtLabelUsed() const {
-    return IsStmtLabelUsed;
-  }
+  bool isStmtLabelUsed() const { return IsStmtLabelUsed; }
 
-  void setStmtLabelUsed() {
-    IsStmtLabelUsed = true;
-  }
+  void setStmtLabelUsed() { IsStmtLabelUsed = true; }
 
   bool isStmtLabelUsedAsGotoTarget() const {
     return IsStmtLabelUsedAsGotoTarget;
@@ -127,27 +120,24 @@ public:
   void dump() const;
   void dump(llvm::raw_ostream &OS) const;
 
-  static bool classof(const Stmt*) { return true; }
+  static bool classof(const Stmt *) { return true; }
 
 public:
   // Only allow allocation of Stmts using the allocator in ASTContext or by
   // doing a placement new.
-  void *operator new(size_t bytes, const ASTContext &C,
-                     unsigned alignment = 8);
+  void *operator new(size_t bytes, const ASTContext &C, unsigned alignment = 8);
 
   void *operator new(size_t bytes, const ASTContext *C,
                      unsigned alignment = 8) noexcept {
     return operator new(bytes, *C, alignment);
   }
 
-  void *operator new(size_t bytes, void *mem) noexcept {
-    return mem;
-  }
+  void *operator new(size_t bytes, void *mem) noexcept { return mem; }
 
-  void operator delete(void*, ASTContext&, unsigned) noexcept { }
-  void operator delete(void*, ASTContext*, unsigned) noexcept { }
-  void operator delete(void*, std::size_t) noexcept { }
-  void operator delete(void*, void*) noexcept { }
+  void operator delete(void *, ASTContext &, unsigned)noexcept {}
+  void operator delete(void *, ASTContext *, unsigned)noexcept {}
+  void operator delete(void *, std::size_t) noexcept {}
+  void operator delete(void *, void *)noexcept {}
 };
 
 /// ConstructName - represents the name of the construct statement
@@ -155,13 +145,10 @@ struct ConstructName {
   SourceLocation Loc;
   const IdentifierInfo *IDInfo;
 
-  ConstructName()
-    : IDInfo(nullptr) {}
+  ConstructName() : IDInfo(nullptr) {}
   ConstructName(SourceLocation L, const IdentifierInfo *ID)
-    : Loc(L), IDInfo(ID) {}
-  bool isUsable() const {
-    return IDInfo != nullptr;
-  }
+      : Loc(L), IDInfo(ID) {}
+  bool isUsable() const { return IDInfo != nullptr; }
 };
 
 /// ConstructPartStmt - Represents a part of a construct
@@ -187,20 +174,15 @@ public:
 
 private:
   ConstructPartStmt(ConstructStmtClass StmtType, SourceLocation Loc,
-                    ConstructName name,
-                    Expr *StmtLabel);
+                    ConstructName name, Expr *StmtLabel);
+
 public:
   static ConstructPartStmt *Create(ASTContext &C, ConstructStmtClass StmtType,
-                                   SourceLocation Loc,
-                                   ConstructName Name,
+                                   SourceLocation Loc, ConstructName Name,
                                    Expr *StmtLabel);
 
-  ConstructStmtClass getConstructStmtClass() const {
-    return ConstructId;
-  }
-  ConstructName getName() const {
-    return Name;
-  }
+  ConstructStmtClass getConstructStmtClass() const { return ConstructId; }
+  ConstructName getName() const { return Name; }
 
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ConstructPartStmtClass;
@@ -214,15 +196,14 @@ class DeclStmt : public Stmt {
   NamedDecl *Declaration;
 
   DeclStmt(SourceLocation Loc, NamedDecl *Decl, Expr *StmtLabel);
+
 public:
   static DeclStmt *Create(ASTContext &C, SourceLocation Loc,
                           NamedDecl *Declaration, Expr *StmtLabel);
 
-  NamedDecl *getDeclaration() const {
-    return Declaration;
-  }
+  NamedDecl *getDeclaration() const { return Declaration; }
 
-  static bool classof(const DeclStmt*) { return true; }
+  static bool classof(const DeclStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == DeclStmtClass;
   }
@@ -230,27 +211,24 @@ public:
 
 /// ListStmt - A statement which has a list of identifiers associated with it.
 ///
-template <typename T = const IdentifierInfo *>
-class ListStmt : public Stmt {
+template <typename T = const IdentifierInfo *> class ListStmt : public Stmt {
   unsigned NumIDs;
   T *IDList;
+
 protected:
   ListStmt(ASTContext &C, Stmt::StmtClass ID, SourceLocation L, ArrayRef<T> IDs,
            Expr *SLT)
-    : Stmt(ID, L, SLT) {
+      : Stmt(ID, L, SLT) {
     NumIDs = IDs.size();
-    IDList = new (C) T [NumIDs];
+    IDList = new (C) T[NumIDs];
 
     for (unsigned I = 0; I != NumIDs; ++I)
       IDList[I] = IDs[I];
   }
-  T *getMutableList() {
-    return IDList;
-  }
+  T *getMutableList() { return IDList; }
+
 public:
-  ArrayRef<T> getIDList() const {
-    return ArrayRef<T>(IDList, NumIDs);
-  }
+  ArrayRef<T> getIDList() const { return ArrayRef<T>(IDList, NumIDs); }
 };
 
 /// CompoundStmt - This represents a group of statements
@@ -261,24 +239,23 @@ public:
 ///     ParameterStmt { x = 1 }
 ///     ParameterStmt { y = 2 }
 ///   }
-class CompoundStmt : public ListStmt<Stmt*> {
-  CompoundStmt(ASTContext &C, SourceLocation Loc,
-               ArrayRef<Stmt*> Body, Expr *StmtLabel);
+class CompoundStmt : public ListStmt<Stmt *> {
+  CompoundStmt(ASTContext &C, SourceLocation Loc, ArrayRef<Stmt *> Body,
+               Expr *StmtLabel);
+
 public:
   static CompoundStmt *Create(ASTContext &C, SourceLocation Loc,
-                              ArrayRef<Stmt*> Body, Expr *StmtLabel);
+                              ArrayRef<Stmt *> Body, Expr *StmtLabel);
 
-  ArrayRef<Stmt*> getBody() const {
-    return getIDList();
-  }
+  ArrayRef<Stmt *> getBody() const { return getIDList(); }
   Stmt *getFirst() const {
     auto Body = getBody();
-    if(auto BC = dyn_cast<CompoundStmt>(Body.front()))
+    if (auto BC = dyn_cast<CompoundStmt>(Body.front()))
       return BC->getFirst();
     return Body.front();
   }
 
-  static bool classof(const CompoundStmt*) { return true; }
+  static bool classof(const CompoundStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == CompoundStmtClass;
   }
@@ -292,7 +269,7 @@ class ProgramStmt : public Stmt {
 
   ProgramStmt(const IdentifierInfo *progName, SourceLocation Loc,
               SourceLocation NameL, Expr *SLT)
-    : Stmt(ProgramStmtClass, Loc, SLT), ProgName(progName), NameLoc(NameL) {}
+      : Stmt(ProgramStmtClass, Loc, SLT), ProgName(progName), NameLoc(NameL) {}
   ProgramStmt(const ProgramStmt &); // Do not implement!
 public:
   static ProgramStmt *Create(ASTContext &C, const IdentifierInfo *ProgName,
@@ -305,12 +282,11 @@ public:
   /// getNameLocation - Get the location of the program name.
   SourceLocation getNameLocation() const { return NameLoc; }
 
-  static bool classof(const ProgramStmt*) { return true; }
+  static bool classof(const ProgramStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ProgramStmtClass;
   }
 };
-
 
 /// ModuleStmt - first statement of a module
 ///
@@ -319,13 +295,14 @@ class ModuleStmt : public Stmt {
   SourceLocation NameLoc;
 
   ModuleStmt(const IdentifierInfo *moduleName, SourceLocation Loc,
-              SourceLocation NameL, Expr *SLT)
-    : Stmt(ModuleStmtClass, Loc, SLT), ModuleName(moduleName), NameLoc(NameL) {}
+             SourceLocation NameL, Expr *SLT)
+      : Stmt(ModuleStmtClass, Loc, SLT), ModuleName(moduleName),
+        NameLoc(NameL) {}
   ModuleStmt(const ModuleStmt &); // Do not implement!
 public:
   static ModuleStmt *Create(ASTContext &C, const IdentifierInfo *ModuleName,
-                             SourceLocation L, SourceLocation NameL,
-                             Expr *StmtLabel);
+                            SourceLocation L, SourceLocation NameL,
+                            Expr *StmtLabel);
 
   /// getProgramName - Get the name of the program. This may be null.
   const IdentifierInfo *getModuleName() const { return ModuleName; }
@@ -333,12 +310,11 @@ public:
   /// getNameLocation - Get the location of the program name.
   SourceLocation getNameLocation() const { return NameLoc; }
 
-  static bool classof(const ModuleStmt*) { return true; }
+  static bool classof(const ModuleStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ModuleStmtClass;
   }
 };
-
 
 //===----------------------------------------------------------------------===//
 // Specification Part Statements
@@ -348,12 +324,10 @@ public:
 ///
 class UseStmt : public Stmt {
 public:
-  enum ModuleNature {
-    None,
-    IntrinsicStmtClass,
-    NonIntrinsic
-  };
-  typedef llvm::SmallDenseMap<const IdentifierInfo *, const IdentifierInfo *> RenameListTy;
+  enum ModuleNature { None, IntrinsicStmtClass, NonIntrinsic };
+  typedef llvm::SmallDenseMap<const IdentifierInfo *, const IdentifierInfo *>
+      RenameListTy;
+
 private:
   ModuleNature ModNature;
   const IdentifierInfo *ModName;
@@ -362,25 +336,23 @@ private:
 
   UseStmt(ASTContext &C, ModuleNature MN, const IdentifierInfo *modName,
           RenameListTy RL, Expr *StmtLabel)
-    : Stmt(UseStmtClass, SourceLocation(), StmtLabel), RenameList(RL),
-      ModNature(MN), ModName(modName), Only(false) {}
-
+      : Stmt(UseStmtClass, SourceLocation(), StmtLabel), RenameList(RL),
+        ModNature(MN), ModName(modName), Only(false) {}
 
   void init(ASTContext &C, RenameListTy RenameList);
+
 public:
   static UseStmt *Create(ASTContext &C, ModuleNature MN,
-                         const IdentifierInfo *modName,
-                         Expr *StmtLabel);
+                         const IdentifierInfo *modName, Expr *StmtLabel);
   static UseStmt *Create(ASTContext &C, ModuleNature MN,
                          const IdentifierInfo *modName, bool Only,
-                         RenameListTy RenameList,
-                         Expr *StmtLabel);
+                         RenameListTy RenameList, Expr *StmtLabel);
 
   /// Accessors:
   ModuleNature getModuleNature() const { return ModNature; }
   StringRef getModuleName() const;
 
-  static bool classof(const UseStmt*) { return true; }
+  static bool classof(const UseStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == UseStmtClass;
   }
@@ -390,14 +362,15 @@ public:
 /// are accessible in the interface body by host association.
 ///
 class ImportStmt : public ListStmt<> {
-  ImportStmt(ASTContext &C, SourceLocation Loc, ArrayRef<const IdentifierInfo*> names,
-             Expr *StmtLabel);
+  ImportStmt(ASTContext &C, SourceLocation Loc,
+             ArrayRef<const IdentifierInfo *> names, Expr *StmtLabel);
+
 public:
   static ImportStmt *Create(ASTContext &C, SourceLocation Loc,
-                            ArrayRef<const IdentifierInfo*> Names,
+                            ArrayRef<const IdentifierInfo *> Names,
                             Expr *StmtLabel);
 
-  static bool classof(const ImportStmt*) { return true; }
+  static bool classof(const ImportStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ImportStmtClass;
   }
@@ -407,21 +380,18 @@ public:
 class ParameterStmt : public Stmt {
   const IdentifierInfo *IDInfo;
   Expr *Value;
-  ParameterStmt(SourceLocation Loc,const IdentifierInfo *Name,
-                Expr *Val, Expr *StmtLabel);
+  ParameterStmt(SourceLocation Loc, const IdentifierInfo *Name, Expr *Val,
+                Expr *StmtLabel);
+
 public:
   static ParameterStmt *Create(ASTContext &C, SourceLocation Loc,
-                               const IdentifierInfo *Name,
-                               Expr *Value, Expr *StmtLabel);
+                               const IdentifierInfo *Name, Expr *Value,
+                               Expr *StmtLabel);
 
-  const IdentifierInfo *getIdentifier() const {
-    return IDInfo;
-  }
-  Expr *getValue() const {
-    return Value;
-  }
+  const IdentifierInfo *getIdentifier() const { return IDInfo; }
+  Expr *getValue() const { return Value; }
 
-  static bool classof(const ParameterStmt*) { return true; }
+  static bool classof(const ParameterStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ParameterStmtClass;
   }
@@ -433,27 +403,30 @@ public:
 ///
 class ImplicitStmt : public Stmt {
 public:
-  typedef std::pair<const IdentifierInfo *, const IdentifierInfo *> LetterSpecTy;
+  typedef std::pair<const IdentifierInfo *, const IdentifierInfo *>
+      LetterSpecTy;
+
 private:
   QualType Ty;
   LetterSpecTy LetterSpec;
   bool None;
 
   ImplicitStmt(SourceLocation Loc, Expr *StmtLabel);
-  ImplicitStmt(SourceLocation Loc, QualType T,
-               LetterSpecTy Spec, Expr *StmtLabel);
+  ImplicitStmt(SourceLocation Loc, QualType T, LetterSpecTy Spec,
+               Expr *StmtLabel);
+
 public:
-  static ImplicitStmt *Create(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
-  static ImplicitStmt *Create(ASTContext &C, SourceLocation Loc, QualType T,
-                              LetterSpecTy LetterSpec,
+  static ImplicitStmt *Create(ASTContext &C, SourceLocation Loc,
                               Expr *StmtLabel);
+  static ImplicitStmt *Create(ASTContext &C, SourceLocation Loc, QualType T,
+                              LetterSpecTy LetterSpec, Expr *StmtLabel);
 
   bool isNone() const { return None; }
 
   QualType getType() const { return Ty; }
   LetterSpecTy getLetterSpec() const { return LetterSpec; }
 
-  static bool classof(const ImplicitStmt*) { return true; }
+  static bool classof(const ImplicitStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ImplicitStmtClass;
   }
@@ -461,22 +434,20 @@ public:
 
 /// DimensionStmt - Specifies the DIMENSION attribute for a named constant.
 ///
-class DimensionStmt : public ListStmt<ArraySpec*> {
+class DimensionStmt : public ListStmt<ArraySpec *> {
   const IdentifierInfo *VarName;
 
-  DimensionStmt(ASTContext &C, SourceLocation Loc, const IdentifierInfo* IDInfo,
-                ArrayRef<ArraySpec*> Dims, Expr *StmtLabel);
+  DimensionStmt(ASTContext &C, SourceLocation Loc, const IdentifierInfo *IDInfo,
+                ArrayRef<ArraySpec *> Dims, Expr *StmtLabel);
+
 public:
   static DimensionStmt *Create(ASTContext &C, SourceLocation Loc,
-                               const IdentifierInfo* IDInfo,
-                               ArrayRef<ArraySpec*> Dims,
-                               Expr *StmtLabel);
+                               const IdentifierInfo *IDInfo,
+                               ArrayRef<ArraySpec *> Dims, Expr *StmtLabel);
 
-  const IdentifierInfo *getVariableName() const {
-    return VarName;
-  }
+  const IdentifierInfo *getVariableName() const { return VarName; }
 
-  static bool classof(const DimensionStmt*) { return true; }
+  static bool classof(const DimensionStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == DimensionStmtClass;
   }
@@ -492,20 +463,16 @@ class FormatStmt : public Stmt {
 
   FormatStmt(SourceLocation Loc, FormatItemList *ItemList,
              FormatItemList *UnlimitedItemList, Expr *StmtLabel);
+
 public:
   static FormatStmt *Create(ASTContext &C, SourceLocation Loc,
                             FormatItemList *ItemList,
-                            FormatItemList *UnlimitedItemList,
-                            Expr *StmtLabel);
+                            FormatItemList *UnlimitedItemList, Expr *StmtLabel);
 
-  FormatItemList *getItemList() const {
-    return Items;
-  }
-  FormatItemList *getUnlimitedItemList() const {
-    return UnlimitedItems;
-  }
+  FormatItemList *getItemList() const { return Items; }
+  FormatItemList *getUnlimitedItemList() const { return UnlimitedItems; }
 
-  static bool classof(const FormatStmt*) { return true; }
+  static bool classof(const FormatStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == FormatStmtClass;
   }
@@ -515,10 +482,11 @@ public:
 ///
 class EntryStmt : public Stmt {
   EntryStmt(SourceLocation Loc, Expr *StmtLabel);
+
 public:
   static EntryStmt *Create(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
-  static bool classof(const EntryStmt*) { return true; }
+  static bool classof(const EntryStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == EntryStmtClass;
   }
@@ -529,14 +497,14 @@ public:
 ///
 class AsynchronousStmt : public ListStmt<> {
   AsynchronousStmt(ASTContext &C, SourceLocation Loc,
-                   ArrayRef<const IdentifierInfo*> objNames,
-                   Expr *StmtLabel);
+                   ArrayRef<const IdentifierInfo *> objNames, Expr *StmtLabel);
+
 public:
   static AsynchronousStmt *Create(ASTContext &C, SourceLocation Loc,
-                                  ArrayRef<const IdentifierInfo*> objNames,
+                                  ArrayRef<const IdentifierInfo *> objNames,
                                   Expr *StmtLabel);
 
-  static bool classof(const AsynchronousStmt*) { return true; }
+  static bool classof(const AsynchronousStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == AsynchronousStmtClass;
   }
@@ -547,23 +515,19 @@ public:
 class ExternalStmt : public Stmt {
   const IdentifierInfo *IDInfo;
 
-  ExternalStmt(SourceLocation Loc, const IdentifierInfo *Name,
-               Expr *StmtLabel);
+  ExternalStmt(SourceLocation Loc, const IdentifierInfo *Name, Expr *StmtLabel);
+
 public:
   static ExternalStmt *Create(ASTContext &C, SourceLocation Loc,
-                              const IdentifierInfo *Name,
-                              Expr *StmtLabel);
+                              const IdentifierInfo *Name, Expr *StmtLabel);
 
-  const IdentifierInfo *getIdentifier() const {
-    return IDInfo;
-  }
+  const IdentifierInfo *getIdentifier() const { return IDInfo; }
 
-  static bool classof(const ExternalStmt*) { return true; }
+  static bool classof(const ExternalStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ExternalStmtClass;
   }
 };
-
 
 /// IntrinsicStmt - Lists the intrinsic functions declared in this program unit.
 ///
@@ -572,16 +536,14 @@ class IntrinsicStmt : public Stmt {
 
   IntrinsicStmt(SourceLocation Loc, const IdentifierInfo *Name,
                 Expr *StmtLabel);
+
 public:
   static IntrinsicStmt *Create(ASTContext &C, SourceLocation Loc,
-                               const IdentifierInfo *Name,
-                               Expr *StmtLabel);
+                               const IdentifierInfo *Name, Expr *StmtLabel);
 
-  const IdentifierInfo *getIdentifier() const {
-    return IDInfo;
-  }
+  const IdentifierInfo *getIdentifier() const { return IDInfo; }
 
-  static bool classof(const IntrinsicStmt*) { return true; }
+  static bool classof(const IntrinsicStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == IntrinsicStmtClass;
   }
@@ -593,18 +555,15 @@ public:
 class SaveStmt : public Stmt {
   const IdentifierInfo *IDInfo;
 
-  SaveStmt(SourceLocation Loc, const IdentifierInfo *Name,
-           Expr *StmtLabel);
+  SaveStmt(SourceLocation Loc, const IdentifierInfo *Name, Expr *StmtLabel);
+
 public:
   static SaveStmt *Create(ASTContext &C, SourceLocation Loc,
-                          const IdentifierInfo *Name,
-                          Expr *StmtLabel);
+                          const IdentifierInfo *Name, Expr *StmtLabel);
 
-  const IdentifierInfo *getIdentifier() const {
-    return IDInfo;
-  }
+  const IdentifierInfo *getIdentifier() const { return IDInfo; }
 
-  static bool classof(const SaveStmt*) { return true; }
+  static bool classof(const SaveStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == SaveStmtClass;
   }
@@ -612,18 +571,16 @@ public:
 
 /// EquivalenceStmt - this is a part of EQUIVALENCE statement.
 class EquivalenceStmt : public Stmt, public MultiArgumentExpr {
-  EquivalenceStmt(ASTContext &C, SourceLocation Loc,
-                  ArrayRef<Expr*> Objects, Expr *StmtLabel);
+  EquivalenceStmt(ASTContext &C, SourceLocation Loc, ArrayRef<Expr *> Objects,
+                  Expr *StmtLabel);
+
 public:
   static EquivalenceStmt *Create(ASTContext &C, SourceLocation Loc,
-                                 ArrayRef<Expr*> Objects,
-                                 Expr *StmtLabel);
+                                 ArrayRef<Expr *> Objects, Expr *StmtLabel);
 
-  ArrayRef<Expr*> getObjects() const {
-    return getArguments();
-  }
+  ArrayRef<Expr *> getObjects() const { return getArguments(); }
 
-  static bool classof(const EquivalenceStmt*) { return true; }
+  static bool classof(const EquivalenceStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == EquivalenceStmtClass;
   }
@@ -636,24 +593,24 @@ class DataStmt : public Stmt {
   Expr **NameList, **ValueList;
 
   // Body is not used: comment out for now to avoid warnings
-  //Stmt *Body;
+  // Stmt *Body;
 
-  DataStmt(ASTContext &C, SourceLocation Loc,
-           ArrayRef<Expr*> Objects,
-           ArrayRef<Expr*> Values, Expr *StmtLabel);
+  DataStmt(ASTContext &C, SourceLocation Loc, ArrayRef<Expr *> Objects,
+           ArrayRef<Expr *> Values, Expr *StmtLabel);
+
 public:
   static DataStmt *Create(ASTContext &C, SourceLocation Loc,
-                          ArrayRef<Expr*> Objects,
-                          ArrayRef<Expr*> Values, Expr *StmtLabel);
+                          ArrayRef<Expr *> Objects, ArrayRef<Expr *> Values,
+                          Expr *StmtLabel);
 
-  ArrayRef<Expr*> getObjects() const {
-    return ArrayRef<Expr*>(NameList, NumNames);
+  ArrayRef<Expr *> getObjects() const {
+    return ArrayRef<Expr *>(NameList, NumNames);
   }
-  ArrayRef<Expr*> getValues() const {
-    return ArrayRef<Expr*>(ValueList, NumValues);
+  ArrayRef<Expr *> getValues() const {
+    return ArrayRef<Expr *>(ValueList, NumValues);
   }
 
-  static bool classof(const DataStmt*) { return true; }
+  static bool classof(const DataStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == DataStmtClass;
   }
@@ -664,18 +621,16 @@ public:
 //===----------------------------------------------------------------------===//
 
 /// BlockStmt
-class BlockStmt : public ListStmt<Stmt*> {
-  BlockStmt(ASTContext &C, SourceLocation Loc,
-            ArrayRef<Stmt*> Body);
+class BlockStmt : public ListStmt<Stmt *> {
+  BlockStmt(ASTContext &C, SourceLocation Loc, ArrayRef<Stmt *> Body);
+
 public:
   static BlockStmt *Create(ASTContext &C, SourceLocation Loc,
-                           ArrayRef<Stmt*> Body);
+                           ArrayRef<Stmt *> Body);
 
-  ArrayRef<Stmt*> getStatements() const {
-    return getIDList();
-  }
+  ArrayRef<Stmt *> getStatements() const { return getIDList(); }
 
-  static bool classof(const BlockStmt*) { return true; }
+  static bool classof(const BlockStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == BlockStmtClass;
   }
@@ -689,13 +644,8 @@ typedef uint32_t StmtLabelInteger;
 struct StmtLabelReference {
   Stmt *Statement;
 
-  StmtLabelReference()
-    : Statement(nullptr) {
-  }
-  inline StmtLabelReference(Stmt *S)
-    : Statement(S) {
-    assert(S);
-  }
+  StmtLabelReference() : Statement(nullptr) {}
+  inline StmtLabelReference(Stmt *S) : Statement(S) { assert(S); }
 };
 
 /// AssignStmt - assigns a statement label to an integer variable.
@@ -704,21 +654,17 @@ class AssignStmt : public Stmt {
   Expr *Destination;
   AssignStmt(SourceLocation Loc, StmtLabelReference Addr, Expr *Dest,
              Expr *StmtLabel);
+
 public:
   static AssignStmt *Create(ASTContext &C, SourceLocation Loc,
-                            StmtLabelReference Address,
-                            Expr *Destination,
+                            StmtLabelReference Address, Expr *Destination,
                             Expr *StmtLabel);
 
-  inline StmtLabelReference getAddress() const {
-    return Address;
-  }
+  inline StmtLabelReference getAddress() const { return Address; }
   void setAddress(StmtLabelReference Address);
-  inline Expr *getDestination() const {
-    return Destination;
-  }
+  inline Expr *getDestination() const { return Destination; }
 
-  static bool classof(const AssignStmt*) { return true; }
+  static bool classof(const AssignStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == AssignStmtClass;
   }
@@ -729,23 +675,21 @@ public:
 class AssignedGotoStmt : public ListStmt<StmtLabelReference> {
   Expr *Destination;
   AssignedGotoStmt(ASTContext &C, SourceLocation Loc, Expr *Dest,
-                   ArrayRef<StmtLabelReference> Vals,
-                   Expr *StmtLabel);
+                   ArrayRef<StmtLabelReference> Vals, Expr *StmtLabel);
+
 public:
   static AssignedGotoStmt *Create(ASTContext &C, SourceLocation Loc,
                                   Expr *Destination,
                                   ArrayRef<StmtLabelReference> AllowedValues,
                                   Expr *StmtLabel);
 
-  inline Expr *getDestination() const {
-    return Destination;
-  }
+  inline Expr *getDestination() const { return Destination; }
   inline ArrayRef<StmtLabelReference> getAllowedValues() const {
     return getIDList();
   }
   void setAllowedValue(size_t I, StmtLabelReference Address);
 
-  static bool classof(const AssignedGotoStmt*) { return true; }
+  static bool classof(const AssignedGotoStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == AssignedGotoStmtClass;
   }
@@ -755,17 +699,15 @@ public:
 class GotoStmt : public Stmt {
   StmtLabelReference Destination;
   GotoStmt(SourceLocation Loc, StmtLabelReference Dest, Expr *StmtLabel);
+
 public:
   static GotoStmt *Create(ASTContext &C, SourceLocation Loc,
-                          StmtLabelReference Destination,
-                          Expr *StmtLabel);
+                          StmtLabelReference Destination, Expr *StmtLabel);
 
-  inline StmtLabelReference getDestination() const {
-    return Destination;
-  }
+  inline StmtLabelReference getDestination() const { return Destination; }
   void setDestination(StmtLabelReference Destination);
 
-  static bool classof(const GotoStmt*) { return true; }
+  static bool classof(const GotoStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == GotoStmtClass;
   }
@@ -776,21 +718,18 @@ class ComputedGotoStmt : public ListStmt<StmtLabelReference> {
   Expr *E;
   ComputedGotoStmt(ASTContext &C, SourceLocation Loc, Expr *e,
                    ArrayRef<StmtLabelReference> Targets, Expr *StmtLabel);
+
 public:
   static ComputedGotoStmt *Create(ASTContext &C, SourceLocation Loc,
                                   Expr *Expression,
                                   ArrayRef<StmtLabelReference> Targets,
                                   Expr *StmtLabel);
 
-  inline Expr *getExpression() const {
-    return E;
-  }
-  inline ArrayRef<StmtLabelReference> getTargets() const {
-    return getIDList();
-  }
+  inline Expr *getExpression() const { return E; }
+  inline ArrayRef<StmtLabelReference> getTargets() const { return getIDList(); }
   void setTarget(size_t I, StmtLabelReference Address);
 
-  static bool classof(const ComputedGotoStmt*) { return true; }
+  static bool classof(const ComputedGotoStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ComputedGotoStmtClass;
   }
@@ -802,14 +741,15 @@ class NamedConstructStmt : public Stmt {
   ConstructName Name;
 
 protected:
-  NamedConstructStmt(StmtClass Type, SourceLocation Loc, Expr *StmtLabel, ConstructName name)
-    : Stmt(Type, Loc, StmtLabel), Name(name) {}
-public:
+  NamedConstructStmt(StmtClass Type, SourceLocation Loc, Expr *StmtLabel,
+                     ConstructName name)
+      : Stmt(Type, Loc, StmtLabel), Name(name) {}
 
+public:
   ConstructName getName() const { return Name; }
 
-  static bool classof(const NamedConstructStmt*) { return true; }
-  static bool classof(const Stmt *S){
+  static bool classof(const NamedConstructStmt *) { return true; }
+  static bool classof(const Stmt *S) {
     return S->getStmtClass() >= firstNamedConstructStmtConstant &&
            S->getStmtClass() <= lastNamedConstructStmtConstant;
   }
@@ -822,9 +762,10 @@ class IfStmt : public NamedConstructStmt {
   Stmt *ThenArm, *ElseArm;
 
   IfStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel, ConstructName Name);
+
 public:
-  static IfStmt *Create(ASTContext &C, SourceLocation Loc,
-                        Expr *Condition, Expr *StmtLabel, ConstructName Name);
+  static IfStmt *Create(ASTContext &C, SourceLocation Loc, Expr *Condition,
+                        Expr *StmtLabel, ConstructName Name);
 
   inline Expr *getCondition() const { return Condition; }
   inline Stmt *getThenStmt() const { return ThenArm; }
@@ -832,8 +773,8 @@ public:
   void setThenStmt(Stmt *Body);
   void setElseStmt(Stmt *Body);
 
-  static bool classof(const IfStmt*) { return true; }
-  static bool classof(const Stmt *S){
+  static bool classof(const IfStmt *) { return true; }
+  static bool classof(const Stmt *S) {
     return S->getStmtClass() == IfStmtClass;
   }
 };
@@ -842,8 +783,11 @@ public:
 /// the program will execute when entering this body.
 class CFBlockStmt : public NamedConstructStmt {
   Stmt *Body;
+
 protected:
-  CFBlockStmt(StmtClass Type, SourceLocation Loc, Expr *StmtLabel, ConstructName Name);
+  CFBlockStmt(StmtClass Type, SourceLocation Loc, Expr *StmtLabel,
+              ConstructName Name);
+
 public:
   Stmt *getBody() const { return Body; }
   void setBody(Stmt *Body);
@@ -861,13 +805,15 @@ class DoStmt : public CFBlockStmt {
   Expr *Init, *Terminate, *Increment;
 
   DoStmt(SourceLocation Loc, StmtLabelReference TermStmt, VarExpr *DoVariable,
-         Expr *InitialParam, Expr *TerminalParam,
-         Expr *IncrementationParam, Expr *StmtLabel, ConstructName Name);
+         Expr *InitialParam, Expr *TerminalParam, Expr *IncrementationParam,
+         Expr *StmtLabel, ConstructName Name);
+
 public:
-  static DoStmt *Create(ASTContext &C,SourceLocation Loc, StmtLabelReference TermStmt,
-                        VarExpr *DoVariable, Expr *InitialParam,
-                        Expr *TerminalParam,Expr *IncrementationParam,
-                        Expr *StmtLabel, ConstructName Name);
+  static DoStmt *Create(ASTContext &C, SourceLocation Loc,
+                        StmtLabelReference TermStmt, VarExpr *DoVariable,
+                        Expr *InitialParam, Expr *TerminalParam,
+                        Expr *IncrementationParam, Expr *StmtLabel,
+                        ConstructName Name);
 
   StmtLabelReference getTerminatingStmt() const { return TerminatingStmt; }
   void setTerminatingStmt(StmtLabelReference Stmt);
@@ -876,7 +822,7 @@ public:
   Expr *getTerminalParameter() const { return Terminate; }
   Expr *getIncrementationParameter() const { return Increment; }
 
-  static bool classof(const DoStmt*) { return true; }
+  static bool classof(const DoStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == DoStmtClass;
   }
@@ -886,14 +832,16 @@ public:
 class DoWhileStmt : public CFBlockStmt {
   Expr *Condition;
 
-  DoWhileStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel, ConstructName Name);
+  DoWhileStmt(SourceLocation Loc, Expr *Cond, Expr *StmtLabel,
+              ConstructName Name);
+
 public:
-  static DoWhileStmt *Create(ASTContext &C, SourceLocation Loc,
-                             Expr *Condition, Expr *StmtLabel, ConstructName Name);
+  static DoWhileStmt *Create(ASTContext &C, SourceLocation Loc, Expr *Condition,
+                             Expr *StmtLabel, ConstructName Name);
 
   Expr *getCondition() const { return Condition; }
 
-  static bool classof(const DoWhileStmt*) { return true; }
+  static bool classof(const DoWhileStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == DoWhileStmtClass;
   }
@@ -903,19 +851,17 @@ public:
 class CycleStmt : public Stmt {
   ConstructName LoopName;
   Stmt *Loop;
-  CycleStmt(SourceLocation Loc, Expr *StmtLabel, Stmt *loop, ConstructName loopName);
+  CycleStmt(SourceLocation Loc, Expr *StmtLabel, Stmt *loop,
+            ConstructName loopName);
+
 public:
   static CycleStmt *Create(ASTContext &C, SourceLocation Loc, Stmt *Loop,
                            Expr *StmtLabel, ConstructName LoopName);
 
-  ConstructName getLoopName() const {
-    return LoopName;
-  }
-  Stmt *getLoop() const {
-    return Loop;
-  }
+  ConstructName getLoopName() const { return LoopName; }
+  Stmt *getLoop() const { return Loop; }
 
-  static bool classof(const CycleStmt*) { return true; }
+  static bool classof(const CycleStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == CycleStmtClass;
   }
@@ -925,19 +871,17 @@ public:
 class ExitStmt : public Stmt {
   ConstructName LoopName;
   Stmt *Loop;
-  ExitStmt(SourceLocation Loc, Expr *StmtLabel, Stmt *loop, ConstructName loopName);
+  ExitStmt(SourceLocation Loc, Expr *StmtLabel, Stmt *loop,
+           ConstructName loopName);
+
 public:
   static ExitStmt *Create(ASTContext &C, SourceLocation Loc, Stmt *Loop,
                           Expr *StmtLabel, ConstructName LoopName);
 
-  ConstructName getLoopName() const {
-    return LoopName;
-  }
-  Stmt *getLoop() const {
-    return Loop;
-  }
+  ConstructName getLoopName() const { return LoopName; }
+  Stmt *getLoop() const { return Loop; }
 
-  static bool classof(const ExitStmt*) { return true; }
+  static bool classof(const ExitStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ExitStmtClass;
   }
@@ -952,31 +896,24 @@ class SelectCaseStmt : public CFBlockStmt {
   DefaultCaseStmt *DefaultCase;
   Expr *E;
 
-  SelectCaseStmt(SourceLocation Loc, Expr *Operand,
-                 Expr *StmtLabel, ConstructName Name);
+  SelectCaseStmt(SourceLocation Loc, Expr *Operand, Expr *StmtLabel,
+                 ConstructName Name);
+
 public:
   static SelectCaseStmt *Create(ASTContext &C, SourceLocation Loc,
                                 Expr *Operand, Expr *StmtLabel,
                                 ConstructName Name);
 
-  Expr *getOperand() const {
-    return E;
-  }
+  Expr *getOperand() const { return E; }
 
-  CaseStmt *getFirstCase() const {
-    return FirstCase;
-  }
+  CaseStmt *getFirstCase() const { return FirstCase; }
   void addCase(CaseStmt *S);
 
-  DefaultCaseStmt *getDefaultCase() const {
-    return DefaultCase;
-  }
-  bool hasDefaultCase() const {
-    return DefaultCase != nullptr;
-  }
+  DefaultCaseStmt *getDefaultCase() const { return DefaultCase; }
+  bool hasDefaultCase() const { return DefaultCase != nullptr; }
   void setDefaultCase(DefaultCaseStmt *S);
 
-  static bool classof(const SelectCaseStmt*) { return true; }
+  static bool classof(const SelectCaseStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == SelectCaseStmtClass;
   }
@@ -984,11 +921,11 @@ public:
 
 class SelectionCase : public CFBlockStmt {
 protected:
-  SelectionCase(StmtClass StmtKind, SourceLocation Loc,
-                Expr *StmtLabel, ConstructName name)
-    : CFBlockStmt(StmtKind, Loc, StmtLabel, name) {}
-public:
+  SelectionCase(StmtClass StmtKind, SourceLocation Loc, Expr *StmtLabel,
+                ConstructName name)
+      : CFBlockStmt(StmtKind, Loc, StmtLabel, name) {}
 
+public:
   static bool classof(const Stmt *S) {
     return S->getStmtClass() >= firstSelectionCaseConstant &&
            S->getStmtClass() <= lastSelectionCaseConstant;
@@ -999,26 +936,20 @@ public:
 class CaseStmt : public SelectionCase, public MultiArgumentExpr {
   CaseStmt *Next;
 
-  CaseStmt(ASTContext &C, SourceLocation Loc,
-           ArrayRef<Expr*> Values,
+  CaseStmt(ASTContext &C, SourceLocation Loc, ArrayRef<Expr *> Values,
            Expr *StmtLabel, ConstructName Name);
+
 public:
   static CaseStmt *Create(ASTContext &C, SourceLocation Loc,
-                          ArrayRef<Expr*> Values,
-                          Expr *StmtLabel, ConstructName Name);
+                          ArrayRef<Expr *> Values, Expr *StmtLabel,
+                          ConstructName Name);
 
-  CaseStmt *getNextCase() const {
-    return Next;
-  }
-  bool isLastCase() const {
-    return Next == nullptr;
-  }
+  CaseStmt *getNextCase() const { return Next; }
+  bool isLastCase() const { return Next == nullptr; }
   void setNextCase(CaseStmt *S);
-  ArrayRef<Expr*> getValues() const {
-    return getArguments();
-  }
+  ArrayRef<Expr *> getValues() const { return getArguments(); }
 
-  static bool classof(const CaseStmt*) { return true; }
+  static bool classof(const CaseStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == CaseStmtClass;
   }
@@ -1026,13 +957,13 @@ public:
 
 /// DefaultCaseStmt
 class DefaultCaseStmt : public SelectionCase {
-  DefaultCaseStmt(SourceLocation Loc, Expr *StmtLabel,
-                  ConstructName Name);
+  DefaultCaseStmt(SourceLocation Loc, Expr *StmtLabel, ConstructName Name);
+
 public:
   static DefaultCaseStmt *Create(ASTContext &C, SourceLocation Loc,
                                  Expr *StmtLabel, ConstructName Name);
 
-  static bool classof(const DefaultCaseStmt*) { return true; }
+  static bool classof(const DefaultCaseStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == DefaultCaseStmtClass;
   }
@@ -1044,9 +975,10 @@ class WhereStmt : public Stmt {
   Stmt *ThenArm, *ElseArm;
 
   WhereStmt(SourceLocation Loc, Expr *mask, Expr *StmtLabel);
+
 public:
-  static WhereStmt *Create(ASTContext &C, SourceLocation Loc,
-                           Expr *Mask, Expr *StmtLabel);
+  static WhereStmt *Create(ASTContext &C, SourceLocation Loc, Expr *Mask,
+                           Expr *StmtLabel);
 
   Stmt *getThenStmt() const { return ThenArm; }
   Stmt *getElseStmt() const { return ElseArm; }
@@ -1054,11 +986,9 @@ public:
   void setThenStmt(Stmt *Body);
   void setElseStmt(Stmt *Body);
 
-  Expr *getMask() const {
-    return Mask;
-  }
+  Expr *getMask() const { return Mask; }
 
-  static bool classof(const WhereStmt*) { return true; }
+  static bool classof(const WhereStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == WhereStmtClass;
   }
@@ -1067,10 +997,12 @@ public:
 /// ContinueStmt
 class ContinueStmt : public Stmt {
   ContinueStmt(SourceLocation Loc, Expr *StmtLabel);
-public:
-  static ContinueStmt *Create(ASTContext &C, SourceLocation Loc, Expr *StmtLabel);
 
-  static bool classof(const ContinueStmt*) { return true; }
+public:
+  static ContinueStmt *Create(ASTContext &C, SourceLocation Loc,
+                              Expr *StmtLabel);
+
+  static bool classof(const ContinueStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ContinueStmtClass;
   }
@@ -1081,12 +1013,14 @@ class StopStmt : public Stmt {
   Expr *StopCode;
 
   StopStmt(SourceLocation Loc, Expr *stopCode, Expr *StmtLabel);
+
 public:
-  static StopStmt *Create(ASTContext &C, SourceLocation Loc, Expr *stopCode, Expr *StmtLabel);
+  static StopStmt *Create(ASTContext &C, SourceLocation Loc, Expr *stopCode,
+                          Expr *StmtLabel);
 
   Expr *getStopCode() const { return StopCode; }
 
-  static bool classof(const StopStmt*) { return true; }
+  static bool classof(const StopStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == StopStmtClass;
   }
@@ -1096,13 +1030,14 @@ public:
 class ReturnStmt : public Stmt {
   Expr *E;
   ReturnStmt(SourceLocation Loc, Expr *e, Expr *StmtLabel);
+
 public:
-  static ReturnStmt *Create(ASTContext &C, SourceLocation Loc, Expr * E,
+  static ReturnStmt *Create(ASTContext &C, SourceLocation Loc, Expr *E,
                             Expr *StmtLabel);
 
   Expr *getE() const { return E; }
 
-  static bool classof(const ReturnStmt*) { return true; }
+  static bool classof(const ReturnStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == ReturnStmtClass;
   }
@@ -1111,12 +1046,12 @@ public:
 /// CallStmt
 class CallStmt : public Stmt, public MultiArgumentExpr {
   FunctionDecl *Function;
-  CallStmt(ASTContext &C, SourceLocation Loc,
-           FunctionDecl *Func, ArrayRef<Expr*> Args, Expr *StmtLabel);
+  CallStmt(ASTContext &C, SourceLocation Loc, FunctionDecl *Func,
+           ArrayRef<Expr *> Args, Expr *StmtLabel);
+
 public:
-  static CallStmt *Create(ASTContext &C, SourceLocation Loc,
-                          FunctionDecl *Func, ArrayRef<Expr*> Args,
-                          Expr *StmtLabel);
+  static CallStmt *Create(ASTContext &C, SourceLocation Loc, FunctionDecl *Func,
+                          ArrayRef<Expr *> Args, Expr *StmtLabel);
 
   FunctionDecl *getFunction() const { return Function; }
 
@@ -1132,6 +1067,7 @@ class AssignmentStmt : public Stmt {
   Expr *RHS;
 
   AssignmentStmt(SourceLocation Loc, Expr *lhs, Expr *rhs, Expr *StmtLabel);
+
 public:
   static AssignmentStmt *Create(ASTContext &C, SourceLocation Loc, Expr *LHS,
                                 Expr *RHS, Expr *StmtLabel);
@@ -1139,7 +1075,7 @@ public:
   Expr *getLHS() const { return LHS; }
   Expr *getRHS() const { return RHS; }
 
-  static bool classof(const AssignmentStmt*) { return true; }
+  static bool classof(const AssignmentStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == AssignmentStmtClass;
   }
@@ -1149,18 +1085,17 @@ public:
 class PrintStmt : public Stmt, protected MultiArgumentExpr {
   FormatSpec *FS;
   PrintStmt(ASTContext &C, SourceLocation L, FormatSpec *fs,
-            ArrayRef<Expr*> OutList, Expr *StmtLabel);
+            ArrayRef<Expr *> OutList, Expr *StmtLabel);
+
 public:
   static PrintStmt *Create(ASTContext &C, SourceLocation L, FormatSpec *fs,
-                           ArrayRef<Expr*> OutList, Expr *StmtLabel);
+                           ArrayRef<Expr *> OutList, Expr *StmtLabel);
 
   FormatSpec *getFormatSpec() const { return FS; }
 
-  ArrayRef<Expr*> getOutputList() const {
-    return getArguments();
-  }
+  ArrayRef<Expr *> getOutputList() const { return getArguments(); }
 
-  static bool classof(const PrintStmt*) { return true; }
+  static bool classof(const PrintStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == PrintStmtClass;
   }
@@ -1170,26 +1105,25 @@ public:
 class WriteStmt : public Stmt, protected MultiArgumentExpr {
   UnitSpec *US;
   FormatSpec *FS;
-  WriteStmt(ASTContext &C, SourceLocation Loc, UnitSpec *us,
-            FormatSpec *fs, ArrayRef<Expr*> OutList, Expr *StmtLabel);
+  WriteStmt(ASTContext &C, SourceLocation Loc, UnitSpec *us, FormatSpec *fs,
+            ArrayRef<Expr *> OutList, Expr *StmtLabel);
+
 public:
   static WriteStmt *Create(ASTContext &C, SourceLocation Loc, UnitSpec *US,
-                           FormatSpec *FS, ArrayRef<Expr*> OutList,
+                           FormatSpec *FS, ArrayRef<Expr *> OutList,
                            Expr *StmtLabel);
 
   UnitSpec *getUnitSpec() const { return US; }
   FormatSpec *getFormatSpec() const { return FS; }
 
-  ArrayRef<Expr*> getOutputList() const {
-    return getArguments();
-  }
+  ArrayRef<Expr *> getOutputList() const { return getArguments(); }
 
-  static bool classof(const WriteStmt*) { return true; }
+  static bool classof(const WriteStmt *) { return true; }
   static bool classof(const Stmt *S) {
     return S->getStmtClass() == WriteStmtClass;
   }
 };
 
-} // end fort namespace
+} // namespace fort
 
 #endif

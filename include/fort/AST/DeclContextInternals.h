@@ -30,11 +30,12 @@ class DependentDiagnostic;
 /// only containing one entry.
 struct StoredDeclsList {
   /// DeclsTy - When in vector form, this is what the Data pointer points to.
-  typedef SmallVector<NamedDecl*, 4> DeclsTy;
+  typedef SmallVector<NamedDecl *, 4> DeclsTy;
 
   /// \brief The stored data, which will be either a pointer to a NamedDecl, or
   /// a pointer to a vector.
-  llvm::PointerUnion<NamedDecl*, DeclsTy*> Data;
+  llvm::PointerUnion<NamedDecl *, DeclsTy *> Data;
+
 public:
   StoredDeclsList() {}
   StoredDeclsList(const StoredDeclsList &RHS) : Data(RHS.Data) {
@@ -58,12 +59,8 @@ public:
 
   bool isNull() const { return Data.isNull(); }
 
-  NamedDecl *getAsDecl() const {
-    return Data.dyn_cast<NamedDecl *>();
-  }
-  DeclsTy *getAsVector() const {
-    return Data.dyn_cast<DeclsTy *>();
-  }
+  NamedDecl *getAsDecl() const { return Data.dyn_cast<NamedDecl *>(); }
+  DeclsTy *getAsVector() const { return Data.dyn_cast<DeclsTy *>(); }
 
   void setOnlyValue(NamedDecl *ND) {
     assert(!getAsVector() && "Not inline");
@@ -88,8 +85,8 @@ public:
     assert(I != Vec.end() && "list does not contain decl");
     Vec.erase(I);
 
-    assert(std::find(Vec.begin(), Vec.end(), D)
-             == Vec.end() && "list still contains decl");
+    assert(std::find(Vec.begin(), Vec.end(), D) == Vec.end() &&
+           "list still contains decl");
   }
 
   /// getLookupResult - Return an array of all the decls that this list
@@ -105,14 +102,15 @@ public:
 
       // Data is a raw pointer to a NamedDecl*, return it.
       void *Ptr = &Data;
-      return DeclContext::lookup_result((NamedDecl**)Ptr, (NamedDecl**)Ptr+1);
+      return DeclContext::lookup_result((NamedDecl **)Ptr,
+                                        (NamedDecl **)Ptr + 1);
     }
 
     assert(getAsVector() && "Must have a vector at this point");
     DeclsTy &Vector = *getAsVector();
 
     // Otherwise, we have a range result.
-    return DeclContext::lookup_result(&Vector[0], &Vector[0]+Vector.size());
+    return DeclContext::lookup_result(&Vector[0], &Vector[0] + Vector.size());
   }
 
   /// AddSubsequentDecl - This is called on the second and later decl when it is
@@ -134,6 +132,7 @@ class StoredDeclsMap : public llvm::DenseMap<DeclarationName, StoredDeclsList> {
   friend class ASTContext; // Walks the chain deleting these.
   friend class DeclContext;
   StoredDeclsMap *Previous;
+
 public:
   static void DestroyAll(StoredDeclsMap *Map);
 };
