@@ -29,31 +29,27 @@ class FormatItem;
 /// Parser doesn't know about but that Sema or another client does. The UID
 /// template argument is used to make sure that "Decl" pointers are not
 /// compatible with "Type" pointers for example.
-template <class PtrTy>
-class OpaquePtr {
+template <class PtrTy> class OpaquePtr {
   void *Ptr;
   explicit OpaquePtr(void *Ptr) : Ptr(Ptr) {}
   typedef llvm::PointerLikeTypeTraits<PtrTy> Traits;
+
 public:
   OpaquePtr() : Ptr(0) {}
 
-  static OpaquePtr make(PtrTy P) { OpaquePtr OP; OP.set(P); return OP; }
-
-  template <typename T> T* getAs() const {
-    return get();
+  static OpaquePtr make(PtrTy P) {
+    OpaquePtr OP;
+    OP.set(P);
+    return OP;
   }
 
-  template <typename T> T getAsVal() const {
-    return get();
-  }
+  template <typename T> T *getAs() const { return get(); }
 
-  PtrTy get() const {
-    return Traits::getFromVoidPointer(Ptr);
-  }
+  template <typename T> T getAsVal() const { return get(); }
 
-  void set(PtrTy P) {
-    Ptr = Traits::getAsVoidPointer(P);
-  }
+  PtrTy get() const { return Traits::getFromVoidPointer(Ptr); }
+
+  void set(PtrTy P) { Ptr = Traits::getAsVoidPointer(P); }
 
   operator bool() const { return Ptr != 0; }
 
@@ -61,34 +57,34 @@ public:
   static OpaquePtr getFromOpaquePtr(void *P) { return OpaquePtr(P); }
 };
 
-} // end fort namespace
+} // namespace fort
 
 namespace llvm {
-  template <class T>
-  struct PointerLikeTypeTraits<fort::OpaquePtr<T> > {
-  public:
-    static inline void *getAsVoidPointer(fort::OpaquePtr<T> P) {
-      // FIXME: Doesn't work? return P.getAs< void >();
-      return P.getAsOpaquePtr();
-    }
-    static inline fort::OpaquePtr<T> getFromVoidPointer(void *P) {
-      return fort::OpaquePtr<T>::getFromOpaquePtr(P);
-    }
-    enum { NumLowBitsAvailable = 0 };
-  };
+template <class T> struct PointerLikeTypeTraits<fort::OpaquePtr<T>> {
+public:
+  static inline void *getAsVoidPointer(fort::OpaquePtr<T> P) {
+    // FIXME: Doesn't work? return P.getAs< void >();
+    return P.getAsOpaquePtr();
+  }
+  static inline fort::OpaquePtr<T> getFromVoidPointer(void *P) {
+    return fort::OpaquePtr<T>::getFromOpaquePtr(P);
+  }
+  enum { NumLowBitsAvailable = 0 };
+};
 
-  template <class T>
-  struct isPodLike<fort::OpaquePtr<T> > { static const bool value = true; };
-}
+template <class T> struct isPodLike<fort::OpaquePtr<T>> {
+  static const bool value = true;
+};
+} // namespace llvm
 
 namespace fort {
 
 /// ActionResult - This structure is used while parsing and acting on
 /// expressions, stmts, etc.
-template <typename PtrTy>
-class ActionResult {
+template <typename PtrTy> class ActionResult {
   PtrTy Val;
   bool Invalid;
+
 public:
   ActionResult(bool invalid = false) : Val(PtrTy()), Invalid(invalid) {}
   ActionResult(PtrTy val) : Val(val), Invalid(false) {}
@@ -103,7 +99,7 @@ public:
   PtrTy get() const { return Val; }
   PtrTy release() const { return Val; }
   PtrTy take() const { return Val; }
-  template <typename T> T *takeAs() { return static_cast<T*>(get()); }
+  template <typename T> T *takeAs() { return static_cast<T *>(get()); }
 
   void set(PtrTy V) { Val = V; }
 
@@ -118,11 +114,11 @@ public:
 typedef OpaquePtr<QualType> ParsedType;
 typedef ActionResult<ParsedType> TypeResult;
 
-typedef ActionResult<Decl*> DeclResult;
-typedef ActionResult<Expr*> ExprResult;
-typedef ActionResult<Stmt*> StmtResult;
-typedef ActionResult<FormatItem*> FormatItemResult;
+typedef ActionResult<Decl *> DeclResult;
+typedef ActionResult<Expr *> ExprResult;
+typedef ActionResult<Stmt *> StmtResult;
+typedef ActionResult<FormatItem *> FormatItemResult;
 
-} // end fort namespace
+} // namespace fort
 
 #endif

@@ -7,13 +7,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "fort/Sema/Sema.h"
-#include "fort/Sema/DeclSpec.h"
-#include "fort/Sema/SemaDiagnostic.h"
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/Decl.h"
 #include "fort/AST/Expr.h"
 #include "fort/Basic/Diagnostic.h"
+#include "fort/Sema/DeclSpec.h"
+#include "fort/Sema/Sema.h"
+#include "fort/Sema/SemaDiagnostic.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace fort {
@@ -25,10 +25,10 @@ class DimensionConstructor {
   ASTContext &Context;
   uint64_t ResultingSize;
   bool IsConstSizeOnly;
+
 public:
   DimensionConstructor(ASTContext &C)
-    : ResultingSize(0),IsConstSizeOnly(true),
-      Context(C) {}
+      : ResultingSize(0), IsConstSizeOnly(true), Context(C) {}
 
   void JoinWith(const ArrayType *T);
   void JoinWith(const Expr *E);
@@ -38,30 +38,31 @@ public:
 
 void DimensionConstructor::JoinWith(const ArrayType *T) {
   uint64_t Size;
-  if(T->EvaluateSize(Size, Context)) {
-    ResultingSize+=Size;
+  if (T->EvaluateSize(Size, Context)) {
+    ResultingSize += Size;
     return;
   }
   IsConstSizeOnly = false;
 }
 
 void DimensionConstructor::JoinWith(const Expr *E) {
-  if(!IsConstSizeOnly) return;
-  if(E->getType()->isArrayType())
+  if (!IsConstSizeOnly)
+    return;
+  if (E->getType()->isArrayType())
     return JoinWith(E->getType()->asArrayType());
   ResultingSize++;
 }
 
 ArraySpec *DimensionConstructor::CreateDimension() {
-  if(IsConstSizeOnly) {
-    return ExplicitShapeSpec::Create(Context,
-             IntegerConstantExpr::Create(Context, ResultingSize));
+  if (IsConstSizeOnly) {
+    return ExplicitShapeSpec::Create(
+        Context, IntegerConstantExpr::Create(Context, ResultingSize));
   }
   return DeferredShapeSpec::Create(Context);
 }
 
 // FIXME: Items can be implied do.
-bool Sema::CheckArrayConstructorItems(ArrayRef<Expr*> Items,
+bool Sema::CheckArrayConstructorItems(ArrayRef<Expr *> Items,
                                       QualType &ResultingArrayType) {
   bool Result = true;
   size_t I;
@@ -69,14 +70,14 @@ bool Sema::CheckArrayConstructorItems(ArrayRef<Expr*> Items,
   DimensionConstructor SpecConstructor(Context);
 
   // Set the first valid type to be the element type
-  for(I = 0; I < Items.size(); ++I) {
+  for (I = 0; I < Items.size(); ++I) {
     ElementType = Items[I]->getType();
-    if(ElementType->isArrayType()) {
+    if (ElementType->isArrayType()) {
       CheckArrayExpr(Items[I]);
       ElementType = ElementType->asArrayType()->getElementType();
     }
     SpecConstructor.JoinWith(Items[I]);
-    if(CheckTypeScalarOrCharacter(Items[I], ElementType, true)) {
+    if (CheckTypeScalarOrCharacter(Items[I], ElementType, true)) {
       ++I;
       break;
     }
@@ -86,23 +87,25 @@ bool Sema::CheckArrayConstructorItems(ArrayRef<Expr*> Items,
   // Constraint: Each ac-value expression in the array-constructor
   // shall have the same type and kind type parameter.
   // FIXME: Constraint: Each character value same length.
-  for(; I < Items.size(); ++I) {
+  for (; I < Items.size(); ++I) {
     auto T = Items[I]->getType();
-    if(T->isArrayType()) {
+    if (T->isArrayType()) {
       CheckArrayExpr(Items[I]);
       T = T->asArrayType()->getElementType();
     }
     SpecConstructor.JoinWith(Items[I]);
-    if(!CheckTypesOfSameKind(ElementType, T, Items[I]))
+    if (!CheckTypesOfSameKind(ElementType, T, Items[I]))
       Result = false;
   }
 
-  ResultingArrayType = Context.getArrayType(ElementType, SpecConstructor.CreateDimension());
+  ResultingArrayType =
+      Context.getArrayType(ElementType, SpecConstructor.CreateDimension());
   return Result;
 }
 
 ExprResult Sema::ActOnArrayConstructorExpr(ASTContext &C, SourceLocation Loc,
-                                           SourceLocation RParenLoc, ArrayRef<Expr*> Elements) {
+                                           SourceLocation RParenLoc,
+                                           ArrayRef<Expr *> Elements) {
   QualType ReturnType;
   CheckArrayConstructorItems(Elements, ReturnType);
   return ArrayConstructorExpr::Create(C, Loc, Elements, ReturnType);

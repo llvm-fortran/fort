@@ -7,16 +7,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "fort/Sema/Sema.h"
-#include "fort/Sema/DeclSpec.h"
-#include "fort/Sema/SemaDiagnostic.h"
-#include "fort/Sema/SemaInternal.h"
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/Decl.h"
 #include "fort/AST/Expr.h"
 #include "fort/AST/FormatSpec.h"
 #include "fort/AST/IOSpec.h"
 #include "fort/Basic/Diagnostic.h"
+#include "fort/Sema/DeclSpec.h"
+#include "fort/Sema/Sema.h"
+#include "fort/Sema/SemaDiagnostic.h"
+#include "fort/Sema/SemaInternal.h"
 
 namespace fort {
 
@@ -24,12 +24,14 @@ StarFormatSpec *Sema::ActOnStarFormatSpec(ASTContext &C, SourceLocation Loc) {
   return StarFormatSpec::Create(C, Loc);
 }
 
-static void CheckStmtLabelIsFormat(DiagnosticsEngine &Diags, Stmt *S, Expr *Label) {
-  if(!isa<FormatStmt>(S)) {
+static void CheckStmtLabelIsFormat(DiagnosticsEngine &Diags, Stmt *S,
+                                   Expr *Label) {
+  if (!isa<FormatStmt>(S)) {
     Diags.Report(Label->getLocation(), diag::err_fmt_spec_stmt_label_not_format)
-      << Label->getSourceRange();
-    Diags.Report(S->getStmtLabel()->getLocation(), diag::note_stmt_label_declared_at)
-      << S->getStmtLabel()->getSourceRange();
+        << Label->getSourceRange();
+    Diags.Report(S->getStmtLabel()->getLocation(),
+                 diag::note_stmt_label_declared_at)
+        << S->getStmtLabel()->getSourceRange();
   }
 }
 
@@ -40,12 +42,12 @@ void StmtLabelResolver::VisitLabelFormatSpec(LabelFormatSpec *FS) {
 
 LabelFormatSpec *Sema::ActOnLabelFormatSpec(ASTContext &C, SourceLocation Loc,
                                             ExprResult Label) {
-  if(isa<IntegerConstantExpr>(Label.get())) {
+  if (isa<IntegerConstantExpr>(Label.get())) {
     auto Decl = getCurrentStmtLabelScope()->Resolve(Label.get());
-    if(!Decl) {
+    if (!Decl) {
       auto Result = LabelFormatSpec::Create(C, Loc, StmtLabelReference());
       getCurrentStmtLabelScope()->DeclareForwardReference(
-      StmtLabelScope::ForwardDecl(Label.get(), Result));
+          StmtLabelScope::ForwardDecl(Label.get(), Result));
       return Result;
     } else {
       CheckStmtLabelIsFormat(Diags, Decl, Label.get());
@@ -60,17 +62,17 @@ LabelFormatSpec *Sema::ActOnLabelFormatSpec(ASTContext &C, SourceLocation Loc,
 FormatSpec *Sema::ActOnExpressionFormatSpec(ASTContext &C, SourceLocation Loc,
                                             Expr *E) {
   auto Type = E->getType();
-  if(Type->isCharacterType())
+  if (Type->isCharacterType())
     return CharacterExpFormatSpec::Create(C, Loc, E);
-  if(auto Var = dyn_cast<VarExpr>(E)) {
-    if(Type->isIntegerType())
+  if (auto Var = dyn_cast<VarExpr>(E)) {
+    if (Type->isIntegerType())
       return VarLabelFormatSpec::Create(C, Loc, Var);
   }
   Diags.Report(Loc, diag::err_typecheck_expected_format_spec)
-    << Type << E->getSourceRange();
+      << Type << E->getSourceRange();
   // Return an empty character literal spec when an error occurs.
-  return CharacterExpFormatSpec::Create(C, Loc,
-                                        CharacterConstantExpr::Create(Context, Loc, "", C.CharacterTy));
+  return CharacterExpFormatSpec::Create(
+      C, Loc, CharacterConstantExpr::Create(Context, Loc, "", C.CharacterTy));
 }
 
 ExternalStarUnitSpec *Sema::ActOnStarUnitSpec(ASTContext &C, SourceLocation Loc,
@@ -78,35 +80,40 @@ ExternalStarUnitSpec *Sema::ActOnStarUnitSpec(ASTContext &C, SourceLocation Loc,
   return ExternalStarUnitSpec::Create(C, Loc, IsLabeled);
 }
 
-UnitSpec *Sema::ActOnUnitSpec(ASTContext &C, ExprResult Value, SourceLocation Loc,
-                              bool IsLabeled) {
+UnitSpec *Sema::ActOnUnitSpec(ASTContext &C, ExprResult Value,
+                              SourceLocation Loc, bool IsLabeled) {
   // FIXME: TODO
   return nullptr;
 }
 
-StmtResult Sema::ActOnPrintStmt(ASTContext &C, SourceLocation Loc, FormatSpec *FS,
+StmtResult Sema::ActOnPrintStmt(ASTContext &C, SourceLocation Loc,
+                                FormatSpec *FS,
                                 ArrayRef<ExprResult> OutputItemList,
                                 Expr *StmtLabel) {
   SmallVector<Expr *, 8> OutputList;
-  for(auto I : OutputItemList) OutputList.push_back(I.take());
+  for (auto I : OutputItemList)
+    OutputList.push_back(I.take());
 
   auto Result = PrintStmt::Create(C, Loc, FS, OutputList, StmtLabel);
   getCurrentBody()->Append(Result);
-  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  if (StmtLabel)
+    DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 
-StmtResult Sema::ActOnWriteStmt(ASTContext &C, SourceLocation Loc,
-                                UnitSpec *US, FormatSpec *FS,
+StmtResult Sema::ActOnWriteStmt(ASTContext &C, SourceLocation Loc, UnitSpec *US,
+                                FormatSpec *FS,
                                 ArrayRef<ExprResult> OutputItemList,
                                 Expr *StmtLabel) {
   // FIXME: TODO
   SmallVector<Expr *, 8> OutputList;
-  for(auto I : OutputItemList) OutputList.push_back(I.take());
+  for (auto I : OutputItemList)
+    OutputList.push_back(I.take());
 
   auto Result = WriteStmt::Create(C, Loc, US, FS, OutputList, StmtLabel);
   getCurrentBody()->Append(Result);
-  if(StmtLabel) DeclareStatementLabel(StmtLabel, Result);
+  if (StmtLabel)
+    DeclareStatementLabel(StmtLabel, Result);
   return Result;
 }
 

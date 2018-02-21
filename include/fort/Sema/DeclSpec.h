@@ -14,16 +14,16 @@
 #ifndef FORT_SEMA_DECLSPEC_H__
 #define FORT_SEMA_DECLSPEC_H__
 
+#include "fort/AST/Type.h"
 #include "fort/Basic/SourceLocation.h"
 #include "fort/Basic/Specifiers.h"
-#include "fort/AST/Type.h"
 #include "fort/Sema/Ownership.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 
 namespace llvm {
-  class raw_ostream;
-} // end llvm namespace
+class raw_ostream;
+} // namespace llvm
 
 namespace fort {
 
@@ -79,29 +79,26 @@ public:
   static const AC AC_private = fort::AC_private;
 
 private:
-  /*TST*/unsigned TypeSpecType   : 3;
+  /*TST*/ unsigned TypeSpecType : 3;
   /*AS*/ unsigned AttributeSpecs : 15;
-  /*IS*/ unsigned IntentSpec     : 3;
-  /*AC*/ unsigned AccessSpec     : 3;
-  unsigned IsDoublePrecision     : 1; // can apply to reals or complex
-  unsigned IsByte                : 1; // Logical is BYTE type
-  unsigned IsStarLength          : 1; // LEN = *
+  /*IS*/ unsigned IntentSpec : 3;
+  /*AC*/ unsigned AccessSpec : 3;
+  unsigned IsDoublePrecision : 1; // can apply to reals or complex
+  unsigned IsByte : 1;            // Logical is BYTE type
+  unsigned IsStarLength : 1;      // LEN = *
 
   /// \brief The kind and length selectors.
   Expr *Kind;
   Expr *Len;
-  SmallVector<ArraySpec*, 4> Dimensions;
+  SmallVector<ArraySpec *, 4> Dimensions;
   RecordDecl *Record;
 
 public:
   explicit DeclSpec()
-    : TypeSpecType(TST_unspecified),
-      AttributeSpecs(AS_unspecified),
-      IntentSpec(IS_unspecified),
-      AccessSpec(AC_unspecified),
-      IsDoublePrecision(0), IsByte(0), IsStarLength(0),
-      Kind(0), Len(0),
-      Record(nullptr) {}
+      : TypeSpecType(TST_unspecified), AttributeSpecs(AS_unspecified),
+        IntentSpec(IS_unspecified), AccessSpec(AC_unspecified),
+        IsDoublePrecision(0), IsByte(0), IsStarLength(0), Kind(0), Len(0),
+        Record(nullptr) {}
   virtual ~DeclSpec();
 
   bool isDoublePrecision() const { return IsDoublePrecision == 1; }
@@ -121,22 +118,18 @@ public:
   void setStartLengthSelector() { IsStarLength = 1; }
 
   bool hasDimensions() const { return !Dimensions.empty(); }
-  void setDimensions(ArrayRef<ArraySpec*> Dims);
-  ArrayRef<ArraySpec*> getDimensions() const { return Dimensions; }
+  void setDimensions(ArrayRef<ArraySpec *> Dims);
+  ArrayRef<ArraySpec *> getDimensions() const { return Dimensions; }
 
-  RecordDecl *getRecord() const {
-    return Record;
-  }
-  void setRecord(RecordDecl *R) {
-    Record = R;
-  }
+  RecordDecl *getRecord() const { return Record; }
+  void setRecord(RecordDecl *R) { Record = R; }
 
-  typedef SmallVectorImpl<ArraySpec*>::iterator       dim_iterator;
-  typedef SmallVectorImpl<ArraySpec*>::const_iterator const_dim_iterator;
+  typedef SmallVectorImpl<ArraySpec *>::iterator dim_iterator;
+  typedef SmallVectorImpl<ArraySpec *>::const_iterator const_dim_iterator;
   dim_iterator begin() { return Dimensions.begin(); }
-  dim_iterator end()   { return Dimensions.end();   }
+  dim_iterator end() { return Dimensions.end(); }
   const_dim_iterator begin() const { return Dimensions.begin(); }
-  const_dim_iterator end() const   { return Dimensions.end();   }
+  const_dim_iterator end() const { return Dimensions.end(); }
 
   /// getSpecifierName - Turn a type-specifier-type into a string like "REAL"
   /// or "ALLOCATABLE".
@@ -145,29 +138,17 @@ public:
   static const char *getSpecifierName(DeclSpec::IS I);
   static const char *getSpecifierName(DeclSpec::AC I);
 
-  bool hasAttributeSpec(DeclSpec::AS A) const {
-    return AttributeSpecs & A;
-  }
+  bool hasAttributeSpec(DeclSpec::AS A) const { return AttributeSpecs & A; }
   unsigned getAttributeSpecs() const { return AttributeSpecs; }
-  void setAttributeSpec(DeclSpec::AS A) {
-    AttributeSpecs |= A;
-  }
+  void setAttributeSpec(DeclSpec::AS A) { AttributeSpecs |= A; }
 
-  bool hasIntentSpec(DeclSpec::IS I) const {
-    return IntentSpec & I;
-  }
+  bool hasIntentSpec(DeclSpec::IS I) const { return IntentSpec & I; }
   IS getIntentSpec() const { return IS(IntentSpec); }
-  void setIntentSpec(DeclSpec::IS I) {
-    IntentSpec |= I;
-  }
+  void setIntentSpec(DeclSpec::IS I) { IntentSpec |= I; }
 
-  bool hasAccessSpec(DeclSpec::AC A) const {
-    return AccessSpec & A;
-  }
+  bool hasAccessSpec(DeclSpec::AC A) const { return AccessSpec & A; }
   AC getAccessSpec() const { return AC(AccessSpec); }
-  void setAccessSpec(DeclSpec::AC A) {
-    AccessSpec |= A;
-  }
+  void setAccessSpec(DeclSpec::AC A) { AccessSpec |= A; }
 
   TST getTypeSpecType() const { return TST(TypeSpecType); }
   bool SetTypeSpecType(TST T) {
@@ -183,9 +164,9 @@ public:
 
   virtual void print(llvm::raw_ostream &) {}
 
-  static bool classof(DeclSpec*) { return true; }
+  static bool classof(DeclSpec *) { return true; }
 };
 
-} // end fort namespace
+} // namespace fort
 
 #endif
