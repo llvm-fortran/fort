@@ -16,9 +16,9 @@
 #include <string>
 
 namespace llvm {
-  class raw_ostream;
-  class RecordKeeper;
-}
+class raw_ostream;
+class RecordKeeper;
+} // namespace llvm
 
 using llvm::raw_ostream;
 using llvm::RecordKeeper;
@@ -26,11 +26,11 @@ using llvm::RecordKeeper;
 namespace fort {
 
 void EmitFortDeclContext(RecordKeeper &RK, raw_ostream &OS);
-void EmitFortASTNodes(RecordKeeper &RK, raw_ostream &OS,
-                       const std::string &N, const std::string &S);
+void EmitFortASTNodes(RecordKeeper &RK, raw_ostream &OS, const std::string &N,
+                      const std::string &S);
 
 void EmitFortDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
-                        const std::string &Component);
+                       const std::string &Component);
 void EmitFortDiagGroups(RecordKeeper &Records, raw_ostream &OS);
 void EmitFortDiagsIndexName(RecordKeeper &Records, raw_ostream &OS);
 

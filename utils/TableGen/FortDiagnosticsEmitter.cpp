@@ -39,20 +39,21 @@ using namespace llvm;
 namespace {
 class DiagGroupParentMap {
   RecordKeeper &Records;
-  std::map<const Record*, std::vector<Record*> > Mapping;
+  std::map<const Record *, std::vector<Record *>> Mapping;
+
 public:
   DiagGroupParentMap(RecordKeeper &records) : Records(records) {
-    std::vector<Record*> DiagGroups
-      = Records.getAllDerivedDefinitions("DiagGroup");
+    std::vector<Record *> DiagGroups =
+        Records.getAllDerivedDefinitions("DiagGroup");
     for (unsigned i = 0, e = DiagGroups.size(); i != e; ++i) {
-      std::vector<Record*> SubGroups =
-        DiagGroups[i]->getValueAsListOfDefs("SubGroups");
+      std::vector<Record *> SubGroups =
+          DiagGroups[i]->getValueAsListOfDefs("SubGroups");
       for (unsigned j = 0, e = SubGroups.size(); j != e; ++j)
         Mapping[SubGroups[j]].push_back(DiagGroups[i]);
     }
   }
-  
-  const std::vector<Record*> &getParents(const Record *Group) {
+
+  const std::vector<Record *> &getParents(const Record *Group) {
     return Mapping[Group];
   }
 };
@@ -63,14 +64,16 @@ getCategoryFromDiagGroup(const Record *Group,
                          DiagGroupParentMap &DiagGroupParents) {
   // If the DiagGroup has a category, return it.
   std::string CatName = Group->getValueAsString("CategoryName");
-  if (!CatName.empty()) return CatName;
-  
+  if (!CatName.empty())
+    return CatName;
+
   // The diag group may the subgroup of one or more other diagnostic groups,
   // check these for a category as well.
-  const std::vector<Record*> &Parents = DiagGroupParents.getParents(Group);
+  const std::vector<Record *> &Parents = DiagGroupParents.getParents(Group);
   for (unsigned i = 0, e = Parents.size(); i != e; ++i) {
     CatName = getCategoryFromDiagGroup(Parents[i], DiagGroupParents);
-    if (!CatName.empty()) return CatName;
+    if (!CatName.empty())
+      return CatName;
   }
   return "";
 }
@@ -82,9 +85,10 @@ static std::string getDiagnosticCategory(const Record *R,
   // If the diagnostic is in a group, and that group has a category, use it.
   if (DefInit *Group = dyn_cast<DefInit>(R->getValueInit("Group"))) {
     // Check the diagnostic's diag group for a category.
-    std::string CatName = getCategoryFromDiagGroup(Group->getDef(),
-                                                   DiagGroupParents);
-    if (!CatName.empty()) return CatName;
+    std::string CatName =
+        getCategoryFromDiagGroup(Group->getDef(), DiagGroupParents);
+    if (!CatName.empty())
+      return CatName;
   }
 
   // If the diagnostic itself has a category, get it.
@@ -92,59 +96,63 @@ static std::string getDiagnosticCategory(const Record *R,
 }
 
 namespace {
-  class DiagCategoryIDMap {
-    RecordKeeper &Records;
-    StringMap<unsigned> CategoryIDs;
-    std::vector<std::string> CategoryStrings;
-  public:
-    DiagCategoryIDMap(RecordKeeper &records) : Records(records) {
-      DiagGroupParentMap ParentInfo(Records);
-      
-      // The zero'th category is "".
-      CategoryStrings.push_back("");
-      CategoryIDs[""] = 0;
-      
-      std::vector<Record*> Diags =
-      Records.getAllDerivedDefinitions("Diagnostic");
-      for (unsigned i = 0, e = Diags.size(); i != e; ++i) {
-        std::string Category = getDiagnosticCategory(Diags[i], ParentInfo);
-        if (Category.empty()) continue;  // Skip diags with no category.
-        
-        unsigned &ID = CategoryIDs[Category];
-        if (ID != 0) continue;  // Already seen.
-        
-        ID = CategoryStrings.size();
-        CategoryStrings.push_back(Category);
-      }
+class DiagCategoryIDMap {
+  RecordKeeper &Records;
+  StringMap<unsigned> CategoryIDs;
+  std::vector<std::string> CategoryStrings;
+
+public:
+  DiagCategoryIDMap(RecordKeeper &records) : Records(records) {
+    DiagGroupParentMap ParentInfo(Records);
+
+    // The zero'th category is "".
+    CategoryStrings.push_back("");
+    CategoryIDs[""] = 0;
+
+    std::vector<Record *> Diags =
+        Records.getAllDerivedDefinitions("Diagnostic");
+    for (unsigned i = 0, e = Diags.size(); i != e; ++i) {
+      std::string Category = getDiagnosticCategory(Diags[i], ParentInfo);
+      if (Category.empty())
+        continue; // Skip diags with no category.
+
+      unsigned &ID = CategoryIDs[Category];
+      if (ID != 0)
+        continue; // Already seen.
+
+      ID = CategoryStrings.size();
+      CategoryStrings.push_back(Category);
     }
-    
-    unsigned getID(StringRef CategoryString) {
-      return CategoryIDs[CategoryString];
-    }
-    
-    typedef std::vector<std::string>::iterator iterator;
-    iterator begin() { return CategoryStrings.begin(); }
-    iterator end() { return CategoryStrings.end(); }
-  };
+  }
 
-  struct GroupInfo {
-    std::vector<const Record*> DiagsInGroup;
-    std::vector<std::string> SubGroups;
-    unsigned IDNo;
+  unsigned getID(StringRef CategoryString) {
+    return CategoryIDs[CategoryString];
+  }
 
-    const Record *ExplicitDef;
+  typedef std::vector<std::string>::iterator iterator;
+  iterator begin() { return CategoryStrings.begin(); }
+  iterator end() { return CategoryStrings.end(); }
+};
 
-    GroupInfo() : ExplicitDef(0) {}
-  };
+struct GroupInfo {
+  std::vector<const Record *> DiagsInGroup;
+  std::vector<std::string> SubGroups;
+  unsigned IDNo;
+
+  const Record *ExplicitDef;
+
+  GroupInfo() : ExplicitDef(0) {}
+};
 } // end anonymous namespace.
 
 static bool beforeThanCompare(const Record *LHS, const Record *RHS) {
   assert(!LHS->getLoc().empty() && !RHS->getLoc().empty());
-  return
-    LHS->getLoc().front().getPointer() < RHS->getLoc().front().getPointer();
+  return LHS->getLoc().front().getPointer() <
+         RHS->getLoc().front().getPointer();
 }
 
-static bool beforeThanCompareGroups(const GroupInfo *LHS, const GroupInfo *RHS){
+static bool beforeThanCompareGroups(const GroupInfo *LHS,
+                                    const GroupInfo *RHS) {
   assert(!LHS->DiagsInGroup.empty() && !RHS->DiagsInGroup.empty());
   return beforeThanCompare(LHS->DiagsInGroup.front(),
                            RHS->DiagsInGroup.front());
@@ -161,14 +169,15 @@ static SMRange findSuperClassRange(const Record *R, StringRef SuperName) {
 
 /// \brief Invert the 1-[0/1] mapping of diags to group into a one to many
 /// mapping of groups to diags in the group.
-static void groupDiagnostics(const std::vector<Record*> &Diags,
-                             const std::vector<Record*> &DiagGroups,
+static void groupDiagnostics(const std::vector<Record *> &Diags,
+                             const std::vector<Record *> &DiagGroups,
                              std::map<std::string, GroupInfo> &DiagsInGroup) {
 
   for (unsigned i = 0, e = Diags.size(); i != e; ++i) {
     const Record *R = Diags[i];
     DefInit *DI = dyn_cast<DefInit>(R->getValueInit("Group"));
-    if (DI == 0) continue;
+    if (DI == 0)
+      continue;
     assert(R->getValueAsDef("Class")->getName() != "CLASS_NOTE" &&
            "Note can't be in a DiagGroup");
     std::string GroupName = DI->getDef()->getValueAsString("GroupName");
@@ -193,15 +202,16 @@ static void groupDiagnostics(const std::vector<Record*> &Diags,
         GI.ExplicitDef = Group;
     }
 
-    std::vector<Record*> SubGroups = Group->getValueAsListOfDefs("SubGroups");
+    std::vector<Record *> SubGroups = Group->getValueAsListOfDefs("SubGroups");
     for (unsigned j = 0, e = SubGroups.size(); j != e; ++j)
       GI.SubGroups.push_back(SubGroups[j]->getValueAsString("GroupName"));
   }
-  
+
   // Assign unique ID numbers to the groups.
   unsigned IDNo = 0;
-  for (std::map<std::string, GroupInfo>::iterator
-       I = DiagsInGroup.begin(), E = DiagsInGroup.end(); I != E; ++I, ++IDNo)
+  for (std::map<std::string, GroupInfo>::iterator I = DiagsInGroup.begin(),
+                                                  E = DiagsInGroup.end();
+       I != E; ++I, ++IDNo)
     I->second.IDNo = IDNo;
 
   // Sort the implicit groups, so we can warn about them deterministically.
@@ -240,13 +250,11 @@ static void groupDiagnostics(const std::vector<Record*> &Diags,
         }
         SMFixIt FixIt(InGroupRange, Replacement.str());
 
-        SrcMgr.PrintMessage(NextDiagGroup->getLoc().front(),
-                            SourceMgr::DK_Error,
-                            Twine("group '") + Name +
-                              "' is referred to anonymously",
-                            ArrayRef<SMRange>(),
-                            InGroupRange.isValid() ? FixIt
-                                                   : ArrayRef<SMFixIt>());
+        SrcMgr.PrintMessage(
+            NextDiagGroup->getLoc().front(), SourceMgr::DK_Error,
+            Twine("group '") + Name + "' is referred to anonymously",
+            ArrayRef<SMRange>(),
+            InGroupRange.isValid() ? FixIt : ArrayRef<SMFixIt>());
         SrcMgr.PrintMessage((*I)->ExplicitDef->getLoc().front(),
                             SourceMgr::DK_Note, "group defined here");
       }
@@ -262,10 +270,9 @@ static void groupDiagnostics(const std::vector<Record*> &Diags,
       std::string Name = NextDiagGroup->getValueAsString("GroupName");
 
       SMRange InGroupRange = findSuperClassRange(*DI, "InGroup");
-      SrcMgr.PrintMessage(NextDiagGroup->getLoc().front(),
-                          SourceMgr::DK_Error,
+      SrcMgr.PrintMessage(NextDiagGroup->getLoc().front(), SourceMgr::DK_Error,
                           Twine("group '") + Name +
-                            "' is referred to anonymously",
+                              "' is referred to anonymously",
                           InGroupRange);
 
       for (++DI; DI != DE; ++DI) {
@@ -285,38 +292,36 @@ static void groupDiagnostics(const std::vector<Record*> &Diags,
 
 typedef std::vector<const Record *> RecordVec;
 typedef llvm::DenseSet<const Record *> RecordSet;
-typedef llvm::PointerUnion<RecordVec*, RecordSet*> VecOrSet;
+typedef llvm::PointerUnion<RecordVec *, RecordSet *> VecOrSet;
 
 namespace {
 class InferPedantic {
-  typedef llvm::DenseMap<const Record*,
-                         std::pair<unsigned, llvm::Optional<unsigned> > > GMap;
+  typedef llvm::DenseMap<const Record *,
+                         std::pair<unsigned, llvm::Optional<unsigned>>>
+      GMap;
 
   DiagGroupParentMap &DiagGroupParents;
-  const std::vector<Record*> &Diags;
-  const std::vector<Record*> DiagGroups;
+  const std::vector<Record *> &Diags;
+  const std::vector<Record *> DiagGroups;
   std::map<std::string, GroupInfo> &DiagsInGroup;
-  llvm::DenseSet<const Record*> DiagsSet;
+  llvm::DenseSet<const Record *> DiagsSet;
   GMap GroupCount;
+
 public:
   InferPedantic(DiagGroupParentMap &DiagGroupParents,
-                const std::vector<Record*> &Diags,
-                const std::vector<Record*> &DiagGroups,
+                const std::vector<Record *> &Diags,
+                const std::vector<Record *> &DiagGroups,
                 std::map<std::string, GroupInfo> &DiagsInGroup)
-  : DiagGroupParents(DiagGroupParents),
-  Diags(Diags),
-  DiagGroups(DiagGroups),
-  DiagsInGroup(DiagsInGroup) {}
+      : DiagGroupParents(DiagGroupParents), Diags(Diags),
+        DiagGroups(DiagGroups), DiagsInGroup(DiagsInGroup) {}
 
   /// Compute the set of diagnostics and groups that are immediately
   /// in -Wpedantic.
-  void compute(VecOrSet DiagsInPedantic,
-               VecOrSet GroupsInPedantic);
+  void compute(VecOrSet DiagsInPedantic, VecOrSet GroupsInPedantic);
 
 private:
   /// Determine whether a group is a subgroup of another group.
-  bool isSubGroupOfGroup(const Record *Group,
-                         llvm::StringRef RootGroupName);
+  bool isSubGroupOfGroup(const Record *Group, llvm::StringRef RootGroupName);
 
   /// Determine if the diagnostic is an extension.
   bool isExtension(const Record *Diag);
@@ -340,7 +345,7 @@ bool InferPedantic::isSubGroupOfGroup(const Record *Group,
   if (GName == GroupName)
     return true;
 
-  const std::vector<Record*> &Parents = DiagGroupParents.getParents(Group);
+  const std::vector<Record *> &Parents = DiagGroupParents.getParents(Group);
   for (unsigned i = 0, e = Parents.size(); i != e; ++i)
     if (isSubGroupOfGroup(Parents[i], GName))
       return true;
@@ -382,7 +387,7 @@ void InferPedantic::markGroup(const Record *Group) {
   // group's count is equal to the number of subgroups and diagnostics in
   // that group, we can safely add this group to -Wpedantic.
   if (groupInPedantic(Group, /* increment */ true)) {
-    const std::vector<Record*> &Parents = DiagGroupParents.getParents(Group);
+    const std::vector<Record *> &Parents = DiagGroupParents.getParents(Group);
     for (unsigned i = 0, e = Parents.size(); i != e; ++i)
       markGroup(Parents[i]);
   }
@@ -422,10 +427,10 @@ void InferPedantic::compute(VecOrSet DiagsInPedantic,
 
     // The diagnostic is not included in a group that is (transitively) in
     // -Wpedantic.  Include it in -Wpedantic directly.
-    if (RecordVec *V = DiagsInPedantic.dyn_cast<RecordVec*>())
+    if (RecordVec *V = DiagsInPedantic.dyn_cast<RecordVec *>())
       V->push_back(R);
     else {
-      DiagsInPedantic.get<RecordSet*>()->insert(R);
+      DiagsInPedantic.get<RecordSet *>()->insert(R);
     }
   }
 
@@ -441,7 +446,7 @@ void InferPedantic::compute(VecOrSet DiagsInPedantic,
       continue;
 
     unsigned ParentsInPedantic = 0;
-    const std::vector<Record*> &Parents = DiagGroupParents.getParents(Group);
+    const std::vector<Record *> &Parents = DiagGroupParents.getParents(Group);
     for (unsigned j = 0, ej = Parents.size(); j != ej; ++j) {
       if (groupInPedantic(Parents[j]))
         ++ParentsInPedantic;
@@ -453,10 +458,10 @@ void InferPedantic::compute(VecOrSet DiagsInPedantic,
     if (Parents.size() > 0 && ParentsInPedantic == Parents.size())
       continue;
 
-    if (RecordVec *V = GroupsInPedantic.dyn_cast<RecordVec*>())
+    if (RecordVec *V = GroupsInPedantic.dyn_cast<RecordVec *>())
       V->push_back(Group);
     else {
-      GroupsInPedantic.get<RecordSet*>()->insert(Group);
+      GroupsInPedantic.get<RecordSet *>()->insert(Group);
     }
   }
 }
@@ -474,7 +479,7 @@ static bool isError(const Record &Diag) {
 /// declarations of Fort diagnostics.
 namespace fort {
 void EmitFortDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
-                        const std::string &Component) {
+                       const std::string &Component) {
   // Write the #if guard
   if (!Component.empty()) {
     std::string ComponentName = StringRef(Component).upper();
@@ -485,11 +490,11 @@ void EmitFortDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
     OS << "#endif\n\n";
   }
 
-  const std::vector<Record*> &Diags =
-    Records.getAllDerivedDefinitions("Diagnostic");
+  const std::vector<Record *> &Diags =
+      Records.getAllDerivedDefinitions("Diagnostic");
 
-  std::vector<Record*> DiagGroups
-    = Records.getAllDerivedDefinitions("DiagGroup");
+  std::vector<Record *> DiagGroups =
+      Records.getAllDerivedDefinitions("DiagGroup");
 
   std::map<std::string, GroupInfo> DiagsInGroup;
   groupDiagnostics(Diags, DiagGroups, DiagsInGroup);
@@ -500,7 +505,7 @@ void EmitFortDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
   // Compute the set of diagnostics that are in -Wpedantic.
   RecordSet DiagsInPedantic;
   InferPedantic inferPedantic(DGParentMap, Diags, DiagGroups, DiagsInGroup);
-  inferPedantic.compute(&DiagsInPedantic, (RecordVec*)0);
+  inferPedantic.compute(&DiagsInPedantic, (RecordVec *)0);
 
   for (unsigned i = 0, e = Diags.size(); i != e; ++i) {
     const Record &R = *Diags[i];
@@ -512,7 +517,8 @@ void EmitFortDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
         const Record *GroupRec = Group->getDef();
         const std::string &GroupName = GroupRec->getValueAsString("GroupName");
         PrintFatalError(R.getLoc(), "Error " + R.getName() +
-                      " cannot be in a warning group [" + GroupName + "]");
+                                        " cannot be in a warning group [" +
+                                        GroupName + "]");
       }
     }
 
@@ -537,7 +543,7 @@ void EmitFortDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
       OS << ", " << I->second.IDNo;
     } else if (DiagsInPedantic.count(&R)) {
       std::map<std::string, GroupInfo>::iterator I =
-        DiagsInGroup.find("pedantic");
+          DiagsInGroup.find("pedantic");
       assert(I != DiagsInGroup.end() && "pedantic group not defined");
       OS << ", " << I->second.IDNo;
     } else {
@@ -591,17 +597,16 @@ static std::string getDiagCategoryEnum(llvm::StringRef name) {
     enumName += isalnum(*I) ? *I : '_';
   return enumName.str();
 }
-  
+
 namespace fort {
 void EmitFortDiagGroups(RecordKeeper &Records, raw_ostream &OS) {
   // Compute a mapping from a DiagGroup to all of its parents.
   DiagGroupParentMap DGParentMap(Records);
 
-  std::vector<Record*> Diags =
-    Records.getAllDerivedDefinitions("Diagnostic");
-  
-  std::vector<Record*> DiagGroups
-    = Records.getAllDerivedDefinitions("DiagGroup");
+  std::vector<Record *> Diags = Records.getAllDerivedDefinitions("Diagnostic");
+
+  std::vector<Record *> DiagGroups =
+      Records.getAllDerivedDefinitions("DiagGroup");
 
   std::map<std::string, GroupInfo> DiagsInGroup;
   groupDiagnostics(Diags, DiagGroups, DiagsInGroup);
@@ -618,12 +623,13 @@ void EmitFortDiagGroups(RecordKeeper &Records, raw_ostream &OS) {
   // that are mapped to.
   OS << "\n#ifdef GET_DIAG_ARRAYS\n";
   unsigned MaxLen = 0;
-  for (std::map<std::string, GroupInfo>::iterator
-       I = DiagsInGroup.begin(), E = DiagsInGroup.end(); I != E; ++I) {
+  for (std::map<std::string, GroupInfo>::iterator I = DiagsInGroup.begin(),
+                                                  E = DiagsInGroup.end();
+       I != E; ++I) {
     MaxLen = std::max(MaxLen, (unsigned)I->first.size());
     const bool IsPedantic = I->first == "pedantic";
 
-    std::vector<const Record*> &V = I->second.DiagsInGroup;
+    std::vector<const Record *> &V = I->second.DiagsInGroup;
     if (!V.empty() || (IsPedantic && !DiagsInPedantic.empty())) {
       OS << "static const short DiagArray" << I->second.IDNo << "[] = { ";
       for (unsigned i = 0, e = V.size(); i != e; ++i)
@@ -635,13 +641,13 @@ void EmitFortDiagGroups(RecordKeeper &Records, raw_ostream &OS) {
       }
       OS << "-1 };\n";
     }
-    
+
     const std::vector<std::string> &SubGroups = I->second.SubGroups;
     if (!SubGroups.empty() || (IsPedantic && !GroupsInPedantic.empty())) {
       OS << "static const short DiagSubGroup" << I->second.IDNo << "[] = { ";
       for (unsigned i = 0, e = SubGroups.size(); i != e; ++i) {
         std::map<std::string, GroupInfo>::iterator RI =
-          DiagsInGroup.find(SubGroups[i]);
+            DiagsInGroup.find(SubGroups[i]);
         assert(RI != DiagsInGroup.end() && "Referenced without existing?");
         OS << RI->second.IDNo << ", ";
       }
@@ -649,9 +655,9 @@ void EmitFortDiagGroups(RecordKeeper &Records, raw_ostream &OS) {
       if (IsPedantic) {
         for (unsigned i = 0, e = GroupsInPedantic.size(); i != e; ++i) {
           const std::string &GroupName =
-            GroupsInPedantic[i]->getValueAsString("GroupName");
+              GroupsInPedantic[i]->getValueAsString("GroupName");
           std::map<std::string, GroupInfo>::iterator RI =
-            DiagsInGroup.find(GroupName);
+              DiagsInGroup.find(GroupName);
           assert(RI != DiagsInGroup.end() && "Referenced without existing?");
           OS << RI->second.IDNo << ", ";
         }
@@ -661,22 +667,24 @@ void EmitFortDiagGroups(RecordKeeper &Records, raw_ostream &OS) {
     }
   }
   OS << "#endif // GET_DIAG_ARRAYS\n\n";
-  
+
   // Emit the table now.
   OS << "\n#ifdef GET_DIAG_TABLE\n";
-  for (std::map<std::string, GroupInfo>::iterator
-       I = DiagsInGroup.begin(), E = DiagsInGroup.end(); I != E; ++I) {
+  for (std::map<std::string, GroupInfo>::iterator I = DiagsInGroup.begin(),
+                                                  E = DiagsInGroup.end();
+       I != E; ++I) {
     // Group option string.
     OS << "  { ";
     OS << I->first.size() << ", ";
     OS << "\"";
     if (I->first.find_first_not_of("abcdefghijklmnopqrstuvwxyz"
                                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                   "0123456789!@#$%^*-+=:?")!=std::string::npos)
-      PrintFatalError("Invalid character in diagnostic group '" +
-                      I->first + "'");
-    OS.write_escaped(I->first) << "\","
-                               << std::string(MaxLen-I->first.size()+1, ' ');
+                                   "0123456789!@#$%^*-+=:?") !=
+        std::string::npos)
+      PrintFatalError("Invalid character in diagnostic group '" + I->first +
+                      "'");
+    OS.write_escaped(I->first)
+        << "\"," << std::string(MaxLen - I->first.size() + 1, ' ');
 
     // Special handling for 'pedantic'.
     const bool IsPedantic = I->first == "pedantic";
@@ -688,7 +696,7 @@ void EmitFortDiagGroups(RecordKeeper &Records, raw_ostream &OS) {
       OS << "0, ";
     else
       OS << "DiagArray" << I->second.IDNo << ", ";
-    
+
     // Subgroups.
     const bool hasSubGroups = !I->second.SubGroups.empty() ||
                               (IsPedantic && !GroupsInPedantic.empty());
@@ -699,12 +707,13 @@ void EmitFortDiagGroups(RecordKeeper &Records, raw_ostream &OS) {
     OS << " },\n";
   }
   OS << "#endif // GET_DIAG_TABLE\n\n";
-  
+
   // Emit the category table next.
   DiagCategoryIDMap CategoriesByID(Records);
   OS << "\n#ifdef GET_CATEGORY_TABLE\n";
   for (DiagCategoryIDMap::iterator I = CategoriesByID.begin(),
-       E = CategoriesByID.end(); I != E; ++I)
+                                   E = CategoriesByID.end();
+       I != E; ++I)
     OS << "CATEGORY(\"" << *I << "\", " << getDiagCategoryEnum(*I) << ")\n";
   OS << "#endif // GET_CATEGORY_TABLE\n\n";
 }
@@ -715,23 +724,21 @@ void EmitFortDiagGroups(RecordKeeper &Records, raw_ostream &OS) {
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct RecordIndexElement
-{
+struct RecordIndexElement {
   RecordIndexElement() {}
-  explicit RecordIndexElement(Record const &R):
-    Name(R.getName()) {}
-  
+  explicit RecordIndexElement(Record const &R) : Name(R.getName()) {}
+
   std::string Name;
 };
 
-struct RecordIndexElementSorter :
-  public std::binary_function<RecordIndexElement, RecordIndexElement, bool> {
-  
+struct RecordIndexElementSorter
+    : public std::binary_function<RecordIndexElement, RecordIndexElement,
+                                  bool> {
+
   bool operator()(RecordIndexElement const &Lhs,
                   RecordIndexElement const &Rhs) const {
     return Lhs.Name < Rhs.Name;
   }
-  
 };
 
 } // end anonymous namespace.
@@ -739,21 +746,21 @@ struct RecordIndexElementSorter :
 namespace fort {
 
 void EmitFortDiagsIndexName(RecordKeeper &Records, raw_ostream &OS) {
-  const std::vector<Record*> &Diags =
-    Records.getAllDerivedDefinitions("Diagnostic");
-  
+  const std::vector<Record *> &Diags =
+      Records.getAllDerivedDefinitions("Diagnostic");
+
   std::vector<RecordIndexElement> Index;
   Index.reserve(Diags.size());
   for (unsigned i = 0, e = Diags.size(); i != e; ++i) {
-    const Record &R = *(Diags[i]);    
+    const Record &R = *(Diags[i]);
     Index.push_back(RecordIndexElement(R));
   }
-  
+
   std::sort(Index.begin(), Index.end(), RecordIndexElementSorter());
-  
+
   for (unsigned i = 0, e = Index.size(); i != e; ++i) {
     const RecordIndexElement &R = Index[i];
-    
+
     OS << "DIAG_NAME_INDEX(" << R.Name << ")\n";
   }
 }

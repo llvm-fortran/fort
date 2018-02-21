@@ -32,26 +32,25 @@ enum ActionType {
 };
 
 namespace {
-  cl::opt<ActionType>
-  Action(cl::desc("Action to perform:"),
-         cl::values(clEnumValN(GenFortDiagsDefs, "gen-fort-diags-defs",
-                               "Generate Fort diagnostics definitions"),
-                    clEnumValN(GenFortDiagGroups, "gen-fort-diag-groups",
-                               "Generate Fort diagnostic groups"),
-                    clEnumValN(GenFortDiagsIndexName,
-                               "gen-fort-diags-index-name",
-                               "Generate Fort diagnostic name index"),
-                    clEnumValN(GenFortDeclNodes, "gen-fort-decl-nodes",
-                               "Generate Fort AST declaration nodes"),
-                    clEnumValN(GenFortStmtNodes, "gen-fort-stmt-nodes",
-                               "Generate Fort AST statement nodes"),
-                    clEnumValN(GenFortExprNodes, "gen-fort-expr-nodes",
-                               "Generate Fort AST expression nodes")));
+cl::opt<ActionType> Action(
+    cl::desc("Action to perform:"),
+    cl::values(clEnumValN(GenFortDiagsDefs, "gen-fort-diags-defs",
+                          "Generate Fort diagnostics definitions"),
+               clEnumValN(GenFortDiagGroups, "gen-fort-diag-groups",
+                          "Generate Fort diagnostic groups"),
+               clEnumValN(GenFortDiagsIndexName, "gen-fort-diags-index-name",
+                          "Generate Fort diagnostic name index"),
+               clEnumValN(GenFortDeclNodes, "gen-fort-decl-nodes",
+                          "Generate Fort AST declaration nodes"),
+               clEnumValN(GenFortStmtNodes, "gen-fort-stmt-nodes",
+                          "Generate Fort AST statement nodes"),
+               clEnumValN(GenFortExprNodes, "gen-fort-expr-nodes",
+                          "Generate Fort AST expression nodes")));
 
-  cl::opt<std::string>
-  FortComponent("fort-component",
-                 cl::desc("Only use warnings from specified component"),
-                 cl::value_desc("component"), cl::Hidden);
+cl::opt<std::string>
+    FortComponent("fort-component",
+                  cl::desc("Only use warnings from specified component"),
+                  cl::value_desc("component"), cl::Hidden);
 
 bool FortTableGenMain(raw_ostream &OS, RecordKeeper &Records) {
   switch (Action) {
@@ -78,7 +77,7 @@ bool FortTableGenMain(raw_ostream &OS, RecordKeeper &Records) {
 
   return false;
 }
-}
+} // namespace
 
 int main(int argc, char **argv) {
   sys::PrintStackTraceOnErrorSignal(argv[0]);

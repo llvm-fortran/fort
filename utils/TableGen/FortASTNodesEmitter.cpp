@@ -25,7 +25,7 @@ using namespace llvm;
 namespace {
 class FortASTNodesEmitter {
   // A map from a node to each of its derived nodes.
-  typedef std::multimap<Record*, Record*> ChildMap;
+  typedef std::multimap<Record *, Record *> ChildMap;
   typedef ChildMap::const_iterator ChildIterator;
 
   RecordKeeper &Records;
@@ -50,13 +50,13 @@ class FortASTNodesEmitter {
     return R.getName().str() + BaseSuffix;
   }
 
-  std::pair<Record *, Record *> EmitNode (const ChildMap &Tree, raw_ostream& OS,
-                                          Record *Base);
+  std::pair<Record *, Record *> EmitNode(const ChildMap &Tree, raw_ostream &OS,
+                                         Record *Base);
+
 public:
   explicit FortASTNodesEmitter(RecordKeeper &R, const std::string &N,
-                                const std::string &S)
-    : Records(R), Root(N, SMLoc(), R), BaseSuffix(S)
-    {}
+                               const std::string &S)
+      : Records(R), Root(N, SMLoc(), R), BaseSuffix(S) {}
 
   // run - Output the .inc file contents
   void run(raw_ostream &OS);
@@ -69,10 +69,9 @@ public:
 
 // Returns the first and last non-abstract subrecords
 // Called recursively to ensure that nodes remain contiguous
-std::pair<Record *, Record *> FortASTNodesEmitter::EmitNode(
-                                                           const ChildMap &Tree,
-                                                           raw_ostream &OS,
-                                                           Record *Base) {
+std::pair<Record *, Record *>
+FortASTNodesEmitter::EmitNode(const ChildMap &Tree, raw_ostream &OS,
+                              Record *Base) {
   std::string BaseName = macroName(Base->getName());
 
   ChildIterator i = Tree.lower_bound(Base), e = Tree.upper_bound(Base);
@@ -89,20 +88,18 @@ std::pair<Record *, Record *> FortASTNodesEmitter::EmitNode(
     std::string NodeName = macroName(R->getName());
 
     OS << "#ifndef " << NodeName << "\n";
-    OS << "#  define " << NodeName << "(Type, Base) "
-        << BaseName << "(Type, Base)\n";
+    OS << "#  define " << NodeName << "(Type, Base) " << BaseName
+       << "(Type, Base)\n";
     OS << "#endif\n";
 
     if (Abstract)
       OS << "ABSTRACT_" << macroName(Root.getName()) << "(" << NodeName << "("
-          << R->getName() << ", " << baseName(*Base) << "))\n";
+         << R->getName() << ", " << baseName(*Base) << "))\n";
     else
-      OS << NodeName << "(" << R->getName() << ", "
-          << baseName(*Base) << ")\n";
+      OS << NodeName << "(" << R->getName() << ", " << baseName(*Base) << ")\n";
 
     if (Tree.find(R) != Tree.end()) {
-      const std::pair<Record *, Record *> &Result
-        = EmitNode(Tree, OS, R);
+      const std::pair<Record *, Record *> &Result = EmitNode(Tree, OS, R);
       if (!First && Result.first)
         First = Result.first;
       if (Result.second)
@@ -120,13 +117,13 @@ std::pair<Record *, Record *> FortASTNodesEmitter::EmitNode(
   }
 
   if (First) {
-    assert (Last && "Got a first node but not a last node for a range!");
+    assert(Last && "Got a first node but not a last node for a range!");
     if (Base == &Root)
       OS << "LAST_" << macroName(Root.getName()) << "_RANGE(";
     else
       OS << macroName(Root.getName()) << "_RANGE(";
-    OS << Base->getName() << ", " << First->getName() << ", "
-       << Last->getName() << ")\n\n";
+    OS << Base->getName() << ", " << First->getName() << ", " << Last->getName()
+       << ")\n\n";
   }
 
   return std::make_pair(First, Last);
@@ -141,19 +138,19 @@ void FortASTNodesEmitter::run(raw_ostream &OS) {
   OS << "#endif\n";
 
   OS << "#ifndef " << macroName(Root.getName()) << "_RANGE\n";
-  OS << "#  define "
-     << macroName(Root.getName()) << "_RANGE(Base, First, Last)\n";
+  OS << "#  define " << macroName(Root.getName())
+     << "_RANGE(Base, First, Last)\n";
   OS << "#endif\n\n";
 
   OS << "#ifndef LAST_" << macroName(Root.getName()) << "_RANGE\n";
-  OS << "#  define LAST_" 
-     << macroName(Root.getName()) << "_RANGE(Base, First, Last) " 
-     << macroName(Root.getName()) << "_RANGE(Base, First, Last)\n";
+  OS << "#  define LAST_" << macroName(Root.getName())
+     << "_RANGE(Base, First, Last) " << macroName(Root.getName())
+     << "_RANGE(Base, First, Last)\n";
   OS << "#endif\n\n";
- 
+
   // Emit statements
-  const std::vector<Record*> Stmts
-    = Records.getAllDerivedDefinitions(Root.getName());
+  const std::vector<Record *> Stmts =
+      Records.getAllDerivedDefinitions(Root.getName());
 
   ChildMap Tree;
 
@@ -175,8 +172,8 @@ void FortASTNodesEmitter::run(raw_ostream &OS) {
 }
 
 namespace fort {
-void EmitFortASTNodes(RecordKeeper &RK, raw_ostream &OS,
-                       const std::string &N, const std::string &S) {
+void EmitFortASTNodes(RecordKeeper &RK, raw_ostream &OS, const std::string &N,
+                      const std::string &S) {
   FortASTNodesEmitter(RK, N, S).run(OS);
 }
 
@@ -190,19 +187,19 @@ void EmitFortDeclContext(RecordKeeper &Records, raw_ostream &OS) {
   OS << "#ifndef DECL_CONTEXT\n";
   OS << "#  define DECL_CONTEXT(DECL)\n";
   OS << "#endif\n";
-  
+
   OS << "#ifndef DECL_CONTEXT_BASE\n";
   OS << "#  define DECL_CONTEXT_BASE(DECL) DECL_CONTEXT(DECL)\n";
   OS << "#endif\n";
-  
-  typedef std::set<Record*> RecordSet;
-  typedef std::vector<Record*> RecordVector;
-  
-  RecordVector DeclContextsVector
-    = Records.getAllDerivedDefinitions("DeclContext");
+
+  typedef std::set<Record *> RecordSet;
+  typedef std::vector<Record *> RecordVector;
+
+  RecordVector DeclContextsVector =
+      Records.getAllDerivedDefinitions("DeclContext");
   RecordVector Decls = Records.getAllDerivedDefinitions("Decl");
-  RecordSet DeclContexts (DeclContextsVector.begin(), DeclContextsVector.end());
-   
+  RecordSet DeclContexts(DeclContextsVector.begin(), DeclContextsVector.end());
+
   for (RecordVector::iterator i = Decls.begin(), e = Decls.end(); i != e; ++i) {
     Record *R = *i;
 
@@ -217,8 +214,8 @@ void EmitFortDeclContext(RecordKeeper &Records, raw_ostream &OS) {
 
   // To keep identical order, RecordVector may be used
   // instead of RecordSet.
-  for (RecordVector::iterator
-         i = DeclContextsVector.begin(), e = DeclContextsVector.end();
+  for (RecordVector::iterator i = DeclContextsVector.begin(),
+                              e = DeclContextsVector.end();
        i != e; ++i)
     if (DeclContexts.find(*i) != DeclContexts.end())
       OS << "DECL_CONTEXT(" << (*i)->getName() << ")\n";
