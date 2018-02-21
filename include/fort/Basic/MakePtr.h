@@ -16,7 +16,7 @@
 
 namespace fort {
 
-template <typename T> struct make_ptr       { typedef       T *type; };
+template <typename T> struct make_ptr { typedef T *type; };
 template <typename T> struct make_const_ptr { typedef const T *type; };
 
 } // end namespace fort

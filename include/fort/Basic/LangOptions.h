@@ -23,26 +23,27 @@ namespace fort {
 /// enabled, which controls the dialect of Fortran that is accepted.
 class LangOptions : public llvm::RefCountedBase<LangOptions> {
 public:
-  unsigned Fortran77         : 1; // Fortran 77
-  unsigned Fortran90         : 1; // Fortran 90
-  unsigned Fortran95         : 1; // Fortran 95
-  unsigned Fortran2000       : 1; // Fortran 2000
-  unsigned Fortran2003       : 1; // Fortran 2003
-  unsigned Fortran2008       : 1; // Fortran 2008
+  unsigned Fortran77 : 1;   // Fortran 77
+  unsigned Fortran90 : 1;   // Fortran 90
+  unsigned Fortran95 : 1;   // Fortran 95
+  unsigned Fortran2000 : 1; // Fortran 2000
+  unsigned Fortran2003 : 1; // Fortran 2003
+  unsigned Fortran2008 : 1; // Fortran 2008
 
-  unsigned FixedForm         : 1; // Fixed-form style
-  unsigned FreeForm          : 1; // Free-form style
+  unsigned FixedForm : 1; // Fixed-form style
+  unsigned FreeForm : 1;  // Free-form style
 
-  unsigned ReturnComments    : 1; // Return comments as lexical tokens
+  unsigned ReturnComments : 1; // Return comments as lexical tokens
 
-  unsigned SpellChecking     : 1; // Whether to perform spell-checking for error
-                                  // recovery.
+  unsigned SpellChecking : 1; // Whether to perform spell-checking for error
+                              // recovery.
 
-  unsigned DefaultReal8      : 1; // Sets the default real type to be 8 bytes wide
-  unsigned DefaultDouble8    : 1; // Sets the default double precision type to be 8 bytes wide
-  unsigned DefaultInt8       : 1; // Sets the default integer type to be 8 bytes wide
-  unsigned TabWidth;              // The tab character is treated as N spaces.
-  unsigned LineLength;            // Maximum allowed line length
+  unsigned DefaultReal8 : 1;   // Sets the default real type to be 8 bytes wide
+  unsigned DefaultDouble8 : 1; // Sets the default double precision type to be 8
+                               // bytes wide
+  unsigned DefaultInt8 : 1; // Sets the default integer type to be 8 bytes wide
+  unsigned TabWidth;        // The tab character is treated as N spaces.
+  unsigned LineLength;      // Maximum allowed line length
 
   LangOptions() {
     Fortran77 = 0;
@@ -57,6 +58,6 @@ public:
   }
 };
 
-}  // end namespace fort
+} // end namespace fort
 
 #endif

@@ -19,7 +19,7 @@
 #include <cstring>
 
 #ifdef HAVE_SVN_VERSION_INC
-#  include "SVNVersion.inc"
+#include "SVNVersion.inc"
 #endif
 
 namespace fort {
@@ -115,9 +115,7 @@ std::string getFortFullRepositoryVersion() {
   return OS.str();
 }
 
-std::string getFortFullVersion() {
-  return getFortToolFullVersion("fort");
-}
+std::string getFortFullVersion() { return getFortToolFullVersion("fort"); }
 
 std::string getFortToolFullVersion(StringRef ToolName) {
   std::string buf;

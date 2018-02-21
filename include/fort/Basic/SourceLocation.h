@@ -18,9 +18,9 @@
 
 namespace fort {
 
-typedef llvm::SMLoc   SourceLocation;
+typedef llvm::SMLoc SourceLocation;
 typedef llvm::SMRange SourceRange;
 
-} // end fort namespace
+} // namespace fort
 
 #endif

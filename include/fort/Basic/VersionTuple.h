@@ -22,7 +22,8 @@
 
 namespace fort {
 
-/// \brief Represents a version number in the form major[.minor[.subminor[.build]]].
+/// \brief Represents a version number in the form
+/// major[.minor[.subminor[.build]]].
 class VersionTuple {
   unsigned Major : 31;
 
@@ -94,24 +95,20 @@ public:
     return Build;
   }
 
-  bool usesUnderscores() const {
-    return UsesUnderscores;
-  }
+  bool usesUnderscores() const { return UsesUnderscores; }
 
-  void UseDotAsSeparator() {
-    UsesUnderscores = false;
-  }
-  
+  void UseDotAsSeparator() { UsesUnderscores = false; }
+
   /// \brief Determine if two version numbers are equivalent. If not
   /// provided, minor and subminor version numbers are considered to be zero.
-  friend bool operator==(const VersionTuple& X, const VersionTuple &Y) {
+  friend bool operator==(const VersionTuple &X, const VersionTuple &Y) {
     return X.Major == Y.Major && X.Minor == Y.Minor &&
            X.Subminor == Y.Subminor && X.Build == Y.Build;
   }
 
   /// \brief Determine if two version numbers are not equivalent.
   ///
-  /// If not provided, minor and subminor version numbers are considered to be 
+  /// If not provided, minor and subminor version numbers are considered to be
   /// zero.
   friend bool operator!=(const VersionTuple &X, const VersionTuple &Y) {
     return !(X == Y);
@@ -135,7 +132,7 @@ public:
   }
 
   /// \brief Determine whether one version number precedes or is
-  /// equivalent to another. 
+  /// equivalent to another.
   ///
   /// If not provided, minor and subminor version numbers are considered to be
   /// zero.
@@ -162,7 +159,7 @@ public:
 };
 
 /// \brief Print a version number.
-raw_ostream& operator<<(raw_ostream &Out, const VersionTuple &V);
+raw_ostream &operator<<(raw_ostream &Out, const VersionTuple &V);
 
 } // end namespace fort
 #endif // LLVM_FORT_BASIC_VERSIONTUPLE_H

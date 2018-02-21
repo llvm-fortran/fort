@@ -20,48 +20,47 @@
 #include "llvm/Support/Casting.h"
 
 namespace llvm {
-  // ADT's.
-  class APInt;
-  class APFloat;
-  class StringRef;
-  class Twine;
+// ADT's.
+class APInt;
+class APFloat;
+class StringRef;
+class Twine;
 #if 0
   template<typename T> class ArrayRef;
   template<typename T, unsigned N> class SmallVector;
   template<typename T> class SmallVectorImpl;
 #endif
-  template<typename T> class ArrayRef;
-  template<unsigned InternalLen> class SmallString;
-  template<typename T, unsigned N> class SmallVector;
-  template<typename T> class SmallVectorImpl;
-  template<typename T> class Optional;
+template <typename T> class ArrayRef;
+template <unsigned InternalLen> class SmallString;
+template <typename T, unsigned N> class SmallVector;
+template <typename T> class SmallVectorImpl;
+template <typename T> class Optional;
 
-  class raw_ostream;
-  class raw_pwrite_stream;
-  // TODO: DenseMap, ...
-}
-
+class raw_ostream;
+class raw_pwrite_stream;
+// TODO: DenseMap, ...
+} // namespace llvm
 
 namespace fort {
-  // Casting operators.
-  using llvm::isa;
-  using llvm::cast;
-  using llvm::dyn_cast;
-  using llvm::dyn_cast_or_null;
-  using llvm::cast_or_null;
-  
-  // ADT's.
-  using llvm::APInt;
-  using llvm::APFloat;
-  using llvm::StringRef;
-  using llvm::Twine;
-  using llvm::ArrayRef;
-  using llvm::SmallString;
-  using llvm::SmallVector;
-  using llvm::SmallVectorImpl;
-  
-  using llvm::raw_ostream;
-  using llvm::raw_pwrite_stream;
+// Casting operators.
+using llvm::cast;
+using llvm::cast_or_null;
+using llvm::dyn_cast;
+using llvm::dyn_cast_or_null;
+using llvm::isa;
+
+// ADT's.
+using llvm::APFloat;
+using llvm::APInt;
+using llvm::ArrayRef;
+using llvm::SmallString;
+using llvm::SmallVector;
+using llvm::SmallVectorImpl;
+using llvm::StringRef;
+using llvm::Twine;
+
+using llvm::raw_ostream;
+using llvm::raw_pwrite_stream;
 } // end namespace fort.
 
 #endif

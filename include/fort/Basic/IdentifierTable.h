@@ -34,14 +34,14 @@ class IdentifierTable;
 class IdentifierInfo {
   // Note: DON'T make TokenID a 'tok::TokenKind'; MSVC will treat it as a
   //       signed char and TokenKinds > 127 won't be handled correctly.
-  unsigned TokenID            : 8; // Front-end token ID or tok::identifier.
+  unsigned TokenID : 8; // Front-end token ID or tok::identifier.
   // 24 bits left in 32-bit word.
 
-  void *FETokenInfo;               // Managed by the language front-end.
-  llvm::StringMapEntry<IdentifierInfo*> *Entry;
+  void *FETokenInfo; // Managed by the language front-end.
+  llvm::StringMapEntry<IdentifierInfo *> *Entry;
 
-  IdentifierInfo(const IdentifierInfo&);  // NONCOPYABLE.
-  void operator=(const IdentifierInfo&);  // NONASSIGNABLE.
+  IdentifierInfo(const IdentifierInfo &); // NONCOPYABLE.
+  void operator=(const IdentifierInfo &); // NONASSIGNABLE.
 
   friend class IdentifierTable;
 
@@ -50,35 +50,37 @@ public:
 
   /// isStr - Return true if this is the identifier for the specified string.
   /// This is intended to be used for string literals only: II->isStr("foo").
-  template <std::size_t StrLen>
-  bool isStr(const char (&Str)[StrLen]) const {
-    return getLength() == StrLen-1 && !memcmp(getNameStart(), Str, StrLen-1);
+  template <std::size_t StrLen> bool isStr(const char (&Str)[StrLen]) const {
+    return getLength() == StrLen - 1 &&
+           !memcmp(getNameStart(), Str, StrLen - 1);
   }
 
   /// getNameStart - Return the beginning of the actual string for this
   /// identifier.  The returned string is properly null terminated.
   const char *getNameStart() const {
-    if (Entry) return Entry->getKeyData();
+    if (Entry)
+      return Entry->getKeyData();
     // FIXME: This is gross. It would be best not to embed specific details
     // of the PTH file format here.
     // The 'this' pointer really points to a
     // std::pair<IdentifierInfo, const char*>, where internal pointer
     // points to the external string data.
-    typedef std::pair<IdentifierInfo, const char*> actualtype;
-    return ((const actualtype*) this)->second;
+    typedef std::pair<IdentifierInfo, const char *> actualtype;
+    return ((const actualtype *)this)->second;
   }
 
   /// getLength - Efficiently return the length of this identifier info.
   unsigned getLength() const {
-    if (Entry) return Entry->getKeyLength();
+    if (Entry)
+      return Entry->getKeyLength();
     // FIXME: This is gross. It would be best not to embed specific details
     // of the PTH file format here.
     // The 'this' pointer really points to a
     // std::pair<IdentifierInfo, const char*>, where internal pointer
     // points to the external string data.
-    typedef std::pair<IdentifierInfo, const char*> actualtype;
-    const char* p = ((const actualtype*) this)->second - 2;
-    return (((unsigned) p[0]) | (((unsigned) p[1]) << 8)) - 1;
+    typedef std::pair<IdentifierInfo, const char *> actualtype;
+    const char *p = ((const actualtype *)this)->second - 2;
+    return (((unsigned)p[0]) | (((unsigned)p[1]) << 8)) - 1;
   }
 
   /// getName - Return the actual identifier string.
@@ -94,8 +96,9 @@ public:
 
   /// getFETokenInfo/setFETokenInfo - The language front-end is allowed to
   /// associate arbitrary metadata with this token.
-  template<typename T>
-  T *getFETokenInfo() const { return static_cast<T*>(FETokenInfo); }
+  template <typename T> T *getFETokenInfo() const {
+    return static_cast<T *>(FETokenInfo);
+  }
   void setFETokenInfo(void *T) { FETokenInfo = T; }
 };
 
@@ -120,8 +123,8 @@ public:
 class IdentifierTable {
   // Shark shows that using MallocAllocator is *much* slower than using this
   // BumpPtrAllocator!
-  typedef llvm::StringMap<IdentifierInfo*, llvm::BumpPtrAllocator> HashTableTy;
-  typedef std::pair<llvm::StringRef, IdentifierInfo*> HashTableEntryTy;
+  typedef llvm::StringMap<IdentifierInfo *, llvm::BumpPtrAllocator> HashTableTy;
+  typedef std::pair<llvm::StringRef, IdentifierInfo *> HashTableEntryTy;
   HashTableTy IdentifierHashTable;
   HashTableTy KeywordHashTable;
   HashTableTy FormatSpecHashTable;
@@ -139,7 +142,7 @@ public:
   }
 
   IdentifierInfo &get(const char *NameStart, const char *NameEnd) {
-    std::string Name = llvm::StringRef(NameStart, NameEnd-NameStart).str();
+    std::string Name = llvm::StringRef(NameStart, NameEnd - NameStart).str();
     return get(Name);
   }
 
@@ -150,7 +153,8 @@ public:
 
   IdentifierInfo &getKeyword(const char *NameStart, const char *NameEnd,
                              tok::TokenKind TokenCode) {
-    return getKeyword(llvm::StringRef(NameStart, NameEnd-NameStart), TokenCode);
+    return getKeyword(llvm::StringRef(NameStart, NameEnd - NameStart),
+                      TokenCode);
   }
   IdentifierInfo &getKeyword(const char *Name, size_t NameLen,
                              tok::TokenKind TokenCode) {
@@ -159,7 +163,8 @@ public:
 
   IdentifierInfo &getFormatSpec(const char *NameStart, const char *NameEnd,
                                 tok::TokenKind TokenCode) {
-    return getFormatSpec(llvm::StringRef(NameStart, NameEnd-NameStart), TokenCode);
+    return getFormatSpec(llvm::StringRef(NameStart, NameEnd - NameStart),
+                         TokenCode);
   }
   IdentifierInfo &getFormatSpec(const char *Name, size_t NameLen,
                                 tok::TokenKind TokenCode) {
@@ -173,7 +178,8 @@ public:
       UCName[I] = ::tolower(UCName[I]);
 
     IdentifierInfo *II = IdentifierHashTable.lookup(UCName);
-    if (II) return *II;
+    if (II)
+      return *II;
 
     // No entry; if we have an external lookup, look there first.
     if (ExternalLookup) {
@@ -188,7 +194,8 @@ public:
     // Lookups failed, make a new IdentifierInfo.
     void *Mem = IdentifierHashTable.getAllocator().Allocate<IdentifierInfo>();
     II = new (Mem) IdentifierInfo();
-    auto &Entry = *IdentifierHashTable.insert(HashTableEntryTy(UCName, II)).first;
+    auto &Entry =
+        *IdentifierHashTable.insert(HashTableEntryTy(UCName, II)).first;
 
     // Make sure getName() knows how to find the IdentifierInfo
     // contents.
@@ -204,7 +211,8 @@ public:
 
     IdentifierInfo *II = KeywordHashTable.lookup(UCName);
 
-    if (II) return *II;
+    if (II)
+      return *II;
 
     // No entry; if we have an external lookup, look there first.
     if (ExternalLookup) {
@@ -228,15 +236,18 @@ public:
     return *II;
   }
 
-  /// getBuiltin - Returns the format specification token for the specified name.
-  IdentifierInfo &getFormatSpec(llvm::StringRef Name, tok::TokenKind TokenCode) {
+  /// getBuiltin - Returns the format specification token for the specified
+  /// name.
+  IdentifierInfo &getFormatSpec(llvm::StringRef Name,
+                                tok::TokenKind TokenCode) {
     std::string UCName(Name);
     for (size_t I = 0, E = UCName.size(); I != E; ++I)
       UCName[I] = ::tolower(UCName[I]);
 
     IdentifierInfo *II = FormatSpecHashTable.lookup(UCName);
 
-    if (II) return *II;
+    if (II)
+      return *II;
 
     // No entry; if we have an external lookup, look there first.
     if (ExternalLookup) {
@@ -252,7 +263,8 @@ public:
     void *Mem = FormatSpecHashTable.getAllocator().Allocate<IdentifierInfo>();
     II = new (Mem) IdentifierInfo();
     II->setTokenID(TokenCode);
-    auto &Entry = *FormatSpecHashTable.insert(HashTableEntryTy(UCName, II)).first;
+    auto &Entry =
+        *FormatSpecHashTable.insert(HashTableEntryTy(UCName, II)).first;
 
     // Make sure getName() knows how to find the IdentifierInfo
     // contents.
@@ -281,10 +293,12 @@ public:
     return Iter != KeywordHashTable.end() ? Iter->getValue() : 0;
   }
 
-  /// lookupFormatSpec - Return the iterator pointing to the format spec if found.
+  /// lookupFormatSpec - Return the iterator pointing to the format spec if
+  /// found.
   IdentifierInfo *lookupFormatSpec(llvm::StringRef Name) const {
-    if(Name.size() > 2) return nullptr;
-    char UCName[4] = {0,0,0,0};
+    if (Name.size() > 2)
+      return nullptr;
+    char UCName[4] = {0, 0, 0, 0};
     for (size_t I = 0, E = Name.size(); I != E; ++I)
       UCName[I] = ::tolower(Name[I]);
 
@@ -301,7 +315,7 @@ public:
   /// isaKeyword - Return 'true' if the name is in the keyword hashtable. I.e.,
   /// it can be treated as a keyword in the correct context.
   bool isaKeyword(const llvm::StringRef Name) const {
-    std::string NameStr = Name.str();    
+    std::string NameStr = Name.str();
     return lookupKeyword(NameStr) ? true : false;
   }
 
@@ -336,6 +350,6 @@ public:
   void AddPredefineds(const LangOptions &LangOpts);
 };
 
-}  // end namespace fort
+} // end namespace fort
 
 #endif

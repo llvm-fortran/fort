@@ -12,11 +12,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "fort/Basic/Token.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/Twine.h"
 #include "fort/Basic/LLVM.h"
+#include "llvm/ADT/SmallString.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/Twine.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace fort {
 
@@ -31,8 +31,9 @@ std::string Token::CleanLiteral(SmallVectorImpl<StringRef> &Spelling) const {
 
   std::string Name;
   Name.reserve(256);
-  for (llvm::SmallVectorImpl<StringRef>::const_iterator
-         I = Spelling.begin(), E = Spelling.end(); I != E; ++I)
+  for (llvm::SmallVectorImpl<StringRef>::const_iterator I = Spelling.begin(),
+                                                        E = Spelling.end();
+       I != E; ++I)
     Name += *I;
 
   return Name;
@@ -57,7 +58,8 @@ llvm::Twine Token::CleanCharContext() {
         break;
     }
 
-    if (*CurPtr == '\'') break;
+    if (*CurPtr == '\'')
+      break;
 
     const char *Amp = CurPtr++;
     while (isHorizontalWhitespace(*CurPtr))
@@ -66,12 +68,11 @@ llvm::Twine Token::CleanCharContext() {
     if (*CurPtr != '\n' && *CurPtr != '\r')
       continue;
 
-    CharContext.concat(
-      llvm::Twine(llvm::StringRef(Start, Amp - Start)));
+    CharContext.concat(llvm::Twine(llvm::StringRef(Start, Amp - Start)));
 
     while (true) {
-      while (isHorizontalWhitespace(*CurPtr) ||
-             *CurPtr == '\n' || *CurPtr == '\r')
+      while (isHorizontalWhitespace(*CurPtr) || *CurPtr == '\n' ||
+             *CurPtr == '\r')
         ++CurPtr;
 
       if (*CurPtr == '!') {
@@ -85,8 +86,7 @@ llvm::Twine Token::CleanCharContext() {
     Start = ++CurPtr;
   }
 
-  return CharContext +
-    llvm::Twine(llvm::StringRef(CurPtr, Start - CurPtr));
+  return CharContext + llvm::Twine(llvm::StringRef(CurPtr, Start - CurPtr));
 }
 
-} //namespace fort
+} // namespace fort

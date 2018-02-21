@@ -21,15 +21,15 @@
 #include "fort/Sema/SemaDiagnostic.h"
 
 namespace fort {
-template <size_t SizeOfStr, typename FieldType>
-class StringSizerHelper {
+template <size_t SizeOfStr, typename FieldType> class StringSizerHelper {
   char FIELD_TOO_SMALL[SizeOfStr <= FieldType(~0U) ? 1 : -1];
+
 public:
   enum { Size = SizeOfStr };
 };
 } // end namespace fort
 
-#define STR_SIZE(str, fieldTy) fort::StringSizerHelper<sizeof(str)-1, \
-                                                        fieldTy>::Size 
+#define STR_SIZE(str, fieldTy)                                                 \
+  fort::StringSizerHelper<sizeof(str) - 1, fieldTy>::Size
 
 #endif

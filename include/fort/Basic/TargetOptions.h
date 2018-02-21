@@ -15,11 +15,11 @@
 #ifndef LLVM_FORT_FRONTEND_TARGETOPTIONS_H
 #define LLVM_FORT_FRONTEND_TARGETOPTIONS_H
 
+#include "fort/Basic/LLVM.h"
+#include "llvm/ADT/IntrusiveRefCntPtr.h"
+#include "llvm/Target/TargetOptions.h"
 #include <string>
 #include <vector>
-#include "fort/Basic/LLVM.h"
-#include "llvm/Target/TargetOptions.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
 
 namespace fort {
 
@@ -45,7 +45,8 @@ public:
   /// If given, the version string of the linker in use.
   std::string LinkerVersion;
 
-  /// \brief The list of target specific features to enable or disable, as written on the command line.
+  /// \brief The list of target specific features to enable or disable, as
+  /// written on the command line.
   std::vector<std::string> FeaturesAsWritten;
 
   /// The list of target specific features to enable or disable -- this should
@@ -53,6 +54,6 @@ public:
   std::vector<std::string> Features;
 };
 
-}  // end namespace fort
+} // end namespace fort
 
 #endif

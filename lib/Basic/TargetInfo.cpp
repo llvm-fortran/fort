@@ -106,17 +106,28 @@ TargetInfo::~TargetInfo() {}
 /// For example, SignedShort -> "short".
 const char *TargetInfo::getTypeName(IntType T) {
   switch (T) {
-  default: llvm_unreachable("not an integer!");
-  case SignedChar:       return "signed char";
-  case UnsignedChar:     return "unsigned char";
-  case SignedShort:      return "short";
-  case UnsignedShort:    return "unsigned short";
-  case SignedInt:        return "int";
-  case UnsignedInt:      return "unsigned int";
-  case SignedLong:       return "long int";
-  case UnsignedLong:     return "long unsigned int";
-  case SignedLongLong:   return "long long int";
-  case UnsignedLongLong: return "long long unsigned int";
+  default:
+    llvm_unreachable("not an integer!");
+  case SignedChar:
+    return "signed char";
+  case UnsignedChar:
+    return "unsigned char";
+  case SignedShort:
+    return "short";
+  case UnsignedShort:
+    return "unsigned short";
+  case SignedInt:
+    return "int";
+  case UnsignedInt:
+    return "unsigned int";
+  case SignedLong:
+    return "long int";
+  case UnsignedLong:
+    return "long unsigned int";
+  case SignedLongLong:
+    return "long long int";
+  case UnsignedLongLong:
+    return "long long unsigned int";
   }
 }
 
@@ -124,12 +135,16 @@ const char *TargetInfo::getTypeName(IntType T) {
 /// integer type enum. For example, SignedLong -> "L".
 const char *TargetInfo::getTypeConstantSuffix(IntType T) const {
   switch (T) {
-  default: llvm_unreachable("not an integer!");
+  default:
+    llvm_unreachable("not an integer!");
   case SignedChar:
   case SignedShort:
-  case SignedInt:        return "";
-  case SignedLong:       return "L";
-  case SignedLongLong:   return "LL";
+  case SignedInt:
+    return "";
+  case SignedLong:
+    return "L";
+  case SignedLongLong:
+    return "LL";
   case UnsignedChar:
     if (getCharWidth() < getIntWidth())
       return "";
@@ -138,9 +153,12 @@ const char *TargetInfo::getTypeConstantSuffix(IntType T) const {
     if (getShortWidth() < getIntWidth())
       return "";
     LLVM_FALLTHROUGH;
-  case UnsignedInt:      return "U";
-  case UnsignedLong:     return "UL";
-  case UnsignedLongLong: return "ULL";
+  case UnsignedInt:
+    return "U";
+  case UnsignedLong:
+    return "UL";
+  case UnsignedLongLong:
+    return "ULL";
   }
 }
 
@@ -149,17 +167,23 @@ const char *TargetInfo::getTypeConstantSuffix(IntType T) const {
 
 const char *TargetInfo::getTypeFormatModifier(IntType T) {
   switch (T) {
-  default: llvm_unreachable("not an integer!");
+  default:
+    llvm_unreachable("not an integer!");
   case SignedChar:
-  case UnsignedChar:     return "hh";
+  case UnsignedChar:
+    return "hh";
   case SignedShort:
-  case UnsignedShort:    return "h";
+  case UnsignedShort:
+    return "h";
   case SignedInt:
-  case UnsignedInt:      return "";
+  case UnsignedInt:
+    return "";
   case SignedLong:
-  case UnsignedLong:     return "l";
+  case UnsignedLong:
+    return "l";
   case SignedLongLong:
-  case UnsignedLongLong: return "ll";
+  case UnsignedLongLong:
+    return "ll";
   }
 }
 
@@ -167,22 +191,28 @@ const char *TargetInfo::getTypeFormatModifier(IntType T) {
 /// enum. For example, SignedInt -> getIntWidth().
 unsigned TargetInfo::getTypeWidth(IntType T) const {
   switch (T) {
-  default: llvm_unreachable("not an integer!");
+  default:
+    llvm_unreachable("not an integer!");
   case SignedChar:
-  case UnsignedChar:     return getCharWidth();
+  case UnsignedChar:
+    return getCharWidth();
   case SignedShort:
-  case UnsignedShort:    return getShortWidth();
+  case UnsignedShort:
+    return getShortWidth();
   case SignedInt:
-  case UnsignedInt:      return getIntWidth();
+  case UnsignedInt:
+    return getIntWidth();
   case SignedLong:
-  case UnsignedLong:     return getLongWidth();
+  case UnsignedLong:
+    return getLongWidth();
   case SignedLongLong:
-  case UnsignedLongLong: return getLongLongWidth();
+  case UnsignedLongLong:
+    return getLongLongWidth();
   };
 }
 
-TargetInfo::IntType TargetInfo::getIntTypeByWidth(
-    unsigned BitWidth, bool IsSigned) const {
+TargetInfo::IntType TargetInfo::getIntTypeByWidth(unsigned BitWidth,
+                                                  bool IsSigned) const {
   if (getCharWidth() == BitWidth)
     return IsSigned ? SignedChar : UnsignedChar;
   if (getShortWidth() == BitWidth)
@@ -238,17 +268,23 @@ TargetInfo::RealType TargetInfo::getRealTypeByWidth(unsigned BitWidth) const {
 /// enum. For example, SignedInt -> getIntAlign().
 unsigned TargetInfo::getTypeAlign(IntType T) const {
   switch (T) {
-  default: llvm_unreachable("not an integer!");
+  default:
+    llvm_unreachable("not an integer!");
   case SignedChar:
-  case UnsignedChar:     return getCharAlign();
+  case UnsignedChar:
+    return getCharAlign();
   case SignedShort:
-  case UnsignedShort:    return getShortAlign();
+  case UnsignedShort:
+    return getShortAlign();
   case SignedInt:
-  case UnsignedInt:      return getIntAlign();
+  case UnsignedInt:
+    return getIntAlign();
   case SignedLong:
-  case UnsignedLong:     return getLongAlign();
+  case UnsignedLong:
+    return getLongAlign();
   case SignedLongLong:
-  case UnsignedLongLong: return getLongLongAlign();
+  case UnsignedLongLong:
+    return getLongLongAlign();
   };
 }
 
@@ -256,7 +292,8 @@ unsigned TargetInfo::getTypeAlign(IntType T) const {
 /// the type is signed; false otherwise.
 bool TargetInfo::isTypeSigned(IntType T) {
   switch (T) {
-  default: llvm_unreachable("not an integer!");
+  default:
+    llvm_unreachable("not an integer!");
   case SignedChar:
   case SignedShort:
   case SignedInt:
@@ -286,7 +323,6 @@ bool TargetInfo::initFeatureMap(
 
 //===----------------------------------------------------------------------===//
 
-
 static StringRef removeGCCRegisterPrefix(StringRef Name) {
   if (Name[0] == '%' || Name[0] == '#')
     Name = Name.substr(1);
@@ -298,8 +334,7 @@ static StringRef removeGCCRegisterPrefix(StringRef Name) {
 /// a valid clobber in an inline asm statement. This is used by
 /// Sema.
 bool TargetInfo::isValidClobber(StringRef Name) const {
-  return (isValidGCCRegisterName(Name) ||
-          Name == "memory" || Name == "cc");
+  return (isValidGCCRegisterName(Name) || Name == "memory" || Name == "cc");
 }
 
 /// isValidGCCRegisterName - Returns whether the passed in string
@@ -449,7 +484,7 @@ bool TargetInfo::validateOutputConstraint(ConstraintInfo &Info) const {
     case 'n':
     case 'E':
     case 'F':
-      break;  // Pass them.
+      break; // Pass them.
     }
 
     Name++;
@@ -489,8 +524,8 @@ bool TargetInfo::resolveSymbolicName(const char *&Name,
 }
 
 bool TargetInfo::validateInputConstraint(
-                              llvm::MutableArrayRef<ConstraintInfo> OutputConstraints,
-                              ConstraintInfo &Info) const {
+    llvm::MutableArrayRef<ConstraintInfo> OutputConstraints,
+    ConstraintInfo &Info) const {
   const char *Name = Info.ConstraintStr.c_str();
 
   if (!*Name)
@@ -511,7 +546,8 @@ bool TargetInfo::validateInputConstraint(
           return false;
 
         // Check if matching constraint is out of bounds.
-        if (i >= OutputConstraints.size()) return false;
+        if (i >= OutputConstraints.size())
+          return false;
 
         // A number must refer to an output only operand.
         if (OutputConstraints[i].isReadWrite())
@@ -555,7 +591,7 @@ bool TargetInfo::validateInputConstraint(
     case 'i': // immediate integer.
     case 'n': // immediate integer with a known value.
       break;
-    case 'I':  // Various constant constraints with target-specific meanings.
+    case 'I': // Various constant constraints with target-specific meanings.
     case 'J':
     case 'K':
     case 'L':

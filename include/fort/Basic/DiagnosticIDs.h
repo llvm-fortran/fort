@@ -15,58 +15,59 @@
 #ifndef LLVM_FORT_DIAGNOSTICIDS_H
 #define LLVM_FORT_DIAGNOSTICIDS_H
 
-#include "fort/Basic/SourceLocation.h"
 #include "fort/Basic/LLVM.h"
+#include "fort/Basic/SourceLocation.h"
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
 #include "llvm/ADT/StringRef.h"
 
 namespace fort {
-  class DiagnosticsEngine;
-  struct WarningOption;
+class DiagnosticsEngine;
+struct WarningOption;
 
-  // Import the diagnostic enums themselves.
-  namespace diag {
-    // Start position for diagnostics.
-    enum {
-      DIAG_START_DRIVER        =                               300,
-      DIAG_START_FRONTEND      = DIAG_START_DRIVER          +  100,
-      DIAG_START_SERIALIZATION = DIAG_START_FRONTEND        +  100,
-      DIAG_START_LEX           = DIAG_START_SERIALIZATION   +  120,
-      DIAG_START_PARSE         = DIAG_START_LEX             +  300,
-      DIAG_START_AST           = DIAG_START_PARSE           +  400,
-      DIAG_START_COMMENT       = DIAG_START_AST             +  100,
-      DIAG_START_SEMA          = DIAG_START_COMMENT         +  100,
-      DIAG_START_ANALYSIS      = DIAG_START_SEMA            + 3000,
-      DIAG_UPPER_LIMIT         = DIAG_START_ANALYSIS        +  100
-    };
+// Import the diagnostic enums themselves.
+namespace diag {
+// Start position for diagnostics.
+enum {
+  DIAG_START_DRIVER = 300,
+  DIAG_START_FRONTEND = DIAG_START_DRIVER + 100,
+  DIAG_START_SERIALIZATION = DIAG_START_FRONTEND + 100,
+  DIAG_START_LEX = DIAG_START_SERIALIZATION + 120,
+  DIAG_START_PARSE = DIAG_START_LEX + 300,
+  DIAG_START_AST = DIAG_START_PARSE + 400,
+  DIAG_START_COMMENT = DIAG_START_AST + 100,
+  DIAG_START_SEMA = DIAG_START_COMMENT + 100,
+  DIAG_START_ANALYSIS = DIAG_START_SEMA + 3000,
+  DIAG_UPPER_LIMIT = DIAG_START_ANALYSIS + 100
+};
 
-    class CustomDiagInfo;
+class CustomDiagInfo;
 
-    /// \brief All of the diagnostics that can be emitted by the frontend.
-    typedef unsigned kind;
+/// \brief All of the diagnostics that can be emitted by the frontend.
+typedef unsigned kind;
 
-    // Get typedefs for common diagnostics.
-    enum {
-#define DIAG(ENUM,FLAGS,DEFAULT_MAPPING,DESC,GROUP,\
-             SFINAE,ACCESS,CATEGORY,NOWERROR,SHOWINSYSHEADER) ENUM,
+// Get typedefs for common diagnostics.
+enum {
+#define DIAG(ENUM, FLAGS, DEFAULT_MAPPING, DESC, GROUP, SFINAE, ACCESS,        \
+             CATEGORY, NOWERROR, SHOWINSYSHEADER)                              \
+  ENUM,
 #include "fort/Basic/DiagnosticCommonKinds.inc"
-      NUM_BUILTIN_COMMON_DIAGNOSTICS
+  NUM_BUILTIN_COMMON_DIAGNOSTICS
 #undef DIAG
-    };
+};
 
-    /// Enum values that allow the client to map NOTEs, WARNINGs, and EXTENSIONs
-    /// to either MAP_IGNORE (nothing), MAP_WARNING (emit a warning), MAP_ERROR
-    /// (emit as an error).  It allows clients to map errors to
-    /// MAP_ERROR/MAP_DEFAULT or MAP_FATAL (stop emitting diagnostics after this
-    /// one).
-    enum Mapping {
-      // NOTE: 0 means "uncomputed".
-      MAP_IGNORE  = 1,     ///< Map this diagnostic to nothing, ignore it.
-      MAP_WARNING = 2,     ///< Map this diagnostic to a warning.
-      MAP_ERROR   = 3,     ///< Map this diagnostic to an error.
-      MAP_FATAL   = 4      ///< Map this diagnostic to a fatal error.
-    };
-  }
+/// Enum values that allow the client to map NOTEs, WARNINGs, and EXTENSIONs
+/// to either MAP_IGNORE (nothing), MAP_WARNING (emit a warning), MAP_ERROR
+/// (emit as an error).  It allows clients to map errors to
+/// MAP_ERROR/MAP_DEFAULT or MAP_FATAL (stop emitting diagnostics after this
+/// one).
+enum Mapping {
+  // NOTE: 0 means "uncomputed".
+  MAP_IGNORE = 1,  ///< Map this diagnostic to nothing, ignore it.
+  MAP_WARNING = 2, ///< Map this diagnostic to a warning.
+  MAP_ERROR = 3,   ///< Map this diagnostic to an error.
+  MAP_FATAL = 4    ///< Map this diagnostic to a fatal error.
+};
+} // namespace diag
 
 class DiagnosticMappingInfo {
   unsigned Mapping : 3;
@@ -110,9 +111,7 @@ public:
 class DiagnosticIDs : public llvm::RefCountedBase<DiagnosticIDs> {
 public:
   /// Level The level of the diagnostic, after it has been through mapping.
-  enum Level {
-    Ignored, Note, Warning, Error, Fatal
-  };
+  enum Level { Ignored, Note, Warning, Error, Fatal };
 
 private:
   /// \brief Information for uniquing and looking up custom diags.
@@ -155,7 +154,7 @@ public:
     bool ignored;
     return isBuiltinExtensionDiag(DiagID, ignored);
   }
-  
+
   /// \brief Determine whether the given built-in diagnostic ID is for an
   /// extension of some sort, and whether it is enabled by default.
   ///
@@ -164,14 +163,13 @@ public:
   /// treated as a warning/error by default.
   ///
   static bool isBuiltinExtensionDiag(unsigned DiagID, bool &EnabledByDefault);
-  
 
   /// \brief Return the lowest-level warning option that enables the specified
   /// diagnostic.
   ///
   /// If there is no -Wfoo flag that controls the diagnostic, this returns null.
   static StringRef getWarningOptionForDiag(unsigned DiagID);
-  
+
   /// \brief Return the category number that a specified \p DiagID belongs to,
   /// or 0 if no category.
   static unsigned getCategoryNumberForDiag(unsigned DiagID);
@@ -181,7 +179,7 @@ public:
 
   /// \brief Given a category ID, return the name of the category.
   static StringRef getCategoryNameFromID(unsigned CategoryID);
-  
+
   /// \brief Return true if a given diagnostic falls into an ARC diagnostic
   /// category.
   static bool isARCDiagnostic(unsigned DiagID);
@@ -192,26 +190,26 @@ public:
     /// \brief The diagnostic should not be reported, but it should cause
     /// template argument deduction to fail.
     ///
-    /// The vast majority of errors that occur during template argument 
+    /// The vast majority of errors that occur during template argument
     /// deduction fall into this category.
     SFINAE_SubstitutionFailure,
-    
+
     /// \brief The diagnostic should be suppressed entirely.
     ///
     /// Warnings generally fall into this category.
     SFINAE_Suppress,
-    
+
     /// \brief The diagnostic should be reported.
     ///
-    /// The diagnostic should be reported. Various fatal errors (e.g., 
+    /// The diagnostic should be reported. Various fatal errors (e.g.,
     /// template instantiation depth exceeded) fall into this category.
     SFINAE_Report,
-    
+
     /// \brief The diagnostic is an access-control diagnostic, which will be
     /// substitution failures in some contexts and reported in others.
     SFINAE_AccessControl
   };
-  
+
   /// \brief Determines whether the given built-in diagnostic ID is
   /// for an error that is suppressed if it occurs during C++ template
   /// argument deduction.
@@ -242,7 +240,7 @@ private:
   /// \param Diags [out] - On return, the diagnostics in the group.
   void getDiagnosticsInGroup(const WarningOption *Group,
                              SmallVectorImpl<diag::kind> &Diags) const;
- 
+
   /// \brief Based on the way the client configured the DiagnosticsEngine
   /// object, classify the specified diagnostic ID into a Level, consumable by
   /// the DiagnosticClient.
@@ -254,8 +252,7 @@ private:
 
   /// \brief An internal implementation helper used when \p DiagClass is
   /// already known.
-  DiagnosticIDs::Level getDiagnosticLevel(unsigned DiagID,
-                                          unsigned DiagClass,
+  DiagnosticIDs::Level getDiagnosticLevel(unsigned DiagID, unsigned DiagClass,
                                           SourceLocation Loc,
                                           const DiagnosticsEngine &Diag) const;
 
@@ -276,6 +273,6 @@ private:
   friend class DiagnosticsEngine;
 };
 
-}  // end namespace fort
+} // end namespace fort
 
 #endif

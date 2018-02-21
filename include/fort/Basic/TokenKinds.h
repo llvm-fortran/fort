@@ -38,7 +38,7 @@ const char *getTokenName(enum TokenKind Kind);
 /// produce any alternative spellings.
 const char *getTokenSimpleSpelling(enum TokenKind Kind);
 
-}  // end namespace tok
-}  // end namespace fort
+} // end namespace tok
+} // end namespace fort
 
 #endif

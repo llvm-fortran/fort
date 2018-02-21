@@ -14,16 +14,16 @@
 #ifndef LLVM_FORT_TOKEN_H__
 #define LLVM_FORT_TOKEN_H__
 
-#include "fort/Basic/TokenKinds.h"
-#include "fort/Basic/SourceLocation.h"
 #include "fort/Basic/LLVM.h"
+#include "fort/Basic/SourceLocation.h"
+#include "fort/Basic/TokenKinds.h"
 #include <cassert>
 #include <cstdlib>
 #include <string>
 
 namespace llvm {
-  class Twine;
-} // end llvm namespace
+class Twine;
+} // namespace llvm
 
 namespace fort {
 
@@ -60,18 +60,18 @@ class Token {
   void *PtrData;
 
   /// Kind - The actual flavor of token this is.
-  unsigned Kind : 8;  // DON'T make Kind a 'tok::TokenKind';
-                      // MSVC will treat it as a signed char and
-                      // TokenKinds > 127 won't be handled correctly.
+  unsigned Kind : 8; // DON'T make Kind a 'tok::TokenKind';
+                     // MSVC will treat it as a signed char and
+                     // TokenKinds > 127 won't be handled correctly.
 
   /// Flags - Bits we track about this token, members of the TokenFlags enum.
   unsigned Flags : 8;
-public:
 
+public:
   // Various flags set per token:
   enum TokenFlags {
-    StartOfStatement = 0x01,  // At start of statement or only after whitespace
-    NeedsCleaning    = 0x02   // Contained a continuation
+    StartOfStatement = 0x01, // At start of statement or only after whitespace
+    NeedsCleaning = 0x02     // Contained a continuation
   };
 
   tok::TokenKind getKind() const { return (tok::TokenKind)Kind; }
@@ -79,18 +79,18 @@ public:
 
   /// is/isNot - Predicates to check if this token is a specific kind, as in
   /// "if (Tok.is(tok::l_brace)) {...}".
-  bool is(tok::TokenKind K) const { return Kind == (unsigned) K; }
-  bool isNot(tok::TokenKind K) const { return Kind != (unsigned) K; }
+  bool is(tok::TokenKind K) const { return Kind == (unsigned)K; }
+  bool isNot(tok::TokenKind K) const { return Kind != (unsigned)K; }
 
   /// isLiteral - Return true if this is a "literal", like a numeric constant,
   /// string, etc.
   bool isLiteral() const {
-    return is(tok::int_literal_constant)|| is(tok::real_literal_constant)
-      || is(tok::double_precision_literal_constant)
-      || is(tok::statement_label)       || is(tok::char_literal_constant)
-      || is(tok::binary_boz_constant)   || is(tok::octal_boz_constant)
-      || is(tok::hex_boz_constant)      || is(tok::defined_operator)
-      || is(tok::comment) || is(tok::logical_literal_constant);
+    return is(tok::int_literal_constant) || is(tok::real_literal_constant) ||
+           is(tok::double_precision_literal_constant) ||
+           is(tok::statement_label) || is(tok::char_literal_constant) ||
+           is(tok::binary_boz_constant) || is(tok::octal_boz_constant) ||
+           is(tok::hex_boz_constant) || is(tok::defined_operator) ||
+           is(tok::comment) || is(tok::logical_literal_constant);
   }
 
   /// getLocation - Return a source location identifier for the specified offset
@@ -114,34 +114,29 @@ public:
   }
 
   IdentifierInfo *getIdentifierInfo() const {
-    if (isLiteral()) return 0;
-    return (IdentifierInfo*)PtrData;
+    if (isLiteral())
+      return 0;
+    return (IdentifierInfo *)PtrData;
   }
-  void setIdentifierInfo(IdentifierInfo *II) {
-    PtrData = (void*)II;
-  }
+  void setIdentifierInfo(IdentifierInfo *II) { PtrData = (void *)II; }
 
   /// getLiteralData - For a literal token (numeric constant, string, etc), this
   /// returns a pointer to the start of it in the text buffer if known, null
   /// otherwise.
   const char *getLiteralData() const {
     assert(isLiteral() && "Cannot get literal data of non-literal");
-    return reinterpret_cast<const char*>(PtrData);
+    return reinterpret_cast<const char *>(PtrData);
   }
   void setLiteralData(const char *Ptr) {
     assert(isLiteral() && "Cannot set literal data of non-literal");
-    PtrData = const_cast<char*>(Ptr);
+    PtrData = const_cast<char *>(Ptr);
   }
 
   /// setFlag - Set the specified flag.
-  void setFlag(TokenFlags Flag) {
-    Flags |= Flag;
-  }
+  void setFlag(TokenFlags Flag) { Flags |= Flag; }
 
   /// clearFlag - Unset the specified flag.
-  void clearFlag(TokenFlags Flag) {
-    Flags &= ~Flag;
-  }
+  void clearFlag(TokenFlags Flag) { Flags &= ~Flag; }
 
   /// getFlags - Return the internal represtation of the flags. Only intended
   /// for low-level operations such as writing tokens to disk.
@@ -169,9 +164,7 @@ public:
   }
 
   /// needsCleaning - Return true if this token has a continuation.
-  bool needsCleaning() const {
-    return (Flags & NeedsCleaning) ? true : false;
-  }
+  bool needsCleaning() const { return (Flags & NeedsCleaning) ? true : false; }
 };
 
 } // end namespace fort
