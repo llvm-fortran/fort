@@ -12,8 +12,8 @@
 
 #include "fort/Basic/LLVM.h"
 #include "fort/Basic/TokenKinds.h"
-#include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/StringSet.h"
 
 namespace fort {
 namespace fixedForm {
@@ -22,22 +22,20 @@ namespace fixedForm {
 class KeywordFilter {
   ArrayRef<tok::TokenKind> Keywords;
   tok::TokenKind SmallArray[3];
-public:
 
-  KeywordFilter(ArrayRef<tok::TokenKind> KW)
-    : Keywords(KW) {}
+public:
+  KeywordFilter(ArrayRef<tok::TokenKind> KW) : Keywords(KW) {}
   KeywordFilter(tok::TokenKind K1, tok::TokenKind K2,
                 tok::TokenKind K3 = tok::unknown);
 
-  ArrayRef<tok::TokenKind> getKeywords() const {
-    return Keywords;
-  }
+  ArrayRef<tok::TokenKind> getKeywords() const { return Keywords; }
 };
 
 /// KeywordMatcher - represents a set of keywords that
 /// can be matched.
 class KeywordMatcher {
   llvm::StringSet<llvm::BumpPtrAllocator> Keywords;
+
 public:
   KeywordMatcher() {}
   KeywordMatcher(ArrayRef<KeywordFilter> Filters);
@@ -90,6 +88,7 @@ class CommonAmbiguities {
   KeywordMatcher MatcherForKeywordsAfterIF;
   KeywordMatcher MatcherForTopLevel;
   KeywordMatcher MatcherForSpecStmts, MatcherForExecStmts;
+
 public:
   CommonAmbiguities();
 
@@ -118,7 +117,6 @@ public:
   const KeywordMatcher &getMatcherForExecutableStmtKeywords() const {
     return MatcherForExecStmts;
   }
-
 };
 
 } // end namespace fixedForm

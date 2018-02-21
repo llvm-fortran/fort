@@ -16,9 +16,9 @@
 
 #include "fort/Basic/LangOptions.h"
 #include "fort/Basic/Token.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/ArrayRef.h"
 #include <string>
 #include <vector>
 
@@ -39,7 +39,6 @@ class Parser;
 namespace fixedForm {
 
 class KeywordMatcher;
-
 }
 
 class Lexer {
@@ -76,11 +75,13 @@ class Lexer {
     bool SkipBlankLinesAndComments(unsigned &I, const char *&LineBegin,
                                    bool IgnoreContinuationChar = false);
 
-    void SkipFixedFormBlankLinesAndComments(unsigned &I, const char *&LineBegin);
+    void SkipFixedFormBlankLinesAndComments(unsigned &I,
+                                            const char *&LineBegin);
 
     /// GetCharacterLiteral - A character literal has to be treated specially
     /// because an ampersand may exist within it.
-    void GetCharacterLiteral(unsigned &I, const char *&LineBegin, bool &PadAtoms);
+    void GetCharacterLiteral(unsigned &I, const char *&LineBegin,
+                             bool &PadAtoms);
 
     /// Padding - This is an extra space that we insert between two
     /// continuations which were merged. E.g.:
@@ -92,9 +93,10 @@ class Lexer {
     static const char *Padding;
 
     friend class Lexer;
+
   public:
     explicit LineOfText(DiagnosticsEngine &D, const LangOptions &L)
-      : Diags(D), LanguageOptions(L), BufPtr(0), CurAtom(0), CurPtr(0) {}
+        : Diags(D), LanguageOptions(L), BufPtr(0), CurAtom(0), CurPtr(0) {}
 
     void SetBuffer(const llvm::MemoryBuffer *Buf, const char *Ptr,
                    bool AtLineStart = true);
@@ -150,9 +152,7 @@ class Lexer {
         return Atoms[CurAtom + 1].data();
       return &Atoms[CurAtom].data()[CurPtr];
     }
-    const char* GetBufferPtr() const {
-      return BufPtr;
-    }
+    const char *GetBufferPtr() const { return BufPtr; }
 
     void dump() const;
     void dump(raw_ostream &OS) const;
@@ -187,7 +187,7 @@ class Lexer {
 
   //===--------------------------------------------------------------------===//
   // Constant configuration values for this lexer.
-  const llvm::MemoryBuffer *CurBuf;  // Start of the buffer.
+  const llvm::MemoryBuffer *CurBuf; // Start of the buffer.
 
   //===--------------------------------------------------------------------===//
   // Context that changes as the file is lexed.
@@ -282,10 +282,9 @@ class Lexer {
   /// location. This is defined to always return tok::error.
   tok::TokenKind ReturnError(const char *Loc, const std::string &Msg);
 
-  Lexer(const Lexer&);          // DO NOT IMPLEMENT
-  void operator=(const Lexer&); // DO NOT IMPLEMENT
+  Lexer(const Lexer &);          // DO NOT IMPLEMENT
+  void operator=(const Lexer &); // DO NOT IMPLEMENT
 public:
-
   /// Lexer constructor - Create a new lexer object. This lexer assumes that the
   /// text range will outlive it, so it doesn't take ownership of it.
   Lexer(llvm::SourceMgr &SM, const LangOptions &Features, DiagnosticsEngine &D);
@@ -304,7 +303,7 @@ public:
   SourceLocation getLocEnd() const;
 
   /// getBufferPtr - Get a pointer to the next line to be lexed.
-  const char* getBufferPtr() const { return Text.GetBufferPtr(); }
+  const char *getBufferPtr() const { return Text.GetBufferPtr(); }
 
   void setBuffer(const llvm::MemoryBuffer *buf, const char *ptr = 0,
                  bool AtLineStart = true);
@@ -342,8 +341,8 @@ public:
   /// two distinct identifiers. If the matcher matches a certain keyword,
   /// then the longest keyword match will be returned in the resulting token,
   /// otherwise the token returns the whole identifier.
-  void LexFixedFormIdentifierMatchLongestKeyword(const fixedForm::KeywordMatcher &Matcher,
-                                                 Token &Tok);
+  void LexFixedFormIdentifierMatchLongestKeyword(
+      const fixedForm::KeywordMatcher &Matcher, Token &Tok);
 
   /// LexFORMATToken - Return the next token in the file, with respect to the
   /// FORMAT token rules.
@@ -355,16 +354,18 @@ public:
                    llvm::SmallVectorImpl<llvm::StringRef> &Spelling) const;
 
   /// getFixedFormIdentifierSpelling - Return the 'spelling' of the Tok token
-  /// as determined by fixed-form identifier rules (i.e. whitespaces are ignored)
-  void getFixedFormIdentifierSpelling(const Token &Tok,
-                                      llvm::SmallVectorImpl<llvm::StringRef> &Spelling,
-                                      const char *TokStart, unsigned TokLen) const;
+  /// as determined by fixed-form identifier rules (i.e. whitespaces are
+  /// ignored)
+  void getFixedFormIdentifierSpelling(
+      const Token &Tok, llvm::SmallVectorImpl<llvm::StringRef> &Spelling,
+      const char *TokStart, unsigned TokLen) const;
 
   /// getFixedFormLiteralSpelling - Return the 'spelling' of the Tok token
   /// as determined by the fixed-form rules.
-  void getFixedFormLiteralSpelling(const Token &Tok,
-                                   llvm::SmallVectorImpl<llvm::StringRef> &Spelling,
-                                   const char *TokStart, unsigned TokLen) const;
+  void
+  getFixedFormLiteralSpelling(const Token &Tok,
+                              llvm::SmallVectorImpl<llvm::StringRef> &Spelling,
+                              const char *TokStart, unsigned TokLen) const;
 
   /// PrintError - Error printing methods.
   void PrintError(const char *Loc, const std::string &Msg) const;
@@ -376,9 +377,9 @@ protected:
   std::string Text;
   size_t Offset;
   SourceLocation TextLoc;
+
 public:
-  FormatDescriptorLexer(const Lexer &TheLexer,
-                        const Token &FormatDescriptor);
+  FormatDescriptorLexer(const Lexer &TheLexer, const Token &FormatDescriptor);
 
   /// Returns the location of the next token.
   SourceLocation getCurrentLoc() const;
@@ -392,7 +393,7 @@ public:
 
   /// Advances and returns true if an identifier token
   /// is present.
-  bool LexIdentIfPresent(llvm::StringRef& Result);
+  bool LexIdentIfPresent(llvm::StringRef &Result);
 
   /// Advances by one and returns true if the current char is c.
   bool LexCharIfPresent(char c);
@@ -406,11 +407,12 @@ public:
 /// source ranges for each of the comments encountered in the source file.
 class CommentHandler {
 public:
-  virtual ~CommentHandler() {};
+  virtual ~CommentHandler(){};
 
   // The handler shall return true if it has pushed any tokens
   // to be read using e.g. EnterToken or EnterTokenStream.
-  virtual bool HandleComment(Lexer &Lexer, const SourceLocation& Loc, const llvm::StringRef &Comment) = 0;
+  virtual bool HandleComment(Lexer &Lexer, const SourceLocation &Loc,
+                             const llvm::StringRef &Comment) = 0;
 };
 
 } // end namespace fort

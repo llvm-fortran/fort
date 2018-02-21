@@ -24,13 +24,13 @@
 #include "fort/Parse/Lexer.h"
 #include "fort/Sema/DeclSpec.h"
 #include "fort/Sema/Ownership.h"
-#include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/Support/PrettyStackTrace.h"
 #include <vector>
 
 namespace llvm {
-  class SourceMgr;
+class SourceMgr;
 } // end namespace llvm
 
 namespace fort {
@@ -51,6 +51,7 @@ class FormatSpec;
 /// an entry is printed for it.
 class PrettyStackTraceParserEntry : public llvm::PrettyStackTraceEntry {
   const Parser &FP;
+
 public:
   PrettyStackTraceParserEntry(const Parser &fp) : FP(fp) {}
   virtual void print(llvm::raw_ostream &OS) const;
@@ -62,12 +63,12 @@ public:
 class Parser {
 public:
   enum RetTy {
-    Success,                //< The construct was parsed successfully
-    WrongConstruct,         //< The construct we wanted to parse wasn't present
-    Error                   //< There was an error parsing
+    Success,        //< The construct was parsed successfully
+    WrongConstruct, //< The construct we wanted to parse wasn't present
+    Error           //< There was an error parsing
   };
-private:
 
+private:
   Lexer TheLexer;
   LangOptions Features;
   PrettyStackTraceParserEntry CrashInfo;
@@ -75,7 +76,7 @@ private:
 
   /// LexerBufferContext - This is a stack of lexing contexts
   /// for files lower in the include stack
-  std::vector<const char*> LexerBufferContext;
+  std::vector<const char *> LexerBufferContext;
 
   /// This is the current buffer index we're lexing from as managed by the
   /// SourceMgr object.
@@ -87,7 +88,7 @@ private:
   DiagnosticsEngine &Diag;
 
   /// Actions - These are the callbacks we invoke as we parse various constructs
-  /// in the file. 
+  /// in the file.
   Sema &Actions;
 
   /// FirstLoc - The location of the first token in the given statement.
@@ -106,8 +107,7 @@ private:
   /// ConstructName - If set, this is the construct name for the construct.
   ConstructName StmtConstructName;
 
-  unsigned short ParenCount, ParenSlashCount,
-                 BracketCount, BraceCount;
+  unsigned short ParenCount, ParenSlashCount, BracketCount, BraceCount;
 
   fixedForm::CommonAmbiguities FixedFormAmbiguities;
 
@@ -145,7 +145,6 @@ private:
   bool PrevStmtWasSelectCase;
 
 private:
-
   /// getIdentifierInfo - Return information about the specified identifier
   /// token.
   IdentifierInfo *getIdentifierInfo(std::string &Name) const {
@@ -170,8 +169,8 @@ private:
 
   void Lex();
   void ClassifyToken(Token &T);
-public:
 
+public:
   typedef OpaquePtr<DeclGroupRef> DeclGroupPtrTy;
 
   typedef fort::ExprResult ExprResult;
@@ -185,8 +184,8 @@ public:
     return Identifiers.isaKeyword(KW);
   }
 
-  Parser(llvm::SourceMgr &SrcMgr, const LangOptions &Opts,
-         DiagnosticsEngine &D, Sema &actions);
+  Parser(llvm::SourceMgr &SrcMgr, const LangOptions &Opts, DiagnosticsEngine &D,
+         Sema &actions);
 
   llvm::SourceMgr &getSourceManager() { return SrcMgr; }
 
@@ -200,16 +199,13 @@ public:
   StmtResult StmtError() { return StmtResult(true); }
 
 private:
-
   /// getExpectedLoc - returns the location
   /// for the expected token.
   SourceLocation getExpectedLoc() const;
 
   /// getExpectedLocForFixIt - returns the location
   /// in which the expected token should be inserted in.
-  inline SourceLocation getExpectedLocForFixIt() const {
-    return PrevTokLocEnd;
-  }
+  inline SourceLocation getExpectedLocForFixIt() const { return PrevTokLocEnd; }
 
   /// getTokenRange - returns the range of the token at
   /// the given location.
@@ -229,7 +225,8 @@ private:
 
   /// isTokenParenSlash - Return true if the cur token is '(/' or '/)'.
   bool isTokenParenSlash() const {
-    return Tok.getKind() == tok::l_parenslash || Tok.getKind() == tok::slashr_paren;
+    return Tok.getKind() == tok::l_parenslash ||
+           Tok.getKind() == tok::slashr_paren;
   }
 
   /// isTokenIdentifier - Return true if the cur token is a usable
@@ -237,8 +234,7 @@ private:
   bool isTokenIdentifier() const {
     if (Tok.is(tok::identifier) ||
         (Tok.getIdentifierInfo() &&
-          isaKeyword(Tok.getIdentifierInfo()->getName()))
-        )
+         isaKeyword(Tok.getIdentifierInfo()->getName())))
       return true;
     return false;
   }
@@ -259,7 +255,8 @@ private:
       return ConsumeParen();
     else if (isTokenParenSlash())
       return ConsumeParenSlash();
-    else return ConsumeToken();
+    else
+      return ConsumeToken();
   }
 
   /// ConsumeParen - This consume method keeps the paren count up-to-date.
@@ -270,12 +267,13 @@ private:
     if (Tok.getKind() == tok::l_paren)
       ++ParenCount;
     else if (ParenCount)
-      --ParenCount;       // Don't let unbalanced )'s drive the count negative.
+      --ParenCount; // Don't let unbalanced )'s drive the count negative.
     Lex();
     return Loc;
   }
 
-  /// ConsumeParenSlash - This consume method keeps the paren slash count up-to-date.
+  /// ConsumeParenSlash - This consume method keeps the paren slash count
+  /// up-to-date.
   ///
   SourceLocation ConsumeParenSlash() {
     assert(isTokenParenSlash() && "wrong consume method");
@@ -283,7 +281,7 @@ private:
     if (Tok.getKind() == tok::l_parenslash)
       ++ParenSlashCount;
     else if (ParenSlashCount)
-      --ParenSlashCount;       // Don't let unbalanced /)'s drive the count negative.
+      --ParenSlashCount; // Don't let unbalanced /)'s drive the count negative.
     Lex();
     return Loc;
   }
@@ -291,9 +289,10 @@ private:
   /// IsPresent - Returns true if the next token is Tok.
   bool IsPresent(tok::TokenKind TokKind, bool InSameStatement = true);
 
-  /// ConsumeIfPresent - Consumes the token if it's present. Return 'true' if it was
-  /// delicious.
-  bool ConsumeIfPresent(tok::TokenKind OptionalTok, bool InSameStatement = true);
+  /// ConsumeIfPresent - Consumes the token if it's present. Return 'true' if it
+  /// was delicious.
+  bool ConsumeIfPresent(tok::TokenKind OptionalTok,
+                        bool InSameStatement = true);
 
   /// ExpectAndConsume - The parser expects that 'ExpectedTok' is next in the
   /// input.  If so, it is consumed and true is returned.
@@ -309,7 +308,8 @@ private:
                         tok::TokenKind SkipToTok = tok::unknown,
                         bool InSameStatement = true);
 
-  bool ExpectAndConsumeFixedFormAmbiguous(tok::TokenKind ExpectedTok, unsigned Diag = 0,
+  bool ExpectAndConsumeFixedFormAmbiguous(tok::TokenKind ExpectedTok,
+                                          unsigned Diag = 0,
                                           const char *DiagMsg = "");
 
   /// ExpectStatementEnd - The parser expects that the next token is in the
@@ -326,11 +326,10 @@ private:
   /// returns false.
   bool SkipUntil(tok::TokenKind T, bool StopAtNextStatement = true,
                  bool DontConsume = false) {
-    return SkipUntil(llvm::makeArrayRef(T), StopAtNextStatement,
-                     DontConsume);
+    return SkipUntil(llvm::makeArrayRef(T), StopAtNextStatement, DontConsume);
   }
-  bool SkipUntil(tok::TokenKind T1, tok::TokenKind T2, bool StopAtNextStatement = true,
-                 bool DontConsume = false) {
+  bool SkipUntil(tok::TokenKind T1, tok::TokenKind T2,
+                 bool StopAtNextStatement = true, bool DontConsume = false) {
     tok::TokenKind TokArray[] = {T1, T2};
     return SkipUntil(TokArray, StopAtNextStatement, DontConsume);
   }
@@ -342,14 +341,15 @@ private:
   bool SkipUntil(ArrayRef<tok::TokenKind> Toks, bool StopAtNextStatement = true,
                  bool DontConsume = false);
 
-  /// SkipUntilNextStatement - Consume tokens until the next statement is reached.
-  /// Returns true.
+  /// SkipUntilNextStatement - Consume tokens until the next statement is
+  /// reached. Returns true.
   bool SkipUntilNextStatement();
 
   /// Certain fixed-form are ambigous, and might need to be reparsed
   void StartStatementReparse(SourceLocation Where = SourceLocation());
 
-  StmtResult ReparseAmbiguousAssignmentStatement(SourceLocation Where = SourceLocation());
+  StmtResult
+  ReparseAmbiguousAssignmentStatement(SourceLocation Where = SourceLocation());
 
   void ReLexAmbiguousIdentifier(const fixedForm::KeywordMatcher &Matcher);
 
@@ -395,7 +395,7 @@ private:
   /// ParseEntityDeclarationList - returns true if a parsing error
   /// occurred.
   bool ParseEntityDeclarationList(DeclSpec &DS,
-                                SmallVectorImpl<DeclResult> &Decls);
+                                  SmallVectorImpl<DeclResult> &Decls);
 
   /// ParseDimensionAttributeSpec - parses the DIMENSION attribute
   /// for the given declaration and returns true if a parsing error
@@ -528,7 +528,7 @@ private:
   ExprResult ParseLevel1Expr();
   ExprResult ParsePrimaryExpr(bool IsLvalue = false);
   ExprResult ParseExpression();
-  ExprResult ParseFunctionCallArgumentList(SmallVectorImpl<Expr*> &Args,
+  ExprResult ParseFunctionCallArgumentList(SmallVectorImpl<Expr *> &Args,
                                            SourceLocation &RParenLoc);
   ExprResult ParseFuncExpression(SourceRange IDRange, SourceLocation IDLoc,
                                  FunctionDecl *Func);
@@ -554,8 +554,9 @@ private:
   /// If the construct name isn't there, then set the ConstructName to null.
   void ParseConstructNameLabel();
 
-  /// ParseTrailingConstructName - Parses an optional trailing construct-name identifier.
-  /// If the construct name isn't there, then set the ConstructName to null.
+  /// ParseTrailingConstructName - Parses an optional trailing construct-name
+  /// identifier. If the construct name isn't there, then set the ConstructName
+  /// to null.
   void ParseTrailingConstructName();
 
   // Declaration construct functions
@@ -564,13 +565,12 @@ private:
   bool ParseDerivedTypeComponentStmt();
 
   ExprResult ParseSelector(bool IsKindSel);
-  bool ParseArraySpec(llvm::SmallVectorImpl<ArraySpec*> &Dims);
+  bool ParseArraySpec(llvm::SmallVectorImpl<ArraySpec *> &Dims);
   bool ParseCharacterStarLengthSpec(DeclSpec &DS);
 
   void SetKindSelector(ConstantExpr *E, StringRef Kind);
-
 };
 
-} // end fort namespace
+} // namespace fort
 
 #endif

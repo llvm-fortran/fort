@@ -7,12 +7,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "fort/Parse/Parser.h"
-#include "fort/Parse/ParseDiagnostic.h"
 #include "fort/AST/Decl.h"
 #include "fort/AST/Expr.h"
 #include "fort/AST/Stmt.h"
 #include "fort/Basic/TokenKinds.h"
+#include "fort/Parse/ParseDiagnostic.h"
+#include "fort/Parse/Parser.h"
 #include "fort/Sema/DeclSpec.h"
 #include "fort/Sema/Sema.h"
 
@@ -32,14 +32,16 @@ Parser::StmtResult Parser::ParseDIMENSIONStmt() {
   auto Loc = ConsumeToken();
   ConsumeIfPresent(tok::coloncolon);
 
-  SmallVector<Stmt*, 8> StmtList;
-  SmallVector<ArraySpec*, 4> Dimensions;
+  SmallVector<Stmt *, 8> StmtList;
+  SmallVector<ArraySpec *, 4> Dimensions;
   while (true) {
     auto IDLoc = Tok.getLocation();
     auto II = Tok.getIdentifierInfo();
-    if(!ExpectAndConsume(tok::identifier)) {
-      if(!SkipUntil(tok::comma, tok::identifier, true, true)) break;
-      if(ConsumeIfPresent(tok::comma)) continue;
+    if (!ExpectAndConsume(tok::identifier)) {
+      if (!SkipUntil(tok::comma, tok::identifier, true, true))
+        break;
+      if (ConsumeIfPresent(tok::comma))
+        continue;
       else {
         IDLoc = Tok.getLocation();
         II = Tok.getIdentifierInfo();
@@ -49,15 +51,19 @@ Parser::StmtResult Parser::ParseDIMENSIONStmt() {
 
     // FIXME: improve error recovery
     Dimensions.clear();
-    if(ParseArraySpec(Dimensions)) return StmtError();
+    if (ParseArraySpec(Dimensions))
+      return StmtError();
 
-    auto Stmt = Actions.ActOnDIMENSION(Context, Loc, IDLoc, II,
-                                       Dimensions, nullptr);
-    if(Stmt.isUsable()) StmtList.push_back(Stmt.take());
+    auto Stmt =
+        Actions.ActOnDIMENSION(Context, Loc, IDLoc, II, Dimensions, nullptr);
+    if (Stmt.isUsable())
+      StmtList.push_back(Stmt.take());
 
-    if(Tok.isAtStartOfStatement()) break;
-    if(!ExpectAndConsume(tok::comma)) {
-      if(!SkipUntil(tok::comma)) break;
+    if (Tok.isAtStartOfStatement())
+      break;
+    if (!ExpectAndConsume(tok::comma)) {
+      if (!SkipUntil(tok::comma))
+        break;
     }
   }
 
@@ -75,14 +81,14 @@ Parser::StmtResult Parser::ParseEQUIVALENCEStmt() {
     return StmtResult();
 
   auto Loc = ConsumeToken();
-  SmallVector<Stmt*, 8> StmtList;
-  SmallVector<Expr*, 8> ObjectList;
+  SmallVector<Stmt *, 8> StmtList;
+  SmallVector<Expr *, 8> ObjectList;
 
   bool OuterError = false;
-  while(true) {
+  while (true) {
     auto PartLoc = Tok.getLocation();
-    if(!ExpectAndConsume(tok::l_paren)) {
-      if(!SkipUntil(tok::l_paren)) {
+    if (!ExpectAndConsume(tok::l_paren)) {
+      if (!SkipUntil(tok::l_paren)) {
         OuterError = true;
         break;
       }
@@ -92,40 +98,44 @@ Parser::StmtResult Parser::ParseEQUIVALENCEStmt() {
     bool InnerError = false;
     do {
       auto E = ParseExpectedExpression();
-      if(E.isInvalid()) {
+      if (E.isInvalid()) {
         InnerError = true;
         break;
-      } else if(E.isUsable())
+      } else if (E.isUsable())
         ObjectList.push_back(E.get());
-    } while(ConsumeIfPresent(tok::comma));
+    } while (ConsumeIfPresent(tok::comma));
 
-    auto S = Actions.ActOnEQUIVALENCE(Context, Loc, PartLoc, ObjectList, nullptr);
-    if(S.isUsable())
+    auto S =
+        Actions.ActOnEQUIVALENCE(Context, Loc, PartLoc, ObjectList, nullptr);
+    if (S.isUsable())
       StmtList.push_back(S.get());
 
-    if(InnerError) {
-      if(!SkipUntil(tok::r_paren, true, true)) {
+    if (InnerError) {
+      if (!SkipUntil(tok::r_paren, true, true)) {
         OuterError = true;
         break;
       }
     }
-    if(!ExpectAndConsume(tok::r_paren)) {
-      if(!SkipUntil(tok::r_paren)) {
+    if (!ExpectAndConsume(tok::r_paren)) {
+      if (!SkipUntil(tok::r_paren)) {
         OuterError = true;
         break;
       }
     }
 
-    if(ConsumeIfPresent(tok::comma)) continue;
-    if(IsPresent(tok::l_paren)) {
+    if (ConsumeIfPresent(tok::comma))
+      continue;
+    if (IsPresent(tok::l_paren)) {
       ExpectAndConsume(tok::comma);
       continue;
     }
     break;
   }
 
-  if(OuterError) SkipUntilNextStatement();
-  else ExpectStatementEnd();
+  if (OuterError)
+    SkipUntilNextStatement();
+  else
+    ExpectStatementEnd();
 
   return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
@@ -144,55 +154,55 @@ Parser::StmtResult Parser::ParseCOMMONStmt() {
     return StmtResult();
 
   auto Loc = ConsumeToken();
-  SmallVector<Stmt*, 8> StmtList;
-  SmallVector<Expr*, 8> ObjectList;
+  SmallVector<Stmt *, 8> StmtList;
+  SmallVector<Expr *, 8> ObjectList;
 
   SourceLocation BlockIDLoc;
   const IdentifierInfo *BlockID = nullptr;
 
   bool Error = false;
   do {
-    if(ConsumeIfPresent(tok::slash)) {
-      if(ConsumeIfPresent(tok::slash))
+    if (ConsumeIfPresent(tok::slash)) {
+      if (ConsumeIfPresent(tok::slash))
         BlockID = nullptr;
       else {
         BlockIDLoc = Tok.getLocation();
         BlockID = Tok.getIdentifierInfo();
-        if(!ExpectAndConsume(tok::identifier)) {
+        if (!ExpectAndConsume(tok::identifier)) {
           Error = true;
           break;
         }
-        if(!ExpectAndConsume(tok::slash)) {
+        if (!ExpectAndConsume(tok::slash)) {
           Error = true;
           break;
         }
       }
-    } else if(ConsumeIfPresent(tok::slashslash))
+    } else if (ConsumeIfPresent(tok::slashslash))
       BlockID = nullptr;
 
     auto IDLoc = Tok.getLocation();
     auto IDInfo = Tok.getIdentifierInfo();
-    SmallVector<ArraySpec*, 8> Dimensions;
+    SmallVector<ArraySpec *, 8> Dimensions;
 
-    if(!ExpectAndConsume(tok::identifier)) {
+    if (!ExpectAndConsume(tok::identifier)) {
       Error = true;
       break;
     }
-    if(IsPresent(tok::l_paren)) {
-      if(ParseArraySpec(Dimensions)) {
+    if (IsPresent(tok::l_paren)) {
+      if (ParseArraySpec(Dimensions)) {
         Error = true;
         break;
       }
     }
 
-    Actions.ActOnCOMMON(Context, Loc, BlockIDLoc,
-                        IDLoc, BlockID, IDInfo,
+    Actions.ActOnCOMMON(Context, Loc, BlockIDLoc, IDLoc, BlockID, IDInfo,
                         Dimensions);
-  } while(ConsumeIfPresent(tok::comma));
+  } while (ConsumeIfPresent(tok::comma));
 
-
-  if(Error) SkipUntilNextStatement();
-  else ExpectStatementEnd();
+  if (Error)
+    SkipUntilNextStatement();
+  else
+    ExpectStatementEnd();
 
   return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }
@@ -209,46 +219,49 @@ Parser::StmtResult Parser::ParsePARAMETERStmt() {
 
   auto Loc = ConsumeToken();
 
-  SmallVector<Stmt*, 8> StmtList;
+  SmallVector<Stmt *, 8> StmtList;
 
-  if(!ExpectAndConsume(tok::l_paren)) {
-    if(!SkipUntil(tok::l_paren))
+  if (!ExpectAndConsume(tok::l_paren)) {
+    if (!SkipUntil(tok::l_paren))
       return StmtError();
   }
 
-  while(true) {
+  while (true) {
     auto IDLoc = Tok.getLocation();
     auto II = Tok.getIdentifierInfo();
-    if(!ExpectAndConsume(tok::identifier)) {
-      if(!SkipUntil(tok::comma)) break;
-      else continue;
+    if (!ExpectAndConsume(tok::identifier)) {
+      if (!SkipUntil(tok::comma))
+        break;
+      else
+        continue;
     }
 
     auto EqualLoc = Tok.getLocation();
-    if(!ExpectAndConsume(tok::equal)) {
-      if(!SkipUntil(tok::comma)) break;
-      else continue;
+    if (!ExpectAndConsume(tok::equal)) {
+      if (!SkipUntil(tok::comma))
+        break;
+      else
+        continue;
     }
 
     ExprResult ConstExpr = ParseExpression();
-    if(ConstExpr.isUsable()) {
-      auto Stmt = Actions.ActOnPARAMETER(Context, Loc, EqualLoc,
-                                         IDLoc, II,
+    if (ConstExpr.isUsable()) {
+      auto Stmt = Actions.ActOnPARAMETER(Context, Loc, EqualLoc, IDLoc, II,
                                          ConstExpr, nullptr);
-      if(Stmt.isUsable())
+      if (Stmt.isUsable())
         StmtList.push_back(Stmt.take());
     }
 
-    if(ConsumeIfPresent(tok::comma))
+    if (ConsumeIfPresent(tok::comma))
       continue;
-    if(isTokenIdentifier() && !Tok.isAtStartOfStatement()) {
+    if (isTokenIdentifier() && !Tok.isAtStartOfStatement()) {
       ExpectAndConsume(tok::comma);
       continue;
     }
     break;
   }
 
-  if(!ExpectAndConsume(tok::r_paren))
+  if (!ExpectAndConsume(tok::r_paren))
     SkipUntilNextStatement();
 
   return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
@@ -273,31 +286,31 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
     return Result;
   }
 
-  SmallVector<Stmt*, 8> StmtList;
+  SmallVector<Stmt *, 8> StmtList;
 
-  while(true) {
+  while (true) {
     // FIXME: improved error recovery
     DeclSpec DS;
     if (ParseDeclarationTypeSpec(DS, false))
       return StmtError();
 
-    if(!ExpectAndConsume(tok::l_paren)) {
-      if(!SkipUntil(tok::l_paren))
+    if (!ExpectAndConsume(tok::l_paren)) {
+      if (!SkipUntil(tok::l_paren))
         break;
     }
 
     bool InnerError = false;
-    while(true) {
+    while (true) {
       auto FirstLoc = Tok.getLocation();
       auto First = Tok.getIdentifierInfo();
-      if(!ExpectAndConsume(tok::identifier, diag::err_expected_letter)) {
-        if(!SkipUntil(tok::comma)) {
+      if (!ExpectAndConsume(tok::identifier, diag::err_expected_letter)) {
+        if (!SkipUntil(tok::comma)) {
           InnerError = true;
           break;
         }
         continue;
       }
-      if(First->getName().size() > 1) {
+      if (First->getName().size() > 1) {
         Diag.Report(FirstLoc, diag::err_expected_letter);
       }
 
@@ -305,38 +318,39 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
       if (ConsumeIfPresent(tok::minus)) {
         auto SecondLoc = Tok.getLocation();
         Second = Tok.getIdentifierInfo();
-        if(!ExpectAndConsume(tok::identifier, diag::err_expected_letter)) {
-          if(!SkipUntil(tok::comma)) {
+        if (!ExpectAndConsume(tok::identifier, diag::err_expected_letter)) {
+          if (!SkipUntil(tok::comma)) {
             InnerError = true;
             break;
           }
           continue;
         }
-        if(Second->getName().size() > 1) {
+        if (Second->getName().size() > 1) {
           Diag.Report(SecondLoc, diag::err_expected_letter);
         }
       }
 
       auto Stmt = Actions.ActOnIMPLICIT(Context, Loc, DS,
                                         std::make_pair(First, Second), nullptr);
-      if(Stmt.isUsable())
+      if (Stmt.isUsable())
         StmtList.push_back(Stmt.take());
 
-      if(ConsumeIfPresent(tok::comma))
+      if (ConsumeIfPresent(tok::comma))
         continue;
       break;
     }
 
-    if(InnerError && Tok.isAtStartOfStatement())
+    if (InnerError && Tok.isAtStartOfStatement())
       break;
-    if(!ExpectAndConsume(tok::r_paren)) {
-      if(!SkipUntil(tok::r_paren))
+    if (!ExpectAndConsume(tok::r_paren)) {
+      if (!SkipUntil(tok::r_paren))
         break;
     }
 
-    if(Tok.isAtStartOfStatement()) break;
-    if(!ExpectAndConsume(tok::comma)) {
-      if(!SkipUntil(tok::comma))
+    if (Tok.isAtStartOfStatement())
+      break;
+    if (!ExpectAndConsume(tok::comma)) {
+      if (!SkipUntil(tok::comma))
         break;
     }
   }
@@ -351,7 +365,7 @@ Parser::StmtResult Parser::ParseIMPLICITStmt() {
 ///     external-stmt :=
 ///         EXTERNAL [::] external-name-list
 Parser::StmtResult Parser::ParseEXTERNALStmt() {
-  return ParseINTRINSICStmt(/*IsActuallyExternal=*/ true);
+  return ParseINTRINSICStmt(/*IsActuallyExternal=*/true);
 }
 
 /// ParseINTRINSICStmt - Parse the INTRINSIC statement.
@@ -367,14 +381,16 @@ Parser::StmtResult Parser::ParseINTRINSICStmt(bool IsActuallyExternal) {
   auto Loc = ConsumeToken();
   ConsumeIfPresent(tok::coloncolon);
 
-  SmallVector<Stmt *,8> StmtList;
+  SmallVector<Stmt *, 8> StmtList;
 
-  while(true) {
+  while (true) {
     auto IDLoc = Tok.getLocation();
     auto II = Tok.getIdentifierInfo();
-    if(!ExpectAndConsume(tok::identifier)) {
-      if(!SkipUntil(tok::comma, tok::identifier, true, true)) break;
-      if(ConsumeIfPresent(tok::comma)) continue;
+    if (!ExpectAndConsume(tok::identifier)) {
+      if (!SkipUntil(tok::comma, tok::identifier, true, true))
+        break;
+      if (ConsumeIfPresent(tok::comma))
+        continue;
       else {
         IDLoc = Tok.getLocation();
         II = Tok.getIdentifierInfo();
@@ -382,17 +398,17 @@ Parser::StmtResult Parser::ParseINTRINSICStmt(bool IsActuallyExternal) {
       }
     }
 
-    auto Stmt = IsActuallyExternal?
-                  Actions.ActOnEXTERNAL(Context, Loc, IDLoc,
-                                        II, nullptr):
-                  Actions.ActOnINTRINSIC(Context, Loc, IDLoc,
-                                         II, nullptr);
-    if(Stmt.isUsable())
+    auto Stmt = IsActuallyExternal
+                    ? Actions.ActOnEXTERNAL(Context, Loc, IDLoc, II, nullptr)
+                    : Actions.ActOnINTRINSIC(Context, Loc, IDLoc, II, nullptr);
+    if (Stmt.isUsable())
       StmtList.push_back(Stmt.take());
 
-    if(Tok.isAtStartOfStatement()) break;
-    if(!ExpectAndConsume(tok::comma)) {
-      if(!SkipUntil(tok::comma)) break;
+    if (Tok.isAtStartOfStatement())
+      break;
+    if (!ExpectAndConsume(tok::comma)) {
+      if (!SkipUntil(tok::comma))
+        break;
     }
   }
 
@@ -410,65 +426,67 @@ Parser::StmtResult Parser::ParseSAVEStmt() {
     return StmtResult();
 
   auto Loc = ConsumeToken();
-  if(Tok.isAtStartOfStatement())
+  if (Tok.isAtStartOfStatement())
     return Actions.ActOnSAVE(Context, Loc, StmtLabel);
 
   bool IsSaveStmt = ConsumeIfPresent(tok::coloncolon);
-  SmallVector<Stmt *,8> StmtList;
+  SmallVector<Stmt *, 8> StmtList;
   bool ListParsedOk = true;
 
   auto IDLoc = Tok.getLocation();
   auto II = Tok.getIdentifierInfo();
   StmtResult Stmt;
-  if(ConsumeIfPresent(tok::slash)) {
+  if (ConsumeIfPresent(tok::slash)) {
     IDLoc = Tok.getLocation();
     II = Tok.getIdentifierInfo();
-    if(ExpectAndConsume(tok::identifier)) {
-      if(!ExpectAndConsume(tok::slash))
+    if (ExpectAndConsume(tok::identifier)) {
+      if (!ExpectAndConsume(tok::slash))
         ListParsedOk = false;
       Stmt = Actions.ActOnSAVECommonBlock(Context, Loc, IDLoc, II);
-    }
-    else ListParsedOk = false;
-  }
-  else if(ExpectAndConsume(tok::identifier)) {
-    if(!IsSaveStmt && Features.FixedForm && (IsPresent(tok::equal) || IsPresent(tok::l_paren)))
+    } else
+      ListParsedOk = false;
+  } else if (ExpectAndConsume(tok::identifier)) {
+    if (!IsSaveStmt && Features.FixedForm &&
+        (IsPresent(tok::equal) || IsPresent(tok::l_paren)))
       return ReparseAmbiguousAssignmentStatement();
     Stmt = Actions.ActOnSAVE(Context, Loc, IDLoc, II, nullptr);
-  } else ListParsedOk = false;
+  } else
+    ListParsedOk = false;
 
-  if(Stmt.isUsable())
+  if (Stmt.isUsable())
     StmtList.push_back(Stmt.get());
-  if(ListParsedOk) {
-    while(ConsumeIfPresent(tok::comma)) {
+  if (ListParsedOk) {
+    while (ConsumeIfPresent(tok::comma)) {
       IDLoc = Tok.getLocation();
       II = Tok.getIdentifierInfo();
-      if(ConsumeIfPresent(tok::slash)) {
+      if (ConsumeIfPresent(tok::slash)) {
         IDLoc = Tok.getLocation();
         II = Tok.getIdentifierInfo();
-        if(!ExpectAndConsume(tok::identifier)) {
+        if (!ExpectAndConsume(tok::identifier)) {
           ListParsedOk = false;
           break;
         }
-        if(!ExpectAndConsume(tok::slash)) {
+        if (!ExpectAndConsume(tok::slash)) {
           ListParsedOk = false;
           break;
         }
         Stmt = Actions.ActOnSAVECommonBlock(Context, Loc, IDLoc, II);
-      }
-      else if(ExpectAndConsume(tok::identifier))
+      } else if (ExpectAndConsume(tok::identifier))
         Stmt = Actions.ActOnSAVE(Context, Loc, IDLoc, II, nullptr);
       else {
         ListParsedOk = false;
         break;
       }
 
-      if(Stmt.isUsable())
+      if (Stmt.isUsable())
         StmtList.push_back(Stmt.get());
     }
   }
 
-  if(ListParsedOk) ExpectStatementEnd();
-  else SkipUntilNextStatement();
+  if (ListParsedOk)
+    ExpectStatementEnd();
+  else
+    SkipUntilNextStatement();
 
   return Actions.ActOnCompoundStmt(Context, Loc, StmtList, StmtLabel);
 }

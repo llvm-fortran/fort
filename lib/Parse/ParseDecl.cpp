@@ -11,10 +11,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "fort/Parse/Parser.h"
-#include "fort/Parse/ParseDiagnostic.h"
 #include "fort/AST/Decl.h"
 #include "fort/AST/Expr.h"
+#include "fort/Parse/ParseDiagnostic.h"
+#include "fort/Parse/Parser.h"
 #include "fort/Sema/Sema.h"
 
 namespace fort {
@@ -52,13 +52,12 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
     //    or VOLATILE
     auto Kind = Tok.getKind();
     auto Loc = Tok.getLocation();
-    if(!ExpectAndConsume(tok::identifier)) {
+    if (!ExpectAndConsume(tok::identifier)) {
       goto error;
     }
     switch (Kind) {
     default:
-      Diag.ReportError(Loc,
-                       "unknown attribute specification");
+      Diag.ReportError(Loc, "unknown attribute specification");
       goto error;
     case tok::kw_ALLOCATABLE:
       Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_allocatable);
@@ -82,13 +81,12 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
       break;
     case tok::kw_INTENT:
       // FIXME:
-      if(!ExpectAndConsume(tok::l_paren))
+      if (!ExpectAndConsume(tok::l_paren))
         goto error;
 
       switch (Tok.getKind()) {
       default:
-        Diag.ReportError(Tok.getLocation(),
-                         "invalid INTENT specifier");
+        Diag.ReportError(Tok.getLocation(), "invalid INTENT specifier");
         goto error;
       case tok::kw_IN:
         Actions.ActOnIntentSpec(Loc, DS, DeclSpec::IS_in);
@@ -102,7 +100,7 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
       }
       Lex();
 
-      if(!ExpectAndConsume(tok::r_paren))
+      if (!ExpectAndConsume(tok::r_paren))
         goto error;
 
       break;
@@ -150,12 +148,12 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
     return true;
 
   return false;
- error:
+error:
   return true;
 }
 
 bool Parser::ParseDimensionAttributeSpec(SourceLocation Loc, DeclSpec &DS) {
-  SmallVector<ArraySpec*, 8> Dimensions;
+  SmallVector<ArraySpec *, 8> Dimensions;
   if (ParseArraySpec(Dimensions))
     return true;
   Actions.ActOnDimensionAttrSpec(Context, Loc, DS, Dimensions);
@@ -194,23 +192,23 @@ bool Parser::ParseEntityDeclarationList(DeclSpec &DS,
   do {
     auto IDLoc = Tok.getLocation();
     auto ID = Tok.getIdentifierInfo();
-    if(!ExpectAndConsume(tok::identifier))
+    if (!ExpectAndConsume(tok::identifier))
       return true;
 
     DeclSpec ObjectDS(DS);
-    if(ParseObjectArraySpec(IDLoc, ObjectDS))
+    if (ParseObjectArraySpec(IDLoc, ObjectDS))
       return true;
-    if(ParseObjectCharLength(IDLoc, ObjectDS))
+    if (ParseObjectCharLength(IDLoc, ObjectDS))
       return true;
     Decls.push_back(Actions.ActOnEntityDecl(Context, ObjectDS, IDLoc, ID));
 
-  } while(ConsumeIfPresent(tok::comma));
+  } while (ConsumeIfPresent(tok::comma));
   return false;
 }
 
 bool Parser::ParseObjectArraySpec(SourceLocation Loc, DeclSpec &DS) {
-  if(IsPresent(tok::l_paren)) {
-    SmallVector<ArraySpec*, 8> Dimensions;
+  if (IsPresent(tok::l_paren)) {
+    SmallVector<ArraySpec *, 8> Dimensions;
     if (ParseArraySpec(Dimensions))
       return true;
     Actions.ActOnObjectArraySpec(Context, Loc, DS, Dimensions);
@@ -219,7 +217,7 @@ bool Parser::ParseObjectArraySpec(SourceLocation Loc, DeclSpec &DS) {
 }
 
 bool Parser::ParseObjectCharLength(SourceLocation Loc, DeclSpec &DS) {
-  if(DS.getTypeSpecType() == TST_character && ConsumeIfPresent(tok::star)) {
+  if (DS.getTypeSpecType() == TST_character && ConsumeIfPresent(tok::star)) {
     if (DS.hasLengthSelector())
       Diag.Report(getExpectedLoc(), diag::err_duplicate_len_selector);
     return ParseCharacterStarLengthSpec(DS);
@@ -228,7 +226,7 @@ bool Parser::ParseObjectCharLength(SourceLocation Loc, DeclSpec &DS) {
 }
 
 /// Parse the optional KIND or LEN selector.
-/// 
+///
 ///   [R405]:
 ///     kind-selector :=
 ///         ( [ KIND = ] scalar-int-initialization-expr )
@@ -247,22 +245,25 @@ ExprResult Parser::ParseSelector(bool IsKindSel) {
 
 bool Parser::ParseCharacterStarLengthSpec(DeclSpec &DS) {
   ExprResult Len;
-  if(ConsumeIfPresent(tok::l_paren)) {
-    if(ConsumeIfPresent(tok::star)) {
+  if (ConsumeIfPresent(tok::l_paren)) {
+    if (ConsumeIfPresent(tok::star)) {
       DS.setStartLengthSelector();
-    } else Len = ParseExpectedFollowupExpression("(");
-    if(!ExpectAndConsume(tok::r_paren))
+    } else
+      Len = ParseExpectedFollowupExpression("(");
+    if (!ExpectAndConsume(tok::r_paren))
       return true;
-  }
-  else Len = ParseExpectedFollowupExpression("*");
+  } else
+    Len = ParseExpectedFollowupExpression("*");
 
-  if(Len.isInvalid()) return true;
-  if(Len.isUsable())  DS.setLengthSelector(Len.take());
+  if (Len.isInvalid())
+    return true;
+  if (Len.isUsable())
+    DS.setLengthSelector(Len.take());
   return false;
 }
 
 /// ParseDeclarationTypeSpec - Parse a declaration type spec construct.
-/// 
+///
 ///   [R502]:
 ///     declaration-type-spec :=
 ///         intrinsic-type-spec
@@ -338,11 +339,11 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
       if (Kind.isInvalid())
         return true;
     } else if (ConsumeIfPresent(tok::l_paren)) {
-        Kind = ParseSelector(true);
-        if (Kind.isInvalid())
-          return true;
-        if(!ExpectAndConsume(tok::r_paren))
-          return true;
+      Kind = ParseSelector(true);
+      if (Kind.isInvalid())
+        return true;
+      if (!ExpectAndConsume(tok::r_paren))
+        return true;
     }
 
     break;
@@ -372,29 +373,29 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
     //    or :
     ConsumeToken();
 
-    if(ConsumeIfPresent(tok::star)) {
+    if (ConsumeIfPresent(tok::star)) {
       ParseCharacterStarLengthSpec(DS);
-      if(AllowOptionalCommaAfterCharLength)
+      if (AllowOptionalCommaAfterCharLength)
         ConsumeIfPresent(tok::comma);
     } else {
       if (!AllowSelectors)
         break;
-      if(ConsumeIfPresent(tok::l_paren)) {
-        if(IsPresent(tok::kw_LEN)) {
+      if (ConsumeIfPresent(tok::l_paren)) {
+        if (IsPresent(tok::kw_LEN)) {
           Len = ParseSelector(false);
           if (Len.isInvalid())
             return true;
-        } else if(IsPresent(tok::kw_KIND)) {
+        } else if (IsPresent(tok::kw_KIND)) {
           Kind = ParseSelector(true);
           if (Kind.isInvalid())
             return true;
         } else {
           Len = ParseExpectedFollowupExpression("(");
-          if(Len.isInvalid())
+          if (Len.isInvalid())
             return true;
         }
 
-        if(ConsumeIfPresent(tok::comma)) {
+        if (ConsumeIfPresent(tok::comma)) {
           // FIXME:
           if (Tok.is(tok::kw_LEN)) {
             if (Len.isInvalid())
@@ -420,7 +421,7 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
           }
         }
 
-        if(!ExpectAndConsume(tok::r_paren))
+        if (!ExpectAndConsume(tok::r_paren))
           return true;
       }
     }
@@ -429,8 +430,10 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
   }
 
   // Set the selectors for declspec.
-  if(Kind.isUsable()) DS.setKindSelector(Kind.get());
-  if(Len.isUsable())  DS.setLengthSelector(Len.get());
+  if (Kind.isUsable())
+    DS.setKindSelector(Kind.get());
+  if (Len.isUsable())
+    DS.setLengthSelector(Len.get());
   return false;
 }
 
@@ -451,26 +454,25 @@ bool Parser::ParseDeclarationTypeSpec(DeclSpec &DS, bool AllowSelectors,
 ///     type-param-spec :=
 ///         [ keyword = ] type-param-value
 bool Parser::ParseTypeOrClassDeclTypeSpec(DeclSpec &DS) {
-  if(Tok.is(tok::kw_TYPE)) {
+  if (Tok.is(tok::kw_TYPE)) {
     ConsumeToken();
-    if(!ExpectAndConsume(tok::l_paren))
+    if (!ExpectAndConsume(tok::l_paren))
       return true;
     auto ID = Tok.getIdentifierInfo();
     auto Loc = Tok.getLocation();
-    if(!ExpectAndConsume(tok::identifier))
+    if (!ExpectAndConsume(tok::identifier))
       return true;
-    if(!ExpectAndConsume(tok::r_paren))
+    if (!ExpectAndConsume(tok::r_paren))
       return true;
     Actions.ActOnTypeDeclSpec(Context, Loc, ID, DS);
     return false;
-  } else if(Tok.is(tok::kw_RECORD)) {
+  } else if (Tok.is(tok::kw_RECORD)) {
     ConsumeToken();
-    if(!ExpectAndConsume(tok::slash))
+    if (!ExpectAndConsume(tok::slash))
       return true;
     auto ID = Tok.getIdentifierInfo();
     auto Loc = Tok.getLocation();
-    if(!ExpectAndConsume(tok::identifier)
-      || !ExpectAndConsume(tok::slash))
+    if (!ExpectAndConsume(tok::identifier) || !ExpectAndConsume(tok::slash))
       return true;
     Actions.ActOnTypeDeclSpec(Context, Loc, ID, DS);
     return false;
@@ -531,8 +533,8 @@ bool Parser::ParseDerivedTypeDefinitionStmt() {
   bool IsStructure = Tok.is(tok::kw_STRUCTURE);
   auto Loc = ConsumeToken();
 
-  if(ConsumeIfPresent(tok::comma)) {
-    //FIXME: access-spec
+  if (ConsumeIfPresent(tok::comma)) {
+    // FIXME: access-spec
   }
   ConsumeIfPresent(tok::coloncolon);
 
@@ -543,7 +545,7 @@ bool Parser::ParseDerivedTypeDefinitionStmt() {
 
   auto ID = Tok.getIdentifierInfo();
   auto IDLoc = Tok.getLocation();
-  if(!ExpectAndConsume(tok::identifier)) {
+  if (!ExpectAndConsume(tok::identifier)) {
     SkipUntilNextStatement();
     return true;
   }
@@ -557,14 +559,14 @@ bool Parser::ParseDerivedTypeDefinitionStmt() {
   Actions.ActOnDerivedTypeDecl(Context, Loc, IDLoc, ID);
 
   // FIXME: private
-  if(Tok.is(tok::kw_SEQUENCE)) {
+  if (Tok.is(tok::kw_SEQUENCE)) {
     Actions.ActOnDerivedTypeSequenceStmt(Context, ConsumeToken());
     ExpectStatementEnd();
   }
 
   bool Done = false;
-  while(!Done) {
-    switch(Tok.getKind()) {
+  while (!Done) {
+    switch (Tok.getKind()) {
     case tok::kw_TYPE:
     case tok::kw_CLASS:
     case tok::kw_RECORD:
@@ -576,9 +578,10 @@ bool Parser::ParseDerivedTypeDefinitionStmt() {
     case tok::kw_LOGICAL:
     case tok::kw_DOUBLEPRECISION:
     case tok::kw_DOUBLECOMPLEX:
-      if(ParseDerivedTypeComponentStmt())
+      if (ParseDerivedTypeComponentStmt())
         SkipUntilNextStatement();
-      else ExpectStatementEnd();
+      else
+        ExpectStatementEnd();
       break;
     default:
       Done = true;
@@ -595,16 +598,17 @@ error:
 }
 
 void Parser::ParseEndTypeStmt(bool IsStructure) {
-  if(Tok.isNot(IsStructure ? tok::kw_ENDSTRUCTURE : tok::kw_ENDTYPE)) {
+  if (Tok.isNot(IsStructure ? tok::kw_ENDSTRUCTURE : tok::kw_ENDTYPE)) {
     Diag.Report(Tok.getLocation(), diag::err_expected_kw)
-      << (IsStructure ? "end structure" : "end type");
-    Diag.Report(cast<NamedDecl>(Actions.CurContext)->getLocation(), diag::note_matching)
-      << (IsStructure ? "structure" : "type");
+        << (IsStructure ? "end structure" : "end type");
+    Diag.Report(cast<NamedDecl>(Actions.CurContext)->getLocation(),
+                diag::note_matching)
+        << (IsStructure ? "structure" : "type");
     return;
   }
 
   auto Loc = ConsumeToken();
-  if(IsPresent(tok::identifier)) {
+  if (IsPresent(tok::identifier)) {
     auto ID = Tok.getIdentifierInfo();
     Actions.ActOnENDTYPE(Context, Loc, ConsumeToken(), ID);
   } else
@@ -615,34 +619,33 @@ void Parser::ParseEndTypeStmt(bool IsStructure) {
 bool Parser::ParseDerivedTypeComponentStmt() {
   // type-spec
   DeclSpec DS;
-  if(ParseDeclarationTypeSpec(DS, true, false))
+  if (ParseDeclarationTypeSpec(DS, true, false))
     return true;
 
   // component-attr-spec
-  if(ConsumeIfPresent(tok::comma)) {
+  if (ConsumeIfPresent(tok::comma)) {
     do {
       auto Kind = Tok.getKind();
       auto Loc = Tok.getLocation();
       auto ID = Tok.getIdentifierInfo();
-      if(!ExpectAndConsume(tok::identifier))
+      if (!ExpectAndConsume(tok::identifier))
         return true;
-      if(Kind == tok::kw_POINTER)
+      if (Kind == tok::kw_POINTER)
         Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_pointer);
-      else if(Kind == tok::kw_DIMENSION) {
-        if(ParseDimensionAttributeSpec(Loc, DS))
+      else if (Kind == tok::kw_DIMENSION) {
+        if (ParseDimensionAttributeSpec(Loc, DS))
           return true;
       } else {
-        if(isAttributeSpec(Kind))
-          Diag.Report(Loc, diag::err_use_of_attr_spec_in_type_decl)
-            << ID;
+        if (isAttributeSpec(Kind))
+          Diag.Report(Loc, diag::err_use_of_attr_spec_in_type_decl) << ID;
         else
           Diag.Report(Loc, diag::err_expected_attr_spec);
-        if(!SkipUntil(tok::coloncolon, true, true))
+        if (!SkipUntil(tok::coloncolon, true, true))
           return true;
         break;
       }
-    } while(ConsumeIfPresent(tok::comma));
-    if(!ExpectAndConsume(tok::coloncolon))
+    } while (ConsumeIfPresent(tok::comma));
+    if (!ExpectAndConsume(tok::coloncolon))
       return true;
   } else
     ConsumeIfPresent(tok::coloncolon);
@@ -651,19 +654,19 @@ bool Parser::ParseDerivedTypeComponentStmt() {
   do {
     auto IDLoc = Tok.getLocation();
     auto ID = Tok.getIdentifierInfo();
-    if(!ExpectAndConsume(tok::identifier))
+    if (!ExpectAndConsume(tok::identifier))
       return true;
 
     DeclSpec ObjectDS(DS);
-    if(ParseObjectArraySpec(IDLoc, ObjectDS))
+    if (ParseObjectArraySpec(IDLoc, ObjectDS))
       return true;
-    if(ParseObjectCharLength(IDLoc, ObjectDS))
+    if (ParseObjectCharLength(IDLoc, ObjectDS))
       return true;
     // FIXME: initialization expressions
     Actions.ActOnDerivedTypeFieldDecl(Context, ObjectDS, IDLoc, ID);
 
-  } while(ConsumeIfPresent(tok::comma));
+  } while (ConsumeIfPresent(tok::comma));
   return false;
 }
 
-} //namespace fort
+} // namespace fort

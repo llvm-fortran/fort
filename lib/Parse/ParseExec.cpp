@@ -11,13 +11,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "fort/Parse/Parser.h"
-#include "fort/Parse/FixedForm.h"
-#include "fort/Parse/ParseDiagnostic.h"
 #include "fort/AST/Decl.h"
 #include "fort/AST/Expr.h"
 #include "fort/AST/Stmt.h"
 #include "fort/Basic/TokenKinds.h"
+#include "fort/Parse/FixedForm.h"
+#include "fort/Parse/ParseDiagnostic.h"
+#include "fort/Parse/Parser.h"
 #include "fort/Sema/DeclSpec.h"
 #include "fort/Sema/Sema.h"
 #include "llvm/Support/SourceMgr.h"
@@ -27,21 +27,23 @@ namespace fort {
 
 void Parser::CheckStmtOrder(SourceLocation Loc, StmtResult SR) {
   auto S = SR.get();
-  if(SR.isUsable()) {
-    if(Actions.InsideWhereConstruct(S))
+  if (SR.isUsable()) {
+    if (Actions.InsideWhereConstruct(S))
       Actions.CheckValidWhereStmtPart(S);
   }
 
-  if(PrevStmtWasSelectCase) {
+  if (PrevStmtWasSelectCase) {
     PrevStmtWasSelectCase = false;
-    if(SR.isUsable() && (isa<SelectionCase>(S) ||
-       (isa<ConstructPartStmt>(S) &&
-        cast<ConstructPartStmt>(S)->getConstructStmtClass() == ConstructPartStmt::EndSelectStmtClass)))
+    if (SR.isUsable() &&
+        (isa<SelectionCase>(S) ||
+         (isa<ConstructPartStmt>(S) &&
+          cast<ConstructPartStmt>(S)->getConstructStmtClass() ==
+              ConstructPartStmt::EndSelectStmtClass)))
       return;
-    Diag.Report(SR.isUsable()? S->getLocation() : Loc,
+    Diag.Report(SR.isUsable() ? S->getLocation() : Loc,
                 diag::err_expected_case_or_end_select);
   }
-  if(SR.isUsable() && isa<SelectCaseStmt>(S))
+  if (SR.isUsable() && isa<SelectCaseStmt>(S))
     PrevStmtWasSelectCase = true;
 }
 
@@ -62,14 +64,16 @@ void Parser::CheckStmtOrder(SourceLocation Loc, StmtResult SR) {
 StmtResult Parser::ParseExecutableConstruct() {
   ParseStatementLabel();
   ParseConstructNameLabel();
-  LookForExecutableStmtKeyword(StmtLabel || StmtConstructName.isUsable()?
-                               false : true);
+  LookForExecutableStmtKeyword(
+      StmtLabel || StmtConstructName.isUsable() ? false : true);
 
   auto Loc = Tok.getLocation();
   StmtResult SR = ParseActionStmt();
   CheckStmtOrder(Loc, SR);
-  if (SR.isInvalid()) return StmtError();
-  if (!SR.isUsable()) return StmtResult();
+  if (SR.isInvalid())
+    return StmtError();
+  if (!SR.isUsable())
+    return StmtResult();
 
   return SR;
 }
@@ -136,8 +140,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
   case tok::kw_DO:
     return ParseDoStmt();
   case tok::kw_DOWHILE:
-    if(Features.FixedForm) {
-      if(!IsNextToken(tok::l_paren))
+    if (Features.FixedForm) {
+      if (!IsNextToken(tok::l_paren))
         return ReparseAmbiguousDoWhileStatement();
     }
     return ParseDoWhileStmt(false);
@@ -189,14 +193,14 @@ Parser::StmtResult Parser::ParseActionStmt() {
   case tok::kw_ENDPROGRAM:
   case tok::kw_ENDSUBPROGRAM:
   case tok::kw_ENDSUBROUTINE:
-    if(Features.FixedForm) {
+    if (Features.FixedForm) {
       auto StmtPoint = LocFirstStmtToken;
       auto RetPoint = ConsumeToken();
       ConsumeIfPresent(tok::identifier);
-      if(IsPresent(tok::l_paren) || IsPresent(tok::equal))
-         return ReparseAmbiguousAssignmentStatement(StmtPoint);
+      if (IsPresent(tok::l_paren) || IsPresent(tok::equal))
+        return ReparseAmbiguousAssignmentStatement(StmtPoint);
       StartStatementReparse(RetPoint);
-      LookForExecutableStmtKeyword(StmtLabel? false : true);
+      LookForExecutableStmtKeyword(StmtLabel ? false : true);
     }
     // Handle in parent.
     return StmtResult();
@@ -214,11 +218,13 @@ Parser::StmtResult Parser::ReparseAmbiguousDoWhileStatement() {
   StartStatementReparse();
   ParseStatementLabel();
   ParseConstructNameLabel();
-  ReLexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_DO)));
+  ReLexAmbiguousIdentifier(
+      fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_DO)));
   return ParseActionStmt();
 }
 
-Parser::StmtResult Parser::ReparseAmbiguousAssignmentStatement(SourceLocation Where) {
+Parser::StmtResult
+Parser::ReparseAmbiguousAssignmentStatement(SourceLocation Where) {
   StartStatementReparse(Where);
   return ParseAmbiguousAssignmentStmt();
 }
@@ -227,22 +233,23 @@ Parser::StmtResult Parser::ParseAssignStmt() {
   SourceLocation Loc = ConsumeToken();
 
   auto Value = ParseStatementLabelReference(false);
-  if(Value.isInvalid()) {
+  if (Value.isInvalid()) {
     Diag.Report(getExpectedLoc(), diag::err_expected_stmt_label_after)
         << "ASSIGN";
     return StmtError();
   }
   ConsumeToken();
-  if(!ExpectAndConsumeFixedFormAmbiguous(tok::kw_TO, diag::err_expected_kw, "to"))
+  if (!ExpectAndConsumeFixedFormAmbiguous(tok::kw_TO, diag::err_expected_kw,
+                                          "to"))
     return StmtError();
 
   auto IDInfo = Tok.getIdentifierInfo();
   auto IDRange = getTokenRange();
   auto IDLoc = Tok.getLocation();
-  if(!ExpectAndConsume(tok::identifier))
+  if (!ExpectAndConsume(tok::identifier))
     return StmtError();
   auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo);
-  if(!VD)
+  if (!VD)
     return StmtError();
   auto Var = VarExpr::Create(Context, IDRange, VD);
 
@@ -251,26 +258,30 @@ Parser::StmtResult Parser::ParseAssignStmt() {
 
 Parser::StmtResult Parser::ParseGotoStmt() {
   SourceLocation Loc = ConsumeToken();
-  if(ConsumeIfPresent(tok::l_paren)) {
+  if (ConsumeIfPresent(tok::l_paren)) {
     // computed goto.
-    SmallVector<Expr*, 4> Targets;
+    SmallVector<Expr *, 4> Targets;
     do {
       auto E = ParseStatementLabelReference();
-      if(E.isInvalid()) break;
+      if (E.isInvalid())
+        break;
       Targets.append(1, E.get());
-    } while(ConsumeIfPresent(tok::comma));
+    } while (ConsumeIfPresent(tok::comma));
     ExprResult Operand;
     bool ParseOperand = true;
-    if(!ExpectAndConsume(tok::r_paren)) {
-      if(!SkipUntil(tok::r_paren)) ParseOperand = false;
+    if (!ExpectAndConsume(tok::r_paren)) {
+      if (!SkipUntil(tok::r_paren))
+        ParseOperand = false;
     }
-    if(ParseOperand) Operand = ParseExpectedExpression();
-    return Actions.ActOnComputedGotoStmt(Context, Loc, Targets, Operand, StmtLabel);
+    if (ParseOperand)
+      Operand = ParseExpectedExpression();
+    return Actions.ActOnComputedGotoStmt(Context, Loc, Targets, Operand,
+                                         StmtLabel);
   }
 
   auto Destination = ParseStatementLabelReference();
-  if(Destination.isInvalid()) {
-    if(!IsPresent(tok::identifier)) {
+  if (Destination.isInvalid()) {
+    if (!IsPresent(tok::identifier)) {
       Diag.Report(getExpectedLoc(), diag::err_expected_stmt_label_after)
           << "GO TO";
       return StmtError();
@@ -278,24 +289,27 @@ Parser::StmtResult Parser::ParseGotoStmt() {
     auto IDInfo = Tok.getIdentifierInfo();
     auto IDLoc = ConsumeToken();
     auto VD = Actions.ExpectVarRef(IDLoc, IDInfo);
-    if(!VD) return StmtError();
+    if (!VD)
+      return StmtError();
     auto Var = VarExpr::Create(Context, IDLoc, VD);
 
     // Assigned goto
-    SmallVector<Expr*, 4> AllowedValues;
-    if(ConsumeIfPresent(tok::l_paren)) {
+    SmallVector<Expr *, 4> AllowedValues;
+    if (ConsumeIfPresent(tok::l_paren)) {
       do {
         auto E = ParseStatementLabelReference();
-        if(E.isInvalid()) {
+        if (E.isInvalid()) {
           Diag.Report(getExpectedLoc(), diag::err_expected_stmt_label);
           SkipUntilNextStatement();
-          return Actions.ActOnAssignedGotoStmt(Context, Loc, Var, AllowedValues, StmtLabel);
+          return Actions.ActOnAssignedGotoStmt(Context, Loc, Var, AllowedValues,
+                                               StmtLabel);
         }
         AllowedValues.append(1, E.get());
-      } while(ConsumeIfPresent(tok::comma));
+      } while (ConsumeIfPresent(tok::comma));
       ExpectAndConsume(tok::r_paren);
     }
-    return Actions.ActOnAssignedGotoStmt(Context, Loc, Var, AllowedValues, StmtLabel);
+    return Actions.ActOnAssignedGotoStmt(Context, Loc, Var, AllowedValues,
+                                         StmtLabel);
   }
   // Uncoditional goto
   return Actions.ActOnGotoStmt(Context, Loc, Destination, StmtLabel);
@@ -338,10 +352,11 @@ Parser::StmtResult Parser::ParseGotoStmt() {
 
 ExprResult Parser::ParseExpectedConditionExpression(const char *DiagAfter) {
   if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after,
-      DiagAfter))
+                        DiagAfter))
     return ExprError();
   ExprResult Condition = ParseExpectedFollowupExpression("(");
-  if(Condition.isInvalid()) return Condition;
+  if (Condition.isInvalid())
+    return Condition;
   if (!ExpectAndConsume(tok::r_paren))
     return ExprError();
   return Condition;
@@ -354,55 +369,67 @@ Parser::StmtResult Parser::ParseIfStmt() {
   if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after, "IF"))
     goto error;
   Condition = ParseExpectedFollowupExpression("(");
-  if(Condition.isInvalid()) {
-    if(!SkipUntil(tok::r_paren, true, true))
+  if (Condition.isInvalid()) {
+    if (!SkipUntil(tok::r_paren, true, true))
       goto error;
   }
-  if (!ExpectAndConsume(tok::r_paren)) goto error;
+  if (!ExpectAndConsume(tok::r_paren))
+    goto error;
 
-  if(Features.FixedForm && !Tok.isAtStartOfStatement())
-    ReLexAmbiguousIdentifier(FixedFormAmbiguities.getMatcherForKeywordsAfterIF());
+  if (Features.FixedForm && !Tok.isAtStartOfStatement())
+    ReLexAmbiguousIdentifier(
+        FixedFormAmbiguities.getMatcherForKeywordsAfterIF());
   if (!ConsumeIfPresent(tok::kw_THEN)) {
     // if-stmt
-    if(Tok.isAtStartOfStatement()) {
+    if (Tok.isAtStartOfStatement()) {
       Diag.Report(getExpectedLoc(), diag::err_expected_executable_stmt);
       return StmtError();
     }
-    auto Result = Actions.ActOnIfStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
-    if(Result.isInvalid()) return Result;
+    auto Result = Actions.ActOnIfStmt(Context, Loc, Condition,
+                                      StmtConstructName, StmtLabel);
+    if (Result.isInvalid())
+      return Result;
     // NB: Don't give the action stmt my label
     StmtLabel = nullptr;
     auto Action = ParseActionStmt();
-    Actions.ActOnEndIfStmt(Context, Loc, ConstructName(SourceLocation(), nullptr), nullptr);
-    return Action.isInvalid()? StmtError() : Result;
+    Actions.ActOnEndIfStmt(Context, Loc,
+                           ConstructName(SourceLocation(), nullptr), nullptr);
+    return Action.isInvalid() ? StmtError() : Result;
   }
 
   // if-construct.
-  return Actions.ActOnIfStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
+  return Actions.ActOnIfStmt(Context, Loc, Condition, StmtConstructName,
+                             StmtLabel);
 error:
   SkipUntilNextStatement();
-  return Actions.ActOnIfStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
+  return Actions.ActOnIfStmt(Context, Loc, Condition, StmtConstructName,
+                             StmtLabel);
 }
 
 // FIXME: fixed-form THENconstructname
 Parser::StmtResult Parser::ParseElseIfStmt() {
   auto Loc = ConsumeToken();
   ExprResult Condition;
-  if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after, "ELSE IF"))
+  if (!ExpectAndConsume(tok::l_paren, diag::err_expected_lparen_after,
+                        "ELSE IF"))
     goto error;
   Condition = ParseExpectedFollowupExpression("(");
-  if(Condition.isInvalid()) {
-    if(!SkipUntil(tok::r_paren, true, true))
+  if (Condition.isInvalid()) {
+    if (!SkipUntil(tok::r_paren, true, true))
       goto error;
   }
-  if (!ExpectAndConsume(tok::r_paren)) goto error;
-  if (!ExpectAndConsumeFixedFormAmbiguous(tok::kw_THEN, diag::err_expected_kw, "THEN"))
+  if (!ExpectAndConsume(tok::r_paren))
+    goto error;
+  if (!ExpectAndConsumeFixedFormAmbiguous(tok::kw_THEN, diag::err_expected_kw,
+                                          "THEN"))
     goto error;
   ParseTrailingConstructName();
-  return Actions.ActOnElseIfStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
+  return Actions.ActOnElseIfStmt(Context, Loc, Condition, StmtConstructName,
+                                 StmtLabel);
 error:
   SkipUntilNextStatement();
-  return Actions.ActOnElseIfStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
+  return Actions.ActOnElseIfStmt(Context, Loc, Condition, StmtConstructName,
+                                 StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseElseStmt() {
@@ -426,56 +453,62 @@ Parser::StmtResult Parser::ParseDoStmt() {
   ExprResult E1, E2, E3;
   auto EqLoc = Loc;
 
-  if(IsPresent(tok::int_literal_constant)) {
+  if (IsPresent(tok::int_literal_constant)) {
     TerminalStmt = ParseStatementLabelReference();
-    if(TerminalStmt.isInvalid()) return StmtError();
+    if (TerminalStmt.isInvalid())
+      return StmtError();
   }
   bool isDo = ConsumeIfPresent(tok::comma);
-  if(isDo && IsPresent(tok::kw_WHILE))
+  if (isDo && IsPresent(tok::kw_WHILE))
     return ParseDoWhileStmt(isDo);
 
   // the do var
   auto IDInfo = Tok.getIdentifierInfo();
   auto IDRange = getTokenRange();
   auto IDLoc = Tok.getLocation();
-  if(!ExpectAndConsume(tok::identifier))
+  if (!ExpectAndConsume(tok::identifier))
     goto error;
 
   EqLoc = getMaxLocationOfCurrentToken();
-  if(Features.FixedForm && !isDo && IsPresent(tok::l_paren))
+  if (Features.FixedForm && !isDo && IsPresent(tok::l_paren))
     return ReparseAmbiguousAssignmentStatement();
-  if(!ExpectAndConsume(tok::equal))
+  if (!ExpectAndConsume(tok::equal))
     goto error;
   E1 = ParseExpectedFollowupExpression("=");
-  if(E1.isInvalid()) goto error;
-  if(Features.FixedForm && !isDo && Tok.isAtStartOfStatement())
+  if (E1.isInvalid())
+    goto error;
+  if (Features.FixedForm && !isDo && Tok.isAtStartOfStatement())
     return ReparseAmbiguousAssignmentStatement(CurStmtLoc);
-  if(!ExpectAndConsume(tok::comma)) goto error;
+  if (!ExpectAndConsume(tok::comma))
+    goto error;
   E2 = ParseExpectedFollowupExpression(",");
-  if(E2.isInvalid()) goto error;
-  if(ConsumeIfPresent(tok::comma)) {
+  if (E2.isInvalid())
+    goto error;
+  if (ConsumeIfPresent(tok::comma)) {
     E3 = ParseExpectedFollowupExpression(",");
-    if(E3.isInvalid()) goto error;
+    if (E3.isInvalid())
+      goto error;
   }
 
-  if(auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo))
+  if (auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo))
     DoVar = VarExpr::Create(Context, IDRange, VD);
-  return Actions.ActOnDoStmt(Context, Loc, EqLoc, TerminalStmt,
-                             DoVar, E1, E2, E3, StmtConstructName, StmtLabel);
+  return Actions.ActOnDoStmt(Context, Loc, EqLoc, TerminalStmt, DoVar, E1, E2,
+                             E3, StmtConstructName, StmtLabel);
 error:
-  if(IDInfo) {
-    if(auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo))
+  if (IDInfo) {
+    if (auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, IDInfo))
       DoVar = VarExpr::Create(Context, IDRange, VD);
   }
   SkipUntilNextStatement();
-  return Actions.ActOnDoStmt(Context, Loc, EqLoc, TerminalStmt,
-                             DoVar, E1, E2, E3, StmtConstructName, StmtLabel);
+  return Actions.ActOnDoStmt(Context, Loc, EqLoc, TerminalStmt, DoVar, E1, E2,
+                             E3, StmtConstructName, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseDoWhileStmt(bool isDo) {
   auto Loc = ConsumeToken();
   auto Condition = ParseExpectedConditionExpression("WHILE");
-  return Actions.ActOnDoWhileStmt(Context, Loc, Condition, StmtConstructName, StmtLabel);
+  return Actions.ActOnDoWhileStmt(Context, Loc, Condition, StmtConstructName,
+                                  StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseEndDoStmt() {
@@ -500,66 +533,80 @@ Parser::StmtResult Parser::ParseSelectCaseStmt() {
   auto Loc = ConsumeToken();
 
   ExprResult Operand;
-  if(ExpectAndConsume(tok::l_paren)) {
+  if (ExpectAndConsume(tok::l_paren)) {
     Operand = ParseExpectedFollowupExpression("(");
-    if(Operand.isUsable()) {
-      if(!ExpectAndConsume(tok::r_paren))
+    if (Operand.isUsable()) {
+      if (!ExpectAndConsume(tok::r_paren))
         SkipUntilNextStatement();
-    } else SkipUntilNextStatement();
-  } else SkipUntilNextStatement();
+    } else
+      SkipUntilNextStatement();
+  } else
+    SkipUntilNextStatement();
 
-  return Actions.ActOnSelectCaseStmt(Context, Loc, Operand, StmtConstructName, StmtLabel);
+  return Actions.ActOnSelectCaseStmt(Context, Loc, Operand, StmtConstructName,
+                                     StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseCaseStmt() {
   auto Loc = ConsumeToken();
-  if(ConsumeIfPresent(tok::kw_DEFAULT)) {
+  if (ConsumeIfPresent(tok::kw_DEFAULT)) {
     ParseTrailingConstructName();
-    return Actions.ActOnCaseDefaultStmt(Context, Loc, StmtConstructName, StmtLabel);
+    return Actions.ActOnCaseDefaultStmt(Context, Loc, StmtConstructName,
+                                        StmtLabel);
   }
 
-  SmallVector<Expr*, 8> Values;
+  SmallVector<Expr *, 8> Values;
 
   ExpectAndConsume(tok::l_paren);
   do {
     auto ColonLoc = Tok.getLocation();
-    if(ConsumeIfPresent(tok::colon)) {
+    if (ConsumeIfPresent(tok::colon)) {
       auto E = ParseExpectedFollowupExpression(":");
-      if(E.isInvalid()) goto error;
-      if(E.isUsable())
-        Values.push_back(RangeExpr::Create(Context, ColonLoc, nullptr, E.get()));
+      if (E.isInvalid())
+        goto error;
+      if (E.isUsable())
+        Values.push_back(
+            RangeExpr::Create(Context, ColonLoc, nullptr, E.get()));
     } else {
       auto E = ParseExpectedExpression();
-      if(E.isInvalid()) goto error;
+      if (E.isInvalid())
+        goto error;
       ColonLoc = Tok.getLocation();
-      if(ConsumeIfPresent(tok::colon)) {
-        if(!(IsPresent(tok::comma) || IsPresent(tok::r_paren))) {
+      if (ConsumeIfPresent(tok::colon)) {
+        if (!(IsPresent(tok::comma) || IsPresent(tok::r_paren))) {
           auto E2 = ParseExpectedFollowupExpression(":");
-          if(E2.isInvalid()) goto error;
-          if(E.isUsable() || E2.isUsable())
-            Values.push_back(RangeExpr::Create(Context, ColonLoc, E.get(), E2.get()));
+          if (E2.isInvalid())
+            goto error;
+          if (E.isUsable() || E2.isUsable())
+            Values.push_back(
+                RangeExpr::Create(Context, ColonLoc, E.get(), E2.get()));
         } else {
-          if(E.isUsable())
-            Values.push_back(RangeExpr::Create(Context, ColonLoc, E.get(), nullptr));
+          if (E.isUsable())
+            Values.push_back(
+                RangeExpr::Create(Context, ColonLoc, E.get(), nullptr));
         }
       } else {
-        if(E.isUsable())
+        if (E.isUsable())
           Values.push_back(E.get());
       }
     }
-  } while(ConsumeIfPresent(tok::comma));
+  } while (ConsumeIfPresent(tok::comma));
 
-  if(ExpectAndConsume(tok::r_paren)) {
+  if (ExpectAndConsume(tok::r_paren)) {
     ParseTrailingConstructName();
-  } else SkipUntilNextStatement();
+  } else
+    SkipUntilNextStatement();
 
-  return Actions.ActOnCaseStmt(Context, Loc, Values, StmtConstructName, StmtLabel);
+  return Actions.ActOnCaseStmt(Context, Loc, Values, StmtConstructName,
+                               StmtLabel);
 
 error:
-  if(SkipUntil(tok::r_paren)) {
+  if (SkipUntil(tok::r_paren)) {
     ParseTrailingConstructName();
-  } else SkipUntilNextStatement();
-  return Actions.ActOnCaseStmt(Context, Loc, Values, StmtConstructName, StmtLabel);
+  } else
+    SkipUntilNextStatement();
+  return Actions.ActOnCaseStmt(Context, Loc, Values, StmtConstructName,
+                               StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseEndSelectStmt() {
@@ -589,14 +636,14 @@ Parser::StmtResult Parser::ParseContinueStmt() {
 Parser::StmtResult Parser::ParseStopStmt() {
   auto Loc = ConsumeToken();
 
-  //FIXME: parse optional stop-code.
+  // FIXME: parse optional stop-code.
   return Actions.ActOnStopStmt(Context, Loc, ExprResult(), StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseReturnStmt() {
   auto Loc = ConsumeToken();
   ExprResult E;
-  if(!Tok.isAtStartOfStatement())
+  if (!Tok.isAtStartOfStatement())
     E = ParseExpression();
 
   return Actions.ActOnReturnStmt(Context, Loc, E, StmtLabel);
@@ -608,23 +655,26 @@ Parser::StmtResult Parser::ParseCallStmt() {
 
   auto ID = Tok.getIdentifierInfo();
   auto IDLoc = Tok.getLocation();
-  if(!ExpectAndConsume(tok::identifier))
+  if (!ExpectAndConsume(tok::identifier))
     return StmtError();
 
-  SmallVector<Expr*, 8> Arguments;
-  if(!Tok.isAtStartOfStatement()) {
-    if(ParseFunctionCallArgumentList(Arguments, RParenLoc).isInvalid())
+  SmallVector<Expr *, 8> Arguments;
+  if (!Tok.isAtStartOfStatement()) {
+    if (ParseFunctionCallArgumentList(Arguments, RParenLoc).isInvalid())
       SkipUntilNextStatement();
   }
 
-  return Actions.ActOnCallStmt(Context, Loc, RParenLoc, IDLoc, ID, Arguments, StmtLabel);
+  return Actions.ActOnCallStmt(Context, Loc, RParenLoc, IDLoc, ID, Arguments,
+                               StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseAmbiguousAssignmentStmt() {
   ParseStatementLabel();
   auto S = ParseAssignmentStmt();
-  if(S.isInvalid()) SkipUntilNextStatement();
-  else ExpectStatementEnd();
+  if (S.isInvalid())
+    SkipUntilNextStatement();
+  else
+    ExpectStatementEnd();
   return S;
 }
 
@@ -634,16 +684,18 @@ Parser::StmtResult Parser::ParseAmbiguousAssignmentStmt() {
 ///         variable = expr
 Parser::StmtResult Parser::ParseAssignmentStmt() {
   ExprResult LHS = ParsePrimaryExpr(true);
-  if(LHS.isInvalid()) return StmtError();
+  if (LHS.isInvalid())
+    return StmtError();
 
   SourceLocation Loc = Tok.getLocation();
-  if(!ConsumeIfPresent(tok::equal)) {
-    Diag.Report(getExpectedLoc(),diag::err_expected_equal);
+  if (!ConsumeIfPresent(tok::equal)) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_equal);
     return StmtError();
   }
 
   ExprResult RHS = ParseExpectedFollowupExpression("=");
-  if(RHS.isInvalid()) return StmtError();
+  if (RHS.isInvalid())
+    return StmtError();
   return Actions.ActOnAssignmentStmt(Context, Loc, LHS, RHS, StmtLabel);
 }
 
@@ -656,14 +708,15 @@ Parser::StmtResult Parser::ParseWhereStmt() {
   auto Loc = ConsumeToken();
   ExpectAndConsume(tok::l_paren);
   auto Mask = ParseExpectedExpression();
-  if(!Mask.isInvalid())
+  if (!Mask.isInvalid())
     ExpectAndConsume(tok::r_paren);
-  else SkipUntil(tok::r_paren);
-  if(!Tok.isAtStartOfStatement()) {
+  else
+    SkipUntil(tok::r_paren);
+  if (!Tok.isAtStartOfStatement()) {
     auto Label = StmtLabel;
     StmtLabel = nullptr;
     auto Body = ParseActionStmt();
-    if(Body.isInvalid())
+    if (Body.isInvalid())
       return Body;
     return Actions.ActOnWhereStmt(Context, Loc, Mask, Body, Label);
   }
@@ -680,7 +733,6 @@ StmtResult Parser::ParseEndWhereStmt() {
   return Actions.ActOnEndWhereStmt(Context, Loc, StmtLabel);
 }
 
-
 /// ParsePrintStatement
 ///   [R912]:
 ///     print-stmt :=
@@ -695,7 +747,7 @@ Parser::StmtResult Parser::ParsePrintStmt() {
   SourceLocation Loc = ConsumeToken();
 
   FormatSpec *FS = ParseFMTSpec(false);
-  if(!ExpectAndConsume(tok::comma))
+  if (!ExpectAndConsume(tok::comma))
     return StmtError();
 
   SmallVector<ExprResult, 4> OutputItemList;
@@ -708,38 +760,39 @@ Parser::StmtResult Parser::ParseWriteStmt() {
   SourceLocation Loc = ConsumeToken();
 
   // clist
-  if(!ExpectAndConsume(tok::l_paren))
+  if (!ExpectAndConsume(tok::l_paren))
     return StmtError();
 
   UnitSpec *US = nullptr;
   FormatSpec *FS = nullptr;
 
   US = ParseUNITSpec(false);
-  if(ConsumeIfPresent(tok::comma)) {
+  if (ConsumeIfPresent(tok::comma)) {
     bool IsFormatLabeled = false;
-    if(ConsumeIfPresent(tok::kw_FMT)) {
-      if(!ExpectAndConsume(tok::equal))
+    if (ConsumeIfPresent(tok::kw_FMT)) {
+      if (!ExpectAndConsume(tok::equal))
         return StmtError();
       IsFormatLabeled = true;
     }
     FS = ParseFMTSpec(IsFormatLabeled);
   }
 
-  if(!ExpectAndConsume(tok::r_paren))
+  if (!ExpectAndConsume(tok::r_paren))
     return StmtError();
 
   // iolist
   SmallVector<ExprResult, 4> OutputItemList;
   ParseIOList(OutputItemList);
 
-  return Actions.ActOnWriteStmt(Context, Loc, US, FS, OutputItemList, StmtLabel);
+  return Actions.ActOnWriteStmt(Context, Loc, US, FS, OutputItemList,
+                                StmtLabel);
 }
 
 UnitSpec *Parser::ParseUNITSpec(bool IsLabeled) {
   auto Loc = Tok.getLocation();
-  if(!ConsumeIfPresent(tok::star)) {
+  if (!ConsumeIfPresent(tok::star)) {
     auto E = ParseExpression();
-    if(!E.isInvalid())
+    if (!E.isInvalid())
       return Actions.ActOnUnitSpec(Context, E, Loc, IsLabeled);
   }
   return Actions.ActOnStarUnitSpec(Context, Loc, IsLabeled);
@@ -747,30 +800,32 @@ UnitSpec *Parser::ParseUNITSpec(bool IsLabeled) {
 
 FormatSpec *Parser::ParseFMTSpec(bool IsLabeled) {
   auto Loc = Tok.getLocation();
-  if(!ConsumeIfPresent(tok::star)) {
-    if(Tok.is(tok::int_literal_constant)) {
+  if (!ConsumeIfPresent(tok::star)) {
+    if (Tok.is(tok::int_literal_constant)) {
       auto Destination = ParseStatementLabelReference();
-      if(!Destination.isInvalid())
+      if (!Destination.isInvalid())
         return Actions.ActOnLabelFormatSpec(Context, Loc, Destination);
     }
     auto E = ParseExpression();
-    if(E.isUsable())
+    if (E.isUsable())
       return Actions.ActOnExpressionFormatSpec(Context, Loc, E.get());
     // NB: return empty format string on error.
-    return Actions.ActOnExpressionFormatSpec(Context, Loc,
-                                             CharacterConstantExpr::Create(Context, Loc, "", Context.CharacterTy));
+    return Actions.ActOnExpressionFormatSpec(
+        Context, Loc,
+        CharacterConstantExpr::Create(Context, Loc, "", Context.CharacterTy));
   }
 
   return Actions.ActOnStarFormatSpec(Context, Loc);
 }
 
 void Parser::ParseIOList(SmallVectorImpl<ExprResult> &List) {
-  while(!Tok.isAtStartOfStatement()) {
+  while (!Tok.isAtStartOfStatement()) {
     auto E = ParseExpression();
-    if(E.isUsable()) List.push_back(E);
-    if(!ConsumeIfPresent(tok::comma))
+    if (E.isUsable())
+      List.push_back(E);
+    if (!ConsumeIfPresent(tok::comma))
       break;
   }
 }
 
-} //namespace fort
+} // namespace fort

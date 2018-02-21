@@ -12,22 +12,22 @@
 //===----------------------------------------------------------------------===//
 
 #include "fort/Parse/Parser.h"
-#include "fort/Parse/FixedForm.h"
-#include "fort/Parse/LexDiagnostic.h"
-#include "fort/Parse/ParseDiagnostic.h"
-#include "fort/Sema/SemaDiagnostic.h"
 #include "fort/AST/Decl.h"
 #include "fort/AST/Expr.h"
 #include "fort/AST/Stmt.h"
 #include "fort/Basic/TokenKinds.h"
+#include "fort/Parse/FixedForm.h"
+#include "fort/Parse/LexDiagnostic.h"
+#include "fort/Parse/ParseDiagnostic.h"
 #include "fort/Sema/DeclSpec.h"
-#include "fort/Sema/Sema.h"
 #include "fort/Sema/Scope.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/Support/raw_ostream.h"
+#include "fort/Sema/Sema.h"
+#include "fort/Sema/SemaDiagnostic.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallString.h"
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace fort {
 
@@ -48,22 +48,22 @@ void PrettyStackTraceParserEntry::print(llvm::raw_ostream &OS) const {
   llvm::SmallVector<llvm::StringRef, 2> Spelling;
   FP.getLexer().getSpelling(Tok, Spelling);
   std::string Name = Tok.CleanLiteral(Spelling);
-  FP.getLexer().getSourceManager()
-    .PrintMessage(Tok.getLocation(), llvm::SourceMgr::DK_Error,
-                  "current parser token '" + Name + "'");
+  FP.getLexer().getSourceManager().PrintMessage(
+      Tok.getLocation(), llvm::SourceMgr::DK_Error,
+      "current parser token '" + Name + "'");
 }
 
 //===----------------------------------------------------------------------===//
 //                            Fortran Parsing
 //===----------------------------------------------------------------------===//
 
-Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  &D,
-               Sema &actions)
-  : TheLexer(SM, Opts, D), Features(Opts), CrashInfo(*this), SrcMgr(SM),
-    Context(actions.Context), Diag(D), Actions(actions),
-    Identifiers(Opts), DontResolveIdentifiers(false),
-    DontResolveIdentifiersInSubExpressions(false),
-    LexFORMATTokens(false), StmtConstructName(SourceLocation(),nullptr) {
+Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts,
+               DiagnosticsEngine &D, Sema &actions)
+    : TheLexer(SM, Opts, D), Features(Opts), CrashInfo(*this), SrcMgr(SM),
+      Context(actions.Context), Diag(D), Actions(actions), Identifiers(Opts),
+      DontResolveIdentifiers(false),
+      DontResolveIdentifiersInSubExpressions(false), LexFORMATTokens(false),
+      StmtConstructName(SourceLocation(), nullptr) {
   CurBufferIndex.push_back(SrcMgr.getMainFileID());
   getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBufferIndex.back()));
   Tok.startToken();
@@ -76,8 +76,8 @@ Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts, DiagnosticsEngine  
 
 bool Parser::EnterIncludeFile(const std::string &Filename) {
   std::string IncludedFile;
-  int NewBuf = SrcMgr.AddIncludeFile(Filename, getLexer().getLoc(),
-                                     IncludedFile);
+  int NewBuf =
+      SrcMgr.AddIncludeFile(Filename, getLexer().getLoc(), IncludedFile);
   if (NewBuf == 0)
     return true;
 
@@ -89,7 +89,8 @@ bool Parser::EnterIncludeFile(const std::string &Filename) {
 }
 
 bool Parser::LeaveIncludeFile() {
-  if(CurBufferIndex.size() == 1) return true;//No files included.
+  if (CurBufferIndex.size() == 1)
+    return true; // No files included.
   Diag.getClient()->EndSourceFile();
   CurBufferIndex.pop_back();
   getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBufferIndex.back()),
@@ -99,7 +100,7 @@ bool Parser::LeaveIncludeFile() {
 }
 
 SourceLocation Parser::getExpectedLoc() const {
-  if(Tok.isAtStartOfStatement())
+  if (Tok.isAtStartOfStatement())
     return PrevTokLocEnd;
   return Tok.getLocation();
 }
@@ -107,14 +108,16 @@ SourceLocation Parser::getExpectedLoc() const {
 SourceRange Parser::getTokenRange(SourceLocation Loc) const {
   Lexer L(TheLexer, Loc);
   Token T;
-  L.Lex(T); L.Lex(T);
+  L.Lex(T);
+  L.Lex(T);
   return SourceRange(Loc, T.getLocation());
 }
 
 // FIXME:
 SourceRange Parser::getTokenRange() const {
-  return SourceRange(Tok.getLocation(), SourceLocation::getFromPointer(Tok.getLocation().getPointer() +
-                                                                       Tok.getLength()));
+  return SourceRange(Tok.getLocation(),
+                     SourceLocation::getFromPointer(
+                         Tok.getLocation().getPointer() + Tok.getLength()));
 }
 
 bool Parser::IsNextToken(tok::TokenKind TokKind) {
@@ -126,14 +129,14 @@ bool Parser::IsNextToken(tok::TokenKind TokKind) {
 /// Lex - Get the next token.
 void Parser::Lex() {
   /// Reset paren count
-  if(Tok.isAtStartOfStatement()) {
+  if (Tok.isAtStartOfStatement()) {
     ParenCount = 0;
     ParenSlashCount = 0;
   }
 
   PrevTokLocation = Tok.getLocation();
   PrevTokLocEnd = getMaxLocationOfCurrentToken();
-  if(LexFORMATTokens) {
+  if (LexFORMATTokens) {
     if (NextTok.isNot(tok::unknown))
       Tok = NextTok;
     else
@@ -154,11 +157,11 @@ void Parser::Lex() {
     ClassifyToken(Tok);
   }
 
-  if(Tok.isAtStartOfStatement())
+  if (Tok.isAtStartOfStatement())
     LocFirstStmtToken = Tok.getLocation();
 
-  if (Tok.is(tok::eof)){
-    if(!LeaveIncludeFile()){
+  if (Tok.is(tok::eof)) {
+    if (!LeaveIncludeFile()) {
       NextTok.setKind(tok::unknown);
       Lex();
     }
@@ -167,30 +170,32 @@ void Parser::Lex() {
 
   // No need to merge when identifiers can already have
   // spaces in between
-  if(Features.FixedForm)
+  if (Features.FixedForm)
     return;
 
   TheLexer.Lex(NextTok);
   ClassifyToken(NextTok);
 
-#define MERGE_TOKENS(A, B)                      \
-  if (!NextTok.isAtStartOfStatement() && NextTok.is(tok::kw_ ## B)) {              \
-    Tok.setKind(tok::kw_ ## A ## B);            \
-    Tok.setLength((NextTok.getLocation().getPointer() + \
-                  NextTok.getLength()) - (Tok.getLocation().getPointer())); \
-    break;                                      \
-  }                                             \
+#define MERGE_TOKENS(A, B)                                                     \
+  if (!NextTok.isAtStartOfStatement() && NextTok.is(tok::kw_##B)) {            \
+    Tok.setKind(tok::kw_##A##B);                                               \
+    Tok.setLength((NextTok.getLocation().getPointer() + NextTok.getLength()) - \
+                  (Tok.getLocation().getPointer()));                           \
+    break;                                                                     \
+  }
 
   // [3.3.1]p4
   switch (Tok.getKind()) {
-  default: return;
-  case tok::kw_INCLUDE:{
+  default:
+    return;
+  case tok::kw_INCLUDE: {
     bool hadErrors = ParseInclude();
     Tok = NextTok;
     NextTok.setKind(tok::unknown);
-    if(hadErrors)
+    if (hadErrors)
       SkipUntilNextStatement();
-    else Lex();
+    else
+      Lex();
     return;
   }
   case tok::kw_BLOCK:
@@ -259,7 +264,8 @@ void Parser::Lex() {
     return;
   }
 
-  if (NextTok.is(tok::eof)) return;
+  if (NextTok.is(tok::eof))
+    return;
 
   TheLexer.Lex(NextTok);
   ClassifyToken(NextTok);
@@ -295,12 +301,11 @@ void Parser::CleanLiteral(Token T, std::string &NameStr) {
   assert(T.isLiteral() && "Trying to clean a non-literal!");
   if (!T.needsCleaning()) {
     // This should be the common case.
-    if(T.isNot(tok::char_literal_constant)) {
-      NameStr = llvm::StringRef(T.getLiteralData(),
-                                T.getLength()).str();
+    if (T.isNot(tok::char_literal_constant)) {
+      NameStr = llvm::StringRef(T.getLiteralData(), T.getLength()).str();
     } else {
-      NameStr = llvm::StringRef(T.getLiteralData()+1,
-                                T.getLength()-2).str();
+      NameStr =
+          llvm::StringRef(T.getLiteralData() + 1, T.getLength() - 2).str();
     }
     return;
   }
@@ -308,28 +313,30 @@ void Parser::CleanLiteral(Token T, std::string &NameStr) {
   llvm::SmallVector<llvm::StringRef, 2> Spelling;
   TheLexer.getSpelling(T, Spelling);
   NameStr = T.CleanLiteral(Spelling);
-  if(T.is(tok::char_literal_constant))
-    NameStr = std::string(NameStr,1,NameStr.length()-2);
+  if (T.is(tok::char_literal_constant))
+    NameStr = std::string(NameStr, 1, NameStr.length() - 2);
 }
 
 /// \brief Returns true if the check flag is set,
 /// and tok is at start of a new statement
 static inline bool CheckIsAtStartOfStatement(const Token &Tok, bool DoCheck) {
-  if(DoCheck)
+  if (DoCheck)
     return Tok.isAtStartOfStatement();
   return false;
 }
 
 bool Parser::IsPresent(tok::TokenKind TokKind, bool InSameStatement) {
-  if(!CheckIsAtStartOfStatement(Tok, InSameStatement) &&
-     (TokKind == tok::identifier? isTokenIdentifier() : Tok.is(TokKind)))
+  if (!CheckIsAtStartOfStatement(Tok, InSameStatement) &&
+      (TokKind == tok::identifier ? isTokenIdentifier() : Tok.is(TokKind)))
     return true;
   return false;
 }
 
-bool Parser::ConsumeIfPresent(tok::TokenKind OptionalTok, bool InSameStatement) {
-  if(!CheckIsAtStartOfStatement(Tok, InSameStatement)  &&
-     (OptionalTok == tok::identifier? isTokenIdentifier() : Tok.is(OptionalTok))) {
+bool Parser::ConsumeIfPresent(tok::TokenKind OptionalTok,
+                              bool InSameStatement) {
+  if (!CheckIsAtStartOfStatement(Tok, InSameStatement) &&
+      (OptionalTok == tok::identifier ? isTokenIdentifier()
+                                      : Tok.is(OptionalTok))) {
     ConsumeAnyToken();
     return true;
   }
@@ -337,14 +344,13 @@ bool Parser::ConsumeIfPresent(tok::TokenKind OptionalTok, bool InSameStatement) 
 }
 
 bool Parser::ExpectAndConsume(tok::TokenKind ExpectedTok, unsigned Diag,
-                              const char *DiagMsg,
-                              tok::TokenKind SkipToTok,
+                              const char *DiagMsg, tok::TokenKind SkipToTok,
                               bool InSameStatement) {
-  if(ConsumeIfPresent(ExpectedTok, InSameStatement))
+  if (ConsumeIfPresent(ExpectedTok, InSameStatement))
     return true;
 
-  if(Diag == 0) {
-    switch(ExpectedTok) {
+  if (Diag == 0) {
+    switch (ExpectedTok) {
     case tok::l_paren:
       Diag = diag::err_expected_lparen;
       break;
@@ -377,21 +383,19 @@ bool Parser::ExpectAndConsume(tok::TokenKind ExpectedTok, unsigned Diag,
       break;
     default:
       assert(false && "Couldn't select a default "
-             "diagnostic for the given token type.");
+                      "diagnostic for the given token type.");
     }
   }
 
-  if(auto Spelling = tok::getTokenSimpleSpelling(ExpectedTok)) {
+  if (auto Spelling = tok::getTokenSimpleSpelling(ExpectedTok)) {
     // Show what code to insert to fix this problem.
     this->Diag.Report(getExpectedLoc(), Diag)
-      << DiagMsg
-      << FixItHint(getExpectedLocForFixIt(), Spelling);
+        << DiagMsg << FixItHint(getExpectedLocForFixIt(), Spelling);
   } else {
-    this->Diag.Report(getExpectedLoc(), Diag)
-      << DiagMsg;
+    this->Diag.Report(getExpectedLoc(), Diag) << DiagMsg;
   }
 
-  if(SkipToTok != tok::unknown)
+  if (SkipToTok != tok::unknown)
     SkipUntil(SkipToTok);
   return false;
 }
@@ -401,14 +405,13 @@ bool Parser::SkipUntil(ArrayRef<tok::TokenKind> Toks, bool StopAtNextStatement,
   // We always want this function to skip at least one token if the first token
   // isn't T and if not at EOF.
   bool isFirstTokenSkipped = true;
-  while(true) {
-    if(CheckIsAtStartOfStatement(Tok, StopAtNextStatement))
+  while (true) {
+    if (CheckIsAtStartOfStatement(Tok, StopAtNextStatement))
       return false;
 
     // If we found one of the tokens, stop and return true.
     for (unsigned i = 0, NumToks = Toks.size(); i != NumToks; ++i) {
-      if (Toks[i] == tok::identifier? isTokenIdentifier() :
-                                      Tok.is(Toks[i])) {
+      if (Toks[i] == tok::identifier ? isTokenIdentifier() : Tok.is(Toks[i])) {
         if (DontConsume) {
           // Noop, don't consume the token.
         } else {
@@ -418,13 +421,13 @@ bool Parser::SkipUntil(ArrayRef<tok::TokenKind> Toks, bool StopAtNextStatement,
       }
     }
 
-    switch(Tok.getKind()) {
+    switch (Tok.getKind()) {
     case tok::eof:
       // Ran out of tokens.
       return false;
 
     case tok::l_paren:
-       // Recursively skip properly-nested parens.
+      // Recursively skip properly-nested parens.
       ConsumeParen();
       SkipUntil(tok::r_paren, StopAtNextStatement, false);
       break;
@@ -440,12 +443,12 @@ bool Parser::SkipUntil(ArrayRef<tok::TokenKind> Toks, bool StopAtNextStatement,
     // and return it.  Otherwise, this is a spurious RHS token, which we skip.
     case tok::r_paren:
       if (ParenCount && !isFirstTokenSkipped)
-        return false;  // Matches something.
+        return false; // Matches something.
       ConsumeParen();
       break;
     case tok::slashr_paren:
       if (ParenSlashCount && !isFirstTokenSkipped)
-        return false;  // Matches something.
+        return false; // Matches something.
       ConsumeParenSlash();
       break;
     default:
@@ -457,40 +460,40 @@ bool Parser::SkipUntil(ArrayRef<tok::TokenKind> Toks, bool StopAtNextStatement,
 }
 
 bool Parser::ExpectStatementEnd() {
-  if(!Tok.isAtStartOfStatement()) {
+  if (!Tok.isAtStartOfStatement()) {
     auto Loc = getExpectedLoc();
     auto Start = Tok.getLocation();
     SkipUntilNextStatement();
     auto End = getExpectedLoc();
     Diag.Report(Loc, diag::err_expected_end_statement_at_end_of_stmt)
-      << SourceRange(Start, End);
+        << SourceRange(Start, End);
     return false;
   }
   return true;
 }
 
 bool Parser::SkipUntilNextStatement() {
-  while(!Tok.isAtStartOfStatement())
+  while (!Tok.isAtStartOfStatement())
     ConsumeAnyToken();
   return true;
 }
 
 /// ParseInclude - parses the include statement and loads the included file.
 bool Parser::ParseInclude() {
-  if(NextTok.isAtStartOfStatement() ||
-     NextTok.isNot(tok::char_literal_constant)){
+  if (NextTok.isAtStartOfStatement() ||
+      NextTok.isNot(tok::char_literal_constant)) {
     Diag.Report(NextTok.getLocation(), diag::err_pp_expects_filename);
     return true;
   }
   std::string LiteralString;
-  CleanLiteral(NextTok,LiteralString);
-  if(!LiteralString.length()) {
+  CleanLiteral(NextTok, LiteralString);
+  if (!LiteralString.length()) {
     Diag.Report(NextTok.getLocation(), diag::err_pp_empty_filename);
     return true;
   }
-  if(EnterIncludeFile(LiteralString) == true){
-    Diag.Report(NextTok.getLocation(), diag::err_pp_file_not_found) <<
-                LiteralString;
+  if (EnterIncludeFile(LiteralString) == true) {
+    Diag.Report(NextTok.getLocation(), diag::err_pp_file_not_found)
+        << LiteralString;
     return true;
   }
   return false;
@@ -507,21 +510,20 @@ void Parser::ParseStatementLabel() {
 
   std::string NumStr;
   CleanLiteral(Tok, NumStr);
-  StmtLabel = IntegerConstantExpr::Create(Context, getTokenRange(),
-                                          NumStr);
+  StmtLabel = IntegerConstantExpr::Create(Context, getTokenRange(), NumStr);
   ConsumeToken();
 }
 
 /// ParseStatementLabelReference - Parses a statement label reference token.
 ExprResult Parser::ParseStatementLabelReference(bool Consume) {
-  if(Tok.isNot(tok::int_literal_constant))
+  if (Tok.isNot(tok::int_literal_constant))
     return ExprError();
 
   std::string NumStr;
   CleanLiteral(Tok, NumStr);
-  auto Result = IntegerConstantExpr::Create(Context, getTokenRange(),
-                                            NumStr);
-  if(Consume) ConsumeToken();
+  auto Result = IntegerConstantExpr::Create(Context, getTokenRange(), NumStr);
+  if (Consume)
+    ConsumeToken();
   return Result;
 }
 
@@ -530,8 +532,8 @@ ExprResult Parser::ParseStatementLabelReference(bool Consume) {
 ///
 /// FIXME: check for do, if, select case after
 void Parser::ParseConstructNameLabel() {
-  if(Tok.is(tok::identifier)) {
-    if(IsNextToken(tok::colon)) {
+  if (Tok.is(tok::identifier)) {
+    if (IsNextToken(tok::colon)) {
       auto ID = Tok.getIdentifierInfo();
       auto Loc = ConsumeToken();
       StmtConstructName = ConstructName(Loc, ID);
@@ -542,10 +544,11 @@ void Parser::ParseConstructNameLabel() {
   StmtConstructName.IDInfo = nullptr;
 }
 
-/// ParseTrailingConstructName - Parses an optional trailing construct-name identifier.
-/// If the construct name isn't there, then set the ConstructName to null.
+/// ParseTrailingConstructName - Parses an optional trailing construct-name
+/// identifier. If the construct name isn't there, then set the ConstructName to
+/// null.
 void Parser::ParseTrailingConstructName() {
-  if(IsPresent(tok::identifier)) {
+  if (IsPresent(tok::identifier)) {
     auto ID = Tok.getIdentifierInfo();
     auto Loc = ConsumeToken();
     StmtConstructName = ConstructName(Loc, ID);
@@ -609,7 +612,7 @@ bool Parser::ParseProgramUnit() {
   case tok::kw_LOGICAL:
   case tok::kw_DOUBLEPRECISION:
   case tok::kw_DOUBLECOMPLEX:
-    if(ParseTypedExternalSubprogram(FunctionDecl::NoAttributes))
+    if (ParseTypedExternalSubprogram(FunctionDecl::NoAttributes))
       ParseMainProgram();
     break;
   case tok::kw_RECURSIVE:
@@ -647,7 +650,7 @@ bool Parser::ParseMainProgram() {
   StmtResult ProgStmt;
   if (Tok.is(tok::kw_PROGRAM)) {
     ProgStmt = ParsePROGRAMStmt();
-    //Body.push_back(ProgStmt);
+    // Body.push_back(ProgStmt);
   }
 
   // If the PROGRAM statement has an identifier, pass it on to the main program
@@ -666,7 +669,7 @@ bool Parser::ParseMainProgram() {
   ParseExecutableSubprogramBody(tok::kw_ENDPROGRAM);
   auto EndLoc = Tok.getLocation();
   auto EndProgStmt = ParseENDStmt(tok::kw_ENDPROGRAM);
-  if(EndProgStmt.isUsable())
+  if (EndProgStmt.isUsable())
     EndLoc = EndProgStmt.get()->getLocation();
 
   Actions.ActOnEndMainProgram(EndLoc);
@@ -681,46 +684,61 @@ bool Parser::ParseMainProgram() {
 ///         END [ PROGRAM/FUNCTION/SUBROUTINE/MODULE [ program-name ] ]
 Parser::StmtResult Parser::ParseENDStmt(tok::TokenKind EndKw) {
   ParseStatementLabel();
-  if(Tok.isNot(tok::kw_END) && Tok.isNot(EndKw)) {
+  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw)) {
     const char *Expected = "";
     const char *Given = "";
-    switch(EndKw) {
+    switch (EndKw) {
     case tok::kw_ENDPROGRAM:
-      Expected = "end program"; Given = "program"; break;
+      Expected = "end program";
+      Given = "program";
+      break;
     case tok::kw_ENDFUNCTION:
-      Expected = "end function"; Given = "function"; break;
+      Expected = "end function";
+      Given = "function";
+      break;
     case tok::kw_ENDSUBROUTINE:
-      Expected = "end subroutine"; Given = "subroutine"; break;
+      Expected = "end subroutine";
+      Given = "subroutine";
+      break;
     case tok::kw_ENDMODULE:
-      Expected = "end module"; Given = "module"; break;
-    default: break;
+      Expected = "end module";
+      Given = "module";
+      break;
+    default:
+      break;
     }
-    Diag.Report(Tok.getLocation(), diag::err_expected_kw)
-      << Expected;
-    Diag.Report(cast<NamedDecl>(Actions.CurContext)->getLocation(), diag::note_matching)
-      << Given;
-    if(Tok.isAtStartOfStatement()) ConsumeToken();
+    Diag.Report(Tok.getLocation(), diag::err_expected_kw) << Expected;
+    Diag.Report(cast<NamedDecl>(Actions.CurContext)->getLocation(),
+                diag::note_matching)
+        << Given;
+    if (Tok.isAtStartOfStatement())
+      ConsumeToken();
     SkipUntilNextStatement();
     return StmtError();
   }
 
   ConstructPartStmt::ConstructStmtClass Kind;
-  switch(Tok.getKind()) {
+  switch (Tok.getKind()) {
   case tok::kw_ENDPROGRAM:
-    Kind = ConstructPartStmt::EndProgramStmtClass; break;
+    Kind = ConstructPartStmt::EndProgramStmtClass;
+    break;
   case tok::kw_ENDFUNCTION:
-    Kind = ConstructPartStmt::EndFunctionStmtClass; break;
+    Kind = ConstructPartStmt::EndFunctionStmtClass;
+    break;
   case tok::kw_ENDSUBROUTINE:
-    Kind = ConstructPartStmt::EndSubroutineStmtClass; break;
+    Kind = ConstructPartStmt::EndSubroutineStmtClass;
+    break;
   case tok::kw_ENDMODULE:
-    Kind = ConstructPartStmt::EndModuleStmtClass; break;
+    Kind = ConstructPartStmt::EndModuleStmtClass;
+    break;
   default:
-    Kind = ConstructPartStmt::EndStmtClass; break;
+    Kind = ConstructPartStmt::EndStmtClass;
+    break;
   }
   auto Loc = ConsumeToken();
-  const IdentifierInfo *IDInfo  = nullptr;
+  const IdentifierInfo *IDInfo = nullptr;
   auto IDLoc = Loc;
-  if(IsPresent(tok::identifier)) {
+  if (IsPresent(tok::identifier)) {
     IDInfo = Tok.getIdentifierInfo();
     IDLoc = ConsumeToken();
   }
@@ -788,7 +806,6 @@ bool Parser::ParseSpecificationPart() {
   if (ParseImplicitPartList())
     HasErrors = true;
 
-
   if (ParseDeclarationConstructList()) {
     SkipUntilNextStatement();
     HasErrors = true;
@@ -830,52 +847,54 @@ bool Parser::ParseTypedExternalSubprogram(int Attr) {
   ParseDeclarationTypeSpec(ReturnType);
   bool IsRecursive = (Attr & FunctionDecl::Recursive) != 0;
 
-  if(Tok.isAtStartOfStatement())
+  if (Tok.isAtStartOfStatement())
     goto err;
-  if(!IsRecursive) {
-    if(Features.FixedForm)
-      ReLexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_RECURSIVE,
-                                                                                  tok::kw_FUNCTION)));
-    if(Tok.is(tok::kw_RECURSIVE)) {
+  if (!IsRecursive) {
+    if (Features.FixedForm)
+      ReLexAmbiguousIdentifier(fixedForm::KeywordMatcher(
+          fixedForm::KeywordFilter(tok::kw_RECURSIVE, tok::kw_FUNCTION)));
+    if (Tok.is(tok::kw_RECURSIVE)) {
       ConsumeToken();
       Attr |= FunctionDecl::Recursive;
     }
   }
 
-  if(Tok.isAtStartOfStatement())
+  if (Tok.isAtStartOfStatement())
     goto err;
-  if(Features.FixedForm)
-    ReLexAmbiguousIdentifier(fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_FUNCTION)));
-  if(Tok.is(tok::kw_FUNCTION)) {
+  if (Features.FixedForm)
+    ReLexAmbiguousIdentifier(
+        fixedForm::KeywordMatcher(fixedForm::KeywordFilter(tok::kw_FUNCTION)));
+  if (Tok.is(tok::kw_FUNCTION)) {
     ParseExternalSubprogram(ReturnType, Attr);
     return false;
   }
 err:
-  if(IsRecursive) {
-    Diag.Report(getExpectedLoc(), diag::err_expected_kw)
-      << "function";
+  if (IsRecursive) {
+    Diag.Report(getExpectedLoc(), diag::err_expected_kw) << "function";
     SkipUntilNextStatement();
-  } else StartStatementReparse(ReparseLoc);
+  } else
+    StartStatementReparse(ReparseLoc);
   return true;
 }
 
 bool Parser::ParseRecursiveExternalSubprogram() {
   ConsumeToken();
-  if(Tok.isAtStartOfStatement())
+  if (Tok.isAtStartOfStatement())
     goto err;
 
-  if(Features.FixedForm)
-    ReLexAmbiguousIdentifier(FixedFormAmbiguities.getMatcherForKeywordsAfterRECURSIVE());
-  if(Tok.is(tok::kw_SUBROUTINE) ||
-     Tok.is(tok::kw_FUNCTION)) {
+  if (Features.FixedForm)
+    ReLexAmbiguousIdentifier(
+        FixedFormAmbiguities.getMatcherForKeywordsAfterRECURSIVE());
+  if (Tok.is(tok::kw_SUBROUTINE) || Tok.is(tok::kw_FUNCTION)) {
     DeclSpec ReturnType;
     return ParseExternalSubprogram(ReturnType, FunctionDecl::Recursive);
   }
 
-  if(Tok.is(tok::kw_INTEGER) || Tok.is(tok::kw_REAL) || Tok.is(tok::kw_COMPLEX) ||
-     Tok.is(tok::kw_DOUBLEPRECISION) || Tok.is(tok::kw_DOUBLECOMPLEX) ||
-     Tok.is(tok::kw_LOGICAL) || Tok.is(tok::kw_CHARACTER) ||
-     Tok.is(tok::kw_BYTE) || Tok.is(tok::kw_TYPE) || Tok.is(tok::kw_RECORD))
+  if (Tok.is(tok::kw_INTEGER) || Tok.is(tok::kw_REAL) ||
+      Tok.is(tok::kw_COMPLEX) || Tok.is(tok::kw_DOUBLEPRECISION) ||
+      Tok.is(tok::kw_DOUBLECOMPLEX) || Tok.is(tok::kw_LOGICAL) ||
+      Tok.is(tok::kw_CHARACTER) || Tok.is(tok::kw_BYTE) ||
+      Tok.is(tok::kw_TYPE) || Tok.is(tok::kw_RECORD))
     return ParseTypedExternalSubprogram(FunctionDecl::Recursive);
 
 err:
@@ -890,63 +909,63 @@ bool Parser::ParseExternalSubprogram(DeclSpec &ReturnType, int Attr) {
 
   auto IDLoc = Tok.getLocation();
   auto II = Tok.getIdentifierInfo();
-  if(!ExpectAndConsume(tok::identifier))
+  if (!ExpectAndConsume(tok::identifier))
     return true;
 
   SubProgramScope Scope;
-  Actions.ActOnSubProgram(Context, Scope, IsSubroutine, IDLoc, II, ReturnType, Attr);
-  SmallVector<VarDecl* ,8> ArgumentList;
+  Actions.ActOnSubProgram(Context, Scope, IsSubroutine, IDLoc, II, ReturnType,
+                          Attr);
+  SmallVector<VarDecl *, 8> ArgumentList;
   bool HadErrorsInDeclStmt = false;
 
-  if(ConsumeIfPresent(tok::l_paren)) {
+  if (ConsumeIfPresent(tok::l_paren)) {
     // argument list
-    if(!IsPresent(tok::r_paren) && !Tok.isAtStartOfStatement()) {
+    if (!IsPresent(tok::r_paren) && !Tok.isAtStartOfStatement()) {
       do {
-        if(IsSubroutine && IsPresent(tok::star)) {
+        if (IsSubroutine && IsPresent(tok::star)) {
           Actions.ActOnSubProgramStarArgument(Context, ConsumeToken());
           continue;
         }
         auto IDLoc = Tok.getLocation();
         auto IDInfo = Tok.getIdentifierInfo();
-        if(!ExpectAndConsume(tok::identifier)) {
+        if (!ExpectAndConsume(tok::identifier)) {
           HadErrorsInDeclStmt = true;
           break;
         }
         auto Arg = Actions.ActOnSubProgramArgument(Context, IDLoc, IDInfo);
-        if(Arg)
+        if (Arg)
           ArgumentList.push_back(Arg);
-      } while(ConsumeIfPresent(tok::comma));
+      } while (ConsumeIfPresent(tok::comma));
     }
 
     // closing ')'
-    if(!HadErrorsInDeclStmt) {
-      if(!ExpectAndConsume(tok::r_paren)) {
+    if (!HadErrorsInDeclStmt) {
+      if (!ExpectAndConsume(tok::r_paren)) {
         HadErrorsInDeclStmt = true;
       }
     }
-  } else if(!IsSubroutine) {
+  } else if (!IsSubroutine) {
     Diag.Report(getExpectedLoc(), diag::err_expected_lparen)
-      << FixItHint(getExpectedLocForFixIt(), "(");
+        << FixItHint(getExpectedLocForFixIt(), "(");
     HadErrorsInDeclStmt = true;
   }
 
   Actions.ActOnSubProgramArgumentList(Context, ArgumentList);
 
-  if(HadErrorsInDeclStmt)
+  if (HadErrorsInDeclStmt)
     SkipUntilNextStatement();
-  else if(!IsSubroutine) {
-    if(IsPresent(tok::kw_RESULT)) {
-      if(ParseRESULT())
+  else if (!IsSubroutine) {
+    if (IsPresent(tok::kw_RESULT)) {
+      if (ParseRESULT())
         SkipUntilNextStatement();
     }
   }
 
-  auto EndKw = IsSubroutine? tok::kw_ENDSUBROUTINE :
-                             tok::kw_ENDFUNCTION;
+  auto EndKw = IsSubroutine ? tok::kw_ENDSUBROUTINE : tok::kw_ENDFUNCTION;
   ParseExecutableSubprogramBody(EndKw);
   auto EndLoc = Tok.getLocation();
   auto EndStmt = ParseENDStmt(EndKw);
-  if(EndStmt.isUsable())
+  if (EndStmt.isUsable())
     EndLoc = EndStmt.get()->getLocation();
   StmtLabel = nullptr;
   Actions.ActOnEndSubProgram(Context, EndLoc);
@@ -956,14 +975,14 @@ bool Parser::ParseExternalSubprogram(DeclSpec &ReturnType, int Attr) {
 
 bool Parser::ParseRESULT() {
   ConsumeToken();
-  if(!ExpectAndConsume(tok::l_paren))
+  if (!ExpectAndConsume(tok::l_paren))
     return true;
   auto IDLoc = Tok.getLocation();
   auto ID = Tok.getIdentifierInfo();
-  if(!ExpectAndConsume(tok::identifier))
+  if (!ExpectAndConsume(tok::identifier))
     return true;
   Actions.ActOnRESULT(Context, IDLoc, ID);
-  if(!ExpectAndConsume(tok::r_paren))
+  if (!ExpectAndConsume(tok::r_paren))
     return true;
   return false;
 }
@@ -976,30 +995,31 @@ StmtResult Parser::ParseStatementFunction() {
   auto ID = Tok.getIdentifierInfo();
   auto Loc = ConsumeToken();
 
-  SmallVector<VarDecl* ,8> ArgumentList;
+  SmallVector<VarDecl *, 8> ArgumentList;
   Actions.ActOnStatementFunction(Context, Loc, ID);
   ExpectAndConsume(tok::l_paren);
   bool DontParseBody = false;
-  if(!ConsumeIfPresent(tok::r_paren)) {
+  if (!ConsumeIfPresent(tok::r_paren)) {
     do {
       auto ArgID = Tok.getIdentifierInfo();
       auto Loc = Tok.getLocation();
-      if(!ExpectAndConsume(tok::identifier))
+      if (!ExpectAndConsume(tok::identifier))
         break;
       auto Arg = Actions.ActOnStatementFunctionArgument(Context, Loc, ArgID);
-      if(Arg)
+      if (Arg)
         ArgumentList.push_back(Arg);
-    } while(ConsumeIfPresent(tok::comma));
-    if(!ExpectAndConsume(tok::r_paren,0,"",tok::r_paren))
+    } while (ConsumeIfPresent(tok::comma));
+    if (!ExpectAndConsume(tok::r_paren, 0, "", tok::r_paren))
       DontParseBody = true;
   }
   Actions.ActOnSubProgramArgumentList(Context, ArgumentList);
   Actions.ActOnFunctionSpecificationPart();
-  if(!DontParseBody) {
+  if (!DontParseBody) {
     auto EqLoc = Tok.getLocation();
-    if(ExpectAndConsume(tok::equal)) {
+    if (ExpectAndConsume(tok::equal)) {
       auto Body = ParseExpectedFollowupExpression("=");
-      if(Body.isInvalid()) SkipUntilNextStatement();
+      if (Body.isInvalid())
+        SkipUntilNextStatement();
       else {
         Actions.ActOnStatementFunctionBody(EqLoc, Body);
         ExpectStatementEnd();
@@ -1037,8 +1057,10 @@ bool Parser::ParseModule() {
   Actions.ActOnModule(Context, Scope, IDInfo, NameLoc);
 
   // [specification-part]
-  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw) && Tok.isNot(tok::kw_CONTAINS)) {
-    // FIXME there are constraints on module specification part that need to be taken into account
+  if (Tok.isNot(tok::kw_END) && Tok.isNot(EndKw) &&
+      Tok.isNot(tok::kw_CONTAINS)) {
+    // FIXME there are constraints on module specification part that need to be
+    // taken into account
     ParseSpecificationPart();
     Actions.ActOnSpecificationPart();
   }
@@ -1046,14 +1068,14 @@ bool Parser::ParseModule() {
   // [module-subprogram-part]
   if (Tok.is(tok::kw_CONTAINS)) {
     ConsumeToken();
-    while(!ParseModuleSubprogram())
+    while (!ParseModuleSubprogram())
       /* parse all module subprograms */;
   }
 
   // end-module-stmt
   auto EndLoc = Tok.getLocation();
   auto EndModuleStmt = ParseENDStmt(EndKw);
-  if(EndModuleStmt.isUsable())
+  if (EndModuleStmt.isUsable())
     EndLoc = EndModuleStmt.get()->getLocation();
 
   Actions.ActOnEndModule(EndLoc);
@@ -1066,7 +1088,7 @@ bool Parser::ParseModuleSubprogram() {
   // END or END MODULE terminates parsing
   if (Tok.is(tok::kw_END) || Tok.is(tok::kw_ENDMODULE))
     return true;
-  
+
   switch (Tok.getKind()) {
   default:
     // FIXME diagnostics
@@ -1146,11 +1168,20 @@ StmtResult Parser::ParseImplicitPart() {
   LookForSpecificationStmtKeyword();
   StmtResult Result;
   switch (Tok.getKind()) {
-  default: break;
-  case tok::kw_IMPLICIT:  Result = ParseIMPLICITStmt();  break;
-  case tok::kw_PARAMETER: Result = ParsePARAMETERStmt(); break;
-  case tok::kw_FORMAT:    Result = ParseFORMATStmt();    break;
-  case tok::kw_ENTRY:     Result = ParseENTRYStmt();     break;
+  default:
+    break;
+  case tok::kw_IMPLICIT:
+    Result = ParseIMPLICITStmt();
+    break;
+  case tok::kw_PARAMETER:
+    Result = ParsePARAMETERStmt();
+    break;
+  case tok::kw_FORMAT:
+    Result = ParseFORMATStmt();
+    break;
+  case tok::kw_ENTRY:
+    Result = ParseENTRYStmt();
+    break;
   }
 
   return Result;
@@ -1172,7 +1203,8 @@ bool Parser::ParseExecutionPart() {
       HadError = true;
     } else if (SR.isUsable())
       ExpectStatementEnd();
-    else break;
+    else
+      break;
   }
 
   return HadError;
@@ -1182,7 +1214,7 @@ bool Parser::ParseExecutionPart() {
 /// construct statements.
 bool Parser::ParseDeclarationConstructList() {
   while (!ParseDeclarationConstruct())
-    /* Parse them all */ ;
+    /* Parse them all */;
 
   return false;
 }
@@ -1205,19 +1237,20 @@ bool Parser::ParseDeclarationConstruct() {
   ParseStatementLabel();
   LookForSpecificationStmtKeyword();
 
-  SmallVector<DeclResult, 4> Decls;  
+  SmallVector<DeclResult, 4> Decls;
 
   switch (Tok.getKind()) {
   default:
     // FIXME: error handling.
-    if(ParseSpecificationStmt()) return true;
+    if (ParseSpecificationStmt())
+      return true;
     break;
   case tok::kw_TYPE:
   case tok::kw_CLASS:
   case tok::kw_STRUCTURE:
     if (IsNextToken(tok::equal))
       return true;
-    if(!IsNextToken(tok::l_paren)) {
+    if (!IsNextToken(tok::l_paren)) {
       ParseDerivedTypeDefinitionStmt();
       break;
     }
@@ -1253,9 +1286,7 @@ bool Parser::ParseDeclarationConstruct() {
 ///         forall-construct-stmt
 ///           [forall-body-construct] ...
 ///           end-forall-stmt
-bool Parser::ParseForAllConstruct() {
-  return false;
-}
+bool Parser::ParseForAllConstruct() { return false; }
 
 /// ParseArraySpec - Parse an array specification.
 ///
@@ -1265,8 +1296,8 @@ bool Parser::ParseForAllConstruct() {
 ///      or assumed-shape-spec-list
 ///      or deferred-shape-spec-list
 ///      or assumed-size-spec
-bool Parser::ParseArraySpec(SmallVectorImpl<ArraySpec*> &Dims) {
-  if(!ExpectAndConsume(tok::l_paren))
+bool Parser::ParseArraySpec(SmallVectorImpl<ArraySpec *> &Dims) {
+  if (!ExpectAndConsume(tok::l_paren))
     goto error;
 
   // [R511], [R512], [R513]:
@@ -1287,22 +1318,25 @@ bool Parser::ParseArraySpec(SmallVectorImpl<ArraySpec*> &Dims) {
   //
   //   C708: int-expr shall be of type integer.
   do {
-    if(IsPresent(tok::star))
+    if (IsPresent(tok::star))
       Dims.push_back(ImpliedShapeSpec::Create(Context, ConsumeToken()));
     else {
       ExprResult E = ParseExpression();
-      if (E.isInvalid()) goto error;
-      if(ConsumeIfPresent(tok::colon)) {
-        if(IsPresent(tok::star))
-          Dims.push_back(ImpliedShapeSpec::Create(Context, ConsumeToken(),
-                                                  E.take()));
+      if (E.isInvalid())
+        goto error;
+      if (ConsumeIfPresent(tok::colon)) {
+        if (IsPresent(tok::star))
+          Dims.push_back(
+              ImpliedShapeSpec::Create(Context, ConsumeToken(), E.take()));
         else {
           ExprResult E2 = ParseExpression();
-          if(E2.isInvalid()) goto error;
-          Dims.push_back(ExplicitShapeSpec::Create(Context, E.take(), E2.take()));
+          if (E2.isInvalid())
+            goto error;
+          Dims.push_back(
+              ExplicitShapeSpec::Create(Context, E.take(), E2.take()));
         }
-      }
-      else Dims.push_back(ExplicitShapeSpec::Create(Context, E.take()));
+      } else
+        Dims.push_back(ExplicitShapeSpec::Create(Context, E.take()));
     }
   } while (ConsumeIfPresent(tok::comma));
 
@@ -1310,12 +1344,12 @@ bool Parser::ParseArraySpec(SmallVectorImpl<ArraySpec*> &Dims) {
     goto error;
 
   return false;
- error:
+error:
   return true;
 }
 
 /// ParsePROGRAMStmt - If there is a PROGRAM statement, parse it.
-/// 
+///
 ///   [11.1] R1102:
 ///     program-stmt :=
 ///         PROGRAM program-name
@@ -1324,22 +1358,20 @@ Parser::StmtResult Parser::ParsePROGRAMStmt() {
   const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
   SourceLocation ProgramLoc = Tok.getLocation();
   if (!isaKeyword(IDInfo->getName()) || Tok.isNot(tok::kw_PROGRAM))
-    return Actions.ActOnPROGRAM(Context, 0, ProgramLoc, ProgramLoc,
-                                StmtLabel);
+    return Actions.ActOnPROGRAM(Context, 0, ProgramLoc, ProgramLoc, StmtLabel);
 
   // Parse the program name.
   Lex();
   SourceLocation NameLoc = Tok.getLocation();
   IDInfo = Tok.getIdentifierInfo();
-  if(!ExpectAndConsume(tok::identifier))
+  if (!ExpectAndConsume(tok::identifier))
     return StmtError();
 
-  return Actions.ActOnPROGRAM(Context, IDInfo, ProgramLoc, NameLoc,
-                              StmtLabel);
+  return Actions.ActOnPROGRAM(Context, IDInfo, ProgramLoc, NameLoc, StmtLabel);
 }
 
 /// ParseMODULEStmt - If there is a MODULE statement, parse it.
-/// 
+///
 ///   [11.3] R1105:
 ///     module-stmt :=
 ///         MODULE module-name
@@ -1352,12 +1384,11 @@ Parser::StmtResult Parser::ParseMODULEStmt() {
   Lex();
   SourceLocation NameLoc = Tok.getLocation();
   const IdentifierInfo *IDInfo = Tok.getIdentifierInfo();
-  if(!ExpectAndConsume(tok::identifier,
-                       diag::err_expected_ident_after, "module"))
+  if (!ExpectAndConsume(tok::identifier, diag::err_expected_ident_after,
+                        "module"))
     return StmtError();
 
-  return Actions.ActOnMODULE(Context, IDInfo, ModuleLoc, NameLoc,
-                              StmtLabel);
+  return Actions.ActOnMODULE(Context, IDInfo, ModuleLoc, NameLoc, StmtLabel);
 }
 
 /// ParseUSEStmt - Parse the 'USE' statement.
@@ -1383,8 +1414,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
     } else if (ConsumeIfPresent(tok::kw_NONINTRINSIC)) {
       MN = UseStmt::NonIntrinsic;
     } else {
-      Diag.ReportError(Tok.getLocation(),
-                       "expected module nature keyword");
+      Diag.ReportError(Tok.getLocation(), "expected module nature keyword");
       return StmtResult(true);
     }
 
@@ -1402,8 +1432,7 @@ Parser::StmtResult Parser::ParseUSEStmt() {
 
   if (!ConsumeIfPresent(tok::comma)) {
     if (!Tok.isAtStartOfStatement()) {
-      Diag.ReportError(Tok.getLocation(),
-                       "expected a ',' in USE statement");
+      Diag.ReportError(Tok.getLocation(), "expected a ',' in USE statement");
       return StmtResult(true);
     }
 
@@ -1479,7 +1508,7 @@ Parser::StmtResult Parser::ParseIMPORTStmt() {
   Lex();
   ConsumeIfPresent(tok::coloncolon);
 
-  SmallVector<const IdentifierInfo*, 4> ImportNameList;
+  SmallVector<const IdentifierInfo *, 4> ImportNameList;
   while (!Tok.isAtStartOfStatement()) {
     if (Tok.isNot(tok::identifier)) {
       Diag.ReportError(Tok.getLocation(),
@@ -1507,9 +1536,7 @@ Parser::StmtResult Parser::ParseIMPORTStmt() {
 ///   [R1240]:
 ///     entry-stmt :=
 ///         ENTRY entry-name [ ( [ dummy-arg-list ] ) [ suffix ] ]
-StmtResult Parser::ParseENTRYStmt() {
-  return StmtResult();
-}
+StmtResult Parser::ParseENTRYStmt() { return StmtResult(); }
 
 /// ParseProcedureDeclStmt - Parse the procedure declaration statement.
 ///
@@ -1517,11 +1544,10 @@ StmtResult Parser::ParseENTRYStmt() {
 ///     procedure-declaration-stmt :=
 ///         PROCEDURE ([proc-interface]) [ [ , proc-attr-spec ]... :: ] #
 ///         # proc-decl-list
-bool Parser::ParseProcedureDeclStmt() {
-  return false;
-}
+bool Parser::ParseProcedureDeclStmt() { return false; }
 
-/// ParseSpecificationStmt - Parse the specification statement or a statement function.
+/// ParseSpecificationStmt - Parse the specification statement or a statement
+/// function.
 ///
 ///   [R212]:
 ///     specification-stmt :=
@@ -1549,9 +1575,10 @@ bool Parser::ParseSpecificationStmt() {
   switch (Tok.getKind()) {
   default:
     // statement function.
-    if(Tok.is(tok::identifier)) {
-      if(IsNextToken(tok::l_paren)) {
-        if(Actions.IsValidStatementFunctionIdentifier(Tok.getIdentifierInfo())) {
+    if (Tok.is(tok::identifier)) {
+      if (IsNextToken(tok::l_paren)) {
+        if (Actions.IsValidStatementFunctionIdentifier(
+                Tok.getIdentifierInfo())) {
           Result = ParseStatementFunction();
           break;
         }
@@ -1609,7 +1636,7 @@ bool Parser::ParseSpecificationStmt() {
     goto notImplemented;
   case tok::kw_SAVE:
     Result = ParseSAVEStmt();
-    if(Result.isUsable() && isa<AssignmentStmt>(Result.get()))
+    if (Result.isUsable() && isa<AssignmentStmt>(Result.get()))
       return true; /// NB: Fixed-form ambiguity
     break;
   case tok::kw_TARGET:
@@ -1623,9 +1650,9 @@ bool Parser::ParseSpecificationStmt() {
     goto notImplemented;
   }
 
-  if(Result.isInvalid())
+  if (Result.isInvalid())
     SkipUntilNextStatement();
-  if(Result.isUsable()) {
+  if (Result.isUsable()) {
     ExpectStatementEnd();
     Actions.getCurrentBody()->Append(Result.take());
   }
@@ -1634,10 +1661,7 @@ bool Parser::ParseSpecificationStmt() {
 notImplemented:
   auto Max = getMaxLocationOfCurrentToken();
   auto Loc = ConsumeAnyToken();
-  Diag.Report(Loc,
-              diag::err_unsupported_stmt)
-      << SourceRange( Loc,
-                      Max);
+  Diag.Report(Loc, diag::err_unsupported_stmt) << SourceRange(Loc, Max);
   SkipUntilNextStatement();
   return false;
 }
@@ -1647,9 +1671,7 @@ notImplemented:
 ///   [R524]:
 ///     access-stmt :=
 ///         access-spec [[::] access-id-list]
-Parser::StmtResult Parser::ParseACCESSStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseACCESSStmt() { return StmtResult(); }
 
 /// ParseALLOCATABLEStmt - Parse the ALLOCATABLE statement.
 ///
@@ -1658,9 +1680,7 @@ Parser::StmtResult Parser::ParseACCESSStmt() {
 ///         ALLOCATABLE [::] object-name       #
 ///         # [ ( deferred-shape-spec-list ) ] #
 ///         # [ , object-name [ ( deferred-shape-spec-list ) ] ] ...
-Parser::StmtResult Parser::ParseALLOCATABLEStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseALLOCATABLEStmt() { return StmtResult(); }
 
 /// ParseASYNCHRONOUSStmt - Parse the ASYNCHRONOUS statement.
 ///
@@ -1672,7 +1692,7 @@ Parser::StmtResult Parser::ParseASYNCHRONOUSStmt() {
   Lex();
   ConsumeIfPresent(tok::coloncolon);
 
-  SmallVector<const IdentifierInfo*, 8> ObjNameList;
+  SmallVector<const IdentifierInfo *, 8> ObjNameList;
   while (!Tok.isAtStartOfStatement()) {
     if (Tok.isNot(tok::identifier)) {
       Diag.ReportError(Tok.getLocation(),
@@ -1701,9 +1721,7 @@ Parser::StmtResult Parser::ParseASYNCHRONOUSStmt() {
 ///   [5.2.4] R522:
 ///     bind-stmt :=
 ///         language-binding-spec [::] bind-entity-list
-Parser::StmtResult Parser::ParseBINDStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseBINDStmt() { return StmtResult(); }
 
 /// ParseDATAStmt - Parse the DATA statement.
 ///
@@ -1713,13 +1731,15 @@ Parser::StmtResult Parser::ParseBINDStmt() {
 Parser::StmtResult Parser::ParseDATAStmt() {
   SourceLocation Loc = ConsumeToken();
 
-  SmallVector<Stmt *,8> StmtList;
+  SmallVector<Stmt *, 8> StmtList;
 
-  while(true) {
+  while (true) {
     auto Stmt = ParseDATAStmtPart(Loc);
-    if(Stmt.isInvalid()) return StmtError();
+    if (Stmt.isInvalid())
+      return StmtError();
     StmtList.push_back(Stmt.take());
-    if(Tok.isAtStartOfStatement()) break;
+    if (Tok.isAtStartOfStatement())
+      break;
     ConsumeIfPresent(tok::comma);
   }
 
@@ -1727,67 +1747,67 @@ Parser::StmtResult Parser::ParseDATAStmt() {
 }
 
 Parser::StmtResult Parser::ParseDATAStmtPart(SourceLocation Loc) {
-  SmallVector<Expr*, 8> Objects;
-  SmallVector<Expr*, 8> Values;
+  SmallVector<Expr *, 8> Objects;
+  SmallVector<Expr *, 8> Values;
   bool HadSemaErrors = false;
 
   // nlist
   do {
-    if(Tok.isAtStartOfStatement()) {
+    if (Tok.isAtStartOfStatement()) {
       Diag.Report(getExpectedLoc(), diag::err_expected_expression);
       return StmtError();
     }
 
     ExprResult E;
-    if(Tok.is(tok::l_paren)) {
+    if (Tok.is(tok::l_paren)) {
       E = ParseDATAStmtImpliedDo();
-      if(E.isUsable())
+      if (E.isUsable())
         E = Actions.ActOnDATAOuterImpliedDoExpr(Context, E);
-    }
-    else
-       E = ParsePrimaryExpr();
+    } else
+      E = ParsePrimaryExpr();
 
-     if(E.isInvalid())
-       return StmtError();
-     if(E.isUsable())
-       Objects.push_back(E.get());
-  } while(ConsumeIfPresent(tok::comma));
+    if (E.isInvalid())
+      return StmtError();
+    if (E.isUsable())
+      Objects.push_back(E.get());
+  } while (ConsumeIfPresent(tok::comma));
 
   // clist
-  if(!ExpectAndConsume(tok::slash))
+  if (!ExpectAndConsume(tok::slash))
     return StmtError();
 
   do {
-    if(Tok.isAtStartOfStatement()) {
+    if (Tok.isAtStartOfStatement()) {
       Diag.Report(getExpectedLoc(), diag::err_expected_expression);
       return StmtError();
     }
 
     ExprResult Repeat;
     SourceLocation RepeatLoc;
-    if(Tok.is(tok::int_literal_constant)
-       && IsNextToken(tok::star)) {
+    if (Tok.is(tok::int_literal_constant) && IsNextToken(tok::star)) {
       Repeat = ParsePrimaryExpr();
       RepeatLoc = Tok.getLocation();
       ConsumeIfPresent(tok::star);
-      if(Tok.isAtStartOfStatement()) {
+      if (Tok.isAtStartOfStatement()) {
         Diag.Report(getExpectedLoc(), diag::err_expected_expression);
         return StmtError();
       }
     }
     auto Value = ParsePrimaryExpr();
-    if(Value.isInvalid()) return StmtError();
+    if (Value.isInvalid())
+      return StmtError();
 
     Value = Actions.ActOnDATAConstantExpr(Context, RepeatLoc, Repeat, Value);
-    if(Value.isUsable())
+    if (Value.isUsable())
       Values.push_back(Value.get());
-    else HadSemaErrors = true;
-  } while(ConsumeIfPresent(tok::comma));
+    else
+      HadSemaErrors = true;
+  } while (ConsumeIfPresent(tok::comma));
 
-  if(!ExpectAndConsume(tok::slash))
+  if (!ExpectAndConsume(tok::slash))
     return StmtError();
 
-  if(HadSemaErrors)
+  if (HadSemaErrors)
     return StmtError();
   return Actions.ActOnDATA(Context, Loc, Objects, Values, nullptr);
 }
@@ -1799,33 +1819,35 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
   SmallVector<ExprResult, 8> DList;
   ExprResult E1, E2, E3;
 
-  while(true) {
+  while (true) {
     ExprResult E;
-    if(Tok.isAtStartOfStatement()) {
+    if (Tok.isAtStartOfStatement()) {
       Diag.Report(getExpectedLoc(), diag::err_expected_expression);
       return ExprError();
     }
 
-    if(Tok.is(tok::l_paren))
+    if (Tok.is(tok::l_paren))
       E = ParseDATAStmtImpliedDo();
     else {
       auto PrevDontResolveIdentifiersInSubExpressions =
-             DontResolveIdentifiersInSubExpressions;
+          DontResolveIdentifiersInSubExpressions;
       DontResolveIdentifiersInSubExpressions = true;
       E = ParsePrimaryExpr();
       DontResolveIdentifiersInSubExpressions =
-        PrevDontResolveIdentifiersInSubExpressions;
+          PrevDontResolveIdentifiersInSubExpressions;
     }
 
-    if(E.isInvalid()) return ExprError();
+    if (E.isInvalid())
+      return ExprError();
     DList.push_back(E);
 
-    if(ConsumeIfPresent(tok::comma)) {
-      if(Tok.isAtStartOfStatement()) {
+    if (ConsumeIfPresent(tok::comma)) {
+      if (Tok.isAtStartOfStatement()) {
         Diag.Report(getExpectedLoc(), diag::err_expected_expression);
         return ExprError();
       }
-      if(IsNextToken(tok::equal)) break;
+      if (IsNextToken(tok::equal))
+        break;
     } else {
       Diag.Report(getExpectedLoc(), diag::err_expected_comma);
       return ExprError();
@@ -1834,36 +1856,39 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
 
   auto IDLoc = Tok.getLocation();
   auto IDInfo = Tok.getIdentifierInfo();
-  if(!ExpectAndConsume(tok::identifier))
+  if (!ExpectAndConsume(tok::identifier))
     return ExprError();
 
-  if(!ExpectAndConsume(tok::equal))
+  if (!ExpectAndConsume(tok::equal))
     return ExprError();
 
   auto PrevDontResolveIdentifiers = DontResolveIdentifiers;
   DontResolveIdentifiers = true;
 
   E1 = ParseExpectedFollowupExpression("=");
-  if(E1.isInvalid()) return E1;
-  if(!ExpectAndConsume(tok::comma)) {
+  if (E1.isInvalid())
+    return E1;
+  if (!ExpectAndConsume(tok::comma)) {
     // NB: don't forget
     DontResolveIdentifiers = PrevDontResolveIdentifiers;
     return ExprError();
   }
   E2 = ParseExpectedFollowupExpression(",");
-  if(E2.isInvalid()) return E2;
-  if(ConsumeIfPresent(tok::comma)) {
+  if (E2.isInvalid())
+    return E2;
+  if (ConsumeIfPresent(tok::comma)) {
     E3 = ParseExpectedFollowupExpression(",");
   }
-  if(E3.isInvalid()) return E3;
+  if (E3.isInvalid())
+    return E3;
 
   DontResolveIdentifiers = PrevDontResolveIdentifiers;
 
-  if(!ExpectAndConsume(tok::r_paren))
+  if (!ExpectAndConsume(tok::r_paren))
     return ExprError();
 
-  return Actions.ActOnDATAImpliedDoExpr(Context, Loc, IDLoc, IDInfo,
-                                        DList, E1, E2, E3);
+  return Actions.ActOnDATAImpliedDoExpr(Context, Loc, IDLoc, IDInfo, DList, E1,
+                                        E2, E3);
 }
 
 /// ParseINTENTStmt - Parse the INTENT statement.
@@ -1871,9 +1896,7 @@ Parser::ExprResult Parser::ParseDATAStmtImpliedDo() {
 ///   [R536]:
 ///     intent-stmt :=
 ///         INTENT ( intent-spec ) [::] dummy-arg-name-list
-Parser::StmtResult Parser::ParseINTENTStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseINTENTStmt() { return StmtResult(); }
 
 /// ParseNAMELISTStmt - Parse the NAMELIST statement.
 ///
@@ -1883,36 +1906,28 @@ Parser::StmtResult Parser::ParseINTENTStmt() {
 ///         # / namelist-group-name / namelist-group-object-list #
 ///         # [ [,] / namelist-group-name / #
 ///         #   namelist-group-object-list ] ...
-Parser::StmtResult Parser::ParseNAMELISTStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseNAMELISTStmt() { return StmtResult(); }
 
 /// ParseOPTIONALStmt - Parse the OPTIONAL statement.
 ///
 ///   [R537]:
 ///     optional-stmt :=
 ///         OPTIONAL [::] dummy-arg-name-list
-Parser::StmtResult Parser::ParseOPTIONALStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseOPTIONALStmt() { return StmtResult(); }
 
 /// ParsePOINTERStmt - Parse the POINTER statement.
 ///
 ///   [R540]:
 ///     pointer-stmt :=
 ///         POINTER [::] pointer-decl-list
-Parser::StmtResult Parser::ParsePOINTERStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParsePOINTERStmt() { return StmtResult(); }
 
 /// ParsePROTECTEDStmt - Parse the PROTECTED statement.
 ///
 ///   [R542]:
 ///     protected-stmt :=
 ///         PROTECTED [::] entity-name-list
-Parser::StmtResult Parser::ParsePROTECTEDStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParsePROTECTEDStmt() { return StmtResult(); }
 
 /// ParseTARGETStmt - Parse the TARGET statement.
 ///
@@ -1920,71 +1935,55 @@ Parser::StmtResult Parser::ParsePROTECTEDStmt() {
 ///     target-stmt :=
 ///         TARGET [::] object-name [ ( array-spec ) ] #
 ///         # [ , object-name [ ( array-spec ) ] ] ...
-Parser::StmtResult Parser::ParseTARGETStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseTARGETStmt() { return StmtResult(); }
 
 /// ParseVALUEStmt - Parse the VALUE statement.
 ///
 ///   [R547]:
 ///     value-stmt :=
 ///         VALUE [::] dummy-arg-name-list
-Parser::StmtResult Parser::ParseVALUEStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseVALUEStmt() { return StmtResult(); }
 
 /// ParseVOLATILEStmt - Parse the VOLATILE statement.
 ///
 ///   [R548]:
 ///     volatile-stmt :=
 ///         VOLATILE [::] object-name-list
-Parser::StmtResult Parser::ParseVOLATILEStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseVOLATILEStmt() { return StmtResult(); }
 
 /// ParseALLOCATEStmt - Parse the ALLOCATE statement.
 ///
 ///   [R623]:
 ///     allocate-stmt :=
 ///         ALLOCATE ( [ type-spec :: ] alocation-list [ , alloc-opt-list ] )
-Parser::StmtResult Parser::ParseALLOCATEStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseALLOCATEStmt() { return StmtResult(); }
 
 /// ParseNULLIFYStmt - Parse the NULLIFY statement.
 ///
 ///   [R633]:
 ///     nullify-stmt :=
 ///         NULLIFY ( pointer-object-list )
-Parser::StmtResult Parser::ParseNULLIFYStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseNULLIFYStmt() { return StmtResult(); }
 
 /// ParseDEALLOCATEStmt - Parse the DEALLOCATE statement.
 ///
 ///   [R635]:
 ///     deallocate-stmt :=
 ///         DEALLOCATE ( allocate-object-list [ , dealloc-op-list ] )
-Parser::StmtResult Parser::ParseDEALLOCATEStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseDEALLOCATEStmt() { return StmtResult(); }
 
 /// ParseFORALLStmt - Parse the FORALL construct statement.
 ///
 ///   [R753]:
 ///     forall-construct-stmt :=
 ///         [forall-construct-name :] FORALL forall-header
-Parser::StmtResult Parser::ParseFORALLStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseFORALLStmt() { return StmtResult(); }
 
 /// ParseENDFORALLStmt - Parse the END FORALL construct statement.
-/// 
+///
 ///   [R758]:
 ///     end-forall-stmt :=
 ///         END FORALL [forall-construct-name]
-Parser::StmtResult Parser::ParseEND_FORALLStmt() {
-  return StmtResult();
-}
+Parser::StmtResult Parser::ParseEND_FORALLStmt() { return StmtResult(); }
 
-} //namespace fort
+} // namespace fort

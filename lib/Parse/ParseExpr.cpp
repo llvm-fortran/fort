@@ -11,16 +11,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "fort/Parse/Parser.h"
-#include "fort/Parse/ParseDiagnostic.h"
-#include "fort/Sema/SemaDiagnostic.h"
 #include "fort/AST/Decl.h"
 #include "fort/AST/Expr.h"
+#include "fort/Parse/ParseDiagnostic.h"
+#include "fort/Parse/Parser.h"
 #include "fort/Sema/Ownership.h"
 #include "fort/Sema/Sema.h"
-#include "llvm/Support/SourceMgr.h"
+#include "fort/Sema/SemaDiagnostic.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/Support/SourceMgr.h"
 
 namespace fort {
 
@@ -36,7 +36,8 @@ namespace fort {
 //         . letter [ letter ] ... .
 Parser::ExprResult Parser::ParseExpression() {
   ExprResult LHS = ParseLevel5Expr();
-  if (LHS.isInvalid()) return LHS;
+  if (LHS.isInvalid())
+    return LHS;
 
   if (!IsPresent(tok::defined_operator))
     return LHS;
@@ -46,13 +47,15 @@ Parser::ExprResult Parser::ParseExpression() {
   Lex();
 
   ExprResult RHS = ParseLevel5Expr();
-  if (RHS.isInvalid()) return RHS;
+  if (RHS.isInvalid())
+    return RHS;
 
-  return DefinedBinaryOperatorExpr::Create(Context, OpLoc, LHS.take(), RHS.take(), II);
+  return DefinedBinaryOperatorExpr::Create(Context, OpLoc, LHS.take(),
+                                           RHS.take(), II);
 }
 
 ExprResult Parser::ParseExpectedExpression() {
-  if(Tok.isAtStartOfStatement()) {
+  if (Tok.isAtStartOfStatement()) {
     Diag.Report(getExpectedLoc(), diag::err_expected_expression);
     return ExprError();
   }
@@ -63,9 +66,9 @@ ExprResult Parser::ParseExpectedExpression() {
 /// and calls ParseExpression if it is, or reports an expected expression
 /// error.
 ExprResult Parser::ParseExpectedFollowupExpression(const char *DiagAfter) {
-  if(Tok.isAtStartOfStatement()) {
+  if (Tok.isAtStartOfStatement()) {
     Diag.Report(getExpectedLoc(), diag::err_expected_expression_after)
-      << DiagAfter;
+        << DiagAfter;
     return ExprError();
   }
   return ParseExpression();
@@ -86,7 +89,7 @@ ExprResult Parser::ParseExpectedFollowupExpression(const char *DiagAfter) {
 //   R714:
 //     and-operand :=
 //         [ not-op ] level-4-expr
-//         
+//
 //   R718:
 //     not-op :=
 //         .NOT.
@@ -105,7 +108,8 @@ Parser::ExprResult Parser::ParseAndOperand() {
   bool Negate = ConsumeIfPresent(tok::kw_NOT);
 
   ExprResult E = ParseLevel4Expr();
-  if (E.isInvalid()) return E;
+  if (E.isInvalid())
+    return E;
 
   if (Negate)
     E = Actions.ActOnUnaryExpr(Context, NotLoc, UnaryExpr::Not, E);
@@ -113,13 +117,15 @@ Parser::ExprResult Parser::ParseAndOperand() {
 }
 Parser::ExprResult Parser::ParseOrOperand() {
   ExprResult E = ParseAndOperand();
-  if (E.isInvalid()) return E;
+  if (E.isInvalid())
+    return E;
 
   while (Tok.getKind() == tok::kw_AND) {
     SourceLocation OpLoc = Tok.getLocation();
     Lex();
     ExprResult AndOp = ParseAndOperand();
-    if (AndOp.isInvalid()) return AndOp;
+    if (AndOp.isInvalid())
+      return AndOp;
     E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::And, E, AndOp);
   }
 
@@ -127,13 +133,15 @@ Parser::ExprResult Parser::ParseOrOperand() {
 }
 Parser::ExprResult Parser::ParseEquivOperand() {
   ExprResult E = ParseOrOperand();
-  if (E.isInvalid()) return E;
+  if (E.isInvalid())
+    return E;
 
   while (Tok.getKind() == tok::kw_OR) {
     SourceLocation OpLoc = Tok.getLocation();
     Lex();
     ExprResult OrOp = ParseOrOperand();
-    if (OrOp.isInvalid()) return OrOp;
+    if (OrOp.isInvalid())
+      return OrOp;
     E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::Or, E, OrOp);
   }
 
@@ -141,7 +149,8 @@ Parser::ExprResult Parser::ParseEquivOperand() {
 }
 Parser::ExprResult Parser::ParseLevel5Expr() {
   ExprResult E = ParseEquivOperand();
-  if (E.isInvalid()) return E;
+  if (E.isInvalid())
+    return E;
 
   while (true) {
     SourceLocation OpLoc = Tok.getLocation();
@@ -151,12 +160,12 @@ Parser::ExprResult Parser::ParseLevel5Expr() {
     case tok::kw_EQV:
       Lex();
       E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::Eqv, E,
-                               ParseEquivOperand());
+                                  ParseEquivOperand());
       break;
     case tok::kw_NEQV:
       Lex();
       E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::Neqv, E,
-                               ParseEquivOperand());
+                                  ParseEquivOperand());
       break;
     }
   }
@@ -185,7 +194,8 @@ Parser::ExprResult Parser::ParseLevel5Expr() {
 //      or >=
 Parser::ExprResult Parser::ParseLevel4Expr() {
   ExprResult E = ParseLevel3Expr();
-  if (E.isInvalid()) return E;
+  if (E.isInvalid())
+    return E;
 
   while (true) {
     SourceLocation OpLoc = Tok.getLocation();
@@ -193,29 +203,36 @@ Parser::ExprResult Parser::ParseLevel4Expr() {
     switch (Tok.getKind()) {
     default:
       return E;
-    case tok::kw_EQ: case tok::equalequal:
+    case tok::kw_EQ:
+    case tok::equalequal:
       Op = BinaryExpr::Equal;
       break;
-    case tok::kw_NE: case tok::slashequal:
+    case tok::kw_NE:
+    case tok::slashequal:
       Op = BinaryExpr::NotEqual;
       break;
-    case tok::kw_LT: case tok::less:
+    case tok::kw_LT:
+    case tok::less:
       Op = BinaryExpr::LessThan;
       break;
-    case tok::kw_LE: case tok::lessequal:
+    case tok::kw_LE:
+    case tok::lessequal:
       Op = BinaryExpr::LessThanEqual;
       break;
-    case tok::kw_GT: case tok::greater:
+    case tok::kw_GT:
+    case tok::greater:
       Op = BinaryExpr::GreaterThan;
       break;
-    case tok::kw_GE: case tok::greaterequal:
+    case tok::kw_GE:
+    case tok::greaterequal:
       Op = BinaryExpr::GreaterThanEqual;
       break;
     }
 
     Lex();
     ExprResult Lvl3Expr = ParseLevel3Expr();
-    if (Lvl3Expr.isInvalid()) return Lvl3Expr;
+    if (Lvl3Expr.isInvalid())
+      return Lvl3Expr;
     E = Actions.ActOnBinaryExpr(Context, OpLoc, Op, E, Lvl3Expr);
   }
   return E;
@@ -232,16 +249,19 @@ Parser::ExprResult Parser::ParseLevel4Expr() {
 //         //
 Parser::ExprResult Parser::ParseLevel3Expr() {
   ExprResult E = ParseLevel2Expr();
-  if (E.isInvalid()) return E;
+  if (E.isInvalid())
+    return E;
 
   while (Tok.getKind() == tok::slashslash) {
     SourceLocation OpLoc = Tok.getLocation();
     Lex();
     ExprResult Lvl2Expr = ParseLevel2Expr();
-    if (Lvl2Expr.isInvalid()) return Lvl2Expr;
-    E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::Concat, E, Lvl2Expr);
+    if (Lvl2Expr.isInvalid())
+      return Lvl2Expr;
+    E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::Concat, E,
+                                Lvl2Expr);
   }
-  
+
   return E;
 }
 
@@ -270,13 +290,15 @@ Parser::ExprResult Parser::ParseLevel3Expr() {
 //      or -
 Parser::ExprResult Parser::ParseMultOperand() {
   ExprResult E = ParseLevel1Expr();
-  if (E.isInvalid()) return E;
+  if (E.isInvalid())
+    return E;
 
   if (Tok.getKind() == tok::starstar) {
     SourceLocation OpLoc = Tok.getLocation();
     Lex();
     ExprResult MulOp = ParseMultOperand();
-    if (MulOp.isInvalid()) return MulOp;
+    if (MulOp.isInvalid())
+      return MulOp;
     E = Actions.ActOnBinaryExpr(Context, OpLoc, BinaryExpr::Power, E, MulOp);
   }
 
@@ -284,7 +306,8 @@ Parser::ExprResult Parser::ParseMultOperand() {
 }
 Parser::ExprResult Parser::ParseAddOperand() {
   ExprResult E = ParseMultOperand();
-  if (E.isInvalid()) return E;
+  if (E.isInvalid())
+    return E;
 
   while (true) {
     SourceLocation OpLoc = Tok.getLocation();
@@ -302,7 +325,8 @@ Parser::ExprResult Parser::ParseAddOperand() {
 
     Lex();
     ExprResult MulOp = ParseMultOperand();
-    if (MulOp.isInvalid()) return MulOp;
+    if (MulOp.isInvalid())
+      return MulOp;
     E = Actions.ActOnBinaryExpr(Context, OpLoc, Op, E, MulOp);
   }
   return E;
@@ -316,7 +340,8 @@ Parser::ExprResult Parser::ParseLevel2Expr() {
     Lex(); // Eat operand.
 
     E = ParseAddOperand();
-    if (E.isInvalid()) return E;
+    if (E.isInvalid())
+      return E;
 
     if (Kind == tok::minus)
       E = Actions.ActOnUnaryExpr(Context, OpLoc, UnaryExpr::Minus, E);
@@ -324,7 +349,8 @@ Parser::ExprResult Parser::ParseLevel2Expr() {
       E = Actions.ActOnUnaryExpr(Context, OpLoc, UnaryExpr::Plus, E);
   } else {
     E = ParseAddOperand();
-    if (E.isInvalid()) return E;
+    if (E.isInvalid())
+      return E;
   }
 
   while (true) {
@@ -343,7 +369,8 @@ Parser::ExprResult Parser::ParseLevel2Expr() {
 
     Lex();
     ExprResult AddOp = ParseAddOperand();
-    if (AddOp.isInvalid()) return AddOp;
+    if (AddOp.isInvalid())
+      return AddOp;
     E = Actions.ActOnBinaryExpr(Context, OpLoc, Op, E, AddOp);
   }
   return E;
@@ -361,13 +388,14 @@ Parser::ExprResult Parser::ParseLevel2Expr() {
 Parser::ExprResult Parser::ParseLevel1Expr() {
   SourceLocation OpLoc = Tok.getLocation();
   IdentifierInfo *II = 0;
- if (IsPresent(tok::defined_operator) && !IsNextToken(tok::l_paren)) {
+  if (IsPresent(tok::defined_operator) && !IsNextToken(tok::l_paren)) {
     II = Tok.getIdentifierInfo();
     Lex();
   }
 
   ExprResult E = ParsePrimaryExpr();
-  if (E.isInvalid()) return E;
+  if (E.isInvalid())
+    return E;
 
   if (II)
     E = DefinedUnaryOperatorExpr::Create(Context, OpLoc, E.take(), II);
@@ -377,14 +405,14 @@ Parser::ExprResult Parser::ParseLevel1Expr() {
 
 /// SetKindSelector - Set the constant expression's kind selector (if present).
 void Parser::SetKindSelector(ConstantExpr *E, StringRef Kind) {
-  if (Kind.empty()) return;
+  if (Kind.empty())
+    return;
 
   SourceLocation Loc; // FIXME: Need to figure out the correct kind position.
   Expr *KindExpr = 0;
 
   if (::isdigit(Kind[0])) {
-    KindExpr = IntegerConstantExpr::Create(Context, E->getSourceRange(),
-                                           Kind);
+    KindExpr = IntegerConstantExpr::Create(Context, E->getSourceRange(), Kind);
   } else {
     std::string KindStr(Kind);
     const IdentifierInfo *IDInfo = getIdentifierInfo(KindStr);
@@ -426,19 +454,20 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     E = ParseExpression();
     // complex constant.
-    if(ConsumeIfPresent(tok::comma)) {
-      if(E.isInvalid()) return E;
+    if (ConsumeIfPresent(tok::comma)) {
+      if (E.isInvalid())
+        return E;
       auto ImPart = ParseExpectedFollowupExpression(",");
-      if(ImPart.isInvalid()) return ImPart;
-      E = Actions.ActOnComplexConstantExpr(Context, Loc,
-                                           getMaxLocationOfCurrentToken(),
-                                           E, ImPart);
+      if (ImPart.isInvalid())
+        return ImPart;
+      E = Actions.ActOnComplexConstantExpr(
+          Context, Loc, getMaxLocationOfCurrentToken(), E, ImPart);
     }
 
     ExpectAndConsume(tok::r_paren, 0, "", tok::r_paren);
     break;
   }
-  case tok::l_parenslash : {
+  case tok::l_parenslash: {
     return ParseArrayConstructor();
     break;
   }
@@ -448,8 +477,8 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = LogicalConstantExpr::Create(Context, getTokenRange(),
-                                    StrPair.first, Context.LogicalTy);
+    E = LogicalConstantExpr::Create(Context, getTokenRange(), StrPair.first,
+                                    Context.LogicalTy);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
     ConsumeToken();
     break;
@@ -462,8 +491,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = BOZConstantExpr::Create(Context, Loc,
-                                getMaxLocationOfCurrentToken(),
+    E = BOZConstantExpr::Create(Context, Loc, getMaxLocationOfCurrentToken(),
                                 StrPair.first);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
     ConsumeToken();
@@ -476,7 +504,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
                                       StringRef(NumStr), Context.CharacterTy);
     ConsumeToken();
     // Possible substring
-    if(IsPresent(tok::l_paren))
+    if (IsPresent(tok::l_paren))
       return ParseSubstring(E);
     break;
   }
@@ -486,8 +514,7 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = IntegerConstantExpr::Create(Context, getTokenRange(),
-                                    StrPair.first);
+    E = IntegerConstantExpr::Create(Context, getTokenRange(), StrPair.first);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
 
     Lex();
@@ -499,8 +526,8 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = RealConstantExpr::Create(Context, getTokenRange(),
-                                 NumStr, Context.RealTy);
+    E = RealConstantExpr::Create(Context, getTokenRange(), NumStr,
+                                 Context.RealTy);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
     ConsumeToken();
     break;
@@ -509,36 +536,40 @@ Parser::ExprResult Parser::ParsePrimaryExpr(bool IsLvalue) {
     std::string NumStr;
     CleanLiteral(Tok, NumStr);
     // Replace the d/D exponent into e exponent
-    for(size_t I = 0, Len = NumStr.length(); I < Len; ++I) {
-      if(NumStr[I] == 'd' || NumStr[I] == 'D') {
+    for (size_t I = 0, Len = NumStr.length(); I < Len; ++I) {
+      if (NumStr[I] == 'd' || NumStr[I] == 'D') {
         NumStr[I] = 'e';
         break;
-      } else if(NumStr[I] == '_') break;
+      } else if (NumStr[I] == '_')
+        break;
     }
 
     StringRef Data(NumStr);
     std::pair<StringRef, StringRef> StrPair = Data.split('_');
-    E = RealConstantExpr::Create(Context, getTokenRange(),
-                                 NumStr, Context.DoublePrecisionTy);
+    E = RealConstantExpr::Create(Context, getTokenRange(), NumStr,
+                                 Context.DoublePrecisionTy);
     SetKindSelector(cast<ConstantExpr>(E.get()), StrPair.second);
     ConsumeToken();
     break;
   }
   case tok::identifier:
-    possible_keyword_as_ident:
+  possible_keyword_as_ident:
     E = Parser::ParseDesignator(IsLvalue);
-    if (E.isInvalid()) return E;
+    if (E.isInvalid())
+      return E;
     break;
   case tok::minus:
     Lex();
     E = Parser::ParsePrimaryExpr();
-    if (E.isInvalid()) return E;
+    if (E.isInvalid())
+      return E;
     E = Actions.ActOnUnaryExpr(Context, Loc, UnaryExpr::Minus, E);
     break;
   case tok::plus:
     Lex();
     E = Parser::ParsePrimaryExpr();
-    if (E.isInvalid()) return E;
+    if (E.isInvalid())
+      return E;
     E = Actions.ActOnUnaryExpr(Context, Loc, UnaryExpr::Plus, E);
     break;
   }
@@ -567,49 +598,45 @@ ExprResult Parser::ParseDesignator(bool IsLvalue) {
     bool value;
     bool &dest;
 
-    ScopedFlag(bool &flag) : dest(flag) {
-      value = flag;
-    }
-    ~ScopedFlag() {
-      dest = value;
-    }
+    ScopedFlag(bool &flag) : dest(flag) { value = flag; }
+    ~ScopedFlag() { dest = value; }
   };
 
   ScopedFlag Flag(DontResolveIdentifiers);
-  if(DontResolveIdentifiersInSubExpressions)
+  if (DontResolveIdentifiersInSubExpressions)
     DontResolveIdentifiers = true;
 
-  while(true) {
-    if(!E.isUsable())
+  while (true) {
+    if (!E.isUsable())
       break;
-    if(IsPresent(tok::l_paren)) {
+    if (IsPresent(tok::l_paren)) {
       auto EType = E.get()->getType();
-      if(EType->isArrayType())
+      if (EType->isArrayType())
         E = ParseArraySubscript(E);
-      else if(EType->isCharacterType())
+      else if (EType->isCharacterType())
         E = ParseSubstring(E);
       else {
         Diag.Report(Tok.getLocation(), diag::err_unexpected_lparen);
         return ExprError();
       }
-    } else if(IsPresent(tok::percent)) {
+    } else if (IsPresent(tok::percent)) {
       auto EType = E.get()->getType();
-      if(EType->isRecordType())
+      if (EType->isRecordType())
         E = ParseStructureComponent(E);
       else {
         Diag.Report(Tok.getLocation(), diag::err_unexpected_percent);
         return ExprError();
       }
-    } else if(IsPresent(tok::period)) {
+    } else if (IsPresent(tok::period)) {
       auto EType = E.get()->getType();
-      if(EType->isRecordType())
+      if (EType->isRecordType())
         E = ParseStructureComponent(E);
       else {
         Diag.Report(Tok.getLocation(), diag::err_unexpected_period);
         return ExprError();
       }
-    }
-    else break;
+    } else
+      break;
   }
 
   return E;
@@ -622,32 +649,32 @@ ExprResult Parser::ParseNameOrCall() {
   auto IDRange = getTokenRange();
   auto IDLoc = ConsumeToken();
 
-  if(DontResolveIdentifiers)
-    return UnresolvedIdentifierExpr::Create(Context,
-                                            IDRange, IDInfo);
+  if (DontResolveIdentifiers)
+    return UnresolvedIdentifierExpr::Create(Context, IDRange, IDInfo);
 
   // [R504]:
   //   object-name :=
   //       name
   auto Declaration = Actions.ResolveIdentifier(IDInfo);
-  if(!Declaration) {
-    if(IsPresent(tok::l_paren))
+  if (!Declaration) {
+    if (IsPresent(tok::l_paren))
       Declaration = Actions.ActOnImplicitFunctionDecl(Context, IDLoc, IDInfo);
     else
       Declaration = Actions.ActOnImplicitEntityDecl(Context, IDLoc, IDInfo);
-    if(!Declaration)
+    if (!Declaration)
       return ExprError();
   } else {
     // INTEGER f
     // X = f(10) <-- implicit function declaration.
-    if(IsPresent(tok::l_paren))
-      Declaration = Actions.ActOnPossibleImplicitFunctionDecl(Context, IDLoc, IDInfo, Declaration);
+    if (IsPresent(tok::l_paren))
+      Declaration = Actions.ActOnPossibleImplicitFunctionDecl(
+          Context, IDLoc, IDInfo, Declaration);
   }
 
-  if(VarDecl *VD = dyn_cast<VarDecl>(Declaration)) {
+  if (VarDecl *VD = dyn_cast<VarDecl>(Declaration)) {
     // FIXME: function returing array
-    if(IsPresent(tok::l_paren) &&
-       VD->isFunctionResult() && isa<FunctionDecl>(Actions.CurContext)) {
+    if (IsPresent(tok::l_paren) && VD->isFunctionResult() &&
+        isa<FunctionDecl>(Actions.CurContext)) {
       // FIXME: accessing function results from inner recursive functions
       return ParseRecursiveCallExpression(IDRange);
     }
@@ -656,22 +683,23 @@ ExprResult Parser::ParseNameOrCall() {
     // FIXME: there should be a way to avoid re-applying the implicit rules
     // by returning a VarDecl instead of a NamedDecl when looking up a name in
     // the scope
-    if (VD->getType().isNull()) Actions.ApplyImplicitRulesToArgument(VD,IDRange);
+    if (VD->getType().isNull())
+      Actions.ApplyImplicitRulesToArgument(VD, IDRange);
     return VarExpr::Create(Context, IDRange, VD);
-  }
-  else if(IntrinsicFunctionDecl *IFunc = dyn_cast<IntrinsicFunctionDecl>(Declaration)) {
-    SmallVector<Expr*, 8> Arguments;
+  } else if (IntrinsicFunctionDecl *IFunc =
+                 dyn_cast<IntrinsicFunctionDecl>(Declaration)) {
+    SmallVector<Expr *, 8> Arguments;
     SourceLocation RParenLoc = Tok.getLocation();
     auto Result = ParseFunctionCallArgumentList(Arguments, RParenLoc);
-    if(Result.isInvalid())
+    if (Result.isInvalid())
       return ExprError();
-    return Actions.ActOnIntrinsicFunctionCallExpr(Context, IDLoc, IFunc, Arguments);
-  } else if(FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
+    return Actions.ActOnIntrinsicFunctionCallExpr(Context, IDLoc, IFunc,
+                                                  Arguments);
+  } else if (FunctionDecl *Func = dyn_cast<FunctionDecl>(Declaration)) {
     return ParseFuncExpression(IDRange, IDLoc, Func);
-  }
-  else if (isa<OutDecl>(Declaration)) {
+  } else if (isa<OutDecl>(Declaration)) {
     // Module declarations and such
-    OutDecl *OD = static_cast<OutDecl*>(Declaration);
+    OutDecl *OD = static_cast<OutDecl *>(Declaration);
     auto D = OD->getDecl();
     if (auto VD = dyn_cast<VarDecl>(D)) {
       return VarExpr::Create(Context, IDRange, VD);
@@ -679,20 +707,22 @@ ExprResult Parser::ParseNameOrCall() {
     if (auto Func = dyn_cast<FunctionDecl>(D)) {
       return ParseFuncExpression(IDRange, IDLoc, Func);
     }
-  }
-  else if(isa<SelfDecl>(Declaration) && isa<FunctionDecl>(Actions.CurContext))
+  } else if (isa<SelfDecl>(Declaration) &&
+             isa<FunctionDecl>(Actions.CurContext))
     return ParseRecursiveCallExpression(IDRange);
-  else if(auto Record = dyn_cast<RecordDecl>(Declaration))
+  else if (auto Record = dyn_cast<RecordDecl>(Declaration))
     return ParseTypeConstructor(IDLoc, Record);
   Diag.Report(IDLoc, diag::err_expected_var);
   return ExprError();
 }
 
-ExprResult Parser::ParseFuncExpression(SourceRange IDRange, SourceLocation IDLoc, FunctionDecl *Func) {
+ExprResult Parser::ParseFuncExpression(SourceRange IDRange,
+                                       SourceLocation IDLoc,
+                                       FunctionDecl *Func) {
   // FIXME: allow subroutines, but errors in sema
-  if(!IsPresent(tok::l_paren))
+  if (!IsPresent(tok::l_paren))
     return FunctionRefExpr::Create(Context, IDRange, Func);
-  if(!Func->isSubroutine()) {
+  if (!Func->isSubroutine()) {
     return ParseCallExpression(IDLoc, Func);
   }
 }
@@ -700,47 +730,52 @@ ExprResult Parser::ParseFuncExpression(SourceRange IDRange, SourceLocation IDLoc
 ExprResult Parser::ParseRecursiveCallExpression(SourceRange IDRange) {
   auto Func = Actions.CurrentContextAsFunction();
   auto IDLoc = IDRange.Start;
-  if(Func->isSubroutine()) {
+  if (Func->isSubroutine()) {
     Diag.Report(IDLoc, diag::err_invalid_subroutine_use)
-     << Func->getIdentifier() << getTokenRange(IDLoc);
+        << Func->getIdentifier() << getTokenRange(IDLoc);
     return ExprError();
   }
-  if(!Actions.CheckRecursiveFunction(IDLoc))
+  if (!Actions.CheckRecursiveFunction(IDLoc))
     return ExprError();
 
-  if(!IsPresent(tok::l_paren))
+  if (!IsPresent(tok::l_paren))
     return FunctionRefExpr::Create(Context, IDRange, Func);
   return ParseCallExpression(IDLoc, Func);
 }
 
 /// ParseCallExpression - Parse a call expression
-ExprResult Parser::ParseCallExpression(SourceLocation IDLoc, FunctionDecl *Function) {
-  SmallVector<Expr*, 8> Arguments;
+ExprResult Parser::ParseCallExpression(SourceLocation IDLoc,
+                                       FunctionDecl *Function) {
+  SmallVector<Expr *, 8> Arguments;
   auto Loc = Tok.getLocation();
   SourceLocation RParenLoc = Loc;
   auto Result = ParseFunctionCallArgumentList(Arguments, RParenLoc);
-  if(Result.isInvalid())
+  if (Result.isInvalid())
     return ExprError();
-  return Actions.ActOnCallExpr(Context, Loc, RParenLoc, IDLoc, Function, Arguments);
+  return Actions.ActOnCallExpr(Context, Loc, RParenLoc, IDLoc, Function,
+                               Arguments);
 }
 
-/// ParseFunctionCallArgumentList - Parses an argument list to a call expression.
-ExprResult Parser::ParseFunctionCallArgumentList(SmallVectorImpl<Expr*> &Args, SourceLocation &RParenLoc) {
-  if(!ExpectAndConsume(tok::l_paren))
+/// ParseFunctionCallArgumentList - Parses an argument list to a call
+/// expression.
+ExprResult Parser::ParseFunctionCallArgumentList(SmallVectorImpl<Expr *> &Args,
+                                                 SourceLocation &RParenLoc) {
+  if (!ExpectAndConsume(tok::l_paren))
     return ExprError();
 
   RParenLoc = getExpectedLoc();
-  if(ConsumeIfPresent(tok::r_paren))
+  if (ConsumeIfPresent(tok::r_paren))
     return ExprResult();
 
   auto PunctuationTok = "(";
   do {
-    if(Tok.isAtStartOfStatement())
+    if (Tok.isAtStartOfStatement())
       break;
     auto E = ParseExpectedFollowupExpression(PunctuationTok);
-    if(E.isInvalid())
+    if (E.isInvalid())
       SkipUntil(tok::comma, tok::r_paren, true, true);
-    else Args.push_back(E.get());
+    else
+      Args.push_back(E.get());
     PunctuationTok = ",";
   } while (ConsumeIfPresent(tok::comma));
 
@@ -750,7 +785,7 @@ ExprResult Parser::ParseFunctionCallArgumentList(SmallVectorImpl<Expr*> &Args, S
 }
 
 /// ParseArrayElement - Parse an array element.
-/// 
+///
 ///   R617:
 ///     array-element :=
 ///         data-ref
@@ -809,7 +844,7 @@ ExprResult Parser::ParseStructureComponent(ExprResult Target) {
   auto Loc = ConsumeToken();
   auto ID = Tok.getIdentifierInfo();
   auto IDLoc = Tok.getLocation();
-  if(!ExpectAndConsume(tok::identifier))
+  if (!ExpectAndConsume(tok::identifier))
     return ExprError();
   return Actions.ActOnStructureComponentExpr(Context, Loc, IDLoc, ID,
                                              Target.get());
@@ -834,18 +869,18 @@ ExprResult Parser::ParseSubstring(ExprResult Target) {
   ExprResult StartingPoint, EndPoint;
   auto Loc = ConsumeParen();
 
-  if(!ConsumeIfPresent(tok::colon)) {
+  if (!ConsumeIfPresent(tok::colon)) {
     StartingPoint = ParseExpectedFollowupExpression("(");
-    if(StartingPoint.isInvalid())
+    if (StartingPoint.isInvalid())
       SkipUntil(tok::colon, true, true);
     Loc = Tok.getLocation();
-    if(!ExpectAndConsume(tok::colon, 0, "", tok::r_paren))
+    if (!ExpectAndConsume(tok::colon, 0, "", tok::r_paren))
       goto done;
   }
 
-  if(!ConsumeIfPresent(tok::r_paren)) {
+  if (!ConsumeIfPresent(tok::r_paren)) {
     EndPoint = ParseExpectedFollowupExpression(":");
-    if(EndPoint.isInvalid())
+    if (EndPoint.isInvalid())
       SkipUntil(tok::r_paren, true, true);
     ExpectAndConsume(tok::r_paren, 0, "", tok::r_paren);
   }
@@ -857,24 +892,24 @@ done:
 
 /// ParseArrauSubscript - Parse an Array Subscript Expression
 ExprResult Parser::ParseArraySubscript(ExprResult Target) {
-  SmallVector<Expr*, 8> ExprList;
+  SmallVector<Expr *, 8> ExprList;
   auto Loc = ConsumeParen();
 
   bool IgnoreRParen = false;
   auto PunctuationTok = "(";
   do {
-    if(Tok.isAtStartOfStatement())
+    if (Tok.isAtStartOfStatement())
       IgnoreRParen = true;
     auto E = ParseArraySection(PunctuationTok);
-    if(E.isInvalid())
+    if (E.isInvalid())
       SkipUntil(tok::comma, tok::r_paren, true, true);
-    if(E.isUsable())
+    if (E.isUsable())
       ExprList.push_back(E.get());
     PunctuationTok = ",";
-  } while(ConsumeIfPresent(tok::comma));
+  } while (ConsumeIfPresent(tok::comma));
 
   auto RParenLoc = getExpectedLoc();
-  if(!IgnoreRParen)
+  if (!IgnoreRParen)
     ExpectAndConsume(tok::r_paren, 0, "", tok::r_paren);
 
   return Actions.ActOnSubscriptExpr(Context, Loc, RParenLoc, Target.get(),
@@ -886,36 +921,38 @@ ExprResult Parser::ParseArraySection(const char *PunctuationTok) {
   bool Range = false;
 
   auto ColonLoc = Tok.getLocation();
-  if(ConsumeIfPresent(tok::colon)) {
+  if (ConsumeIfPresent(tok::colon)) {
     Range = true;
-    if(!IsPresent(tok::colon) && !IsPresent(tok::comma) && !IsPresent(tok::r_paren)) {
+    if (!IsPresent(tok::colon) && !IsPresent(tok::comma) &&
+        !IsPresent(tok::r_paren)) {
       UB = ParseExpectedFollowupExpression(":");
-      if(UB.isInvalid())
+      if (UB.isInvalid())
         return UB;
     }
   } else {
     LB = ParseExpectedFollowupExpression(PunctuationTok);
-    if(LB.isInvalid())
+    if (LB.isInvalid())
       return LB;
     ColonLoc = Tok.getLocation();
-    if(ConsumeIfPresent(tok::colon)) {
+    if (ConsumeIfPresent(tok::colon)) {
       Range = true;
-      if(!IsPresent(tok::colon) && !IsPresent(tok::comma) && !IsPresent(tok::r_paren)) {
+      if (!IsPresent(tok::colon) && !IsPresent(tok::comma) &&
+          !IsPresent(tok::r_paren)) {
         UB = ParseExpectedFollowupExpression(":");
-        if(UB.isInvalid())
+        if (UB.isInvalid())
           return UB;
       }
     }
   }
-  if(ConsumeIfPresent(tok::colon)) {
+  if (ConsumeIfPresent(tok::colon)) {
     Stride = ParseExpectedFollowupExpression(":");
-    if(Stride.isInvalid())
+    if (Stride.isInvalid())
       return Stride;
   }
-  if(Stride.isUsable())
-    return StridedRangeExpr::Create(Context, ColonLoc, LB.get(),
-                                    UB.get(), Stride.get());
-  if(Range)
+  if (Stride.isUsable())
+    return StridedRangeExpr::Create(Context, ColonLoc, LB.get(), UB.get(),
+                                    Stride.get());
+  if (Range)
     return RangeExpr::Create(Context, ColonLoc, LB.get(), UB.get());
   return LB;
 }
@@ -930,7 +967,8 @@ ExprResult Parser::ParseDataReference() {
 
   do {
     ExprResult E = ParsePartReference();
-    if (E.isInvalid()) return E;
+    if (E.isInvalid())
+      return E;
     Exprs.push_back(E);
   } while (ConsumeIfPresent(tok::percent) || ConsumeIfPresent(tok::period));
 
@@ -975,19 +1013,19 @@ ExprResult Parser::ParseArrayConstructor() {
   auto Loc = ConsumeParenSlash();
   SourceLocation EndLoc = Tok.getLocation();
 
-  SmallVector<Expr*, 16> ExprList;
-  if(ConsumeIfPresent(tok::slashr_paren))
+  SmallVector<Expr *, 16> ExprList;
+  if (ConsumeIfPresent(tok::slashr_paren))
     return Actions.ActOnArrayConstructorExpr(Context, Loc, EndLoc, ExprList);
   do {
     auto E = ParseExpectedExpression();
-    if(E.isInvalid())
+    if (E.isInvalid())
       goto error;
-    if(E.isUsable())
+    if (E.isUsable())
       ExprList.push_back(E.get());
-  } while(ConsumeIfPresent(tok::comma));
+  } while (ConsumeIfPresent(tok::comma));
 
   EndLoc = Tok.getLocation();
-  if(!ExpectAndConsume(tok::slashr_paren))
+  if (!ExpectAndConsume(tok::slashr_paren))
     goto error;
 
   return Actions.ActOnArrayConstructorExpr(Context, Loc, EndLoc, ExprList);
@@ -998,14 +1036,16 @@ error:
 }
 
 /// ParseTypeConstructorExpression - Parses a type constructor.
-ExprResult Parser::ParseTypeConstructor(SourceLocation IDLoc, RecordDecl *Record) {
-  SmallVector<Expr*, 8> Arguments;
+ExprResult Parser::ParseTypeConstructor(SourceLocation IDLoc,
+                                        RecordDecl *Record) {
+  SmallVector<Expr *, 8> Arguments;
   SourceLocation RParenLoc = IDLoc;
   auto LParenLoc = Tok.getLocation();
   auto E = ParseFunctionCallArgumentList(Arguments, RParenLoc);
-  if(E.isInvalid())
+  if (E.isInvalid())
     return ExprError();
-  return Actions.ActOnTypeConstructorExpr(Context, IDLoc, LParenLoc, RParenLoc, Record, Arguments);
+  return Actions.ActOnTypeConstructorExpr(Context, IDLoc, LParenLoc, RParenLoc,
+                                          Record, Arguments);
 }
 
-} //namespace fort
+} // namespace fort
