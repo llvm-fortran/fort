@@ -14,8 +14,8 @@
 #ifndef FORT_CODEGEN_CODEGENTYPES_H
 #define FORT_CODEGEN_CODEGENTYPES_H
 
-#include "CGCall.h"
 #include "CGABI.h"
+#include "CGCall.h"
 #include "fort/AST/Decl.h"
 #include "fort/AST/Type.h"
 #include "fort/Frontend/CodeGenOptions.h"
@@ -24,37 +24,34 @@
 #include <vector>
 
 namespace llvm {
-  class FunctionType;
-  class Module;
-  class DataLayout;
-  class Type;
-  class LLVMContext;
-  class StructType;
-  class IntegerType;
-}
+class FunctionType;
+class Module;
+class DataLayout;
+class Type;
+class LLVMContext;
+class StructType;
+class IntegerType;
+} // namespace llvm
 
 namespace fort {
-  class ASTContext;
-  class TargetInfo;
+class ASTContext;
+class TargetInfo;
 
 namespace CodeGen {
-  class CodeGenModule;
+class CodeGenModule;
 
 class CGType {
   QualType ASTType;
   llvm::Type *LLVMType;
+
 public:
   CGType() : LLVMType(nullptr) {}
   CGType(QualType T) : ASTType(T), LLVMType(nullptr) {}
   CGType(llvm::Type *T) : LLVMType(T) {}
 
   bool isQualType() const { return LLVMType == nullptr; }
-  QualType asQualType() const {
-    return ASTType;
-  }
-  llvm::Type *asLLVMType() const {
-    return LLVMType;
-  }
+  QualType asQualType() const { return ASTType; }
+  llvm::Type *asLLVMType() const { return LLVMType; }
 };
 
 /// CodeGenTypes - This class organizes the cross-module state that is used
@@ -80,8 +77,7 @@ public:
 
   const CGFunctionInfo *GetFunctionType(const FunctionDecl *FD);
 
-  const CGFunctionInfo *GetFunctionType(FortranABI &ABI,
-                                        ArrayRef<CGType> Args,
+  const CGFunctionInfo *GetFunctionType(FortranABI &ABI, ArrayRef<CGType> Args,
                                         CGType ReturnType);
 
   llvm::Type *GetComplexType(llvm::Type *ElementType);
@@ -99,8 +95,7 @@ public:
 
   llvm::Type *ConvertArrayType(const ArrayType *T);
 
-  llvm::ArrayType *GetFixedSizeArrayType(const ArrayType *T,
-                                         uint64_t Size);
+  llvm::ArrayType *GetFixedSizeArrayType(const ArrayType *T, uint64_t Size);
 
   llvm::Type *ConvertRecordType(const RecordType *T);
 
@@ -111,18 +106,16 @@ public:
 
   void ConvertArgumentType(SmallVectorImpl<llvm::Type *> &ArgTypes,
                            SmallVectorImpl<llvm::Type *> &AdditionalArgTypes,
-                           QualType T,
-                           const CGFunctionInfo::ArgInfo &ArgInfo);
+                           QualType T, const CGFunctionInfo::ArgInfo &ArgInfo);
 
-  void ConvertArgumentTypeForReturnValue(SmallVectorImpl<CGFunctionInfo::ArgInfo> &ArgInfo,
-                                         SmallVectorImpl<llvm::Type *> &ArgTypes,
-                                         SmallVectorImpl<llvm::Type *> &AdditionalArgTypes,
-                                         QualType T,
-                                         const CGFunctionInfo::RetInfo &ReturnInfo);
-
+  void ConvertArgumentTypeForReturnValue(
+      SmallVectorImpl<CGFunctionInfo::ArgInfo> &ArgInfo,
+      SmallVectorImpl<llvm::Type *> &ArgTypes,
+      SmallVectorImpl<llvm::Type *> &AdditionalArgTypes, QualType T,
+      const CGFunctionInfo::RetInfo &ReturnInfo);
 };
 
-}  // end namespace CodeGen
-}  // end namespace fort
+} // end namespace CodeGen
+} // end namespace fort
 
 #endif

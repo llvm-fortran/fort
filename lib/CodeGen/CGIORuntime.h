@@ -37,7 +37,7 @@ public:
 /// Creates an instance of a Libfort IO runtime class.
 CGIORuntime *CreateLibfortIORuntime(CodeGenModule &CGM);
 
-}
-}  // end namespace fort
+} // namespace CodeGen
+} // end namespace fort
 
 #endif

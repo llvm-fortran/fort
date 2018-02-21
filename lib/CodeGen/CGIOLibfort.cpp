@@ -23,9 +23,9 @@ class CGLibfortIORuntime : public CGIORuntime {
 
   llvm::StructType *WriteControllerType;
   uint64_t WriteControllerTypeSize;
+
 public:
-  CGLibfortIORuntime(CodeGenModule &CGM)
-    : CGIORuntime(CGM) {
+  CGLibfortIORuntime(CodeGenModule &CGM) : CGIORuntime(CGM) {
     WriteControllerType = nullptr;
   }
 
@@ -35,19 +35,20 @@ public:
   llvm::StructType *GetWriteControllerType();
 };
 
-
 llvm::StructType *CGLibfortIORuntime::GetWriteControllerType() {
-  if(WriteControllerType)
+  if (WriteControllerType)
     return WriteControllerType;
   llvm::Type *Types[] = {
-    CGM.Int8PtrTy, //FormatPtr
-    CGM.SizeTy,    //FormatLength
-    CGM.Int32Ty,   //unit
-    CGM.Int32Ty    //flags
+      CGM.Int8PtrTy, // FormatPtr
+      CGM.SizeTy,    // FormatLength
+      CGM.Int32Ty,   // unit
+      CGM.Int32Ty    // flags
   };
-  WriteControllerType = llvm::StructType::get(CGM.getLLVMContext(),
-                                              llvm::makeArrayRef(Types,4));
-  WriteControllerTypeSize = CGM.getDataLayout().getStructLayout(WriteControllerType)->getSizeInBytes();
+  WriteControllerType =
+      llvm::StructType::get(CGM.getLLVMContext(), llvm::makeArrayRef(Types, 4));
+  WriteControllerTypeSize = CGM.getDataLayout()
+                                .getStructLayout(WriteControllerType)
+                                ->getSizeInBytes();
   return WriteControllerType;
 }
 
@@ -56,23 +57,20 @@ class CGLibfortWriteEmitter {
   CodeGenFunction &CGF;
   llvm::Value *ControllerPtr;
   LibfortTransferABI ABI;
+
 public:
-  CGLibfortWriteEmitter(CodeGenModule &cgm,
-                         CodeGenFunction &cgf,
-                         llvm::Value *Controller)
-    : CGM(cgm), CGF(cgf) {
+  CGLibfortWriteEmitter(CodeGenModule &cgm, CodeGenFunction &cgf,
+                        llvm::Value *Controller)
+      : CGM(cgm), CGF(cgf) {
     ControllerPtr = Controller;
   }
 
-  FortranABI *getTransferABI() {
-    return &ABI;
-  }
+  FortranABI *getTransferABI() { return &ABI; }
 
   void EmitStart();
   void EmitEnd();
-  void EmitWriteUnformattedList(ArrayRef<Expr*> Values);
-  void EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
-                                   const Expr *E);
+  void EmitWriteUnformattedList(ArrayRef<Expr *> Values);
+  void EmitWriteUnformattedBuiltin(const BuiltinType *BTy, const Expr *E);
   void EmitWriteUnformattedChar(const Expr *E);
 };
 
@@ -86,20 +84,20 @@ void CGLibfortWriteEmitter::EmitEnd() {
   CGF.EmitCall1(Func, ControllerPtr);
 }
 
-void CGLibfortWriteEmitter::EmitWriteUnformattedList(ArrayRef<Expr*> Values) {
-  for(auto E : Values) {
+void CGLibfortWriteEmitter::EmitWriteUnformattedList(ArrayRef<Expr *> Values) {
+  for (auto E : Values) {
     auto EType = E->getType();
-    if(EType->isCharacterType())
+    if (EType->isCharacterType())
       EmitWriteUnformattedChar(E);
-    if(auto BTy = dyn_cast<BuiltinType>(EType.getTypePtr()))
+    if (auto BTy = dyn_cast<BuiltinType>(EType.getTypePtr()))
       EmitWriteUnformattedBuiltin(BTy, E);
   }
 }
 
 void CGLibfortWriteEmitter::EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
-                                                         const Expr *E) {
+                                                        const Expr *E) {
   CGFunction Func;
-  switch(BTy->getTypeSpec()) {
+  switch (BTy->getTypeSpec()) {
   case BuiltinType::Integer:
     Func = CGM.GetRuntimeFunction2("write_integer", ControllerPtr->getType(),
                                    E->getType(), CGType(), getTransferABI());
@@ -123,16 +121,18 @@ void CGLibfortWriteEmitter::EmitWriteUnformattedBuiltin(const BuiltinType *BTy,
   CallArgList ArgList;
   CGF.EmitCallArg(ArgList, ControllerPtr, Func.getInfo()->getArguments()[0]);
   CGF.EmitCallArg(ArgList, E, Func.getInfo()->getArguments()[1]);
-  CGF.EmitCall(Func.getFunction(), Func.getInfo(), ArgList, ArrayRef<Expr*>(), true);
+  CGF.EmitCall(Func.getFunction(), Func.getInfo(), ArgList, ArrayRef<Expr *>(),
+               true);
 }
 
 void CGLibfortWriteEmitter::EmitWriteUnformattedChar(const Expr *E) {
-  auto Func = CGM.GetRuntimeFunction2("write_character", ControllerPtr->getType(),
-                                      E->getType());
+  auto Func = CGM.GetRuntimeFunction2("write_character",
+                                      ControllerPtr->getType(), E->getType());
   CGF.EmitCall2(Func, ControllerPtr, CGF.EmitCharacterExpr(E));
 }
 
-void CGLibfortIORuntime::EmitWriteStmt(CodeGenFunction &CGF, const WriteStmt *S) {
+void CGLibfortIORuntime::EmitWriteStmt(CodeGenFunction &CGF,
+                                       const WriteStmt *S) {
   // FIXME
   auto ControllerPtr = CGF.CreateTempAlloca(GetWriteControllerType(), "write");
   CGF.getBuilder().CreateMemSet(ControllerPtr, CGF.getBuilder().getInt8(0),
@@ -144,7 +144,8 @@ void CGLibfortIORuntime::EmitWriteStmt(CodeGenFunction &CGF, const WriteStmt *S)
   Writer.EmitEnd();
 }
 
-void CGLibfortIORuntime::EmitPrintStmt(CodeGenFunction &CGF, const PrintStmt *S) {
+void CGLibfortIORuntime::EmitPrintStmt(CodeGenFunction &CGF,
+                                       const PrintStmt *S) {
   // FIXME
   auto ControllerPtr = CGF.CreateTempAlloca(GetWriteControllerType(), "print");
   CGF.getBuilder().CreateMemSet(ControllerPtr, CGF.getBuilder().getInt8(0),
@@ -160,5 +161,5 @@ CGIORuntime *CreateLibfortIORuntime(CodeGenModule &CGM) {
   return new CGLibfortIORuntime(CGM);
 }
 
-}
+} // namespace CodeGen
 } // end namespace fort

@@ -17,9 +17,7 @@
 namespace fort {
 namespace CodeGen {
 
-CGIORuntime::~CGIORuntime() {
-}
+CGIORuntime::~CGIORuntime() {}
 
-}
+} // namespace CodeGen
 } // end namespace fort
-

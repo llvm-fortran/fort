@@ -23,22 +23,19 @@
 namespace fort {
 namespace CodeGen {
 
-#define MANGLE_CHAR_FUNCTION(Str, Type) \
-  (Str "_char1")
+#define MANGLE_CHAR_FUNCTION(Str, Type) (Str "_char1")
 
 class CharacterExprEmitter
-  : public ConstExprVisitor<CharacterExprEmitter, CharacterValueTy> {
+    : public ConstExprVisitor<CharacterExprEmitter, CharacterValueTy> {
   CodeGenFunction &CGF;
   CGBuilderTy &Builder;
   llvm::LLVMContext &VMContext;
   CharacterValueTy Dest;
-public:
 
+public:
   CharacterExprEmitter(CodeGenFunction &cgf);
 
-  bool hasDestination() const {
-    return Dest.Ptr != nullptr;
-  }
+  bool hasDestination() const { return Dest.Ptr != nullptr; }
   CharacterValueTy takeDestination() {
     auto Result = Dest;
     Dest = CharacterValueTy(nullptr, nullptr);
@@ -61,136 +58,145 @@ public:
 };
 
 CharacterExprEmitter::CharacterExprEmitter(CodeGenFunction &cgf)
-  : CGF(cgf), Builder(cgf.getBuilder()),
-    VMContext(cgf.getLLVMContext()), Dest(nullptr, nullptr) {
-}
+    : CGF(cgf), Builder(cgf.getBuilder()), VMContext(cgf.getLLVMContext()),
+      Dest(nullptr, nullptr) {}
 
 CharacterValueTy CharacterExprEmitter::EmitExpr(const Expr *E) {
   return Visit(E);
 }
 
-CharacterValueTy CharacterExprEmitter::VisitCharacterConstantExpr(const CharacterConstantExpr *E) {
-  return CharacterValueTy(Builder.CreateGlobalStringPtr(E->getValue()),
-                          llvm::ConstantInt::get(CGF.getModule().SizeTy,
-                                                 strlen(E->getValue())));
+CharacterValueTy CharacterExprEmitter::VisitCharacterConstantExpr(
+    const CharacterConstantExpr *E) {
+  return CharacterValueTy(
+      Builder.CreateGlobalStringPtr(E->getValue()),
+      llvm::ConstantInt::get(CGF.getModule().SizeTy, strlen(E->getValue())));
 }
 
 CharacterValueTy CharacterExprEmitter::VisitVarExpr(const VarExpr *E) {
   auto VD = E->getVarDecl();
-  if(CGF.IsInlinedArgument(VD))
+  if (CGF.IsInlinedArgument(VD))
     return CGF.GetInlinedArgumentValue(VD).asCharacter();
-  if(VD->isArgument())
+  if (VD->isArgument())
     return CGF.GetCharacterArg(VD);
-  else if(VD->isParameter())
+  else if (VD->isParameter())
     return EmitExpr(VD->getInit());
-  else if(VD->isFunctionResult())
+  else if (VD->isFunctionResult())
     return CGF.ExtractCharacterValue(CGF.GetRetVarPtr());
   return CGF.GetCharacterValueFromPtr(CGF.GetVarPtr(VD), VD->getType());
 }
 
 // FIXME could be optimized by folding consecutive concats to one destination
-CharacterValueTy CharacterExprEmitter::VisitBinaryExprConcat(const BinaryExpr *E) {
+CharacterValueTy
+CharacterExprEmitter::VisitBinaryExprConcat(const BinaryExpr *E) {
   auto CharType = CGF.getContext().CharacterTy;
   CharacterValueTy Dest;
-  if(hasDestination()) {
+  if (hasDestination()) {
     Dest = takeDestination();
   } else {
     // FIXME temp size overflow checking.
     auto CharTyLHS = E->getLHS()->getType()->asCharacterType();
     auto CharTyRHS = E->getRHS()->getType()->asCharacterType();
     auto Size = CharTyLHS->getLength() + CharTyRHS->getLength();
-    auto Storage = CGF.CreateTempAlloca(llvm::ArrayType::get(CGF.getModule().Int8Ty, Size), "concat-result");
-    Dest = CharacterValueTy(Builder.CreateConstInBoundsGEP2_32(
-        llvm::ArrayType::get(CGF.getModule().Int8Ty, Size),
-        Storage, 0, 0),
+    auto Storage = CGF.CreateTempAlloca(
+        llvm::ArrayType::get(CGF.getModule().Int8Ty, Size), "concat-result");
+    Dest = CharacterValueTy(
+        Builder.CreateConstInBoundsGEP2_32(
+            llvm::ArrayType::get(CGF.getModule().Int8Ty, Size), Storage, 0, 0),
         llvm::ConstantInt::get(CGF.getModule().SizeTy, Size));
   }
 
   // a = b // c
   auto Src1 = EmitExpr(E->getLHS());
   auto Src2 = EmitExpr(E->getRHS());
-  auto Func = CGF.getModule().GetRuntimeFunction3(MANGLE_CHAR_FUNCTION("concat", CharType),
-                                                  CharType, CharType, CharType);
+  auto Func = CGF.getModule().GetRuntimeFunction3(
+      MANGLE_CHAR_FUNCTION("concat", CharType), CharType, CharType, CharType);
   CGF.EmitCall3(Func, Dest, Src1, Src2);
   return Dest;
 }
 
-CharacterValueTy CharacterExprEmitter::VisitSubstringExpr(const SubstringExpr *E) {
+CharacterValueTy
+CharacterExprEmitter::VisitSubstringExpr(const SubstringExpr *E) {
   auto Str = EmitExpr(E->getTarget());
-  if(E->getStartingPoint()) {
-    auto Start = Builder.CreateSub(CGF.EmitSizeIntExpr(E->getStartingPoint()),
-                                   llvm::ConstantInt::get(CGF.getModule().SizeTy,
-                                                          1));
+  if (E->getStartingPoint()) {
+    auto Start =
+        Builder.CreateSub(CGF.EmitSizeIntExpr(E->getStartingPoint()),
+                          llvm::ConstantInt::get(CGF.getModule().SizeTy, 1));
     Str.Ptr = Builder.CreateGEP(Str.Ptr, Start);
-    if(E->getEndPoint()) {
+    if (E->getEndPoint()) {
       auto End = CGF.EmitSizeIntExpr(E->getEndPoint());
       Str.Len = Builder.CreateSub(End, Start);
     } else
       Str.Len = Builder.CreateSub(Str.Len, Start);
-  }
-  else if(E->getEndPoint())
+  } else if (E->getEndPoint())
     Str.Len = CGF.EmitSizeIntExpr(E->getEndPoint());
   return Str;
 }
 
 CharacterValueTy CharacterExprEmitter::VisitCallExpr(const CallExpr *E) {
   CharacterValueTy Dest;
-  if(hasDestination())
+  if (hasDestination())
     Dest = takeDestination();
   else {
     // FIXME function returning CHARACTER*(*)
     auto RetType = E->getFunction()->getType();
     Dest = CGF.GetCharacterValueFromPtr(
-             CGF.CreateTempAlloca(CGF.ConvertTypeForMem(RetType), "characters"),
-             RetType);
+        CGF.CreateTempAlloca(CGF.ConvertTypeForMem(RetType), "characters"),
+        RetType);
   }
 
   CallArgList ArgList;
   ArgList.addReturnValueArg(Dest);
-  return CGF.EmitCall(E->getFunction(), ArgList, E->getArguments()).asCharacter();
+  return CGF.EmitCall(E->getFunction(), ArgList, E->getArguments())
+      .asCharacter();
 }
 
-CharacterValueTy CharacterExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
+CharacterValueTy
+CharacterExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
   return CGF.EmitIntrinsicCall(E).asCharacter();
 }
 
-CharacterValueTy CharacterExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
+CharacterValueTy
+CharacterExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
   return CGF.GetCharacterValueFromPtr(CGF.EmitArrayElementPtr(E), E->getType());
 }
 
 CharacterValueTy CharacterExprEmitter::VisitMemberExpr(const MemberExpr *E) {
   auto Val = CGF.EmitAggregateExpr(E->getTarget());
-  return CGF.GetCharacterValueFromPtr(CGF.EmitAggregateMember(Val.getAggregateAddr(), E->getField()),
-                                      E->getType());
+  return CGF.GetCharacterValueFromPtr(
+      CGF.EmitAggregateMember(Val.getAggregateAddr(), E->getField()),
+      E->getType());
 }
 
-void CodeGenFunction::EmitCharacterAssignment(const Expr *LHS, const Expr *RHS) {
+void CodeGenFunction::EmitCharacterAssignment(const Expr *LHS,
+                                              const Expr *RHS) {
   auto Dest = EmitCharacterExpr(LHS);
   CharacterExprEmitter EV(*this);
   EV.setDestination(Dest);
   auto Src = EV.EmitExpr(RHS);
 
-  if(EV.hasDestination())
+  if (EV.hasDestination())
     EmitCharacterAssignment(Dest, Src);
 }
 
-void CodeGenFunction::EmitCharacterAssignment(CharacterValueTy LHS, CharacterValueTy RHS) {
+void CodeGenFunction::EmitCharacterAssignment(CharacterValueTy LHS,
+                                              CharacterValueTy RHS) {
   auto CharType = getContext().CharacterTy;
-  auto Func = CGM.GetRuntimeFunction2(MANGLE_CHAR_FUNCTION("assignment", CharType),
-                                      CharType, CharType);
+  auto Func = CGM.GetRuntimeFunction2(
+      MANGLE_CHAR_FUNCTION("assignment", CharType), CharType, CharType);
   EmitCall2(Func, LHS, RHS);
 }
 
 llvm::Value *CodeGenFunction::GetCharacterTypeLength(QualType T) {
-  return llvm::ConstantInt::get(CGM.SizeTy,
-                                T->asCharacterType()->getLength());
+  return llvm::ConstantInt::get(CGM.SizeTy, T->asCharacterType()->getLength());
 }
 
-CharacterValueTy CodeGenFunction::GetCharacterValueFromPtr(llvm::Value *Ptr,
-                                                           QualType StorageType) {
-  return CharacterValueTy(Builder.CreateConstInBoundsGEP2_32(
-                      Ptr->getType()->getPointerElementType(),Ptr, 0, 0),
-                    GetCharacterTypeLength(StorageType));
+CharacterValueTy
+CodeGenFunction::GetCharacterValueFromPtr(llvm::Value *Ptr,
+                                          QualType StorageType) {
+  return CharacterValueTy(
+      Builder.CreateConstInBoundsGEP2_32(
+          Ptr->getType()->getPointerElementType(), Ptr, 0, 0),
+      GetCharacterTypeLength(StorageType));
 }
 
 CharacterValueTy CodeGenFunction::EmitCharacterExpr(const Expr *E) {
@@ -204,14 +210,14 @@ CharacterValueTy CodeGenFunction::ExtractCharacterValue(llvm::Value *Agg) {
 }
 
 llvm::Value *CodeGenFunction::CreateCharacterAggregate(CharacterValueTy Value) {
-  llvm::Value *Result = llvm::UndefValue::get(
-                          getTypes().GetCharacterType(Value.Ptr->getType()));
+  llvm::Value *Result =
+      llvm::UndefValue::get(getTypes().GetCharacterType(Value.Ptr->getType()));
   Result = Builder.CreateInsertValue(Result, Value.Ptr, 0, "ptr");
   return Builder.CreateInsertValue(Result, Value.Len, 1, "len");
 }
 
-llvm::Value *CodeGenFunction::EmitCharacterRelationalExpr(BinaryExpr::Operator Op, CharacterValueTy LHS,
-                                                          CharacterValueTy RHS) {
+llvm::Value *CodeGenFunction::EmitCharacterRelationalExpr(
+    BinaryExpr::Operator Op, CharacterValueTy LHS, CharacterValueTy RHS) {
   auto CharType = getContext().CharacterTy;
   auto Func = CGM.GetRuntimeFunction2(MANGLE_CHAR_FUNCTION("compare", CharType),
                                       CharType, CharType, CGM.Int32Ty);
@@ -223,17 +229,18 @@ llvm::Value *CodeGenFunction::EmitCharacterDereference(CharacterValueTy Value) {
   return Builder.CreateLoad(Value.Ptr);
 }
 
-RValueTy CodeGenFunction::EmitIntrinsicCallCharacter(intrinsic::FunctionKind Func,
-                                                     CharacterValueTy Value) {
+RValueTy
+CodeGenFunction::EmitIntrinsicCallCharacter(intrinsic::FunctionKind Func,
+                                            CharacterValueTy Value) {
   auto CharType = getContext().CharacterTy;
   CGFunction RuntimeFunc;
-  switch(Func){
+  switch (Func) {
   case intrinsic::LEN:
     return EmitSizeIntToIntConversion(Value.Len);
     break;
   case intrinsic::LEN_TRIM:
-    RuntimeFunc = CGM.GetRuntimeFunction1(MANGLE_CHAR_FUNCTION("lentrim", CharType),
-                                          CharType, CGM.SizeTy);
+    RuntimeFunc = CGM.GetRuntimeFunction1(
+        MANGLE_CHAR_FUNCTION("lentrim", CharType), CharType, CGM.SizeTy);
     return EmitSizeIntToIntConversion(EmitCall1(RuntimeFunc, Value).asScalar());
     break;
   default:
@@ -242,8 +249,9 @@ RValueTy CodeGenFunction::EmitIntrinsicCallCharacter(intrinsic::FunctionKind Fun
   return EmitCall1(RuntimeFunc, Value);
 }
 
-static BinaryExpr::Operator GetLexicalComparisonOp(intrinsic::FunctionKind Func) {
-  switch(Func) {
+static BinaryExpr::Operator
+GetLexicalComparisonOp(intrinsic::FunctionKind Func) {
+  switch (Func) {
   case intrinsic::LLE:
     return BinaryExpr::LessThanEqual;
   case intrinsic::LLT:
@@ -256,31 +264,34 @@ static BinaryExpr::Operator GetLexicalComparisonOp(intrinsic::FunctionKind Func)
   llvm_unreachable("invalid intrinsic function");
 }
 
-RValueTy CodeGenFunction::EmitIntrinsicCallCharacter(intrinsic::FunctionKind Func,
-                                                     CharacterValueTy A1,
-                                                     CharacterValueTy A2) {
+RValueTy CodeGenFunction::EmitIntrinsicCallCharacter(
+    intrinsic::FunctionKind Func, CharacterValueTy A1, CharacterValueTy A2) {
   auto CharType = getContext().CharacterTy;
   CGFunction RuntimeFunc;
-  switch(Func) {
+  switch (Func) {
   case intrinsic::INDEX: {
-    RuntimeFunc = CGM.GetRuntimeFunction3(MANGLE_CHAR_FUNCTION("index", CharType),
-                                          CharType, CharType, CGM.Int32Ty, CGM.SizeTy);
-    return EmitScalarToScalarConversion(EmitCall3(RuntimeFunc, A1, A2, Builder.getInt32(0)).asScalar(),
-                                        getContext().IntegerTy);
+    RuntimeFunc =
+        CGM.GetRuntimeFunction3(MANGLE_CHAR_FUNCTION("index", CharType),
+                                CharType, CharType, CGM.Int32Ty, CGM.SizeTy);
+    return EmitScalarToScalarConversion(
+        EmitCall3(RuntimeFunc, A1, A2, Builder.getInt32(0)).asScalar(),
+        getContext().IntegerTy);
   }
 
   case intrinsic::LLE:
   case intrinsic::LLT:
   case intrinsic::LGE:
   case intrinsic::LGT:
-    RuntimeFunc = CGM.GetRuntimeFunction2(MANGLE_CHAR_FUNCTION("lexcompare", CharType),
-                                          CharType, CharType, CGM.Int32Ty);
-    return ConvertComparisonResultToRelationalOp(GetLexicalComparisonOp(Func),
-                                                 EmitCall2(RuntimeFunc, A1, A2).asScalar());
+    RuntimeFunc =
+        CGM.GetRuntimeFunction2(MANGLE_CHAR_FUNCTION("lexcompare", CharType),
+                                CharType, CharType, CGM.Int32Ty);
+    return ConvertComparisonResultToRelationalOp(
+        GetLexicalComparisonOp(Func),
+        EmitCall2(RuntimeFunc, A1, A2).asScalar());
   default:
     llvm_unreachable("invalid character intrinsic");
   }
 }
 
-}
+} // namespace CodeGen
 } // end namespace fort

@@ -17,38 +17,39 @@
 
 #include "fort/AST/Type.h"
 #include "fort/Basic/LLVM.h"
-#include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/SmallString.h"
+#include "llvm/ADT/StringRef.h"
 
 namespace llvm {
-  class GlobalValue;
-  class Type;
-  class Value;
-}
+class GlobalValue;
+class Type;
+class Value;
+} // namespace llvm
 
 namespace fort {
-  class ABIInfo;
-  class Decl;
+class ABIInfo;
+class Decl;
 
-  namespace CodeGen {
-    class CallArgList;
-    class CodeGenModule;
-    class CodeGenFunction;
-    class CGFunctionInfo;
-  }
+namespace CodeGen {
+class CallArgList;
+class CodeGenModule;
+class CodeGenFunction;
+class CGFunctionInfo;
+} // namespace CodeGen
 
-  /// TargetCodeGenInfo - This class organizes various target-specific
-  /// codegeneration issues, like target-specific attributes, builtins and so
-  /// on.
-  class TargetCodeGenInfo {
-    ABIInfo *Info;
-  public:
-    TargetCodeGenInfo(ABIInfo *info = nullptr):Info(info) { }
-    virtual ~TargetCodeGenInfo();
+/// TargetCodeGenInfo - This class organizes various target-specific
+/// codegeneration issues, like target-specific attributes, builtins and so
+/// on.
+class TargetCodeGenInfo {
+  ABIInfo *Info;
 
-    /// getABIInfo() - Returns ABI info helper for the target.
-    const ABIInfo& getABIInfo() const { return *Info; }
-  };
-}
+public:
+  TargetCodeGenInfo(ABIInfo *info = nullptr) : Info(info) {}
+  virtual ~TargetCodeGenInfo();
+
+  /// getABIInfo() - Returns ABI info helper for the target.
+  const ABIInfo &getABIInfo() const { return *Info; }
+};
+} // namespace fort
 
 #endif // FORT_CODEGEN_TARGETINFO_H

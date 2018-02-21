@@ -17,13 +17,12 @@
 namespace fort {
 namespace CodeGen {
 
-CGSystemRuntime::~CGSystemRuntime() {
-}
+CGSystemRuntime::~CGSystemRuntime() {}
 
-llvm::Value *CGSystemRuntime::EmitMalloc(CodeGenFunction &CGF, llvm::Type *T, llvm::Value *Size) {
+llvm::Value *CGSystemRuntime::EmitMalloc(CodeGenFunction &CGF, llvm::Type *T,
+                                         llvm::Value *Size) {
   return CGF.getBuilder().CreateBitCast(EmitMalloc(CGF, Size), T);
 }
 
-}
+} // namespace CodeGen
 } // end namespace fort
-

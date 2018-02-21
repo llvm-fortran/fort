@@ -11,75 +11,53 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "CGIORuntime.h"
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
-#include "CGIORuntime.h"
 #include "fort/AST/StmtVisitor.h"
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/IR/CallSite.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/InlineAsm.h"
 #include "llvm/IR/Intrinsics.h"
-#include "llvm/IR/CallSite.h"
 
 namespace fort {
 namespace CodeGen {
 
 class StmtEmmitter : public ConstStmtVisitor<StmtEmmitter> {
   CodeGenFunction &CGF;
-public:
 
+public:
   StmtEmmitter(CodeGenFunction &cgf) : CGF(cgf) {}
 
   void VisitCompoundStmt(const CompoundStmt *S) {
-    for(auto I : S->getBody())
+    for (auto I : S->getBody())
       CGF.EmitStmt(I);
   }
   void VisitBlockStmt(const BlockStmt *S) {
-    for(auto I : S->getStatements())
+    for (auto I : S->getStatements())
       CGF.EmitStmt(I);
   }
-  void VisitGotoStmt(const GotoStmt *S) {
-    CGF.EmitGotoStmt(S);
-  }
-  void VisitAssignStmt(const AssignStmt *S) {
-    CGF.EmitAssignStmt(S);
-  }
+  void VisitGotoStmt(const GotoStmt *S) { CGF.EmitGotoStmt(S); }
+  void VisitAssignStmt(const AssignStmt *S) { CGF.EmitAssignStmt(S); }
   void VisitAssignedGotoStmt(const AssignedGotoStmt *S) {
     CGF.EmitAssignedGotoStmt(S);
   }
   void VisitComputedGotoStmt(const ComputedGotoStmt *S) {
     CGF.EmitComputedGotoStmt(S);
   }
-  void VisitIfStmt(const IfStmt *S) {
-    CGF.EmitIfStmt(S);
-  }
-  void VisitDoStmt(const DoStmt *S) {
-    CGF.EmitDoStmt(S);
-  }
-  void VisitDoWhileStmt(const DoWhileStmt *S) {
-    CGF.EmitDoWhileStmt(S);
-  }
-  void VisitCycleStmt(const CycleStmt *S) {
-    CGF.EmitCycleStmt(S);
-  }
-  void VisitExitStmt(const ExitStmt *S) {
-    CGF.EmitExitStmt(S);
-  }
+  void VisitIfStmt(const IfStmt *S) { CGF.EmitIfStmt(S); }
+  void VisitDoStmt(const DoStmt *S) { CGF.EmitDoStmt(S); }
+  void VisitDoWhileStmt(const DoWhileStmt *S) { CGF.EmitDoWhileStmt(S); }
+  void VisitCycleStmt(const CycleStmt *S) { CGF.EmitCycleStmt(S); }
+  void VisitExitStmt(const ExitStmt *S) { CGF.EmitExitStmt(S); }
   void VisitSelectCaseStmt(const SelectCaseStmt *S) {
     CGF.EmitSelectCaseStmt(S);
   }
-  void VisitWhereStmt(const WhereStmt *S) {
-    CGF.EmitWhereStmt(S);
-  }
-  void VisitStopStmt(const StopStmt *S) {
-    CGF.EmitStopStmt(S);
-  }
-  void VisitReturnStmt(const ReturnStmt *S) {
-    CGF.EmitReturnStmt(S);
-  }
-  void VisitCallStmt(const CallStmt *S) {
-    CGF.EmitCallStmt(S);
-  }
+  void VisitWhereStmt(const WhereStmt *S) { CGF.EmitWhereStmt(S); }
+  void VisitStopStmt(const StopStmt *S) { CGF.EmitStopStmt(S); }
+  void VisitReturnStmt(const ReturnStmt *S) { CGF.EmitReturnStmt(S); }
+  void VisitCallStmt(const CallStmt *S) { CGF.EmitCallStmt(S); }
   void VisitAssignmentStmt(const AssignmentStmt *S) {
     CGF.EmitAssignmentStmt(S);
   }
@@ -93,7 +71,7 @@ public:
 
 void CodeGenFunction::EmitStmt(const Stmt *S) {
   StmtEmmitter SV(*this);
-  if(S->getStmtLabel())
+  if (S->getStmtLabel())
     EmitStmtLabel(S);
   SV.Visit(S);
 }
@@ -135,9 +113,9 @@ void CodeGenFunction::EmitBranchOnLogicalExpr(const Expr *Condition,
 }
 
 void CodeGenFunction::EmitStmtLabel(const Stmt *S) {
-  if(!S->isStmtLabelUsedAsGotoTarget())
+  if (!S->isStmtLabelUsedAsGotoTarget())
     return;
-  if(S->isStmtLabelUsedAsAssignTarget())
+  if (S->isStmtLabelUsedAsAssignTarget())
     AssignedGotoTargets.push_back(S);
 
   EmitBlock(GetGotoTarget(S));
@@ -145,7 +123,7 @@ void CodeGenFunction::EmitStmtLabel(const Stmt *S) {
 
 llvm::BasicBlock *CodeGenFunction::GetGotoTarget(const Stmt *S) {
   auto Result = GotoTargets.find(S);
-  if(Result != GotoTargets.end())
+  if (Result != GotoTargets.end())
     return Result->second;
   auto Block = createBasicBlock("");
   GotoTargets.insert(std::make_pair(S, Block));
@@ -161,19 +139,20 @@ void CodeGenFunction::EmitGotoStmt(const GotoStmt *S) {
 
 void CodeGenFunction::EmitAssignStmt(const AssignStmt *S) {
   auto Val = EmitScalarExpr(S->getAddress().Statement->getStmtLabel());
-  // FIXME: verify that destination type can actually hold the value of a statement label
-  EmitAssignment(EmitLValue(S->getDestination()),
-                   EmitScalarToScalarConversion(
-                     Val, S->getDestination()->getType()));
+  // FIXME: verify that destination type can actually hold the value of a
+  // statement label
+  EmitAssignment(
+      EmitLValue(S->getDestination()),
+      EmitScalarToScalarConversion(Val, S->getDestination()->getType()));
 }
 
 void CodeGenFunction::EmitAssignedGotoStmt(const AssignedGotoStmt *S) {
-  if(!AssignedGotoVarPtr)
+  if (!AssignedGotoVarPtr)
     AssignedGotoVarPtr = CreateTempAlloca(CGM.Int64Ty, "assigned-goto-val");
   auto Val = Builder.CreateZExtOrTrunc(EmitScalarExpr(S->getDestination()),
                                        CGM.Int64Ty);
   Builder.CreateStore(Val, AssignedGotoVarPtr);
-  if(!AssignedGotoDispatchBlock)
+  if (!AssignedGotoDispatchBlock)
     AssignedGotoDispatchBlock = createBasicBlock("assigned-goto-dispatch");
   Builder.CreateBr(AssignedGotoDispatchBlock);
   EmitBlock(createBasicBlock("assigned-goto-after"));
@@ -184,13 +163,14 @@ void CodeGenFunction::EmitAssignedGotoDispatcher() {
   EmitBlock(AssignedGotoDispatchBlock);
   auto DefaultCase = createBasicBlock("assigned-goto-dispatch-failed");
   auto VarVal = Builder.CreateLoad(AssignedGotoVarPtr);
-  auto Switch = Builder.CreateSwitch(VarVal, DefaultCase,
-                                     AssignedGotoTargets.size());
-  for(size_t I = 0; I < AssignedGotoTargets.size(); ++I) {
+  auto Switch =
+      Builder.CreateSwitch(VarVal, DefaultCase, AssignedGotoTargets.size());
+  for (size_t I = 0; I < AssignedGotoTargets.size(); ++I) {
     auto Target = AssignedGotoTargets[I];
     auto Dest = GotoTargets[Target];
-    auto Val = llvm::ConstantInt::get(VarVal->getType(),
-                                      cast<IntegerConstantExpr>(Target->getStmtLabel())->getValue());
+    auto Val = llvm::ConstantInt::get(
+        VarVal->getType(),
+        cast<IntegerConstantExpr>(Target->getStmtLabel())->getValue());
     Switch->addCase(cast<llvm::ConstantInt>(Val), Dest);
   }
   EmitBlock(DefaultCase);
@@ -203,9 +183,8 @@ void CodeGenFunction::EmitComputedGotoStmt(const ComputedGotoStmt *S) {
   auto Type = Operand->getType();
   auto DefaultCase = createBasicBlock("computed-goto-continue");
   auto Targets = S->getTargets();
-  auto Switch = Builder.CreateSwitch(Operand, DefaultCase,
-                                     Targets.size());
-  for(size_t I = 0; I < Targets.size(); ++I) {
+  auto Switch = Builder.CreateSwitch(Operand, DefaultCase, Targets.size());
+  for (size_t I = 0; I < Targets.size(); ++I) {
     auto Dest = GetGotoTarget(Targets[I].Statement);
     auto Val = llvm::ConstantInt::get(Type, int(I) + 1);
     Switch->addCase(cast<llvm::ConstantInt>(Val), Dest);
@@ -217,14 +196,13 @@ void CodeGenFunction::EmitIfStmt(const IfStmt *S) {
   auto ElseStmt = S->getElseStmt();
   auto ThenArm = createBasicBlock("if-then");
   auto MergeBlock = createBasicBlock("end-if");
-  auto ElseArm = ElseStmt? createBasicBlock("if-else") :
-                           MergeBlock;
+  auto ElseArm = ElseStmt ? createBasicBlock("if-else") : MergeBlock;
 
   EmitBranchOnLogicalExpr(S->getCondition(), ThenArm, ElseArm);
   EmitBlock(ThenArm);
   EmitStmt(S->getThenStmt());
   EmitBranch(MergeBlock);
-  if(ElseStmt) {
+  if (ElseStmt) {
     EmitBlock(ElseArm);
     EmitStmt(S->getElseStmt());
   }
@@ -239,19 +217,16 @@ public:
   llvm::BasicBlock *ContinueTarget;
   llvm::BasicBlock *BreakTarget;
 
-  LoopScope(CodeGenFunction *cgf,
-            const Stmt *S,
-            llvm::BasicBlock *ContinueBB,
+  LoopScope(CodeGenFunction *cgf, const Stmt *S, llvm::BasicBlock *ContinueBB,
             llvm::BasicBlock *BreakBB)
-    : CGF(cgf), Previous(CGF->CurLoopScope), Loop(S),
-      ContinueTarget(ContinueBB), BreakTarget(BreakBB) {
-      CGF->CurLoopScope = this;
-    }
-  ~LoopScope() {
-    CGF->CurLoopScope = Previous;
+      : CGF(cgf), Previous(CGF->CurLoopScope), Loop(S),
+        ContinueTarget(ContinueBB), BreakTarget(BreakBB) {
+    CGF->CurLoopScope = this;
   }
+  ~LoopScope() { CGF->CurLoopScope = Previous; }
   const LoopScope *getScope(const Stmt *S) const {
-    if(Loop == S) return this;
+    if (Loop == S)
+      return this;
     return Previous->getScope(S);
   }
 };
@@ -260,15 +235,15 @@ void CodeGenFunction::EmitDoStmt(const DoStmt *S) {
   // Init
   auto VarPtr = GetVarPtr(cast<VarExpr>(S->getDoVar())->getVarDecl());
   auto InitValue = EmitScalarExpr(S->getInitialParameter());
-  Builder.CreateStore(InitValue, VarPtr);  
+  Builder.CreateStore(InitValue, VarPtr);
   auto EndValue = EmitScalarExpr(S->getTerminalParameter());
   llvm::Value *IncValue;
   bool UseIterationCount = true;
-  if(S->getIncrementationParameter())
+  if (S->getIncrementationParameter())
     IncValue = EmitScalarExpr(S->getIncrementationParameter());
   else {
     IncValue = GetConstantOne(S->getDoVar()->getType());
-    if(S->getDoVar()->getType()->isIntegerType())
+    if (S->getDoVar()->getType()->isIntegerType())
       UseIterationCount = false;
   }
 
@@ -280,27 +255,22 @@ void CodeGenFunction::EmitDoStmt(const DoStmt *S) {
   // IterationCount = MAX( INT( (m2 - m1 + m3)/m3), 0)
   llvm::Value *IterationCountVar;
   auto Zero = llvm::ConstantInt::get(CGM.SizeTy, 0);
-  if(UseIterationCount) {
-    IterationCountVar = CreateTempAlloca(CGM.SizeTy,
-                                         "iteration-count");
-    auto Val = EmitScalarBinaryExpr(BinaryExpr::Minus,
-                                    EndValue, InitValue);
-    Val = EmitScalarBinaryExpr(BinaryExpr::Plus,
-                               Val, IncValue);
-    Val = EmitScalarBinaryExpr(BinaryExpr::Divide,
-                               Val, IncValue);
-    if(Val->getType()->isFloatingPointTy())
+  if (UseIterationCount) {
+    IterationCountVar = CreateTempAlloca(CGM.SizeTy, "iteration-count");
+    auto Val = EmitScalarBinaryExpr(BinaryExpr::Minus, EndValue, InitValue);
+    Val = EmitScalarBinaryExpr(BinaryExpr::Plus, Val, IncValue);
+    Val = EmitScalarBinaryExpr(BinaryExpr::Divide, Val, IncValue);
+    if (Val->getType()->isFloatingPointTy())
       Val = Builder.CreateFPToSI(Val, CGM.SizeTy);
     else
       Val = Builder.CreateSExtOrTrunc(Val, CGM.SizeTy);
-    Val = Builder.CreateSelect(Builder.CreateICmpSGE(Val, Zero),
-                               Val, Zero, "max");
+    Val = Builder.CreateSelect(Builder.CreateICmpSGE(Val, Zero), Val, Zero,
+                               "max");
     Builder.CreateStore(Val, IterationCountVar);
   } else {
     // DO i = -1, -5 => IterationCount is 0 => don't run
-    auto Cond = EmitScalarRelationalExpr(
-                  BinaryExpr::GreaterThanEqual,
-                  EndValue, InitValue);
+    auto Cond = EmitScalarRelationalExpr(BinaryExpr::GreaterThanEqual, EndValue,
+                                         InitValue);
     Builder.CreateCondBr(Cond, Loop, EndLoop);
   }
 
@@ -309,13 +279,11 @@ void CodeGenFunction::EmitDoStmt(const DoStmt *S) {
   EmitBlock(Loop);
   // Check condition
   llvm::Value *Cond;
-  if(UseIterationCount)
-    Cond = Builder.CreateICmpNE(Builder.CreateLoad(IterationCountVar),
-                                Zero);
+  if (UseIterationCount)
+    Cond = Builder.CreateICmpNE(Builder.CreateLoad(IterationCountVar), Zero);
   else
-    Cond = EmitScalarRelationalExpr(
-             BinaryExpr::LessThanEqual,
-             Builder.CreateLoad(VarPtr), EndValue);
+    Cond = EmitScalarRelationalExpr(BinaryExpr::LessThanEqual,
+                                    Builder.CreateLoad(VarPtr), EndValue);
   Builder.CreateCondBr(Cond, LoopBody, EndLoop);
 
   EmitBlock(LoopBody);
@@ -324,14 +292,14 @@ void CodeGenFunction::EmitDoStmt(const DoStmt *S) {
   EmitBlock(LoopIncrement);
   // increment the do variable
   llvm::Value *CurVal = Builder.CreateLoad(VarPtr);
-  CurVal = EmitScalarBinaryExpr(BinaryExpr::Plus,
-                                CurVal, IncValue);
+  CurVal = EmitScalarBinaryExpr(BinaryExpr::Plus, CurVal, IncValue);
   Builder.CreateStore(CurVal, VarPtr);
   // decrement loop counter if its used.
-  if(UseIterationCount) {
-    Builder.CreateStore(Builder.CreateSub(
-                        Builder.CreateLoad(IterationCountVar),
-                        llvm::ConstantInt::get(CGM.SizeTy, 1)), IterationCountVar);
+  if (UseIterationCount) {
+    Builder.CreateStore(
+        Builder.CreateSub(Builder.CreateLoad(IterationCountVar),
+                          llvm::ConstantInt::get(CGM.SizeTy, 1)),
+        IterationCountVar);
   }
 
   EmitBranch(Loop);
@@ -364,8 +332,9 @@ void CodeGenFunction::EmitExitStmt(const ExitStmt *S) {
 }
 
 struct IntegerCaseStmtEmitter {
-  static llvm::Value *EmitRelationalExpr(CodeGenFunction &CGF, BinaryExpr::Operator Op,
-                                        llvm::Value *LHS, llvm::Value *RHS) {
+  static llvm::Value *EmitRelationalExpr(CodeGenFunction &CGF,
+                                         BinaryExpr::Operator Op,
+                                         llvm::Value *LHS, llvm::Value *RHS) {
     return CGF.EmitScalarRelationalExpr(Op, LHS, RHS);
   }
   static llvm::Value *EmitExpr(CodeGenFunction &CGF, const Expr *E) {
@@ -374,16 +343,19 @@ struct IntegerCaseStmtEmitter {
 };
 
 struct LogicalCaseStmtEmitter : IntegerCaseStmtEmitter {
-  static llvm::Value *EmitRelationalExpr(CodeGenFunction &CGF, BinaryExpr::Operator Op,
-                                        llvm::Value *LHS, llvm::Value *RHS) {
+  static llvm::Value *EmitRelationalExpr(CodeGenFunction &CGF,
+                                         BinaryExpr::Operator Op,
+                                         llvm::Value *LHS, llvm::Value *RHS) {
     // NB: there are no ranges for logical values.
     return CGF.EmitScalarRelationalExpr(BinaryExpr::Eqv, LHS, RHS);
   }
 };
 
 struct CharCaseStmtEmitter {
-  static llvm::Value *EmitRelationalExpr(CodeGenFunction &CGF, BinaryExpr::Operator Op,
-                                         CharacterValueTy LHS, CharacterValueTy RHS) {
+  static llvm::Value *EmitRelationalExpr(CodeGenFunction &CGF,
+                                         BinaryExpr::Operator Op,
+                                         CharacterValueTy LHS,
+                                         CharacterValueTy RHS) {
     return CGF.EmitCharacterRelationalExpr(Op, LHS, RHS);
   }
   static CharacterValueTy EmitExpr(CodeGenFunction &CGF, const Expr *E) {
@@ -391,55 +363,55 @@ struct CharCaseStmtEmitter {
   }
 };
 
-template<typename F, typename T>
-static
-void EmitCaseStmt(CodeGenFunction &CGF,
-                  CGBuilderTy &Builder,
-                  T Operand, const CaseStmt *S,
-                  llvm::BasicBlock *MatchBlock,
-                  llvm::BasicBlock *NextCaseBlock) {
+template <typename F, typename T>
+static void EmitCaseStmt(CodeGenFunction &CGF, CGBuilderTy &Builder, T Operand,
+                         const CaseStmt *S, llvm::BasicBlock *MatchBlock,
+                         llvm::BasicBlock *NextCaseBlock) {
   auto Values = S->getValues();
-  for(size_t I = 0, End = Values.size(); I < End; ++I) {
+  for (size_t I = 0, End = Values.size(); I < End; ++I) {
     auto E = Values[I];
-    bool IsLast = (I+1) >= End;
-    auto FalseBlock = IsLast? NextCaseBlock : CGF.createBasicBlock("case-test-next-value");
+    bool IsLast = (I + 1) >= End;
+    auto FalseBlock =
+        IsLast ? NextCaseBlock : CGF.createBasicBlock("case-test-next-value");
 
     llvm::Value *Condition;
-    if(auto Range = dyn_cast<RangeExpr>(E)) {
-      if(Range->hasFirstExpr())
-        Condition = F::EmitRelationalExpr(CGF, BinaryExpr::LessThanEqual,
-                                          F::EmitExpr(CGF, Range->getFirstExpr()), Operand);
-      if(Range->hasSecondExpr()) {
-        auto C = F::EmitRelationalExpr(CGF, BinaryExpr::LessThanEqual,
-                                       Operand, F::EmitExpr(CGF, Range->getSecondExpr()));
-        if(Range->hasFirstExpr())
+    if (auto Range = dyn_cast<RangeExpr>(E)) {
+      if (Range->hasFirstExpr())
+        Condition = F::EmitRelationalExpr(
+            CGF, BinaryExpr::LessThanEqual,
+            F::EmitExpr(CGF, Range->getFirstExpr()), Operand);
+      if (Range->hasSecondExpr()) {
+        auto C =
+            F::EmitRelationalExpr(CGF, BinaryExpr::LessThanEqual, Operand,
+                                  F::EmitExpr(CGF, Range->getSecondExpr()));
+        if (Range->hasFirstExpr())
           Condition = Builder.CreateAnd(Condition, C);
-        else Condition = C;
+        else
+          Condition = C;
       }
     } else
-      Condition = F::EmitRelationalExpr(CGF, BinaryExpr::Equal,
-                                        Operand, F::EmitExpr(CGF, E));
+      Condition = F::EmitRelationalExpr(CGF, BinaryExpr::Equal, Operand,
+                                        F::EmitExpr(CGF, E));
 
     Builder.CreateCondBr(Condition, MatchBlock, FalseBlock);
-    if(!IsLast) CGF.EmitBlock(FalseBlock);
+    if (!IsLast)
+      CGF.EmitBlock(FalseBlock);
   }
 }
 
-template<typename F, typename T>
-static void EmitCases(CodeGenFunction &CGF,
-                      CGBuilderTy &Builder,
-                      T Operand, const SelectCaseStmt *S,
-                      llvm::BasicBlock *DefaultBlock,
+template <typename F, typename T>
+static void EmitCases(CodeGenFunction &CGF, CGBuilderTy &Builder, T Operand,
+                      const SelectCaseStmt *S, llvm::BasicBlock *DefaultBlock,
                       llvm::BasicBlock *ContinueBlock) {
-  for(auto Case = S->getFirstCase(); Case; Case = Case->getNextCase()) {
+  for (auto Case = S->getFirstCase(); Case; Case = Case->getNextCase()) {
     auto MatchBlock = CGF.createBasicBlock("case-match");
-    auto NextCaseBlock = Case->isLastCase()? DefaultBlock : CGF.createBasicBlock("case");
-    EmitCaseStmt<F>(CGF, Builder, Operand,
-                    Case, MatchBlock, NextCaseBlock);
+    auto NextCaseBlock =
+        Case->isLastCase() ? DefaultBlock : CGF.createBasicBlock("case");
+    EmitCaseStmt<F>(CGF, Builder, Operand, Case, MatchBlock, NextCaseBlock);
     CGF.EmitBlock(MatchBlock);
     CGF.EmitStmt(Case->getBody());
     CGF.EmitBranch(ContinueBlock);
-    if(!Case->isLastCase())
+    if (!Case->isLastCase())
       CGF.EmitBlock(NextCaseBlock);
   }
 }
@@ -450,21 +422,24 @@ void CodeGenFunction::EmitSelectCaseStmt(const SelectCaseStmt *S) {
   auto E = S->getOperand();
 
   auto ContinueBlock = createBasicBlock("after-select-case");
-  auto DefaultBlock  = S->hasDefaultCase()? createBasicBlock("case-default") :
-                                            ContinueBlock;
+  auto DefaultBlock =
+      S->hasDefaultCase() ? createBasicBlock("case-default") : ContinueBlock;
 
-  if(E->getType()->isIntegerType()) {
+  if (E->getType()->isIntegerType()) {
     auto Val = EmitScalarExpr(E);
-    EmitCases<IntegerCaseStmtEmitter>(*this, Builder, Val, S, DefaultBlock, ContinueBlock);
-  } else if(E->getType()->isLogicalType()) {
+    EmitCases<IntegerCaseStmtEmitter>(*this, Builder, Val, S, DefaultBlock,
+                                      ContinueBlock);
+  } else if (E->getType()->isLogicalType()) {
     auto Val = EmitScalarExpr(E);
-    EmitCases<LogicalCaseStmtEmitter>(*this, Builder, Val, S, DefaultBlock, ContinueBlock);
+    EmitCases<LogicalCaseStmtEmitter>(*this, Builder, Val, S, DefaultBlock,
+                                      ContinueBlock);
   } else {
     auto Val = EmitCharacterExpr(E);
-    EmitCases<CharCaseStmtEmitter>(*this, Builder, Val, S, DefaultBlock, ContinueBlock);
+    EmitCases<CharCaseStmtEmitter>(*this, Builder, Val, S, DefaultBlock,
+                                   ContinueBlock);
   }
 
-  if(S->hasDefaultCase()) {
+  if (S->hasDefaultCase()) {
     EmitBlock(DefaultBlock);
     EmitStmt(S->getDefaultCase()->getBody());
     EmitBranch(ContinueBlock);
@@ -491,36 +466,37 @@ void CodeGenFunction::EmitAssignmentStmt(const AssignmentStmt *S) {
   auto RHSType = RHS->getType();
   auto LHS = S->getLHS();
 
-  if(LHS->getType()->isArrayType()) {
+  if (LHS->getType()->isArrayType()) {
     EmitArrayAssignment(LHS, RHS);
     return;
   }
   auto Destination = EmitLValue(LHS);
 
-  if(RHSType->isIntegerType() || RHSType->isRealType()) {
+  if (RHSType->isIntegerType() || RHSType->isRealType()) {
     auto Value = EmitScalarExpr(RHS);
     Builder.CreateStore(Value, Destination.getPointer());
-  } else if(RHSType->isLogicalType()) {
+  } else if (RHSType->isLogicalType()) {
     auto Value = EmitLogicalValueExpr(RHS);
     Builder.CreateStore(Value, Destination.getPointer());
-  } else if(RHSType->isComplexType()) {
+  } else if (RHSType->isComplexType()) {
     auto Value = EmitComplexExpr(RHS);
     EmitComplexStore(Value, Destination.getPointer());
-  } else if(RHSType->isCharacterType())
+  } else if (RHSType->isCharacterType())
     EmitCharacterAssignment(LHS, RHS);
-  else if(RHSType->isRecordType())
+  else if (RHSType->isRecordType())
     EmitAggregateAssignment(LHS, RHS);
 }
 
 void CodeGenFunction::EmitAssignment(LValueTy LHS, RValueTy RHS) {
-  if(RHS.isScalar())
+  if (RHS.isScalar())
     Builder.CreateStore(RHS.asScalar(), LHS.getPointer());
-  else if(RHS.isComplex())
+  else if (RHS.isComplex())
     EmitComplexStore(RHS.asComplex(), LHS.getPointer());
-  else if(RHS.isCharacter())
-    EmitCharacterAssignment(GetCharacterValueFromPtr(LHS.getPointer(), LHS.getType()),
-                            RHS.asCharacter());
+  else if (RHS.isCharacter())
+    EmitCharacterAssignment(
+        GetCharacterValueFromPtr(LHS.getPointer(), LHS.getType()),
+        RHS.asCharacter());
 }
 
-}
+} // namespace CodeGen
 } // end namespace fort

@@ -13,26 +13,26 @@ namespace fort {
 namespace CodeGen {
 
 ABIArgInfo FortranABI::GetArgABI(QualType ArgType) {
-  if(ArgType->isCharacterType())
-    return ABIArgInfo(ABIArgInfo::ExpandCharacterPutLengthToAdditionalArgsAsInt);
-  else if(ArgType->isFunctionType())
+  if (ArgType->isCharacterType())
+    return ABIArgInfo(
+        ABIArgInfo::ExpandCharacterPutLengthToAdditionalArgsAsInt);
+  else if (ArgType->isFunctionType())
     return ABIArgInfo(ABIArgInfo::Value);
 
   return ABIArgInfo(ABIArgInfo::Reference);
 }
 
 ABIRetInfo FortranABI::GetRetABI(QualType RetType) {
-  if(RetType.isNull() || RetType->isVoidType())
+  if (RetType.isNull() || RetType->isVoidType())
     return ABIRetInfo(ABIRetInfo::Nothing);
-  if(RetType->isCharacterType())
+  if (RetType->isCharacterType())
     return ABIRetInfo(ABIRetInfo::CharacterValueAsArg);
 
   return ABIRetInfo(ABIRetInfo::Value);
 }
 
 ABIArgInfo LibfortABI::GetArgABI(QualType ArgType) {
-  if(ArgType->isComplexType() ||
-     ArgType->isCharacterType())
+  if (ArgType->isComplexType() || ArgType->isCharacterType())
     return ABIArgInfo(ABIArgInfo::Expand);
   return ABIArgInfo(ABIArgInfo::Value);
 }
@@ -42,11 +42,11 @@ ABIRetInfo LibfortABI::GetRetABI(QualType RetType) {
 }
 
 ABIArgInfo LibfortTransferABI::GetArgABI(QualType ArgType) {
-  if(ArgType->isCharacterType())
+  if (ArgType->isCharacterType())
     return LibfortABI::GetArgABI(ArgType);
 
   return ABIArgInfo(ABIArgInfo::ReferenceAsVoidExtraSize);
 }
 
-}
+} // namespace CodeGen
 } // end namespace fort

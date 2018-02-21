@@ -8,7 +8,8 @@
 //===----------------------------------------------------------------------===//
 //
 // These classes implement wrappers around llvm::Value in order to
-// fully represent the range of values for Complex, Character, Array and L/Rvalues.
+// fully represent the range of values for Complex, Character, Array and
+// L/Rvalues.
 //
 //===----------------------------------------------------------------------===//
 
@@ -20,9 +21,9 @@
 #include "llvm/IR/Value.h"
 
 namespace llvm {
-  class Constant;
-  class MDNode;
-}
+class Constant;
+class MDNode;
+} // namespace llvm
 
 namespace fort {
 namespace CodeGen {
@@ -33,7 +34,7 @@ public:
 
   ComplexValueTy() {}
   ComplexValueTy(llvm::Value *Real, llvm::Value *Imaginary)
-    : Re(Real), Im(Imaginary) {}
+      : Re(Real), Im(Imaginary) {}
 };
 
 class CharacterValueTy {
@@ -42,7 +43,7 @@ public:
 
   CharacterValueTy() {}
   CharacterValueTy(llvm::Value *Pointer, llvm::Value *Length)
-    : Ptr(Pointer), Len(Length) {}
+      : Ptr(Pointer), Len(Length) {}
 };
 
 /// ArrayDimensionValueTy - this is a single dimension
@@ -56,17 +57,11 @@ public:
   ArrayDimensionValueTy() {}
   ArrayDimensionValueTy(llvm::Value *LB, llvm::Value *UB = nullptr,
                         llvm::Value *stride = nullptr)
-    : LowerBound(LB), UpperBound(UB), Stride(stride) {}
+      : LowerBound(LB), UpperBound(UB), Stride(stride) {}
 
-  bool hasLowerBound() const {
-    return LowerBound != nullptr;
-  }
-  bool hasUpperBound() const {
-    return UpperBound != nullptr;
-  }
-  bool hasStride() const {
-    return Stride != nullptr;
-  }
+  bool hasLowerBound() const { return LowerBound != nullptr; }
+  bool hasUpperBound() const { return UpperBound != nullptr; }
+  bool hasStride() const { return Stride != nullptr; }
 };
 
 /// ArrayValueRef - this a reference to an array
@@ -77,15 +72,11 @@ public:
   llvm::Value *Ptr;
   llvm::Value *Offset;
 
-  ArrayValueRef(ArrayRef<ArrayDimensionValueTy> Dims,
-               llvm::Value *P,
-               llvm::Value *offset = nullptr)
-    : Dimensions(Dims), Ptr(P),
-      Offset(offset) {}
+  ArrayValueRef(ArrayRef<ArrayDimensionValueTy> Dims, llvm::Value *P,
+                llvm::Value *offset = nullptr)
+      : Dimensions(Dims), Ptr(P), Offset(offset) {}
 
-  bool hasOffset() const {
-    return Offset != nullptr;
-  }
+  bool hasOffset() const { return Offset != nullptr; }
 };
 
 /// ArrayVectorValueTy - this is a one dimensional
@@ -95,9 +86,8 @@ public:
   ArrayDimensionValueTy Dimension;
   llvm::Value *Ptr;
 
-  ArrayVectorValueTy(ArrayDimensionValueTy Dim,
-                     llvm::Value *P)
-    : Dimension(Dim), Ptr(P) {}
+  ArrayVectorValueTy(ArrayDimensionValueTy Dim, llvm::Value *P)
+      : Dimension(Dim), Ptr(P) {}
 };
 
 class LValueTy {
@@ -106,81 +96,49 @@ public:
   QualType Type;
 
   LValueTy() {}
-  LValueTy(llvm::Value *Dest)
-    : Ptr(Dest) {}
-  LValueTy(llvm::Value *Dest, QualType Ty)
-    : Ptr(Dest), Type(Ty) {}
+  LValueTy(llvm::Value *Dest) : Ptr(Dest) {}
+  LValueTy(llvm::Value *Dest, QualType Ty) : Ptr(Dest), Type(Ty) {}
 
-  llvm::Value *getPointer() const {
-    return Ptr;
-  }
-  QualType getType() const {
-    return Type;
-  }
+  llvm::Value *getPointer() const { return Ptr; }
+  QualType getType() const { return Type; }
 
   bool isVolatileQualifier() const {
-    return false;// NB: to be used in the future
+    return false; // NB: to be used in the future
   }
 };
 
 class RValueTy {
 public:
-  enum Kind {
-    None,
-    Scalar,
-    Complex,
-    Character,
-    Aggregate
-  };
+  enum Kind { None, Scalar, Complex, Character, Aggregate };
+
 private:
   Kind ValueType;
   llvm::Value *V1;
   llvm::Value *V2;
 
-  RValueTy(llvm::Value *V, Kind Type)
-    : ValueType(Type), V1(V) {}
+  RValueTy(llvm::Value *V, Kind Type) : ValueType(Type), V1(V) {}
+
 public:
-
   RValueTy() : ValueType(None) {}
-  RValueTy(llvm::Value *V)
-    : ValueType(Scalar), V1(V) {}
-  RValueTy(ComplexValueTy C)
-    : ValueType(Complex), V1(C.Re), V2(C.Im) {}
+  RValueTy(llvm::Value *V) : ValueType(Scalar), V1(V) {}
+  RValueTy(ComplexValueTy C) : ValueType(Complex), V1(C.Re), V2(C.Im) {}
   RValueTy(CharacterValueTy CharValue)
-    : ValueType(Character), V1(CharValue.Ptr), V2(CharValue.Len) {}
+      : ValueType(Character), V1(CharValue.Ptr), V2(CharValue.Len) {}
 
-  Kind getType() const {
-    return ValueType;
-  }
-  bool isScalar() const {
-    return getType() == Scalar;
-  }
-  bool isComplex() const {
-    return getType() == Complex;
-  }
-  bool isCharacter() const {
-    return getType() == Character;
-  }
-  bool isAggregate() const {
-    return getType() == Aggregate;
-  }
-  bool isNothing() const {
-    return getType() == None;
-  }
+  Kind getType() const { return ValueType; }
+  bool isScalar() const { return getType() == Scalar; }
+  bool isComplex() const { return getType() == Complex; }
+  bool isCharacter() const { return getType() == Character; }
+  bool isAggregate() const { return getType() == Aggregate; }
+  bool isNothing() const { return getType() == None; }
 
   bool isVolatileQualifier() const {
-    return false;// NB: to be used in the future
+    return false; // NB: to be used in the future
   }
 
-  llvm::Value *asScalar() const {
-    return V1;
-  }
-  ComplexValueTy asComplex() const {
-    return ComplexValueTy(V1, V2);
-  }
-  CharacterValueTy asCharacter() const {
-    return CharacterValueTy(V1, V2);
-  }
+  llvm::Value *asScalar() const { return V1; }
+  ComplexValueTy asComplex() const { return ComplexValueTy(V1, V2); }
+  CharacterValueTy asCharacter() const { return CharacterValueTy(V1, V2); }
   llvm::Value *getAggregateAddr() const {
     assert(isAggregate());
     return V1;
@@ -191,7 +149,7 @@ public:
   }
 };
 
-}  // end namespace CodeGen
-}  // end namespace fort
+} // end namespace CodeGen
+} // end namespace fort
 
 #endif

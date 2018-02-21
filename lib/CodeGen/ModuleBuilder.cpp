@@ -27,71 +27,68 @@ using namespace fort;
 
 namespace {
 
-  using std::unique_ptr;
+using std::unique_ptr;
 
-  class CodeGeneratorImpl : public CodeGenerator {
-    DiagnosticsEngine &Diags;
-    std::unique_ptr<const llvm::DataLayout> TD;
-    ASTContext *Ctx;
-    const CodeGenOptions CodeGenOpts;  // Intentionally copied in.
-    const TargetOptions Target;
-  protected:
-    std::unique_ptr<llvm::Module> M;
-    std::unique_ptr<CodeGen::CodeGenModule> Builder;
-  public:
-    CodeGeneratorImpl(DiagnosticsEngine &diags, const std::string& ModuleName,
-                      const CodeGenOptions &CGO,
-                      const TargetOptions &TO,
-                      llvm::LLVMContext& C)
+class CodeGeneratorImpl : public CodeGenerator {
+  DiagnosticsEngine &Diags;
+  std::unique_ptr<const llvm::DataLayout> TD;
+  ASTContext *Ctx;
+  const CodeGenOptions CodeGenOpts; // Intentionally copied in.
+  const TargetOptions Target;
+
+protected:
+  std::unique_ptr<llvm::Module> M;
+  std::unique_ptr<CodeGen::CodeGenModule> Builder;
+
+public:
+  CodeGeneratorImpl(DiagnosticsEngine &diags, const std::string &ModuleName,
+                    const CodeGenOptions &CGO, const TargetOptions &TO,
+                    llvm::LLVMContext &C)
       : Diags(diags), CodeGenOpts(CGO), Target(TO),
         M(new llvm::Module(ModuleName, C)) {}
 
-    virtual ~CodeGeneratorImpl() {}
+  virtual ~CodeGeneratorImpl() {}
 
-    virtual llvm::Module* GetModule() {
-      return M.get();
+  virtual llvm::Module *GetModule() { return M.get(); }
+
+  virtual llvm::Module *ReleaseModule() { return M.release(); }
+
+  virtual void Initialize(ASTContext &Context) {
+    Ctx = &Context;
+
+    M->setTargetTriple(Ctx->getTargetInfo().getTriple().getTriple());
+    M->setDataLayout(Ctx->getTargetInfo().getDataLayout());
+    TD.reset(new llvm::DataLayout(M.get()));
+
+    Builder.reset(
+        new CodeGen::CodeGenModule(Context, CodeGenOpts, *M, *TD, Diags));
+  }
+
+  virtual void HandleTranslationUnit(ASTContext &Ctx) {
+    if (Diags.hadErrors()) {
+      M.reset();
+      return;
     }
 
-    virtual llvm::Module* ReleaseModule() {
-      return M.release();
+    auto TranslationUnit = Ctx.getTranslationUnitDecl();
+    auto I = TranslationUnit->decls_begin();
+    for (auto E = TranslationUnit->decls_end(); I != E; ++I) {
+      if ((*I)->getDeclContext() == TranslationUnit)
+        Builder->EmitTopLevelDecl(*I);
     }
 
-    virtual void Initialize(ASTContext &Context) {
-      Ctx = &Context;
+    if (Builder)
+      Builder->Release();
+  }
+};
+} // namespace
 
-      M->setTargetTriple(Ctx->getTargetInfo().getTriple().getTriple());
-      M->setDataLayout(Ctx->getTargetInfo().getDataLayout());
-      TD.reset(new llvm::DataLayout(M.get()));
-
-      Builder.reset(new CodeGen::CodeGenModule(Context, CodeGenOpts, *M, *TD,
-                                               Diags));
-    }
-
-    virtual void HandleTranslationUnit(ASTContext &Ctx) {
-      if (Diags.hadErrors()) {
-        M.reset();
-        return;
-      }
-
-      auto TranslationUnit = Ctx.getTranslationUnitDecl();
-      auto I = TranslationUnit->decls_begin();
-      for(auto E = TranslationUnit->decls_end(); I!=E; ++I) {
-        if((*I)->getDeclContext() == TranslationUnit)
-          Builder->EmitTopLevelDecl(*I);
-      }
-
-      if (Builder)
-        Builder->Release();
-    }
-  };
-}
-
-void CodeGenerator::anchor() { }
+void CodeGenerator::anchor() {}
 
 CodeGenerator *fort::CreateLLVMCodeGen(DiagnosticsEngine &Diags,
-                                        const std::string& ModuleName,
-                                        const CodeGenOptions &CGO,
-                                        const TargetOptions &TO,
-                                        llvm::LLVMContext& C) {
+                                       const std::string &ModuleName,
+                                       const CodeGenOptions &CGO,
+                                       const TargetOptions &TO,
+                                       llvm::LLVMContext &C) {
   return new CodeGeneratorImpl(Diags, ModuleName, CGO, TO, C);
 }

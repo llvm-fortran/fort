@@ -13,15 +13,14 @@
 #include "CGValue.h"
 #include "CodeGenFunction.h"
 #include "fort/AST/ExprVisitor.h"
-#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/SmallVector.h"
 
 namespace fort {
 namespace CodeGen {
 
 /// ArrayValueExprEmitter - Emits the information about an array.
-class ArrayValueExprEmitter
-  : public ConstExprVisitor<ArrayValueExprEmitter> {
+class ArrayValueExprEmitter : public ConstExprVisitor<ArrayValueExprEmitter> {
   CodeGenFunction &CGF;
   CGBuilderTy &Builder;
   llvm::LLVMContext &VMContext;
@@ -33,8 +32,8 @@ class ArrayValueExprEmitter
 
   void EmitSections();
   void IncrementOffset(llvm::Value *OffsetDelta);
-public:
 
+public:
   ArrayValueExprEmitter(CodeGenFunction &cgf, bool getPointer = true);
 
   void EmitExpr(const Expr *E);
@@ -42,15 +41,9 @@ public:
   void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
   void VisitArraySectionExpr(const ArraySectionExpr *E);
 
-  ArrayRef<ArrayDimensionValueTy> getDimensions() const {
-    return Dims;
-  }
-  llvm::Value *getPointer() const {
-    return Ptr;
-  }
-  ArrayValueRef getResult() const {
-    return ArrayValueRef(Dims, Ptr, Offset);
-  }
+  ArrayRef<ArrayDimensionValueTy> getDimensions() const { return Dims; }
+  llvm::Value *getPointer() const { return Ptr; }
+  ArrayValueRef getResult() const { return ArrayValueRef(Dims, Ptr, Offset); }
 };
 
 /// ArrayOperation - Represents an array expression / statement.
@@ -61,13 +54,12 @@ class ArrayOperation {
     llvm::Value *Ptr;
     llvm::Value *Offset;
   };
-  llvm::SmallDenseMap<const Expr*, StoredArrayValue, 8> Arrays;
-  llvm::SmallDenseMap<const Expr*, RValueTy, 8> Scalars;
+  llvm::SmallDenseMap<const Expr *, StoredArrayValue, 8> Arrays;
+  llvm::SmallDenseMap<const Expr *, RValueTy, 8> Scalars;
 
   SmallVector<ArrayDimensionValueTy, 32> Dims;
 
 protected:
-
   /// \brief Emits a scalar value used for the given scalar expression.
   void EmitScalarValue(CodeGenFunction &CGF, const Expr *E);
 
@@ -75,8 +67,8 @@ protected:
   void EmitArraySections(CodeGenFunction &CGF, const Expr *E);
 
   friend class ScalarEmitterAndSectionGatherer;
-public:
 
+public:
   /// \brief Returns the array value used for the given expression.
   ArrayValueRef getArrayValue(const Expr *E);
 
@@ -89,26 +81,25 @@ public:
 
   /// EmitAllScalarValuesAndArraySections - walks the given expression,
   /// and prepares the array operation for a multidimensional loop by emitting
-  /// scalar expressions, so that they are only executed once in an array operation,
-  /// and also by emmitting the array sections which are used to access the array
-  /// elements inside the operation's loop.
+  /// scalar expressions, so that they are only executed once in an array
+  /// operation, and also by emmitting the array sections which are used to
+  /// access the array elements inside the operation's loop.
   void EmitAllScalarValuesAndArraySections(CodeGenFunction &CGF, const Expr *E);
 };
 
 /// StandaloneArrayValueSectionGatherer - Gathers the array sections
 /// which are needed for a standalone array expression.
 class StandaloneArrayValueSectionGatherer
-  : public ConstExprVisitor<StandaloneArrayValueSectionGatherer> {
+    : public ConstExprVisitor<StandaloneArrayValueSectionGatherer> {
   CodeGenFunction &CGF;
   ArrayOperation &Operation;
   bool Gathered;
   SmallVector<ArrayDimensionValueTy, 8> Dims;
 
   void GatherSections(const Expr *E);
-public:
 
-  StandaloneArrayValueSectionGatherer(CodeGenFunction &cgf,
-                                      ArrayOperation &Op);
+public:
+  StandaloneArrayValueSectionGatherer(CodeGenFunction &cgf, ArrayOperation &Op);
   void EmitExpr(const Expr *E);
 
   void VisitVarExpr(const VarExpr *E);
@@ -119,9 +110,7 @@ public:
   void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
   void VisitArraySectionExpr(const ArraySectionExpr *E);
 
-  ArrayValueRef getResult() const {
-    return ArrayValueRef(Dims, nullptr);
-  }
+  ArrayValueRef getResult() const { return ArrayValueRef(Dims, nullptr); }
 };
 
 /// ArrayLoopEmitter - Emits the multidimensional loop which
@@ -143,15 +132,14 @@ private:
   /// (i.e. element section).
   SmallVector<llvm::Value *, 8> Elements;
   SmallVector<Loop, 8> Loops;
-public:
 
+public:
   ArrayLoopEmitter(CodeGenFunction &cgf);
 
   /// EmitSectionIndex - computes the index of the element during
   /// the current iteration of the multidimensional loop
   /// for the given dimension.
-  llvm::Value *EmitSectionOffset(const ArrayValueRef &Array,
-                                int I);
+  llvm::Value *EmitSectionOffset(const ArrayValueRef &Array, int I);
 
   /// EmitElementOffset - computes the offset of the
   /// current element in the given array.
@@ -176,15 +164,16 @@ public:
 
 /// ArrayOperationEmitter - Emits the array expression for the current
 /// iteration of the multidimensional array loop.
-class ArrayOperationEmitter : public ConstExprVisitor<ArrayOperationEmitter, RValueTy> {
-  CodeGenFunction   &CGF;
-  CGBuilderTy       &Builder;
-  ArrayOperation    &Operation;
+class ArrayOperationEmitter
+    : public ConstExprVisitor<ArrayOperationEmitter, RValueTy> {
+  CodeGenFunction &CGF;
+  CGBuilderTy &Builder;
+  ArrayOperation &Operation;
   ArrayLoopEmitter &Looper;
-public:
 
+public:
   ArrayOperationEmitter(CodeGenFunction &cgf, ArrayOperation &Op,
-                         ArrayLoopEmitter &Loop);
+                        ArrayLoopEmitter &Loop);
 
   RValueTy Emit(const Expr *E);
   RValueTy VisitVarExpr(const VarExpr *E);
@@ -202,7 +191,7 @@ public:
   LValueTy EmitLValue(const Expr *E);
 };
 
-}
-}  // end namespace fort
+} // namespace CodeGen
+} // end namespace fort
 
 #endif

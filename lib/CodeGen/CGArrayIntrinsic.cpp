@@ -11,9 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "CGArray.h"
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
-#include "CGArray.h"
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/ExprVisitor.h"
 #include "fort/AST/StmtVisitor.h"
@@ -24,19 +24,19 @@
 namespace fort {
 namespace CodeGen {
 
-RValueTy CodeGenFunction::
-EmitVectorDimReturningScalarArrayIntrinsic(intrinsic::FunctionKind Func,
-                                           Expr *Arr) {
+RValueTy CodeGenFunction::EmitVectorDimReturningScalarArrayIntrinsic(
+    intrinsic::FunctionKind Func, Expr *Arr) {
   using namespace intrinsic;
   auto ElementType = Arr->getType()->asArrayType()->getElementType();
 
-  switch(Func) {
+  switch (Func) {
   case MAXLOC:
   case MINLOC: {
     auto Result = CreateTempAlloca(CGM.SizeTy, "maxminloc-result");
-    auto MaxMinVar = CreateTempAlloca(ConvertTypeForMem(ElementType), "maxminloc-var");
+    auto MaxMinVar =
+        CreateTempAlloca(ConvertTypeForMem(ElementType), "maxminloc-var");
     Builder.CreateStore(llvm::ConstantInt::get(CGM.SizeTy, 0), Result);
-    if(Func == MAXLOC)
+    if (Func == MAXLOC)
       Builder.CreateStore(GetConstantScalarMinValue(ElementType), MaxMinVar);
     else
       Builder.CreateStore(GetConstantScalarMaxValue(ElementType), MaxMinVar);
@@ -53,12 +53,15 @@ EmitVectorDimReturningScalarArrayIntrinsic(intrinsic::FunctionKind Func,
     auto ResultValue = Builder.CreateLoad(MaxMinVar);
     auto ThenBlock = createBasicBlock("maxminloc-then");
     auto EndBlock = createBasicBlock("maxminloc-end");
-    Builder.CreateCondBr(EmitScalarBinaryExpr(Func == MAXLOC? BinaryExpr::GreaterThan : BinaryExpr::LessThan,
+    Builder.CreateCondBr(EmitScalarBinaryExpr(Func == MAXLOC
+                                                  ? BinaryExpr::GreaterThan
+                                                  : BinaryExpr::LessThan,
                                               ElementValue, ResultValue),
                          ThenBlock, EndBlock);
     EmitBlock(ThenBlock);
     Builder.CreateStore(ElementValue, MaxMinVar);
-    Builder.CreateStore(Looper.EmitElementOneDimensionalIndex(Gatherer.getResult()), Result);
+    Builder.CreateStore(
+        Looper.EmitElementOneDimensionalIndex(Gatherer.getResult()), Result);
     EmitBranch(EndBlock);
     EmitBlock(EndBlock);
 
@@ -75,15 +78,15 @@ EmitVectorDimReturningScalarArrayIntrinsic(intrinsic::FunctionKind Func,
 }
 
 RValueTy CodeGenFunction::EmitArrayIntrinsic(intrinsic::FunctionKind Func,
-                                             ArrayRef<Expr*> Arguments) {
+                                             ArrayRef<Expr *> Arguments) {
   using namespace intrinsic;
 
-  switch(Func) {
+  switch (Func) {
   case MAXLOC:
   case MINLOC:
-    if(Arguments.size() == 2 &&
-       Arguments[0]->getType()->asArrayType()->getDimensionCount() == 1 &&
-       Arguments[1]->getType()->isIntegerType()) {
+    if (Arguments.size() == 2 &&
+        Arguments[0]->getType()->asArrayType()->getDimensionCount() == 1 &&
+        Arguments[1]->getType()->isIntegerType()) {
       // Vector, dim -> return scalar
       return EmitVectorDimReturningScalarArrayIntrinsic(Func,
                                                         Arguments.front());
@@ -99,5 +102,5 @@ RValueTy CodeGenFunction::EmitArrayIntrinsic(intrinsic::FunctionKind Func,
   return RValueTy();
 }
 
-}
+} // namespace CodeGen
 } // end namespace fort

@@ -11,20 +11,20 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <limits>
+#include "CGSystemRuntime.h"
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
-#include "CGSystemRuntime.h"
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/ExprVisitor.h"
 #include "fort/Frontend/CodeGenOptions.h"
+#include "llvm/IR/CFG.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/CFG.h"
+#include <limits>
 
 namespace fort {
 namespace CodeGen {
@@ -36,40 +36,45 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
   auto Group = getFunctionGroup(Func);
   auto Args = E->getArguments();
 
-  switch(Group) {
+  switch (Group) {
   case GROUP_CONVERSION:
-    if(Func == INT ||
-       Func == REAL) {
-      if(Args[0]->getType()->isComplexType())
+    if (Func == INT || Func == REAL) {
+      if (Args[0]->getType()->isComplexType())
         return EmitComplexToScalarConversion(EmitComplexExpr(Args[0]),
                                              E->getType());
       else
         return EmitScalarToScalarConversion(EmitScalarExpr(Args[0]),
                                             E->getType());
-    } else if(Func == CMPLX) {
-      if(Args[0]->getType()->isComplexType())
+    } else if (Func == CMPLX) {
+      if (Args[0]->getType()->isComplexType())
         return EmitComplexToComplexConversion(EmitComplexExpr(Args[0]),
                                               E->getType());
       else {
-        if(Args.size() >= 2) {
-          auto ElementType = getContext().getComplexTypeElementType(E->getType());
-          return ComplexValueTy(EmitScalarToScalarConversion(EmitScalarExpr(Args[0]), ElementType),
-                                EmitScalarToScalarConversion(EmitScalarExpr(Args[1]), ElementType));
-        }
-        else return EmitScalarToComplexConversion(EmitScalarExpr(Args[0]),
-                                                  E->getType());
+        if (Args.size() >= 2) {
+          auto ElementType =
+              getContext().getComplexTypeElementType(E->getType());
+          return ComplexValueTy(EmitScalarToScalarConversion(
+                                    EmitScalarExpr(Args[0]), ElementType),
+                                EmitScalarToScalarConversion(
+                                    EmitScalarExpr(Args[1]), ElementType));
+        } else
+          return EmitScalarToComplexConversion(EmitScalarExpr(Args[0]),
+                                               E->getType());
       }
-    } else if(Func == ICHAR) {
+    } else if (Func == ICHAR) {
       auto Value = EmitCharacterDereference(EmitCharacterExpr(Args[0]));
-      return Builder.CreateZExtOrTrunc(Value, ConvertType(getContext().IntegerTy));
-    } else if(Func == CHAR) {
+      return Builder.CreateZExtOrTrunc(Value,
+                                       ConvertType(getContext().IntegerTy));
+    } else if (Func == CHAR) {
       auto Temp = CreateTempAlloca(CGM.Int8Ty, "char");
-      auto Value = CharacterValueTy(Temp,
-                                    llvm::ConstantInt::get(CGM.SizeTy, 1));
-      Builder.CreateStore(Builder.CreateSExtOrTrunc(EmitScalarExpr(Args[0]), CGM.Int8Ty),
-                          Value.Ptr);
+      auto Value =
+          CharacterValueTy(Temp, llvm::ConstantInt::get(CGM.SizeTy, 1));
+      Builder.CreateStore(
+          Builder.CreateSExtOrTrunc(EmitScalarExpr(Args[0]), CGM.Int8Ty),
+          Value.Ptr);
       return Value;
-    } else llvm_unreachable("invalid conversion intrinsic");
+    } else
+      llvm_unreachable("invalid conversion intrinsic");
     break;
 
   case GROUP_TRUNCATION:
@@ -80,15 +85,15 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
     return EmitIntrinsicCallComplex(Func, EmitComplexExpr(Args[0]));
 
   case GROUP_MATHS:
-    if(Func == MAX || Func == MIN)
+    if (Func == MAX || Func == MIN)
       return EmitIntrinsicMinMax(Func, Args);
-    if(Args[0]->getType()->isComplexType())
+    if (Args[0]->getType()->isComplexType())
       return EmitIntrinsicCallComplexMath(Func, EmitComplexExpr(Args[0]));
-    return EmitIntrinsicCallScalarMath(Func, EmitScalarExpr(Args[0]),
-                                       Args.size() == 2?
-                                        EmitScalarExpr(Args[1]) : nullptr);
+    return EmitIntrinsicCallScalarMath(
+        Func, EmitScalarExpr(Args[0]),
+        Args.size() == 2 ? EmitScalarExpr(Args[1]) : nullptr);
   case GROUP_CHARACTER:
-    if(Args.size() == 1)
+    if (Args.size() == 1)
       return EmitIntrinsicCallCharacter(Func, EmitCharacterExpr(Args[0]));
     else
       return EmitIntrinsicCallCharacter(Func, EmitCharacterExpr(Args[0]),
@@ -105,15 +110,16 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
 
   case GROUP_INQUIRY: {
     int64_t Val;
-    if(E->EvaluateAsInt(Val, getContext()))
+    if (E->EvaluateAsInt(Val, getContext()))
       return llvm::ConstantInt::get(ConvertType(E->getType()), Val);
     return EmitInquiryIntrinsic(Func, Args);
   }
 
   case GROUP_BITOPS:
     return EmitBitOperation(Func, EmitScalarExpr(Args[0]),
-             Args.size() > 1? EmitScalarExpr(Args[1]) : nullptr,
-             Args.size() > 2? EmitScalarExpr(Args[2]) : nullptr);
+                            Args.size() > 1 ? EmitScalarExpr(Args[1]) : nullptr,
+                            Args.size() > 2 ? EmitScalarExpr(Args[2])
+                                            : nullptr);
 
   default:
     llvm_unreachable("invalid intrinsic");
@@ -123,12 +129,11 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
   return RValueTy();
 }
 
-llvm::Value *CodeGenFunction::EmitIntrinsicCallScalarTruncation(intrinsic::FunctionKind Func,
-                                                                llvm::Value *Value,
-                                                                QualType ResultType) {
+llvm::Value *CodeGenFunction::EmitIntrinsicCallScalarTruncation(
+    intrinsic::FunctionKind Func, llvm::Value *Value, QualType ResultType) {
   llvm::Value *FuncDecl = nullptr;
   auto ValueType = Value->getType();
-  switch(Func) {
+  switch (Func) {
   case intrinsic::AINT:
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::trunc, ValueType);
     break;
@@ -145,31 +150,32 @@ llvm::Value *CodeGenFunction::EmitIntrinsicCallScalarTruncation(intrinsic::Funct
   }
 
   auto Result = Builder.CreateCall(FuncDecl, Value);
-  if(ResultType->isIntegerType())
+  if (ResultType->isIntegerType())
     return EmitScalarToScalarConversion(Result, ResultType);
   return Result;
 }
 
-#define MANGLE_MATH_FUNCTION(Str, Type) \
-  ((Type)->isFloatTy() ? Str "f" : Str)
+#define MANGLE_MATH_FUNCTION(Str, Type) ((Type)->isFloatTy() ? Str "f" : Str)
 
-llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKind Func,
-                                                          llvm::Value *A1, llvm::Value *A2) {
+llvm::Value *
+CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKind Func,
+                                             llvm::Value *A1, llvm::Value *A2) {
   using namespace intrinsic;
 
   llvm::Value *FuncDecl = nullptr;
   auto ValueType = A1->getType();
-  switch(Func) {
+  switch (Func) {
   case ABS:
-    if(ValueType->isIntegerTy()) {
-      auto Condition = Builder.CreateICmpSGE(A1, llvm::ConstantInt::get(ValueType, 0));
+    if (ValueType->isIntegerTy()) {
+      auto Condition =
+          Builder.CreateICmpSGE(A1, llvm::ConstantInt::get(ValueType, 0));
       return Builder.CreateSelect(Condition, A1, Builder.CreateNeg(A1));
     }
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::fabs, ValueType);
     break;
 
   case MOD:
-    if(ValueType->isIntegerTy())
+    if (ValueType->isIntegerTy())
       return Builder.CreateSRem(A1, A2);
     else
       return Builder.CreateFRem(A1, A2);
@@ -179,20 +185,18 @@ llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKin
   // -|a1| if a2 < 0
   case SIGN: {
     auto A1Abs = EmitIntrinsicCallScalarMath(ABS, A1);
-    auto Cond = EmitScalarRelationalExpr(BinaryExpr::GreaterThanEqual,
-                                         A2, GetConstantZero(A2->getType()));
+    auto Cond = EmitScalarRelationalExpr(BinaryExpr::GreaterThanEqual, A2,
+                                         GetConstantZero(A2->getType()));
     return Builder.CreateSelect(Cond, A1Abs, EmitScalarUnaryMinus(A1Abs));
     break;
   }
 
-  //a1-a2 if a1>a2
+  // a1-a2 if a1>a2
   //  0   if a1<=a2
   case DIM: {
-    auto Cond = EmitScalarRelationalExpr(BinaryExpr::GreaterThan,
-                                         A1, A2);
+    auto Cond = EmitScalarRelationalExpr(BinaryExpr::GreaterThan, A1, A2);
     return Builder.CreateSelect(Cond,
-                                EmitScalarBinaryExpr(BinaryExpr::Minus,
-                                                     A1, A2),
+                                EmitScalarBinaryExpr(BinaryExpr::Minus, A1, A2),
                                 GetConstantZero(A1->getType()));
     break;
   }
@@ -240,8 +244,7 @@ llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKin
   case ATAN2: {
     llvm::Type *Args[] = {ValueType, ValueType};
     FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("atan2", ValueType),
-                                llvm::makeArrayRef(Args, 2),
-                                ValueType);
+                                llvm::makeArrayRef(Args, 2), ValueType);
     break;
   }
   case SINH:
@@ -259,7 +262,7 @@ llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKin
   default:
     llvm_unreachable("invalid scalar math intrinsic");
   }
-  if(A2) {
+  if (A2) {
     llvm::Value *Args[] = {A1, A2};
     return Builder.CreateCall(FuncDecl, Args);
   }
@@ -267,37 +270,43 @@ llvm::Value* CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKin
 }
 
 llvm::Value *CodeGenFunction::EmitIntrinsicMinMax(intrinsic::FunctionKind Func,
-                                                  ArrayRef<Expr*> Arguments) {
-  SmallVector<llvm::Value*, 8> Args(Arguments.size());
-  for(size_t I = 0; I < Arguments.size(); ++I)
+                                                  ArrayRef<Expr *> Arguments) {
+  SmallVector<llvm::Value *, 8> Args(Arguments.size());
+  for (size_t I = 0; I < Arguments.size(); ++I)
     Args[I] = EmitScalarExpr(Arguments[I]);
   return EmitIntrinsicScalarMinMax(Func, Args);
 }
 
-llvm::Value *CodeGenFunction::EmitIntrinsicScalarMinMax(intrinsic::FunctionKind Func,
-                                                        ArrayRef<llvm::Value*> Args) {
+llvm::Value *
+CodeGenFunction::EmitIntrinsicScalarMinMax(intrinsic::FunctionKind Func,
+                                           ArrayRef<llvm::Value *> Args) {
   auto Value = Args[0];
-  auto Op = Func == intrinsic::MAX? BinaryExpr::GreaterThanEqual :
-                                    BinaryExpr::LessThanEqual;
-  for(size_t I = 1; I < Args.size(); ++I)
-    Value = Builder.CreateSelect(EmitScalarRelationalExpr(Op,
-                                 Value, Args[I]), Value, Args[I]);
+  auto Op = Func == intrinsic::MAX ? BinaryExpr::GreaterThanEqual
+                                   : BinaryExpr::LessThanEqual;
+  for (size_t I = 1; I < Args.size(); ++I)
+    Value = Builder.CreateSelect(EmitScalarRelationalExpr(Op, Value, Args[I]),
+                                 Value, Args[I]);
   return Value;
 }
 
 // Lets pretend ** is an intrinsic
-llvm::Value *CodeGenFunction::EmitScalarPowIntInt(llvm::Value *LHS, llvm::Value *RHS) {
+llvm::Value *CodeGenFunction::EmitScalarPowIntInt(llvm::Value *LHS,
+                                                  llvm::Value *RHS) {
   auto T = cast<llvm::IntegerType>(LHS->getType());
   StringRef FuncName;
-  switch(T->getBitWidth()) {
+  switch (T->getBitWidth()) {
   case 8:
-    FuncName = "pow_i1_i1"; break;
+    FuncName = "pow_i1_i1";
+    break;
   case 16:
-    FuncName = "pow_i2_i2"; break;
+    FuncName = "pow_i2_i2";
+    break;
   case 32:
-    FuncName = "pow_i4_i4"; break;
+    FuncName = "pow_i4_i4";
+    break;
   case 64:
-    FuncName = "pow_i8_i8"; break;
+    FuncName = "pow_i8_i8";
+    break;
   default:
     llvm_unreachable("unsupported integer type");
   }
@@ -308,45 +317,54 @@ llvm::Value *CodeGenFunction::EmitScalarPowIntInt(llvm::Value *LHS, llvm::Value 
   return EmitCall(Func.getFunction(), Func.getInfo(), Args).asScalar();
 }
 
-ComplexValueTy CodeGenFunction::EmitComplexPowi(ComplexValueTy LHS, llvm::Value *RHS) {
+ComplexValueTy CodeGenFunction::EmitComplexPowi(ComplexValueTy LHS,
+                                                llvm::Value *RHS) {
   auto ElementType = LHS.Re->getType();
   auto ValueType = getTypes().GetComplexType(ElementType);
-  auto ResultType =  llvm::PointerType::get(ValueType, 0);
-  auto Func = CGM.GetRuntimeFunction4(MANGLE_MATH_FUNCTION("cpowi", ElementType),
-                                      ElementType, ElementType, RHS->getType(), ResultType);
+  auto ResultType = llvm::PointerType::get(ValueType, 0);
+  auto Func = CGM.GetRuntimeFunction4(
+      MANGLE_MATH_FUNCTION("cpowi", ElementType), ElementType, ElementType,
+      RHS->getType(), ResultType);
   CallArgList Args;
-  Args.add(LHS.Re);Args.add(LHS.Im);Args.add(RHS);
-  auto Result = CreateTempAlloca(ValueType,"libfort_complex_result");
+  Args.add(LHS.Re);
+  Args.add(LHS.Im);
+  Args.add(RHS);
+  auto Result = CreateTempAlloca(ValueType, "libfort_complex_result");
   Args.add(Result);
   EmitCall(Func.getFunction(), Func.getInfo(), Args);
   return EmitComplexLoad(Result);
 }
 
-ComplexValueTy CodeGenFunction::EmitComplexPow(ComplexValueTy LHS, ComplexValueTy RHS) {
+ComplexValueTy CodeGenFunction::EmitComplexPow(ComplexValueTy LHS,
+                                               ComplexValueTy RHS) {
   auto ElementType = LHS.Re->getType();
   auto ValueType = getTypes().GetComplexType(ElementType);
-  auto ResultType =  llvm::PointerType::get(ValueType, 0);
+  auto ResultType = llvm::PointerType::get(ValueType, 0);
   auto Func = CGM.GetRuntimeFunction5(MANGLE_MATH_FUNCTION("cpow", ElementType),
-                                      ElementType, ElementType, ElementType, ElementType, ResultType);
+                                      ElementType, ElementType, ElementType,
+                                      ElementType, ResultType);
   CallArgList Args;
-  Args.add(LHS.Re);Args.add(LHS.Im);
-  Args.add(RHS.Re);Args.add(RHS.Im);
-  auto Result = CreateTempAlloca(ValueType,"libfort_complex_result");
+  Args.add(LHS.Re);
+  Args.add(LHS.Im);
+  Args.add(RHS.Re);
+  Args.add(RHS.Im);
+  auto Result = CreateTempAlloca(ValueType, "libfort_complex_result");
   Args.add(Result);
   EmitCall(Func.getFunction(), Func.getInfo(), Args);
   return EmitComplexLoad(Result);
 }
 
-RValueTy CodeGenFunction::EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Function,
-                                                       ComplexValueTy Value) {
+RValueTy
+CodeGenFunction::EmitIntrinsicCallComplexMath(intrinsic::FunctionKind Function,
+                                              ComplexValueTy Value) {
   auto ElementType = Value.Re->getType();
   auto ValueType = getTypes().GetComplexType(ElementType);
-  auto ResultType =  llvm::PointerType::get(ValueType, 0);
+  auto ResultType = llvm::PointerType::get(ValueType, 0);
   CGFunction Func;
-  CGType Arg1Types[] = { ElementType, ElementType, ResultType };
+  CGType Arg1Types[] = {ElementType, ElementType, ResultType};
   ArrayRef<CGType> Arg1(Arg1Types, 3);
 
-  switch(Function) {
+  switch (Function) {
   case intrinsic::ABS:
     Func = CGM.GetRuntimeFunction2(MANGLE_MATH_FUNCTION("cabs", ElementType),
                                    ElementType, ElementType, ElementType);
@@ -356,32 +374,33 @@ RValueTy CodeGenFunction::EmitIntrinsicCallComplexMath(intrinsic::FunctionKind F
                                   Arg1);
     break;
   case intrinsic::EXP:
-    Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("cexp", ElementType),
-                                  Arg1);
+    Func =
+        CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("cexp", ElementType), Arg1);
     break;
   case intrinsic::LOG:
-    Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("clog", ElementType),
-                                  Arg1);
+    Func =
+        CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("clog", ElementType), Arg1);
     break;
   case intrinsic::SIN:
-    Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("csin", ElementType),
-                                  Arg1);
+    Func =
+        CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("csin", ElementType), Arg1);
     break;
   case intrinsic::COS:
-    Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("ccos", ElementType),
-                                  Arg1);
+    Func =
+        CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("ccos", ElementType), Arg1);
     break;
   case intrinsic::TAN:
-    Func = CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("ctan", ElementType),
-                                  Arg1);
+    Func =
+        CGM.GetRuntimeFunction(MANGLE_MATH_FUNCTION("ctan", ElementType), Arg1);
     break;
   default:
     llvm_unreachable("invalid complex math intrinsic");
   }
 
   CallArgList Args;
-  Args.add(Value.Re);Args.add(Value.Im);
-  if(Function != intrinsic::ABS) {
+  Args.add(Value.Re);
+  Args.add(Value.Im);
+  if (Function != intrinsic::ABS) {
     auto Result = CreateTempAlloca(ValueType, "libfort_complex_result");
     Args.add(Result);
     EmitCall(Func.getFunction(), Func.getInfo(), Args);
@@ -391,8 +410,8 @@ RValueTy CodeGenFunction::EmitIntrinsicCallComplexMath(intrinsic::FunctionKind F
   return EmitCall(Func.getFunction(), Func.getInfo(), Args);
 }
 
-llvm::Value *CodeGenFunction::EmitIntrinsicNumericInquiry(intrinsic::FunctionKind Func,
-                                                          QualType ArgType, QualType Result) {
+llvm::Value *CodeGenFunction::EmitIntrinsicNumericInquiry(
+    intrinsic::FunctionKind Func, QualType ArgType, QualType Result) {
   using namespace intrinsic;
   using namespace std;
 
@@ -401,48 +420,55 @@ llvm::Value *CodeGenFunction::EmitIntrinsicNumericInquiry(intrinsic::FunctionKin
   auto TKind = T->getBuiltinTypeKind();
   int IntResult;
 
-#define HANDLE_INT(Result, func) \
-    switch(TKind) {  \
-    case BuiltinType::Int1: \
-      Result = numeric_limits<int8_t>::func; break; \
-    case BuiltinType::Int2: \
-      Result = numeric_limits<int16_t>::func; break; \
-    case BuiltinType::Int4: \
-      Result = numeric_limits<int32_t>::func; break; \
-    case BuiltinType::Int8: \
-      Result = numeric_limits<int64_t>::func; break; \
-    default: \
-      llvm_unreachable("invalid type kind"); \
-      break; \
-    }
+#define HANDLE_INT(Result, func)                                               \
+  switch (TKind) {                                                             \
+  case BuiltinType::Int1:                                                      \
+    Result = numeric_limits<int8_t>::func;                                     \
+    break;                                                                     \
+  case BuiltinType::Int2:                                                      \
+    Result = numeric_limits<int16_t>::func;                                    \
+    break;                                                                     \
+  case BuiltinType::Int4:                                                      \
+    Result = numeric_limits<int32_t>::func;                                    \
+    break;                                                                     \
+  case BuiltinType::Int8:                                                      \
+    Result = numeric_limits<int64_t>::func;                                    \
+    break;                                                                     \
+  default:                                                                     \
+    llvm_unreachable("invalid type kind");                                     \
+    break;                                                                     \
+  }
 
-#define HANDLE_REAL(Result, func) \
-    switch(TKind) {  \
-    case BuiltinType::Real4: \
-      Result = numeric_limits<float>::func; break; \
-    case BuiltinType::Real8: \
-      Result = numeric_limits<double>::func; break; \
-    default: \
-      llvm_unreachable("invalid type kind"); \
-      break; \
-    }
+#define HANDLE_REAL(Result, func)                                              \
+  switch (TKind) {                                                             \
+  case BuiltinType::Real4:                                                     \
+    Result = numeric_limits<float>::func;                                      \
+    break;                                                                     \
+  case BuiltinType::Real8:                                                     \
+    Result = numeric_limits<double>::func;                                     \
+    break;                                                                     \
+  default:                                                                     \
+    llvm_unreachable("invalid type kind");                                     \
+    break;                                                                     \
+  }
 
-  // FIXME: the float numeric limit is being implicitly converted into a double here..
-#define HANDLE_REAL_RET_REAL(func) \
-    switch(TKind) {  \
-    case BuiltinType::Real4: \
-      return llvm::ConstantFP::get(RetT, numeric_limits<float>::func()); \
-      break; \
-    case BuiltinType::Real8: \
-      return llvm::ConstantFP::get(RetT, numeric_limits<double>::func()); \
-      break; \
-    default: \
-      llvm_unreachable("invalid type kind"); \
-      break; \
-    }
+  // FIXME: the float numeric limit is being implicitly converted into a double
+  // here..
+#define HANDLE_REAL_RET_REAL(func)                                             \
+  switch (TKind) {                                                             \
+  case BuiltinType::Real4:                                                     \
+    return llvm::ConstantFP::get(RetT, numeric_limits<float>::func());         \
+    break;                                                                     \
+  case BuiltinType::Real8:                                                     \
+    return llvm::ConstantFP::get(RetT, numeric_limits<double>::func());        \
+    break;                                                                     \
+  default:                                                                     \
+    llvm_unreachable("invalid type kind");                                     \
+    break;                                                                     \
+  }
 
-  if(T->isIntegerType()) {
-    switch(Func) {
+  if (T->isIntegerType()) {
+    switch (Func) {
     case RADIX:
       HANDLE_INT(IntResult, radix);
       break;
@@ -468,7 +494,7 @@ llvm::Value *CodeGenFunction::EmitIntrinsicNumericInquiry(intrinsic::FunctionKin
       llvm_unreachable("Invalid integer inquiry intrinsic");
     }
   } else {
-    switch(Func) {
+    switch (Func) {
     case RADIX:
       HANDLE_REAL(IntResult, radix);
       break;
@@ -507,10 +533,10 @@ llvm::Value *CodeGenFunction::EmitIntrinsicNumericInquiry(intrinsic::FunctionKin
 }
 
 RValueTy CodeGenFunction::EmitSystemIntrinsic(intrinsic::FunctionKind Func,
-                                              ArrayRef<Expr*> Arguments) {
+                                              ArrayRef<Expr *> Arguments) {
   using namespace intrinsic;
 
-  switch(Func) {
+  switch (Func) {
   case ETIME:
     return CGM.getSystemRuntime().EmitETIME(*this, Arguments);
 
@@ -523,14 +549,16 @@ RValueTy CodeGenFunction::EmitSystemIntrinsic(intrinsic::FunctionKind Func,
 }
 
 llvm::Value *CodeGenFunction::EmitInquiryIntrinsic(intrinsic::FunctionKind Func,
-                                                   ArrayRef<Expr*> Arguments) {
+                                                   ArrayRef<Expr *> Arguments) {
   using namespace intrinsic;
 
-  switch(Func) {
+  switch (Func) {
   case SELECTED_INT_KIND: {
-    auto Func = CGM.GetRuntimeFunction1("selected_int_kind", CGM.Int32Ty, CGM.Int32Ty);
+    auto Func =
+        CGM.GetRuntimeFunction1("selected_int_kind", CGM.Int32Ty, CGM.Int32Ty);
     CallArgList Args;
-    Args.add(Builder.CreateSExtOrTrunc(EmitScalarExpr(Arguments[0]), CGM.Int32Ty));
+    Args.add(
+        Builder.CreateSExtOrTrunc(EmitScalarExpr(Arguments[0]), CGM.Int32Ty));
     return EmitCall(Func.getFunction(), Func.getInfo(), Args).asScalar();
   }
   default:
@@ -541,5 +569,5 @@ llvm::Value *CodeGenFunction::EmitInquiryIntrinsic(intrinsic::FunctionKind Func,
   return nullptr;
 }
 
-}
+} // namespace CodeGen
 } // end namespace fort

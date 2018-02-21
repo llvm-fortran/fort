@@ -131,7 +131,7 @@ class CodeGenModule : public CodeGenTypeCache {
   llvm::DenseMap<const FunctionDecl *, CGFunction> Functions;
 
   /// Module variables
-  llvm::DenseMap<const VarDecl *, llvm::Value*> Variables;
+  llvm::DenseMap<const VarDecl *, llvm::Value *> Variables;
 
 public:
   CodeGenModule(ASTContext &C, const CodeGenOptions &CodeGenOpts,

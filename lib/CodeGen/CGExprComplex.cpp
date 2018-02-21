@@ -15,22 +15,22 @@
 #include "CodeGenModule.h"
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/ExprVisitor.h"
+#include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Intrinsics.h"
-#include "llvm/ADT/APFloat.h"
 
 namespace fort {
 namespace CodeGen {
 
 class ComplexExprEmitter
-  : public ConstExprVisitor<ComplexExprEmitter, ComplexValueTy> {
+    : public ConstExprVisitor<ComplexExprEmitter, ComplexValueTy> {
   CodeGenFunction &CGF;
   CGBuilderTy &Builder;
   llvm::LLVMContext &VMContext;
-public:
 
+public:
   ComplexExprEmitter(CodeGenFunction &cgf);
 
   ComplexValueTy EmitExpr(const Expr *E);
@@ -48,42 +48,38 @@ public:
 };
 
 ComplexExprEmitter::ComplexExprEmitter(CodeGenFunction &cgf)
-  : CGF(cgf), Builder(cgf.getBuilder()),
-    VMContext(cgf.getLLVMContext()) {
-}
+    : CGF(cgf), Builder(cgf.getBuilder()), VMContext(cgf.getLLVMContext()) {}
 
-ComplexValueTy ComplexExprEmitter::EmitExpr(const Expr *E) {
-  return Visit(E);
-}
+ComplexValueTy ComplexExprEmitter::EmitExpr(const Expr *E) { return Visit(E); }
 
-ComplexValueTy ComplexExprEmitter::VisitComplexConstantExpr(const ComplexConstantExpr *E) {
+ComplexValueTy
+ComplexExprEmitter::VisitComplexConstantExpr(const ComplexConstantExpr *E) {
   return ComplexValueTy(CGF.EmitScalarExpr(E->getRealPart()),
                         CGF.EmitScalarExpr(E->getImPart()));
 }
 
-ComplexValueTy CodeGenFunction::EmitComplexLoad(llvm::Value *Ptr, bool IsVolatile) {
-  auto Re = Builder.CreateLoad(Builder.CreateStructGEP(nullptr,
-                                                       Ptr,
-                                                       0), IsVolatile);
-  auto Im = Builder.CreateLoad(Builder.CreateStructGEP(nullptr,
-                                                       Ptr,
-                                                       1), IsVolatile);
+ComplexValueTy CodeGenFunction::EmitComplexLoad(llvm::Value *Ptr,
+                                                bool IsVolatile) {
+  auto Re =
+      Builder.CreateLoad(Builder.CreateStructGEP(nullptr, Ptr, 0), IsVolatile);
+  auto Im =
+      Builder.CreateLoad(Builder.CreateStructGEP(nullptr, Ptr, 1), IsVolatile);
   return ComplexValueTy(Re, Im);
 }
 
 void CodeGenFunction::EmitComplexStore(ComplexValueTy Value, llvm::Value *Ptr,
                                        bool IsVolatile) {
-  Builder.CreateStore(Value.Re, Builder.CreateStructGEP(nullptr,
-                                                        Ptr,0), IsVolatile);
-  Builder.CreateStore(Value.Im, Builder.CreateStructGEP(nullptr,
-                                                        Ptr,1), IsVolatile);
+  Builder.CreateStore(Value.Re, Builder.CreateStructGEP(nullptr, Ptr, 0),
+                      IsVolatile);
+  Builder.CreateStore(Value.Im, Builder.CreateStructGEP(nullptr, Ptr, 1),
+                      IsVolatile);
 }
 
 ComplexValueTy ComplexExprEmitter::VisitVarExpr(const VarExpr *E) {
   auto VD = E->getVarDecl();
-  if(CGF.IsInlinedArgument(VD))
+  if (CGF.IsInlinedArgument(VD))
     return CGF.GetInlinedArgumentValue(VD).asComplex();
-  if(VD->isParameter())
+  if (VD->isParameter())
     return EmitExpr(VD->getInit());
   auto Ptr = CGF.GetVarPtr(VD);
   return CGF.EmitComplexLoad(Ptr);
@@ -98,21 +94,20 @@ ComplexValueTy ComplexExprEmitter::VisitUnaryExprMinus(const UnaryExpr *E) {
 }
 
 ComplexValueTy CodeGenFunction::EmitComplexUnaryMinus(ComplexValueTy Val) {
-  return ComplexValueTy(Builder.CreateFNeg(Val.Re),
-                        Builder.CreateFNeg(Val.Im));
+  return ComplexValueTy(Builder.CreateFNeg(Val.Re), Builder.CreateFNeg(Val.Im));
 }
 
 ComplexValueTy ComplexExprEmitter::VisitBinaryExpr(const BinaryExpr *E) {
-  return CGF.EmitComplexBinaryExpr(E->getOperator(),
-                                   EmitExpr(E->getLHS()),
+  return CGF.EmitComplexBinaryExpr(E->getOperator(), EmitExpr(E->getLHS()),
                                    EmitExpr(E->getRHS()));
 }
 
-ComplexValueTy CodeGenFunction::EmitComplexBinaryExpr(BinaryExpr::Operator Op, ComplexValueTy LHS,
+ComplexValueTy CodeGenFunction::EmitComplexBinaryExpr(BinaryExpr::Operator Op,
+                                                      ComplexValueTy LHS,
                                                       ComplexValueTy RHS) {
   ComplexValueTy Result;
 
-  switch(Op) {
+  switch (Op) {
   case BinaryExpr::Plus:
     Result.Re = Builder.CreateFAdd(LHS.Re, RHS.Re);
     Result.Im = Builder.CreateFAdd(LHS.Im, RHS.Im);
@@ -142,15 +137,15 @@ ComplexValueTy CodeGenFunction::EmitComplexBinaryExpr(BinaryExpr::Operator Op, C
     // (a+ib) / (c+id) = ((ac+bd)/(cc+dd)) + i((bc-ad)/(cc+dd))
     auto Tmp1 = Builder.CreateFMul(LHS.Re, RHS.Re); // a*c
     auto Tmp2 = Builder.CreateFMul(LHS.Im, RHS.Im); // b*d
-    auto Tmp3 = Builder.CreateFAdd(Tmp1, Tmp2); // ac+bd
+    auto Tmp3 = Builder.CreateFAdd(Tmp1, Tmp2);     // ac+bd
 
     auto Tmp4 = Builder.CreateFMul(RHS.Re, RHS.Re); // c*c
     auto Tmp5 = Builder.CreateFMul(RHS.Im, RHS.Im); // d*d
-    auto Tmp6 = Builder.CreateFAdd(Tmp4, Tmp5); // cc+dd
+    auto Tmp6 = Builder.CreateFAdd(Tmp4, Tmp5);     // cc+dd
 
     auto Tmp7 = Builder.CreateFMul(LHS.Im, RHS.Re); // b*c
     auto Tmp8 = Builder.CreateFMul(LHS.Re, RHS.Im); // a*d
-    auto Tmp9 = Builder.CreateFSub(Tmp7, Tmp8); // bc-ad
+    auto Tmp9 = Builder.CreateFSub(Tmp7, Tmp8);     // bc-ad
 
     Result.Re = Builder.CreateFDiv(Tmp3, Tmp6);
     Result.Im = Builder.CreateFDiv(Tmp9, Tmp6);
@@ -160,13 +155,15 @@ ComplexValueTy CodeGenFunction::EmitComplexBinaryExpr(BinaryExpr::Operator Op, C
   return Result;
 }
 
-ComplexValueTy CodeGenFunction::EmitComplexDivSmiths(ComplexValueTy LHS, ComplexValueTy RHS) {
+ComplexValueTy CodeGenFunction::EmitComplexDivSmiths(ComplexValueTy LHS,
+                                                     ComplexValueTy RHS) {
   auto ElemTy = RHS.Re->getType();
 
   // if(abs(d) <= abs(c)) then
   auto FabsIntrinsic = GetIntrinsicFunction(llvm::Intrinsic::fabs, ElemTy);
-  auto Predicate = Builder.CreateFCmpOLE(Builder.CreateCall(FabsIntrinsic, RHS.Im),
-                                         Builder.CreateCall(FabsIntrinsic, RHS.Re));
+  auto Predicate =
+      Builder.CreateFCmpOLE(Builder.CreateCall(FabsIntrinsic, RHS.Im),
+                            Builder.CreateCall(FabsIntrinsic, RHS.Re));
   auto ThenBlock = createBasicBlock("compdiv-then");
   auto ElseBlock = createBasicBlock("compdiv-else");
   auto MergeBlock = createBasicBlock("compdiv-done");
@@ -182,10 +179,10 @@ ComplexValueTy CodeGenFunction::EmitComplexDivSmiths(ComplexValueTy LHS, Complex
   EmitBlock(ThenBlock);
   R = Builder.CreateFDiv(RHS.Im, RHS.Re);
   Den = Builder.CreateFAdd(RHS.Re, Builder.CreateFMul(RHS.Im, R));
-  E = Builder.CreateFDiv(Builder.CreateFAdd(LHS.Re,
-                         Builder.CreateFMul(LHS.Im, R)), Den);
-  F = Builder.CreateFDiv(Builder.CreateFSub(LHS.Im,
-                         Builder.CreateFMul(LHS.Re, R)), Den);
+  E = Builder.CreateFDiv(
+      Builder.CreateFAdd(LHS.Re, Builder.CreateFMul(LHS.Im, R)), Den);
+  F = Builder.CreateFDiv(
+      Builder.CreateFSub(LHS.Im, Builder.CreateFMul(LHS.Re, R)), Den);
   ResultRe->addIncoming(E, ThenBlock);
   ResultIm->addIncoming(F, ThenBlock);
   EmitBranch(MergeBlock);
@@ -197,10 +194,10 @@ ComplexValueTy CodeGenFunction::EmitComplexDivSmiths(ComplexValueTy LHS, Complex
   EmitBlock(ElseBlock);
   R = Builder.CreateFDiv(RHS.Re, RHS.Im);
   Den = Builder.CreateFAdd(Builder.CreateFMul(RHS.Re, R), RHS.Im);
-  E = Builder.CreateFDiv(Builder.CreateFAdd(
-                         Builder.CreateFMul(LHS.Re, R), LHS.Im), Den);
-  F = Builder.CreateFDiv(Builder.CreateFSub(
-                         Builder.CreateFMul(LHS.Im, R), LHS.Re), Den);
+  E = Builder.CreateFDiv(
+      Builder.CreateFAdd(Builder.CreateFMul(LHS.Re, R), LHS.Im), Den);
+  F = Builder.CreateFDiv(
+      Builder.CreateFSub(Builder.CreateFMul(LHS.Im, R), LHS.Re), Den);
   ResultRe->addIncoming(E, ElseBlock);
   ResultIm->addIncoming(F, ElseBlock);
   EmitBranch(MergeBlock);
@@ -213,7 +210,7 @@ ComplexValueTy CodeGenFunction::EmitComplexDivSmiths(ComplexValueTy LHS, Complex
 
 ComplexValueTy ComplexExprEmitter::VisitBinaryExprPow(const BinaryExpr *E) {
   auto LHS = EmitExpr(E->getLHS());
-  if(E->getRHS()->getType()->isIntegerType()) {
+  if (E->getRHS()->getType()->isIntegerType()) {
     auto RHS = CGF.EmitScalarExpr(E->getRHS());
     // (a+ib) ** 1 => (a+ib)
     // (a+ib) ** 2 =>
@@ -223,10 +220,10 @@ ComplexValueTy ComplexExprEmitter::VisitBinaryExprPow(const BinaryExpr *E) {
     // (a+ib) ** n =>
     //   ( r*cos(a) + ir*sin(a) )**n =>
     //   r ** n cos(n*a) + ir ** n sin(n*a)
-    if(auto ConstInt = dyn_cast<llvm::ConstantInt>(RHS)) {
-      if(ConstInt->equalsInt(1))
+    if (auto ConstInt = dyn_cast<llvm::ConstantInt>(RHS)) {
+      if (ConstInt->equalsInt(1))
         return LHS;
-      else if(ConstInt->equalsInt(2))
+      else if (ConstInt->equalsInt(2))
         return CGF.EmitComplexBinaryExpr(BinaryExpr::Multiply, LHS, LHS);
     }
     return CGF.EmitComplexPowi(LHS, RHS);
@@ -234,35 +231,45 @@ ComplexValueTy ComplexExprEmitter::VisitBinaryExprPow(const BinaryExpr *E) {
   return CGF.EmitComplexPow(LHS, EmitExpr(E->getRHS()));
 }
 
-ComplexValueTy CodeGenFunction::EmitComplexToComplexConversion(ComplexValueTy Value, QualType Target) {
+ComplexValueTy
+CodeGenFunction::EmitComplexToComplexConversion(ComplexValueTy Value,
+                                                QualType Target) {
   auto ElementType = getContext().getComplexTypeElementType(Target);
   return ComplexValueTy(EmitScalarToScalarConversion(Value.Re, ElementType),
                         EmitScalarToScalarConversion(Value.Im, ElementType));
 }
 
-ComplexValueTy CodeGenFunction::EmitScalarToComplexConversion(llvm::Value *Value, QualType Target) {
+ComplexValueTy
+CodeGenFunction::EmitScalarToComplexConversion(llvm::Value *Value,
+                                               QualType Target) {
   auto ElementType = getContext().getComplexTypeElementType(Target);
   Value = EmitScalarToScalarConversion(Value, ElementType);
   return ComplexValueTy(Value, GetConstantZero(ElementType));
 }
 
-llvm::Value *CodeGenFunction::EmitComplexToScalarConversion(ComplexValueTy Value, QualType Target) {
+llvm::Value *
+CodeGenFunction::EmitComplexToScalarConversion(ComplexValueTy Value,
+                                               QualType Target) {
   return EmitScalarToScalarConversion(Value.Re, Target);
 }
 
-ComplexValueTy ComplexExprEmitter::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
+ComplexValueTy
+ComplexExprEmitter::VisitImplicitCastExpr(const ImplicitCastExpr *E) {
   auto Input = E->getExpression();
-  if(Input->getType()->isComplexType())
-    return CGF.EmitComplexToComplexConversion(EmitExpr(Input), E->getType().getSelfOrArrayElementType());
-  return CGF.EmitScalarToComplexConversion(CGF.EmitScalarExpr(Input), E->getType().getSelfOrArrayElementType());
+  if (Input->getType()->isComplexType())
+    return CGF.EmitComplexToComplexConversion(
+        EmitExpr(Input), E->getType().getSelfOrArrayElementType());
+  return CGF.EmitScalarToComplexConversion(
+      CGF.EmitScalarExpr(Input), E->getType().getSelfOrArrayElementType());
 }
 
 ComplexValueTy ComplexExprEmitter::VisitCallExpr(const CallExpr *E) {
   return CGF.EmitCall(E).asComplex();
 }
 
-RValueTy CodeGenFunction::EmitIntrinsicCallComplex(intrinsic::FunctionKind Func, ComplexValueTy Value) {
-  switch(Func) {
+RValueTy CodeGenFunction::EmitIntrinsicCallComplex(intrinsic::FunctionKind Func,
+                                                   ComplexValueTy Value) {
+  switch (Func) {
   case intrinsic::AIMAG:
     return Value.Im;
   case intrinsic::CONJG:
@@ -274,18 +281,21 @@ RValueTy CodeGenFunction::EmitIntrinsicCallComplex(intrinsic::FunctionKind Func,
   return RValueTy();
 }
 
-ComplexValueTy ComplexExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
+ComplexValueTy
+ComplexExprEmitter::VisitIntrinsicCallExpr(const IntrinsicCallExpr *E) {
   return CGF.EmitIntrinsicCall(E).asComplex();
 }
 
-ComplexValueTy ComplexExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
+ComplexValueTy
+ComplexExprEmitter::VisitArrayElementExpr(const ArrayElementExpr *E) {
   return CGF.EmitComplexLoad(CGF.EmitArrayElementPtr(E));
 }
 
 ComplexValueTy ComplexExprEmitter::VisitMemberExpr(const MemberExpr *E) {
   auto Val = CGF.EmitAggregateExpr(E->getTarget());
-  return CGF.EmitComplexLoad(CGF.EmitAggregateMember(Val.getAggregateAddr(), E->getField()),
-                             Val.isVolatileQualifier());
+  return CGF.EmitComplexLoad(
+      CGF.EmitAggregateMember(Val.getAggregateAddr(), E->getField()),
+      Val.isVolatileQualifier());
 }
 
 ComplexValueTy CodeGenFunction::EmitComplexExpr(const Expr *E) {
@@ -299,27 +309,30 @@ ComplexValueTy CodeGenFunction::ExtractComplexValue(llvm::Value *Agg) {
 }
 
 ComplexValueTy CodeGenFunction::ExtractComplexVectorValue(llvm::Value *Agg) {
-  return ComplexValueTy(Builder.CreateExtractElement(Agg, Builder.getInt32(0), "re"),
-                        Builder.CreateExtractElement(Agg, Builder.getInt32(1), "im"));
+  return ComplexValueTy(
+      Builder.CreateExtractElement(Agg, Builder.getInt32(0), "re"),
+      Builder.CreateExtractElement(Agg, Builder.getInt32(1), "im"));
 }
 
-llvm::Value   *CodeGenFunction::CreateComplexAggregate(ComplexValueTy Value) {
-  llvm::Value *Result = llvm::UndefValue::get(
-                          getTypes().GetComplexType(Value.Re->getType()));
+llvm::Value *CodeGenFunction::CreateComplexAggregate(ComplexValueTy Value) {
+  llvm::Value *Result =
+      llvm::UndefValue::get(getTypes().GetComplexType(Value.Re->getType()));
   Result = Builder.CreateInsertValue(Result, Value.Re, 0, "re");
   return Builder.CreateInsertValue(Result, Value.Im, 1, "im");
 }
 
-llvm::Value   *CodeGenFunction::CreateComplexVector(ComplexValueTy Value) {
+llvm::Value *CodeGenFunction::CreateComplexVector(ComplexValueTy Value) {
   llvm::Value *Result = llvm::UndefValue::get(
-                          getTypes().GetComplexTypeAsVector(Value.Re->getType()));
-  Result = Builder.CreateInsertElement(Result, Value.Re, Builder.getInt32(0), "re");
-  return Builder.CreateInsertElement(Result, Value.Im, Builder.getInt32(1), "im");
+      getTypes().GetComplexTypeAsVector(Value.Re->getType()));
+  Result =
+      Builder.CreateInsertElement(Result, Value.Re, Builder.getInt32(0), "re");
+  return Builder.CreateInsertElement(Result, Value.Im, Builder.getInt32(1),
+                                     "im");
 }
 
 llvm::Constant *CodeGenFunction::CreateComplexConstant(ComplexValueTy Value) {
   return cast<llvm::Constant>(CreateComplexAggregate(Value));
 }
 
-}
+} // namespace CodeGen
 } // end namespace fort

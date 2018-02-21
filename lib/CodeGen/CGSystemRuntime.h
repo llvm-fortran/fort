@@ -19,7 +19,7 @@
 namespace llvm {
 class Value;
 class Type;
-}
+} // namespace llvm
 
 namespace fort {
 namespace CodeGen {
@@ -38,16 +38,18 @@ public:
   virtual void EmitInit(CodeGenFunction &CGF) = 0;
 
   virtual llvm::Value *EmitMalloc(CodeGenFunction &CGF, llvm::Value *Size) = 0;
-  llvm::Value *EmitMalloc(CodeGenFunction &CGF, llvm::Type *T, llvm::Value *Size);
+  llvm::Value *EmitMalloc(CodeGenFunction &CGF, llvm::Type *T,
+                          llvm::Value *Size);
   virtual void EmitFree(CodeGenFunction &CGF, llvm::Value *Ptr) = 0;
 
-  virtual llvm::Value *EmitETIME(CodeGenFunction &CGF, ArrayRef<Expr*> Arguments) = 0;
+  virtual llvm::Value *EmitETIME(CodeGenFunction &CGF,
+                                 ArrayRef<Expr *> Arguments) = 0;
 };
 
 /// Creates an instance of a Libfort System runtime class.
 CGSystemRuntime *CreateLibfortSystemRuntime(CodeGenModule &CGM);
 
-}
-}  // end namespace fort
+} // namespace CodeGen
+} // end namespace fort
 
 #endif

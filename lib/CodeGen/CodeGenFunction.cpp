@@ -12,13 +12,13 @@
 //===----------------------------------------------------------------------===//
 
 #include "CodeGenFunction.h"
-#include "CodeGenModule.h"
 #include "CGSystemRuntime.h"
+#include "CodeGenModule.h"
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/Decl.h"
+#include "fort/AST/Expr.h"
 #include "fort/AST/Stmt.h"
 #include "fort/AST/StorageSet.h"
-#include "fort/AST/Expr.h"
 #include "fort/Frontend/CodeGenOptions.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Intrinsics.h"
@@ -29,19 +29,19 @@ namespace fort {
 namespace CodeGen {
 
 CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn)
-  : CGM(cgm), /*, Target(cgm.getTarget()),*/
-    Builder(cgm.getModule().getContext()),
-    UnreachableBlock(nullptr), CurFn(Fn), IsMainProgram(false),
-    ReturnValuePtr(nullptr), AllocaInsertPt(nullptr),
-    AssignedGotoVarPtr(nullptr), AssignedGotoDispatchBlock(nullptr),
-    CurLoopScope(nullptr), CurInlinedStmtFunc(nullptr) {
+    : CGM(cgm), /*, Target(cgm.getTarget()),*/
+      Builder(cgm.getModule().getContext()), UnreachableBlock(nullptr),
+      CurFn(Fn), IsMainProgram(false), ReturnValuePtr(nullptr),
+      AllocaInsertPt(nullptr), AssignedGotoVarPtr(nullptr),
+      AssignedGotoDispatchBlock(nullptr), CurLoopScope(nullptr),
+      CurInlinedStmtFunc(nullptr) {
   HasSavedVariables = false;
 }
 
-CodeGenFunction::~CodeGenFunction() {
-}
+CodeGenFunction::~CodeGenFunction() {}
 
-void CodeGenFunction::EmitMainProgramBody(const DeclContext *DC, const Stmt *S) {
+void CodeGenFunction::EmitMainProgramBody(const DeclContext *DC,
+                                          const Stmt *S) {
   EmitBlock(createBasicBlock("program_entry"));
   CGM.getSystemRuntime().EmitInit(*this);
   IsMainProgram = true;
@@ -53,7 +53,7 @@ void CodeGenFunction::EmitMainProgramBody(const DeclContext *DC, const Stmt *S) 
   EmitCleanup();
   auto ReturnValue = Builder.getInt32(0);
   Builder.CreateRet(ReturnValue);
-  if(AssignedGotoDispatchBlock)
+  if (AssignedGotoDispatchBlock)
     EmitAssignedGotoDispatcher();
 }
 
@@ -65,38 +65,36 @@ void CodeGenFunction::EmitFunctionArguments(const FunctionDecl *Func,
   size_t I = 0;
   auto Arg = CurFn->arg_begin();
 
-  for(; I < ArgsList.size(); ++Arg, ++I) {
+  for (; I < ArgsList.size(); ++Arg, ++I) {
     auto ArgDecl = ArgsList[I];
     auto Info = GetArgInfo(ArgDecl);
 
     auto ABI = Info.ABIInfo.getKind();
-    if(ABI == ABIArgInfo::ExpandCharacterPutLengthToAdditionalArgsAsInt) {
+    if (ABI == ABIArgInfo::ExpandCharacterPutLengthToAdditionalArgsAsInt) {
       ExpandedArg AArg;
       AArg.Decl = ArgDecl;
       AArg.A1 = Arg;
       ExpandedArgs.push_back(AArg);
-    }
-    else
+    } else
       LocalVariables.insert(std::make_pair(ArgDecl, Arg));
 
     Arg->setName(ArgDecl->getName());
-    if(ArgDecl->getType()->isArrayType() ||
-       ABI == ABIArgInfo::Reference) {
+    if (ArgDecl->getType()->isArrayType() || ABI == ABIArgInfo::Reference) {
       Arg->addAttr(llvm::Attribute::NoAlias);
     }
   }
 
   // Extra argument for the returned data.
   auto RetABIKind = Info->getReturnInfo().ABIInfo.getKind();
-  if(RetABIKind == ABIRetInfo::CharacterValueAsArg ||
-     RetABIKind == ABIRetInfo::AggregateValueAsArg) {
+  if (RetABIKind == ABIRetInfo::CharacterValueAsArg ||
+      RetABIKind == ABIRetInfo::AggregateValueAsArg) {
     Arg->setName(Func->getName());
     ReturnValuePtr = Arg;
     ++Arg;
   }
 
   // Additional arguments.
-  for(I = 0; I < ExpandedArgs.size(); ++Arg, ++I) {
+  for (I = 0; I < ExpandedArgs.size(); ++Arg, ++I) {
     Arg->setName(llvm::Twine(ExpandedArgs[I].Decl->getName()) + ".length");
     ExpandedArgs[I].A2 = Arg;
   }
@@ -107,16 +105,16 @@ void CodeGenFunction::EmitFunctionPrologue(const FunctionDecl *Func,
   EmitBlock(createBasicBlock("entry"));
 
   // Extract argument values when necessary
-  for(auto Arg : ArgsList) {
-    if(Arg->getType()->isCharacterType())
+  for (auto Arg : ArgsList) {
+    if (Arg->getType()->isCharacterType())
       GetCharacterArg(Arg);
   }
 
   // Create return value and lbock
   auto RetABI = Info->getReturnInfo().ABIInfo.getKind();
-  if(RetABI == ABIRetInfo::Value) {
-    ReturnValuePtr = Builder.CreateAlloca(ConvertType(Func->getType()),
-                                          nullptr, Func->getName());
+  if (RetABI == ABIRetInfo::Value) {
+    ReturnValuePtr = Builder.CreateAlloca(ConvertType(Func->getType()), nullptr,
+                                          Func->getName());
   }
   ReturnBlock = createBasicBlock("return");
 }
@@ -126,21 +124,21 @@ void CodeGenFunction::EmitFunctionBody(const DeclContext *DC, const Stmt *S) {
   auto BodyBB = createBasicBlock("body");
   AllocaInsertPt = Builder.CreateBr(BodyBB);
   EmitBlock(BodyBB);
-  if(HasSavedVariables)
+  if (HasSavedVariables)
     EmitFirstInvocationBlock(DC, S);
   EmitVarInitializers(DC);
-  if(S)
+  if (S)
     EmitStmt(S);
 }
 
 void CodeGenFunction::EmitFirstInvocationBlock(const DeclContext *DC,
                                                const Stmt *S) {
-  auto GlobalFirstInvocationFlag = CGM.EmitSaveVariable(CurFn->getName(), "FIRST_INVOCATION",
-                                                        CGM.Int1Ty, Builder.getTrue());
+  auto GlobalFirstInvocationFlag = CGM.EmitSaveVariable(
+      CurFn->getName(), "FIRST_INVOCATION", CGM.Int1Ty, Builder.getTrue());
   auto FirstInvocationBB = createBasicBlock("first-invocation");
   auto EndBB = createBasicBlock("first-invocation-end");
-  Builder.CreateCondBr(Builder.CreateLoad(GlobalFirstInvocationFlag), FirstInvocationBB,
-                       EndBB);
+  Builder.CreateCondBr(Builder.CreateLoad(GlobalFirstInvocationFlag),
+                       FirstInvocationBB, EndBB);
   EmitBlock(FirstInvocationBB);
   EmitSavedVarInitializers(DC);
   Builder.CreateStore(Builder.getFalse(), GlobalFirstInvocationFlag);
@@ -148,34 +146,33 @@ void CodeGenFunction::EmitFirstInvocationBlock(const DeclContext *DC,
 }
 
 void CodeGenFunction::EmitCleanup() {
-  for(auto I : TempHeapAllocations)
+  for (auto I : TempHeapAllocations)
     CGM.getSystemRuntime().EmitFree(*this, I);
 }
 
 void CodeGenFunction::EmitFunctionEpilogue(const FunctionDecl *Func,
-                                           const CGFunctionInfo *Info) {  
+                                           const CGFunctionInfo *Info) {
   EmitBlock(ReturnBlock);
   EmitCleanup();
   // return
-  if(auto RetVar = GetRetVarPtr()) {
+  if (auto RetVar = GetRetVarPtr()) {
     auto ReturnInfo = Info->getReturnInfo();
 
-    if(ReturnInfo.ABIInfo.getKind() == ABIRetInfo::Value) {
-      if(ReturnInfo.Type->isComplexType() ||
-         ReturnInfo.Type->isRecordType()) {
+    if (ReturnInfo.ABIInfo.getKind() == ABIRetInfo::Value) {
+      if (ReturnInfo.Type->isComplexType() || ReturnInfo.Type->isRecordType()) {
         EmitAggregateReturn(ReturnInfo, RetVar);
       } else
         Builder.CreateRet(Builder.CreateLoad(RetVar));
-    }
-    else Builder.CreateRetVoid();
+    } else
+      Builder.CreateRetVoid();
   } else
     Builder.CreateRetVoid();
-  if(AssignedGotoDispatchBlock)
+  if (AssignedGotoDispatchBlock)
     EmitAssignedGotoDispatcher();
 }
 
 llvm::Value *CodeGenFunction::GetVarPtr(const VarDecl *D) {
-  if(D->isFunctionResult())
+  if (D->isFunctionResult())
     return ReturnValuePtr;
 
   auto Local = LocalVariables[D];
@@ -185,22 +182,22 @@ llvm::Value *CodeGenFunction::GetVarPtr(const VarDecl *D) {
   return CGM.getVariable(D);
 }
 
-llvm::Value *CodeGenFunction::GetRetVarPtr() {
-  return ReturnValuePtr;
-}
+llvm::Value *CodeGenFunction::GetRetVarPtr() { return ReturnValuePtr; }
 
 CGFunctionInfo::ArgInfo CodeGenFunction::GetArgInfo(const VarDecl *Arg) const {
-  for(size_t I = 0; I < ArgsList.size(); ++I) {
-    if(ArgsList[I] == Arg) return ArgsInfo[I];
+  for (size_t I = 0; I < ArgsList.size(); ++I) {
+    if (ArgsList[I] == Arg)
+      return ArgsInfo[I];
   }
   assert(false && "Invalid argument");
   return CGFunctionInfo::ArgInfo();
 }
 
-const VarDecl *CodeGenFunction::GetExternalFunctionArgument(const FunctionDecl *Func) {
-  for(auto Arg : ArgsList) {
-    if(auto FType = Arg->getType()->asFunctionType()) {
-      if(FType->getPrototype() == Func)
+const VarDecl *
+CodeGenFunction::GetExternalFunctionArgument(const FunctionDecl *Func) {
+  for (auto Arg : ArgsList) {
+    if (auto FType = Arg->getType()->asFunctionType()) {
+      if (FType->getPrototype() == Func)
         return Arg;
     }
   }
@@ -209,37 +206,39 @@ const VarDecl *CodeGenFunction::GetExternalFunctionArgument(const FunctionDecl *
 }
 
 llvm::Value *CodeGenFunction::CreateTempHeapAlloca(llvm::Value *Size) {
-  auto P = CGM.getSystemRuntime().EmitMalloc(*this, Size->getType() != CGM.SizeTy?
-                                             Builder.CreateZExtOrTrunc(Size, CGM.SizeTy) : Size);
+  auto P = CGM.getSystemRuntime().EmitMalloc(
+      *this, Size->getType() != CGM.SizeTy
+                 ? Builder.CreateZExtOrTrunc(Size, CGM.SizeTy)
+                 : Size);
   TempHeapAllocations.push_back(P);
   return P;
 }
 
-llvm::Value *CodeGenFunction::CreateTempHeapAlloca(llvm::Value *Size, llvm::Type *PtrType) {
+llvm::Value *CodeGenFunction::CreateTempHeapAlloca(llvm::Value *Size,
+                                                   llvm::Type *PtrType) {
   auto P = CreateTempHeapAlloca(Size);
-  return P->getType() != PtrType? Builder.CreateBitCast(P, PtrType) : P;
+  return P->getType() != PtrType ? Builder.CreateBitCast(P, PtrType) : P;
 }
 
-llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID,
-                                                   ArrayRef<llvm::Type*> ArgTypes) const {
+llvm::Value *
+CodeGenFunction::GetIntrinsicFunction(int FuncID,
+                                      ArrayRef<llvm::Type *> ArgTypes) const {
   return llvm::Intrinsic::getDeclaration(&CGM.getModule(),
-                                         (llvm::Intrinsic::ID)FuncID,
-                                         ArgTypes);
+                                         (llvm::Intrinsic::ID)FuncID, ArgTypes);
 }
 
 llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID,
                                                    llvm::Type *T1) const {
   return llvm::Intrinsic::getDeclaration(&CGM.getModule(),
-                                         (llvm::Intrinsic::ID)FuncID,
-                                         T1);
+                                         (llvm::Intrinsic::ID)FuncID, T1);
 }
 
-llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID,
-                                                   llvm::Type *T1, llvm::Type *T2) const {
+llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID, llvm::Type *T1,
+                                                   llvm::Type *T2) const {
   llvm::Type *ArgTypes[2] = {T1, T2};
   return llvm::Intrinsic::getDeclaration(&CGM.getModule(),
                                          (llvm::Intrinsic::ID)FuncID,
-                                         ArrayRef<llvm::Type*>(ArgTypes,2));
+                                         ArrayRef<llvm::Type *>(ArgTypes, 2));
 }
 
 llvm::Type *CodeGenFunction::ConvertTypeForMem(QualType T) const {

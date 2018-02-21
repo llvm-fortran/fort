@@ -22,7 +22,7 @@ typedef llvm::IRBuilder<false> CGBuilderTy;
 typedef llvm::IRBuilder<> CGBuilderTy;
 #endif
 
-}  // end namespace CodeGen
-}  // end namespace fort
+} // end namespace CodeGen
+} // end namespace fort
 
 #endif

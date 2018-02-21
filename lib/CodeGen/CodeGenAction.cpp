@@ -8,7 +8,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "fort/CodeGen/CodeGenAction.h"
-#include "fort/CodeGen/BackendUtil.h"
 #include "fort/AST/ASTConsumer.h"
 #include "fort/AST/ASTContext.h"
 #include "fort/AST/DeclGroup.h"
@@ -18,9 +17,9 @@
 #include "fort/Frontend/FrontendDiagnostic.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Bitcode/BitcodeReader.h"
-#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/DiagnosticPrinter.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Linker/Linker.h"
@@ -33,118 +32,106 @@ using namespace fort;
 using namespace llvm;
 
 namespace fort {
-  class BackendConsumer : public ASTConsumer {
+class BackendConsumer : public ASTConsumer {
 
-    virtual void anchor();
-    DiagnosticsEngine &Diags;
-    BackendAction Action;
-    const CodeGenOptions &CodeGenOpts;
-    const TargetOptions &TargetOpts;
-    const LangOptions &LangOpts;
-    raw_pwrite_stream *AsmOutStream;
-    ASTContext *Context;
+  virtual void anchor();
+  DiagnosticsEngine &Diags;
+  BackendAction Action;
+  const CodeGenOptions &CodeGenOpts;
+  const TargetOptions &TargetOpts;
+  const LangOptions &LangOpts;
+  raw_pwrite_stream *AsmOutStream;
+  ASTContext *Context;
 
-    Timer LLVMIRGeneration;
+  Timer LLVMIRGeneration;
 
-    std::unique_ptr<CodeGenerator> Gen;
+  std::unique_ptr<CodeGenerator> Gen;
 
-    std::unique_ptr<llvm::Module> TheModule, LinkModule;
+  std::unique_ptr<llvm::Module> TheModule, LinkModule;
 
-  public:
-    BackendConsumer(BackendAction action, DiagnosticsEngine &_Diags,
-                    const CodeGenOptions &compopts,
-                    const TargetOptions &targetopts,
-                    const LangOptions &langopts,
-                    bool TimePasses,
-                    const std::string &infile,
-                    llvm::Module *LinkModule,
-                    raw_pwrite_stream *OS,
-                    LLVMContext &C) :
-      Diags(_Diags),
-      Action(action),
-      CodeGenOpts(compopts),
-      TargetOpts(targetopts),
-      LangOpts(langopts),
-      AsmOutStream(OS),
-      Context(), 
-      LLVMIRGeneration("irgen", "LLVM IR Generation Time"),
-      Gen(CreateLLVMCodeGen(Diags, infile, compopts, targetopts, C)),
-      LinkModule(LinkModule)
+public:
+  BackendConsumer(BackendAction action, DiagnosticsEngine &_Diags,
+                  const CodeGenOptions &compopts,
+                  const TargetOptions &targetopts, const LangOptions &langopts,
+                  bool TimePasses, const std::string &infile,
+                  llvm::Module *LinkModule, raw_pwrite_stream *OS,
+                  LLVMContext &C)
+      : Diags(_Diags), Action(action), CodeGenOpts(compopts),
+        TargetOpts(targetopts), LangOpts(langopts), AsmOutStream(OS), Context(),
+        LLVMIRGeneration("irgen", "LLVM IR Generation Time"),
+        Gen(CreateLLVMCodeGen(Diags, infile, compopts, targetopts, C)),
+        LinkModule(LinkModule) {
+    llvm::TimePassesIsEnabled = TimePasses;
+  }
+
+  llvm::Module *takeModule() { return TheModule.release(); }
+  llvm::Module *takeLinkModule() { return LinkModule.release(); }
+
+  virtual void Initialize(ASTContext &Ctx) {
+    Context = &Ctx;
+
+    if (llvm::TimePassesIsEnabled)
+      LLVMIRGeneration.startTimer();
+
+    Gen->Initialize(Ctx);
+
+    TheModule.reset(Gen->GetModule());
+
+    if (llvm::TimePassesIsEnabled)
+      LLVMIRGeneration.stopTimer();
+  }
+
+  virtual void HandleTranslationUnit(ASTContext &C) {
     {
-      llvm::TimePassesIsEnabled = TimePasses;
-    }
-
-    llvm::Module *takeModule() { return TheModule.release(); }
-    llvm::Module *takeLinkModule() { return LinkModule.release(); }
-
-    virtual void Initialize(ASTContext &Ctx) {
-      Context = &Ctx;
-
+      PrettyStackTraceString CrashInfo("Per-file LLVM IR generation");
       if (llvm::TimePassesIsEnabled)
         LLVMIRGeneration.startTimer();
 
-      Gen->Initialize(Ctx);
-
-      TheModule.reset(Gen->GetModule());
+      Gen->HandleTranslationUnit(C);
 
       if (llvm::TimePassesIsEnabled)
         LLVMIRGeneration.stopTimer();
     }
 
-    virtual void HandleTranslationUnit(ASTContext &C) {
-      {
-        PrettyStackTraceString CrashInfo("Per-file LLVM IR generation");
-        if (llvm::TimePassesIsEnabled)
-          LLVMIRGeneration.startTimer();
+    // Silently ignore if we weren't initialized for some reason.
+    if (!TheModule)
+      return;
 
-        Gen->HandleTranslationUnit(C);
-
-        if (llvm::TimePassesIsEnabled)
-          LLVMIRGeneration.stopTimer();
-      }
-
-      // Silently ignore if we weren't initialized for some reason.
-      if (!TheModule)
-        return;
-
-      // Make sure IR generation is happy with the module. This is released by
-      // the module provider.
-      llvm::Module *M = Gen->ReleaseModule();
-      if (!M) {
-        // The module has been released by IR gen on failures, do not double
-        // free.
-        TheModule.release();
-        return;
-      }
-
-      assert(TheModule.get() == M &&
-             "Unexpected module change during IR generation");
-
-      // Link LinkModule into this module if present, preserving its validity.
-      if (LinkModule) {
-        if (Linker::linkModules(
-                *M, std::move(LinkModule)))
-          return;
-      }
-
-      EmitBackendOutput(Diags, CodeGenOpts, TargetOpts, LangOpts, 
-                        " ", 
-                        TheModule.get(), Action, AsmOutStream);
+    // Make sure IR generation is happy with the module. This is released by
+    // the module provider.
+    llvm::Module *M = Gen->ReleaseModule();
+    if (!M) {
+      // The module has been released by IR gen on failures, do not double
+      // free.
+      TheModule.release();
+      return;
     }
 
-    void linkerDiagnosticHandler(const llvm::DiagnosticInfo &DI);
+    assert(TheModule.get() == M &&
+           "Unexpected module change during IR generation");
 
-  };
-  
-  void BackendConsumer::anchor() {}
-}
+    // Link LinkModule into this module if present, preserving its validity.
+    if (LinkModule) {
+      if (Linker::linkModules(*M, std::move(LinkModule)))
+        return;
+    }
+
+    EmitBackendOutput(Diags, CodeGenOpts, TargetOpts, LangOpts, " ",
+                      TheModule.get(), Action, AsmOutStream);
+  }
+
+  void linkerDiagnosticHandler(const llvm::DiagnosticInfo &DI);
+};
+
+void BackendConsumer::anchor() {}
+} // namespace fort
 
 //
 
 CodeGenAction::CodeGenAction(unsigned _Act, LLVMContext *_VMContext)
-  : Act(_Act), LinkModule(0),
-    VMContext(_VMContext ? _VMContext : new LLVMContext),
-    OwnsVMContext(!_VMContext) {}
+    : Act(_Act), LinkModule(0),
+      VMContext(_VMContext ? _VMContext : new LLVMContext),
+      OwnsVMContext(!_VMContext) {}
 
 CodeGenAction::~CodeGenAction() {
   TheModule.reset();
@@ -182,18 +169,15 @@ void CodeGenAction::EndSourceFileAction() {
   TheModule.reset(BEConsumer->takeModule());
 }
 
-llvm::Module *CodeGenAction::takeModule() {
-  return TheModule.release();
-}
+llvm::Module *CodeGenAction::takeModule() { return TheModule.release(); }
 
 llvm::LLVMContext *CodeGenAction::takeLLVMContext() {
   OwnsVMContext = false;
   return VMContext;
 }
 
-static raw_pwrite_stream *GetOutputStream(CompilerInstance &CI,
-                                    StringRef InFile,
-                                    BackendAction Action) {
+static raw_pwrite_stream *
+GetOutputStream(CompilerInstance &CI, StringRef InFile, BackendAction Action) {
   switch (Action) {
   case Backend_EmitAssembly:
     return CI.createDefaultOutputFile(false, InFile, "s");
@@ -220,12 +204,10 @@ ASTConsumer *CodeGenAction::CreateASTConsumer(CompilerInstance &CI,
 
   llvm::Module *LinkModuleToUse = LinkModule;
 
-  BEConsumer = 
-      new BackendConsumer(BA, CI.getDiagnostics(),
-                          CI.getCodeGenOpts(), CI.getTargetOpts(),
-                          CI.getLangOpts(),
-                          CI.getFrontendOpts().ShowTimers, InFile,
-                          LinkModuleToUse, OS.release(), *VMContext);
+  BEConsumer = new BackendConsumer(BA, CI.getDiagnostics(), CI.getCodeGenOpts(),
+                                   CI.getTargetOpts(), CI.getLangOpts(),
+                                   CI.getFrontendOpts().ShowTimers, InFile,
+                                   LinkModuleToUse, OS.release(), *VMContext);
   return BEConsumer;
 }
 
@@ -236,26 +218,26 @@ void CodeGenAction::ExecuteAction() {
 
 //
 
-void EmitAssemblyAction::anchor() { }
+void EmitAssemblyAction::anchor() {}
 EmitAssemblyAction::EmitAssemblyAction(llvm::LLVMContext *_VMContext)
-  : CodeGenAction(Backend_EmitAssembly, _VMContext) {}
+    : CodeGenAction(Backend_EmitAssembly, _VMContext) {}
 
-void EmitBCAction::anchor() { }
+void EmitBCAction::anchor() {}
 EmitBCAction::EmitBCAction(llvm::LLVMContext *_VMContext)
-  : CodeGenAction(Backend_EmitBC, _VMContext) {}
+    : CodeGenAction(Backend_EmitBC, _VMContext) {}
 
-void EmitLLVMAction::anchor() { }
+void EmitLLVMAction::anchor() {}
 EmitLLVMAction::EmitLLVMAction(llvm::LLVMContext *_VMContext)
-  : CodeGenAction(Backend_EmitLL, _VMContext) {}
+    : CodeGenAction(Backend_EmitLL, _VMContext) {}
 
-void EmitLLVMOnlyAction::anchor() { }
+void EmitLLVMOnlyAction::anchor() {}
 EmitLLVMOnlyAction::EmitLLVMOnlyAction(llvm::LLVMContext *_VMContext)
-  : CodeGenAction(Backend_EmitNothing, _VMContext) {}
+    : CodeGenAction(Backend_EmitNothing, _VMContext) {}
 
-void EmitCodeGenOnlyAction::anchor() { }
+void EmitCodeGenOnlyAction::anchor() {}
 EmitCodeGenOnlyAction::EmitCodeGenOnlyAction(llvm::LLVMContext *_VMContext)
-  : CodeGenAction(Backend_EmitMCNull, _VMContext) {}
+    : CodeGenAction(Backend_EmitMCNull, _VMContext) {}
 
-void EmitObjAction::anchor() { }
+void EmitObjAction::anchor() {}
 EmitObjAction::EmitObjAction(llvm::LLVMContext *_VMContext)
-  : CodeGenAction(Backend_EmitObj, _VMContext) {}
+    : CodeGenAction(Backend_EmitObj, _VMContext) {}

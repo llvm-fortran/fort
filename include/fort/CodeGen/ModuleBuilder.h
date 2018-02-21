@@ -20,29 +20,29 @@
 #include <string>
 
 namespace llvm {
-  class LLVMContext;
-  class Module;
-}
+class LLVMContext;
+class Module;
+} // namespace llvm
 
 namespace fort {
-  class DiagnosticsEngine;
-  class LangOptions;
+class DiagnosticsEngine;
+class LangOptions;
 
-  class CodeGenerator : public ASTConsumer {
-    virtual void anchor();
-  public:
-    virtual llvm::Module* GetModule() = 0;
-    virtual llvm::Module* ReleaseModule() = 0;
-  };
+class CodeGenerator : public ASTConsumer {
+  virtual void anchor();
 
-  /// CreateLLVMCodeGen - Create a CodeGenerator instance.
-  /// It is the responsibility of the caller to call delete on
-  /// the allocated CodeGenerator instance.
-  CodeGenerator *CreateLLVMCodeGen(DiagnosticsEngine &Diags,
-                                   const std::string &ModuleName,
-                                   const CodeGenOptions &CGO,
-                                   const TargetOptions &TO,
-                                   llvm::LLVMContext& C);
-}
+public:
+  virtual llvm::Module *GetModule() = 0;
+  virtual llvm::Module *ReleaseModule() = 0;
+};
+
+/// CreateLLVMCodeGen - Create a CodeGenerator instance.
+/// It is the responsibility of the caller to call delete on
+/// the allocated CodeGenerator instance.
+CodeGenerator *CreateLLVMCodeGen(DiagnosticsEngine &Diags,
+                                 const std::string &ModuleName,
+                                 const CodeGenOptions &CGO,
+                                 const TargetOptions &TO, llvm::LLVMContext &C);
+} // namespace fort
 
 #endif

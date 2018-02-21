@@ -15,7 +15,6 @@
 namespace llvm {
 
 class Type;
-
 }
 
 namespace fort {
@@ -58,10 +57,9 @@ public:
 
 private:
   Kind TheKind;
-public:
 
-  ABIArgInfo(Kind K) :
-    TheKind(K) {}
+public:
+  ABIArgInfo(Kind K) : TheKind(K) {}
 
   Kind getKind() const { return TheKind; }
 };
@@ -85,25 +83,20 @@ public:
     /// Returns an aggregate value(complex or struct) using an argument
     AggregateValueAsArg
   };
-private:
-  Kind  TheKind;
-  llvm::Type *AggT;
-public:
 
-  ABIRetInfo(Kind K = Nothing) :
-    TheKind(K), AggT(nullptr) {}
-  ABIRetInfo(Kind K, llvm::Type *T) :
-    TheKind(K), AggT(T) {}
+private:
+  Kind TheKind;
+  llvm::Type *AggT;
+
+public:
+  ABIRetInfo(Kind K = Nothing) : TheKind(K), AggT(nullptr) {}
+  ABIRetInfo(Kind K, llvm::Type *T) : TheKind(K), AggT(T) {}
 
   Kind getKind() const { return TheKind; }
 
-  llvm::Type *getAggregateReturnType() const {
-    return AggT;
-  }
+  llvm::Type *getAggregateReturnType() const { return AggT; }
 
-  bool hasAggregateReturnType() const {
-    return AggT != nullptr;
-  }
+  bool hasAggregateReturnType() const { return AggT != nullptr; }
 };
 
 /// ABIInfo - Target specific hooks for defining how a type should be
@@ -114,6 +107,6 @@ public:
   virtual void computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const = 0;
 };
 
-}  // end namespace fort
+} // end namespace fort
 
 #endif

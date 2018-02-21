@@ -34,7 +34,7 @@ public:
 };
 
 void DefaultABIInfo::computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const {
-  if(!T->isComplexType())
+  if (!T->isComplexType())
     return;
 
   Info = ABIRetInfo(ABIRetInfo::AggregateValueAsArg);
@@ -47,7 +47,7 @@ public:
 };
 
 void X86_32ABIInfo::computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const {
-  if(!T->isComplexType())
+  if (!T->isComplexType())
     return;
 
   Info = ABIRetInfo(ABIRetInfo::AggregateValueAsArg);
@@ -55,21 +55,23 @@ void X86_32ABIInfo::computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const {
 
 /// ABI Info for x86_64
 /// NB: works only with x86_64-pc-{linux,darwin}
-class X86_64ABIInfo : public ABIInfo  {
+class X86_64ABIInfo : public ABIInfo {
   CodeGenModule &CGM;
+
 public:
   X86_64ABIInfo(CodeGenModule &cgm) : CGM(cgm) {}
   void computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const;
 };
 
 void X86_64ABIInfo::computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const {
-  if(!T->isComplexType())
+  if (!T->isComplexType())
     return;
 
-  if(Info.getKind() == ABIRetInfo::Value) {
-    switch(T->getBuiltinTypeKind()) {
+  if (Info.getKind() == ABIRetInfo::Value) {
+    switch (T->getBuiltinTypeKind()) {
     case BuiltinType::Real4:
-      Info = ABIRetInfo(ABIRetInfo::Value, llvm::VectorType::get(CGM.FloatTy, 2));
+      Info =
+          ABIRetInfo(ABIRetInfo::Value, llvm::VectorType::get(CGM.FloatTy, 2));
       break;
     case BuiltinType::Real8:
       break;
@@ -105,5 +107,5 @@ const TargetCodeGenInfo &CodeGenModule::getTargetCodeGenInfo() {
   return *TheTargetCodeGenInfo;
 }
 
-}
-}
+} // namespace CodeGen
+} // namespace fort

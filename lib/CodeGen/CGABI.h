@@ -35,7 +35,7 @@ public:
   ABIArgInfo GetArgABI(QualType ArgType);
 };
 
-}
-}  // end namespace fort
+} // namespace CodeGen
+} // end namespace fort
 
 #endif

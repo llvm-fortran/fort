@@ -200,7 +200,8 @@ void CodeGenModule::EmitModuleDecl(const ModuleDecl *Module) {
     void VisitFunctionDecl(const FunctionDecl *D) { CG->EmitFunctionDecl(D); }
     void VisitVarDecl(const VarDecl *D) {
       // Parameter variables don't get emitted
-      if (D->isParameter()) return;
+      if (D->isParameter())
+        return;
 
       StringRef Name = FortranNameMangle(ModName, D->getName());
       auto Type = CG->getTypes().ConvertTypeForMem(D->getType());
