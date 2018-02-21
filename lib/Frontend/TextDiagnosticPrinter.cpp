@@ -32,8 +32,8 @@ namespace fort {
 // static const enum llvm::raw_ostream::Colors warningColor =
 //  llvm::raw_ostream::MAGENTA;
 // static const enum llvm::raw_ostream::Colors errorColor =
-// llvm::raw_ostream::RED; static const enum llvm::raw_ostream::Colors fatalColor
-// = llvm::raw_ostream::RED;
+// llvm::raw_ostream::RED; static const enum llvm::raw_ostream::Colors
+// fatalColor = llvm::raw_ostream::RED;
 //// Used for changing only the bold attribute.
 // static const enum llvm::raw_ostream::Colors savedColor =
 //  llvm::raw_ostream::SAVEDCOLOR;
