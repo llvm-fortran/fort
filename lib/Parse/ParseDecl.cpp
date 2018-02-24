@@ -529,7 +529,6 @@ bool Parser::ParseTypeOrClassDeclTypeSpec(DeclSpec &DS) {
 ///   end-type-stmt :=
 ///     END TYPE [ type-name ]
 bool Parser::ParseDerivedTypeDefinitionStmt() {
-  bool IsClass = Tok.is(tok::kw_CLASS);
   bool IsStructure = Tok.is(tok::kw_STRUCTURE);
   auto Loc = ConsumeToken();
 
@@ -593,8 +592,6 @@ bool Parser::ParseDerivedTypeDefinitionStmt() {
 
   Actions.ActOnEndDerivedTypeDecl(Context);
   return false;
-error:
-  return true;
 }
 
 void Parser::ParseEndTypeStmt(bool IsStructure) {

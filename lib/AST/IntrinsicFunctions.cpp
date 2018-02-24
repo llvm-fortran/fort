@@ -59,6 +59,11 @@ static void InitFunctionGroups() {
 #include "fort/AST/IntrinsicFunctions.def"
 }
 
+#undef NUM_ARGS_1
+#undef NUM_ARGS_2
+#undef NUM_ARGS_3
+#undef NUM_ARGS_1_OR_2
+#undef NUM_ARGS_2_OR_MORE
 static FunctionArgumentCountKind FunctionArgCounts[] = {
 #define NUM_ARGS_1 ArgumentCount1
 #define NUM_ARGS_2 ArgumentCount2

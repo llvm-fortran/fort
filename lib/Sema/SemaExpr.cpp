@@ -45,14 +45,6 @@ static TypeSpecifierType GetArithmeticTypeSpec(QualType T) {
     return TST_unspecified;
 }
 
-/// Returns the largest kind between two arithmetic type qualifiers.
-static int GetLargestKind(const ASTContext &C, const ExtQuals *A,
-                          const ExtQuals *B, QualType AT, QualType BT) {
-  auto KindA = AT->getBuiltinTypeKind();
-  auto KindB = BT->getBuiltinTypeKind();
-  return C.getTypeKindBitWidth(KindA) >= C.getTypeKindBitWidth(KindB) ? 0 : 1;
-}
-
 /// Creates an implicit cast expression
 static Expr *ImplicitCast(ASTContext &C, QualType T, ExprResult E) {
   return ImplicitCastExpr::Create(C, E.get()->getLocation(), T, E.take());
@@ -107,10 +99,6 @@ TakeTypeSelectLargestKindApplyConversion(ASTContext &C, int Chosen,
   A = ImplicitCast(C, ReturnType, A);
   B = ImplicitCast(C, ReturnType, B);
   return ReturnType;
-}
-
-static QualType TypeWithKind(ASTContext &C, QualType T, QualType TKind) {
-  return C.getQualTypeOtherKind(T, TKind);
 }
 
 enum TypecheckAction { NoAction, ImplicitCastAction, ErrorAction };
@@ -609,7 +597,7 @@ ExprResult Sema::ActOnBinaryExpr(ASTContext &C, SourceLocation Loc,
 
   if (ReturnArrayType) {
     SmallVector<ArraySpec *, 8> Dims;
-    for (auto I : ReturnArrayType->getDimensions())
+    for (size_t i = 0; i < ReturnArrayType->getDimensionCount(); ++i)
       Dims.push_back(DeferredShapeSpec::Create(C));
     ReturnType = Context.getArrayType(ReturnType, Dims);
 

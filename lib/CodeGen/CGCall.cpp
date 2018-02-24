@@ -90,7 +90,7 @@ void CodeGenTypes::ConvertArgumentType(
       ArgTypes.push_back(CGM.Int8PtrTy); // FIXME: character kinds
       ArgTypes.push_back(CGM.SizeTy);
     } else
-      llvm_unreachable("invalid expand abi");
+      llvm_unreachable("invalid expand ABI");
     break;
 
   case ABIArgInfo::ExpandCharacterPutLengthToAdditionalArgsAsInt:
@@ -103,6 +103,10 @@ void CodeGenTypes::ConvertArgumentType(
     assert(T->isComplexType());
     ArgTypes.push_back(GetComplexTypeAsVector(
         ConvertType(Context.getComplexTypeElementType(T))));
+    break;
+
+  default:
+    llvm_unreachable("invalid convert argument type ABI");
     break;
   }
 }
@@ -285,6 +289,10 @@ void CodeGenFunction::EmitCallArg(CallArgList &Args, const Expr *E,
         getContext().getTypeKindBitWidth(EType->getBuiltinTypeKind()) / 8));
     break;
   }
+
+  default:
+    llvm_unreachable("invalid call arg ABI");
+    break;
   }
 }
 
@@ -322,6 +330,10 @@ void CodeGenFunction::EmitCallArg(CallArgList &Args, ComplexValueTy Value,
   case ABIArgInfo::ComplexValueAsVector:
     Args.add(CreateComplexVector(Value));
     break;
+
+  default:
+    llvm_unreachable("invalid call arg ABI");
+    break;
   }
 }
 
@@ -341,6 +353,10 @@ void CodeGenFunction::EmitCallArg(CallArgList &Args, CharacterValueTy Value,
   case ABIArgInfo::ExpandCharacterPutLengthToAdditionalArgsAsInt:
     Args.add(Value.Ptr);
     Args.addAditional(Builder.CreateSExtOrTrunc(Value.Len, CGM.Int32Ty));
+    break;
+
+  default:
+    llvm_unreachable("invalid call arg ABI");
     break;
   }
 }
@@ -367,6 +383,10 @@ CharacterValueTy CodeGenFunction::GetCharacterArg(const VarDecl *Arg) {
           Builder.CreateSExtOrTrunc(ExpansionInfo.A2, CGM.SizeTy));
       break;
     }
+
+    default:
+      llvm_unreachable("invalid character arg ABI");
+      break;
     }
     auto CharTy = Arg->getType()->asCharacterType();
     if (CharTy->hasLength())

@@ -121,7 +121,7 @@ public:
   }
 
   const StringRef getCurrentFile() const {
-    CurrentASTUnit.get()->getOriginalSourceFileName();
+    return CurrentASTUnit.get()->getOriginalSourceFileName();
   }
 
   InputKind getCurrentFileKind() const { return IK_None; }

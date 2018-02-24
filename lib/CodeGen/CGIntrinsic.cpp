@@ -147,6 +147,10 @@ llvm::Value *CodeGenFunction::EmitIntrinsicCallScalarTruncation(
   case intrinsic::FLOOR:
     FuncDecl = GetIntrinsicFunction(llvm::Intrinsic::floor, ValueType);
     break;
+
+  default:
+    llvm_unreachable("invalid truncation intrinsic");
+    break;
   }
 
   auto Result = Builder.CreateCall(FuncDecl, Value);
@@ -259,8 +263,10 @@ CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKind Func,
     FuncDecl = CGM.GetCFunction(MANGLE_MATH_FUNCTION("tanh", ValueType),
                                 ValueType, ValueType);
     break;
+
   default:
     llvm_unreachable("invalid scalar math intrinsic");
+    break;
   }
   if (A2) {
     llvm::Value *Args[] = {A1, A2};
@@ -492,6 +498,7 @@ llvm::Value *CodeGenFunction::EmitIntrinsicNumericInquiry(
     }
     default:
       llvm_unreachable("Invalid integer inquiry intrinsic");
+      break;
     }
   } else {
     switch (Func) {
@@ -522,6 +529,9 @@ llvm::Value *CodeGenFunction::EmitIntrinsicNumericInquiry(
       break;
     case EPSILON:
       HANDLE_REAL_RET_REAL(epsilon);
+      break;
+    default:
+      llvm_unreachable("Invalid real inquiry intrinsic");
       break;
     }
   }

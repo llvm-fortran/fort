@@ -44,7 +44,7 @@ public:
   }
 
   StmtLabelResolver(fort::Sema &TheSema, DiagnosticsEngine &Diag)
-      : Sema(TheSema), Diags(Diag), Info(nullptr, (Stmt *)nullptr) {}
+      : Diags(Diag), Sema(TheSema), Info(nullptr, (Stmt *)nullptr) {}
 
   /// \brief Returns false if the forward declaration has no notification
   /// handler. Notifies the statement with a statement label that the label

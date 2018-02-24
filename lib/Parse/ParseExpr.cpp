@@ -725,6 +725,7 @@ ExprResult Parser::ParseFuncExpression(SourceRange IDRange,
   if (!Func->isSubroutine()) {
     return ParseCallExpression(IDLoc, Func);
   }
+  return ExprError();
 }
 
 ExprResult Parser::ParseRecursiveCallExpression(SourceRange IDRange) {

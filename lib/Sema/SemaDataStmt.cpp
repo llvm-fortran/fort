@@ -95,7 +95,7 @@ public:
   DataStmtEngine(DataValueIterator &Vals, fort::Sema &S,
                  DiagnosticsEngine &Diag, SourceLocation Loc)
       : Values(Vals), Sem(S), Context(S.getContext()), Diags(Diag),
-        DataStmtLoc(Loc), Done(false), ImpliedDoEvaluator(S.getContext()) {}
+        DataStmtLoc(Loc), ImpliedDoEvaluator(S.getContext()), Done(false) {}
 
   bool HasValues(const Expr *Where);
 

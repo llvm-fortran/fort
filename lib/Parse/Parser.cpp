@@ -60,10 +60,11 @@ void PrettyStackTraceParserEntry::print(llvm::raw_ostream &OS) const {
 Parser::Parser(llvm::SourceMgr &SM, const LangOptions &Opts,
                DiagnosticsEngine &D, Sema &actions)
     : TheLexer(SM, Opts, D), Features(Opts), CrashInfo(*this), SrcMgr(SM),
-      Context(actions.Context), Diag(D), Actions(actions), Identifiers(Opts),
+      Context(actions.Context), Diag(D), Actions(actions),
+      StmtConstructName(SourceLocation(), nullptr),
       DontResolveIdentifiers(false),
       DontResolveIdentifiersInSubExpressions(false), LexFORMATTokens(false),
-      StmtConstructName(SourceLocation(), nullptr) {
+      Identifiers(Opts) {
   CurBufferIndex.push_back(SrcMgr.getMainFileID());
   getLexer().setBuffer(SrcMgr.getMemoryBuffer(CurBufferIndex.back()));
   Tok.startToken();

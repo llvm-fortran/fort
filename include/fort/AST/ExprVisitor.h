@@ -68,6 +68,8 @@ public:
         DISPATCH(BinaryExprDiv, BinaryExpr);
       case BinaryExpr::Power:
         DISPATCH(BinaryExprPow, BinaryExpr);
+      default:
+	break; /* Do nothing */
       }
     } else if (PTR(UnaryExpr) UnOp = dyn_cast<UnaryExpr>(E)) {
       switch (UnOp->getOperator()) {
@@ -77,6 +79,8 @@ public:
         DISPATCH(UnaryExprPlus, UnaryExpr);
       case UnaryExpr::Minus:
         DISPATCH(UnaryExprMinus, UnaryExpr);
+      default:
+	break; /* Do nothing */
       }
     }
 

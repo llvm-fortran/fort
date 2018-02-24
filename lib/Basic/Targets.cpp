@@ -6218,18 +6218,6 @@ ArrayRef<const char *> MSP430TargetInfo::getGCCRegNames() const {
 // target processor and program binary. TCE co-design environment is
 // publicly available in http://tce.cs.tut.fi
 
-static const unsigned TCEOpenCLAddrSpaceMap[] = {
-    0, // Default
-    3, // opencl_global
-    4, // opencl_local
-    5, // opencl_constant
-    // FIXME: generic has to be added to the target
-    0, // opencl_generic
-    0, // cuda_device
-    0, // cuda_constant
-    0  // cuda_shared
-};
-
 class TCETargetInfo : public TargetInfo {
 public:
   TCETargetInfo(const llvm::Triple &Triple, const TargetOptions &)
@@ -7219,16 +7207,6 @@ protected:
   }
 };
 
-static const unsigned SPIRAddrSpaceMap[] = {
-    0, // Default
-    1, // opencl_global
-    3, // opencl_local
-    2, // opencl_constant
-    4, // opencl_generic
-    0, // cuda_device
-    0, // cuda_constant
-    0  // cuda_shared
-};
 class SPIRTargetInfo : public TargetInfo {
 public:
   SPIRTargetInfo(const llvm::Triple &Triple, const TargetOptions &)

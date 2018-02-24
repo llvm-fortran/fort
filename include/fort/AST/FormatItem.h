@@ -42,6 +42,8 @@ public:
   virtual void print(llvm::raw_ostream &);
 
   static bool classof(const FormatItem *) { return true; }
+
+  virtual ~FormatItem() {}
 };
 
 class FormatEditDesc : public FormatItem {

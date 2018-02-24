@@ -336,8 +336,8 @@ private:
 
   UseStmt(ASTContext &C, ModuleNature MN, const IdentifierInfo *modName,
           RenameListTy RL, Expr *StmtLabel)
-      : Stmt(UseStmtClass, SourceLocation(), StmtLabel), RenameList(RL),
-        ModNature(MN), ModName(modName), Only(false) {}
+      : Stmt(UseStmtClass, SourceLocation(), StmtLabel), ModNature(MN),
+        ModName(modName), Only(false), RenameList(RL) {}
 
   void init(ASTContext &C, RenameListTy RenameList);
 

@@ -247,14 +247,14 @@ public:
   /// getDescription - Return the description of the specified custom
   /// diagnostic.
   StringRef getDescription(unsigned DiagID) const {
-    assert(this && DiagID - DIAG_UPPER_LIMIT < DiagInfo.size() &&
+    assert(DiagID - DIAG_UPPER_LIMIT < DiagInfo.size() &&
            "Invalid diagnostic ID");
     return DiagInfo[DiagID - DIAG_UPPER_LIMIT].second;
   }
 
   /// getLevel - Return the level of the specified custom diagnostic.
   DiagnosticIDs::Level getLevel(unsigned DiagID) const {
-    assert(this && DiagID - DIAG_UPPER_LIMIT < DiagInfo.size() &&
+    assert(DiagID - DIAG_UPPER_LIMIT < DiagInfo.size() &&
            "Invalid diagnostic ID");
     return DiagInfo[DiagID - DIAG_UPPER_LIMIT].first;
   }
@@ -330,60 +330,6 @@ DiagnosticIDs::getDiagnosticLevel(unsigned DiagID, unsigned DiagClass,
     Result = DiagnosticIDs::Fatal;
     break;
   }
-
-  // Upgrade ignored diagnostics if -Weverything is enabled.
-  // if (Diag.EnableAllWarnings && Result == DiagnosticIDs::Ignored &&
-  //    !MappingInfo.isUser())
-  //  Result = DiagnosticIDs::Warning;
-
-  // Ignore -pedantic diagnostics inside __extension__ blocks.
-  // (The diagnostics controlled by -pedantic are the extension diagnostics
-  // that are not enabled by default.)
-  bool EnabledByDefault = false;
-  bool IsExtensionDiag = isBuiltinExtensionDiag(DiagID, EnabledByDefault);
-  // if (Diag.AllExtensionsSilenced && IsExtensionDiag && !EnabledByDefault)
-  //  return DiagnosticIDs::Ignored;
-
-  // For extension diagnostics that haven't been explicitly mapped, check if we
-  // should upgrade the diagnostic.
-  /* if (IsExtensionDiag && !MappingInfo.isUser()) {
-     switch (Diag.ExtBehavior) {
-     case DiagnosticsEngine::Ext_Ignore:
-       break;
-     case DiagnosticsEngine::Ext_Warn:
-       // Upgrade ignored diagnostics to warnings.
-       if (Result == DiagnosticIDs::Ignored)
-         Result = DiagnosticIDs::Warning;
-       break;
-     case DiagnosticsEngine::Ext_Error:
-       // Upgrade ignored or warning diagnostics to errors.
-       if (Result == DiagnosticIDs::Ignored || Result == DiagnosticIDs::Warning)
-         Result = DiagnosticIDs::Error;
-       break;
-     }
-   }*/
-
-  // At this point, ignored errors can no longer be upgraded.
-  if (Result == DiagnosticIDs::Ignored)
-    return Result;
-
-  // Honor -w, which is lower in priority than pedantic-errors, but higher than
-  // -Werror.
-  // if (Result == DiagnosticIDs::Warning && Diag.IgnoreAllWarnings)
-  //  return DiagnosticIDs::Ignored;
-
-  // If -Werror is enabled, map warnings to errors unless explicitly disabled.
-  // if (Result == DiagnosticIDs::Warning) {
-  //  if (Diag.WarningsAsErrors && !MappingInfo.hasNoWarningAsError())
-  //    Result = DiagnosticIDs::Error;
-  //}
-
-  // If -Wfatal-errors is enabled, map errors to fatal unless explicity
-  // disabled.
-  // if (Result == DiagnosticIDs::Error) {
-  //  if (Diag.ErrorsAsFatal && !MappingInfo.hasNoErrorAsFatal())
-  //    Result = DiagnosticIDs::Fatal;
-  //}
 
   return Result;
 }
@@ -656,9 +602,7 @@ void DiagnosticIDs::EmitDiag(DiagnosticsEngine &Diag, Level DiagLevel) const {
     break;
   }
   Diag.Client->HandleDiagnostic(
-      Lvl, Info.getLocation(), llvm::Twine(OutStr),
-      llvm::ArrayRef<SourceRange>(Diag.DiagRanges, Diag.NumDiagRanges),
-      Diag.DiagFixItHints);
+      Lvl, Info.getLocation(), llvm::Twine(OutStr));
 
   Diag.CurDiagID = ~0U;
 }

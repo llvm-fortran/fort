@@ -63,6 +63,7 @@ class parser<fort::ParsedSourceLocation>
 public:
   inline bool parse(Option &O, StringRef ArgName, StringRef ArgValue,
                     fort::ParsedSourceLocation &Val);
+  virtual ~parser();
 };
 
 bool parser<fort::ParsedSourceLocation>::parse(

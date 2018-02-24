@@ -61,8 +61,6 @@ bool Sema::CheckIntrinsicCallArgumentCount(intrinsic::FunctionKind Function,
     if (Args.size() < 2)
       ArgCountDiag = diag::err_typecheck_call_too_few_args_at_least;
     break;
-  default:
-    llvm_unreachable("invalid arg count");
   }
   if (ArgCountDiag) {
     auto Reporter = Diags.Report(Loc, ArgCountDiag) << /*intrinsic function=*/0;
@@ -75,8 +73,6 @@ bool Sema::CheckIntrinsicCallArgumentCount(intrinsic::FunctionKind Function,
   }
   return false;
 }
-
-static QualType ApplyKind(Sema &S, QualType T, const Expr *E) {}
 
 // FIXME: add support for kind parameter
 bool Sema::CheckIntrinsicConversionFunc(intrinsic::FunctionKind Function,
@@ -258,6 +254,9 @@ bool Sema::CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
         CheckDoubleComplexArgument(FirstArg, true);
         ReturnType = GetUnaryReturnType(FirstArg, Context.DoublePrecisionTy);
         return false;
+      default:
+        llvm_unreachable("invalid math intrinsic");
+        break;
       }
     } else
       CheckIntegerOrRealOrComplexArgument(FirstArg, true);
@@ -287,6 +286,9 @@ bool Sema::CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
       case DDIM:
       case DATAN2:
         CheckDoublePrecisionRealArgument(FirstArg, true);
+        break;
+      default:
+        llvm_unreachable("invalid math intrinsic");
         break;
       }
     } else {
@@ -331,6 +333,9 @@ bool Sema::CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
         case DMIN1:
           if (CheckDoublePrecisionRealArgument(Args[I]))
             Failed = true;
+          break;
+        default:
+          llvm_unreachable("invalid math intrinsic");
           break;
         }
       }
@@ -381,6 +386,9 @@ bool Sema::CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
         if (CheckComplexArgument(FirstArg, true))
           return true;
         break;
+      default:
+        llvm_unreachable("invalid math intrinsic");
+        break;
       }
     } else if (CheckRealOrComplexArgument(FirstArg, true))
       return true;
@@ -408,6 +416,9 @@ bool Sema::CheckIntrinsicMathsFunc(intrinsic::FunctionKind Function,
     } else if (CheckRealArgument(FirstArg, true))
       return true;
     ReturnType = FirstArg->getType();
+    break;
+  default:
+    llvm_unreachable("invalid math intrinsic");
     break;
   }
   return false;
@@ -438,6 +449,9 @@ bool Sema::CheckIntrinsicCharacterFunc(intrinsic::FunctionKind Function,
   case LLT:
     ReturnType = Context.LogicalTy;
     break;
+  default:
+    llvm_unreachable("invalid character intrinsic");
+    break;
   }
   return false;
 }
@@ -447,7 +461,6 @@ bool Sema::CheckIntrinsicArrayFunc(intrinsic::FunctionKind Function,
                                    QualType &ReturnType) {
   auto FirstArg = Args[0];
   auto SecondArg = Args.size() > 1 ? Args[1] : nullptr;
-  auto ThirdArg = Args.size() > 2 ? Args[2] : nullptr;
   size_t ArrayDimCount = 0;
 
   switch (Function) {
@@ -484,6 +497,9 @@ bool Sema::CheckIntrinsicArrayFunc(intrinsic::FunctionKind Function,
     }
 
     break;
+  default:
+    llvm_unreachable("invalid array intrinsic");
+    break;
   }
 
   return false;
@@ -519,6 +535,9 @@ bool Sema::CheckIntrinsicNumericInquiryFunc(intrinsic::FunctionKind Function,
     if (!CheckRealArgument(Arg))
       ReturnType = Arg->getType();
     break;
+  default:
+    llvm_unreachable("invalid numeric inquiry intrinsic");
+    break;
   }
 
   return false;
@@ -536,6 +555,9 @@ bool Sema::CheckIntrinsicSystemFunc(intrinsic::FunctionKind Function,
           FirstArg, GetSingleDimArrayType(Context.RealTy, 2)->asArrayType(),
           "tarray");
     ReturnType = Context.RealTy;
+    break;
+  default:
+    llvm_unreachable("invalid system intrinsic");
     break;
   }
 
@@ -567,6 +589,9 @@ bool Sema::CheckIntrinsicInquiryFunc(intrinsic::FunctionKind Function,
       auto Kind = Args[0]->getType().getSelfOrArrayElementType();
       ReturnType = Context.getQualTypeOtherKind(Context.IntegerTy, Kind);
     }
+    break;
+  default:
+    llvm_unreachable("invalid inquiry function intrinsic");
     break;
   }
   return false;
@@ -621,6 +646,9 @@ bool Sema::CheckIntrinsicBitFunc(intrinsic::FunctionKind Function,
     CheckArgumentsTypeCompability(FirstArg, SecondArg, "i", "j", true);
     CheckArrayArgumentsDimensionCompability(FirstArg, SecondArg, "i", "j");
     ReturnType = FirstArg->getType();
+    break;
+  default:
+    llvm_unreachable("invalid bit function intrinsic");
     break;
   }
 

@@ -652,13 +652,6 @@ static inline bool isWhitespace(unsigned char c) {
   return (CharInfo[c] & (CHAR_HORZ_WS | CHAR_VERT_WS)) ? true : false;
 }
 
-/// isNumberBody - Return true if this is the body character of a number, which
-/// is [0-9_.].
-static inline bool isNumberBody(unsigned char c) {
-  return (CharInfo[c] & (CHAR_NUMBER | CHAR_UNDER | CHAR_PERIOD)) ? true
-                                                                  : false;
-}
-
 /// isBinaryNumberBody - Return true if this is the body character of a binary
 /// number, which is [01].
 static inline bool isBinaryNumberBody(unsigned char c) {

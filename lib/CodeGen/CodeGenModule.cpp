@@ -208,7 +208,7 @@ void CodeGenModule::EmitModuleDecl(const ModuleDecl *Module) {
 
       // FIXME implement constant initializers
       llvm::Constant *Initializer = nullptr;
-      auto Init = D->getInit();
+      //auto Init = D->getInit();
 
       auto Var = CG->EmitGlobalVariable(Name, Type, Initializer);
       CG->Variables.insert(std::make_pair(D, Var));

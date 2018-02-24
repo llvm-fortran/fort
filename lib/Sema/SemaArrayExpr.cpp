@@ -28,7 +28,7 @@ class DimensionConstructor {
 
 public:
   DimensionConstructor(ASTContext &C)
-      : ResultingSize(0), IsConstSizeOnly(true), Context(C) {}
+      : Context(C), ResultingSize(0), IsConstSizeOnly(true) {}
 
   void JoinWith(const ArrayType *T);
   void JoinWith(const Expr *E);

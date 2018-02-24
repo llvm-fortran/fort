@@ -96,7 +96,7 @@ class FormatDescriptorParser : public FormatDescriptorLexer {
 public:
   FormatDescriptorParser(ASTContext &C, DiagnosticsEngine &D, const Lexer &Lex,
                          const Token &FD)
-      : Context(C), Diag(D), FormatDescriptorLexer(Lex, FD) {}
+      : FormatDescriptorLexer(Lex, FD), Context(C), Diag(D) {}
 
   IntegerConstantExpr *ParseIntExpr(const char *DiagAfter = nullptr) {
     llvm::StringRef Str;

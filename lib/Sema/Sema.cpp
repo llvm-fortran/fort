@@ -29,11 +29,11 @@
 namespace fort {
 
 Sema::Sema(ASTContext &ctxt, DiagnosticsEngine &D)
-    : Context(ctxt), Diags(D), CurContext(0),
-      IntrinsicFunctionMapping(LangOptions()), CurExecutableStmts(nullptr),
-      CurStmtLabelScope(nullptr), CurNamedConstructs(nullptr),
-      CurImplicitTypingScope(nullptr), CurSpecScope(nullptr),
-      CurEquivalenceScope(nullptr), CurCommonBlockScope(nullptr) {}
+    : CurStmtLabelScope(nullptr), CurNamedConstructs(nullptr),
+      CurExecutableStmts(nullptr), CurImplicitTypingScope(nullptr),
+      CurEquivalenceScope(nullptr), CurCommonBlockScope(nullptr),
+      CurSpecScope(nullptr), IntrinsicFunctionMapping(LangOptions()),
+      Context(ctxt), Diags(D), CurContext(0) {}
 
 Sema::~Sema() {}
 
@@ -244,7 +244,6 @@ void Sema::DeclareStatementLabel(Expr *StmtLabel, Stmt *S) {
 
     // Check to see if it matches any other enclosing do stmt and possibly
     // replicate the body (nested loops with same label)
-    DoStmt *Result = nullptr;
     auto Stack = getCurrentBody()->ControlFlowStack;
     for (size_t I = Stack.size(); I != 0;) {
       --I;
