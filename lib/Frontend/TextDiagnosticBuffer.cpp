@@ -23,9 +23,11 @@ namespace fort {
 ///
 void TextDiagnosticBuffer::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
                                             SourceLocation L,
-                                            const llvm::Twine &Msg) {
+                                            const llvm::Twine &Msg,
+                                            llvm::ArrayRef<SourceRange> Ranges,
+                                            llvm::ArrayRef<FixItHint> FixIts) {
   // Default implementation (Warnings/errors count).
-  DiagnosticClient::HandleDiagnostic(DiagLevel, L, Msg);
+  DiagnosticClient::HandleDiagnostic(DiagLevel, L, Msg, Ranges, FixIts);
 
   switch (DiagLevel) {
   default:

@@ -42,7 +42,9 @@ public:
   const_iterator note_end() const { return Notes.end(); }
 
   virtual void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
-                                SourceLocation L, const llvm::Twine &Msg);
+                                SourceLocation L, const llvm::Twine &Msg,
+                                llvm::ArrayRef<SourceRange> Ranges,
+                                llvm::ArrayRef<FixItHint> FixIts);
 
   /// FlushDiagnostics - Flush the buffered diagnostics to an given
   /// diagnostic engine.
