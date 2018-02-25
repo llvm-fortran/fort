@@ -20,8 +20,6 @@
 
 namespace fort {
 
-ExprEvalScope::ExprEvalScope(ASTContext &C) : Context(C) {}
-
 std::pair<int64_t, bool> ExprEvalScope::get(const Expr *E) const {
   if (auto VE = dyn_cast<VarExpr>(E)) {
     auto Substitute = InlinedVars.find(VE->getVarDecl());

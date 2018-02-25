@@ -23,10 +23,9 @@ class ASTContext;
 /// to associate variables with values when evaluating expressions.
 class ExprEvalScope {
   llvm::SmallDenseMap<const VarDecl *, int64_t, 16> InlinedVars;
-  ASTContext &Context;
 
 public:
-  ExprEvalScope(ASTContext &C);
+  ExprEvalScope() {}
 
   std::pair<int64_t, bool> get(const Expr *E) const;
   void Assign(const VarDecl *Var, int64_t Value);
