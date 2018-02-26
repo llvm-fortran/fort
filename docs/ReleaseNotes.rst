@@ -1,5 +1,5 @@
 =======================================
-Fort 6.0.0 (In-Progress) Release Notes
+Fort 7.0.0 (In-Progress) Release Notes
 =======================================
 
 .. contents::
@@ -12,14 +12,11 @@ Written by the `Fort Team <http://fort-compiler.org/>`_
 
    These are in-progress notes for the upcoming Fort 6 release.
 
-What's New in Fort 6.0.0?
+What's New in Fort 7.0.0?
 ==========================
 
 Major New Features
 ------------------
 
-- Module support (within the same source file)
-  - Handle module declaration and uses in the same source file
-  - Module files are planned for upcoming releases
-
+...
 
