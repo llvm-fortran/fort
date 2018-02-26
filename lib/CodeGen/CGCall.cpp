@@ -104,10 +104,6 @@ void CodeGenTypes::ConvertArgumentType(
     ArgTypes.push_back(GetComplexTypeAsVector(
         ConvertType(Context.getComplexTypeElementType(T))));
     break;
-
-  default:
-    llvm_unreachable("invalid convert argument type ABI");
-    break;
   }
 }
 

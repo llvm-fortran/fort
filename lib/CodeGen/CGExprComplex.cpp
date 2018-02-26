@@ -151,6 +151,9 @@ ComplexValueTy CodeGenFunction::EmitComplexBinaryExpr(BinaryExpr::Operator Op,
     Result.Im = Builder.CreateFDiv(Tmp9, Tmp6);
     break;
   }
+
+  default:
+    llvm_unreachable("invalid complex binary expression");
   }
   return Result;
 }

@@ -19,7 +19,7 @@
 namespace fort {
 
 ASTContext::ASTContext(llvm::SourceMgr &SM, LangOptions LangOpts)
-    : SrcMgr(SM), LastSDM(0), LanguageOptions(LangOpts) {
+    : SrcMgr(SM), LanguageOptions(LangOpts), LastSDM(0) {
   TUDecl = TranslationUnitDecl::Create(*this);
   InitBuiltinTypes();
 }

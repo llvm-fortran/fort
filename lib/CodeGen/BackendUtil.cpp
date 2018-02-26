@@ -149,11 +149,6 @@ private:
 
 } // namespace
 
-static void addBoundsCheckingPass(const PassManagerBuilder &Builder,
-                                  PassManagerBase &PM) {
-  PM.add(createBoundsCheckingLegacyPass());
-}
-
 static llvm::Reloc::Model getRelocModel(const CodeGenOptions &CodeGenOpts) {
   // Keep this synced with the equivalent code in
   // lib/Frontend/CompilerInvocation.cpp

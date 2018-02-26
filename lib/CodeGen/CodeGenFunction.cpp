@@ -30,11 +30,11 @@ namespace CodeGen {
 
 CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, llvm::Function *Fn)
     : CGM(cgm), /*, Target(cgm.getTarget()),*/
-      Builder(cgm.getModule().getContext()), UnreachableBlock(nullptr),
-      CurFn(Fn), IsMainProgram(false), ReturnValuePtr(nullptr),
+      Builder(cgm.getModule().getContext()), CurFn(Fn),
+      UnreachableBlock(nullptr), ReturnValuePtr(nullptr),
       AllocaInsertPt(nullptr), AssignedGotoVarPtr(nullptr),
-      AssignedGotoDispatchBlock(nullptr), CurLoopScope(nullptr),
-      CurInlinedStmtFunc(nullptr) {
+      AssignedGotoDispatchBlock(nullptr), IsMainProgram(false),
+      CurLoopScope(nullptr), CurInlinedStmtFunc(nullptr) {
   HasSavedVariables = false;
 }
 

@@ -639,6 +639,8 @@ void Diagnostic::FormatDiagnostic(const char *DiagStr, const char *DiagEnd,
       Stream << '\'';
       break;
     }
+    default:
+      break; /* Do nothing */
     }
 
     // Remember this argument info for subsequent formatting operations.  Turn

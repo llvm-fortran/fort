@@ -405,8 +405,6 @@ void ASTDumper::VisitConstructPartStmt(const ConstructPartStmt *S) {
   case ConstructPartStmt::EndWhereStmtClass:
     OS << "end where";
     break;
-  default:
-    break;
   }
   dumpConstructNameSuffix(S->getName());
   OS << "\n";

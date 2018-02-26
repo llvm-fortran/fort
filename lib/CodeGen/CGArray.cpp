@@ -236,7 +236,7 @@ void CodeGenFunction::EmitArrayElementSection(const ArrayDimensionValueTy &Dim,
 ArrayValueExprEmitter::ArrayValueExprEmitter(CodeGenFunction &cgf,
                                              bool getPointer)
     : CGF(cgf), Builder(cgf.getBuilder()), VMContext(cgf.getLLVMContext()),
-      GetPointer(getPointer), Ptr(nullptr), Offset(nullptr) {}
+      Offset(nullptr), Ptr(nullptr), GetPointer(getPointer) {}
 
 void ArrayValueExprEmitter::EmitExpr(const Expr *E) { Visit(E); }
 
@@ -312,7 +312,7 @@ void ArrayValueExprEmitter::VisitArraySectionExpr(const ArraySectionExpr *E) {
 
 StandaloneArrayValueSectionGatherer::StandaloneArrayValueSectionGatherer(
     CodeGenFunction &cgf, ArrayOperation &Op)
-    : CGF(cgf), Gathered(false), Operation(Op) {}
+    : CGF(cgf), Operation(Op), Gathered(false) {}
 
 void StandaloneArrayValueSectionGatherer::EmitExpr(const Expr *E) {
   if (Gathered)

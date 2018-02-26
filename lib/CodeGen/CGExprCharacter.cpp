@@ -260,8 +260,9 @@ GetLexicalComparisonOp(intrinsic::FunctionKind Func) {
     return BinaryExpr::GreaterThanEqual;
   case intrinsic::LGT:
     return BinaryExpr::GreaterThan;
+  default:
+    llvm_unreachable("invalid intrinsic function");
   }
-  llvm_unreachable("invalid intrinsic function");
 }
 
 RValueTy CodeGenFunction::EmitIntrinsicCallCharacter(

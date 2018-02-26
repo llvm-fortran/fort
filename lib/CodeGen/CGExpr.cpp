@@ -106,6 +106,8 @@ RValueTy CodeGenFunction::EmitUnaryExpr(UnaryExpr::Operator Op, RValueTy Val) {
     return EmitComplexUnaryMinus(Val.asComplex());
   case UnaryExpr::Not:
     return EmitScalarUnaryNot(Val.asScalar());
+  default:
+    llvm_unreachable("invalid unary expression");
   }
   return RValueTy();
 }
@@ -126,14 +128,13 @@ llvm::Constant *CodeGenFunction::EmitConstantExpr(const Expr *E) {
   auto T = E->getType();
   if (T->isComplexType())
     return CreateComplexConstant(EmitComplexExpr(E));
-  else if (T->isCharacterType()) // FIXME
+  if (T->isCharacterType()) // FIXME
     ; //;return CreateCharacterConstant(EmitCharacterExpr(E));
-  else if (T->isLogicalType())
+  if (T->isLogicalType())
     return cast<llvm::Constant>(EmitLogicalValueExpr(E));
-  else if (T->isArrayType())
+  if (T->isArrayType())
     return EmitConstantArrayExpr(dyn_cast<ArrayConstructorExpr>(E));
-  else
-    return cast<llvm::Constant>(EmitScalarExpr(E));
+  return cast<llvm::Constant>(EmitScalarExpr(E));
 }
 
 class LValueExprEmitter : public ConstExprVisitor<LValueExprEmitter, LValueTy> {

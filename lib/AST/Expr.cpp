@@ -296,7 +296,7 @@ ImplicitTempArrayExpr *ImplicitTempArrayExpr::Create(ASTContext &C, Expr *E) {
 
 FunctionRefExpr::FunctionRefExpr(SourceLocation Loc, SourceLocation LocEnd,
                                  const FunctionDecl *Func, QualType T)
-    : Expr(FunctionRefExprClass, T, Loc), Function(Func), NameLocEnd(LocEnd) {}
+    : Expr(FunctionRefExprClass, T, Loc), NameLocEnd(LocEnd), Function(Func) {}
 
 FunctionRefExpr *FunctionRefExpr::Create(ASTContext &C, SourceRange Range,
                                          const FunctionDecl *Function) {
@@ -307,8 +307,8 @@ FunctionRefExpr *FunctionRefExpr::Create(ASTContext &C, SourceRange Range,
 SourceLocation FunctionRefExpr::getLocEnd() const { return NameLocEnd; }
 
 VarExpr::VarExpr(SourceLocation Loc, SourceLocation LocEnd, const VarDecl *Var)
-    : Expr(VarExprClass, Var->getType(), Loc), Variable(Var),
-      NameLocEnd(LocEnd) {}
+    : Expr(VarExprClass, Var->getType(), Loc), NameLocEnd(LocEnd),
+      Variable(Var) {}
 
 VarExpr *VarExpr::Create(ASTContext &C, SourceRange Range, VarDecl *VD) {
   VD->MarkUsedAsVariable(Range.Start);
@@ -321,8 +321,8 @@ UnresolvedIdentifierExpr::UnresolvedIdentifierExpr(ASTContext &C,
                                                    SourceLocation Loc,
                                                    SourceLocation LocEnd,
                                                    const IdentifierInfo *ID)
-    : Expr(UnresolvedIdentifierExprClass, C.IntegerTy, Loc), IDInfo(ID),
-      NameLocEnd(LocEnd) {}
+    : Expr(UnresolvedIdentifierExprClass, C.IntegerTy, Loc), NameLocEnd(LocEnd),
+      IDInfo(ID) {}
 
 UnresolvedIdentifierExpr *
 UnresolvedIdentifierExpr::Create(ASTContext &C, SourceRange Range,
