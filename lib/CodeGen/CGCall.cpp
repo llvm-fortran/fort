@@ -20,12 +20,12 @@
 #include "fort/AST/Decl.h"
 #include "fort/Frontend/CodeGenOptions.h"
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/Analysis/Utils/Local.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/CallSite.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/InlineAsm.h"
 #include "llvm/MC/SubtargetFeature.h"
-#include "llvm/Transforms/Utils/Local.h"
 
 namespace fort {
 namespace CodeGen {

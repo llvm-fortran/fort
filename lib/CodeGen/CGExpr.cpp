@@ -77,7 +77,7 @@ void CodeGenFunction::EmitStoreCharSameLength(RValueTy Val, LValueTy Dest,
   if (!Val.isCharacter())
     return EmitStore(Val, Dest, T);
   auto CharVal = Val.asCharacter();
-  Builder.CreateMemCpy(Dest.getPointer(), CharVal.Ptr, CharVal.Len, 1,
+  Builder.CreateMemCpy(Dest.getPointer(), 1, CharVal.Ptr, 1, CharVal.Len,
                        Dest.isVolatileQualifier());
 }
 
