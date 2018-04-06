@@ -12,6 +12,8 @@ set( LLVM_LINK_COMPONENTS
 
 add_fort_executable(fort
   Main.cpp
+  DEPENDS
+  FortDriverOptions
   )
 
 target_link_libraries(fort

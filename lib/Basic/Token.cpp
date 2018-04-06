@@ -43,7 +43,7 @@ std::string Token::CleanLiteral(SmallVectorImpl<StringRef> &Spelling) const {
 /// continuations in it).
 llvm::Twine Token::CleanCharContext() {
   assert(is(tok::char_literal_constant) && needsCleaning() &&
-         "Trying to clean a pristene character context!");
+         "Trying to clean a pristine character context!");
   llvm::Twine CharContext;
   const char *CurPtr = getLiteralData();
   const char *Start = Start;
