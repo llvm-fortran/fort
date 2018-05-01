@@ -5,8 +5,8 @@ set( LLVM_LINK_COMPONENTS
   bitwriter
   codegen
   ipo
+  Option
   selectiondag
-  interpreter
   linker
   )
 
@@ -24,6 +24,7 @@ target_link_libraries(fort
   fortSema
   fortBasic
   fortCodeGen
+  fortDriver
   )
 
 set_target_properties(fort PROPERTIES VERSION ${FORT_EXECUTABLE_VERSION})

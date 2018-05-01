@@ -30,6 +30,7 @@ enum FortFlags {
   NoArgumentUnused = (1 << 6),
   Unsupported = (1 << 7),
   FC1Option = (1 << 10),
+  FC1AsOption = (1 << 10),
   NoDriverOption = (1 << 12),
   Ignored = (1 << 13)
 };

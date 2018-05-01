@@ -16,6 +16,7 @@
 #include "fort/Basic/Version.h"
 #include "fort/CodeGen/BackendUtil.h"
 #include "fort/CodeGen/ModuleBuilder.h"
+#include "fort/Driver/Options.h"
 #include "fort/Frontend/ASTConsumers.h"
 #include "fort/Frontend/TextDiagnosticPrinter.h"
 #include "fort/Frontend/VerifyDiagnosticConsumer.h"
@@ -25,7 +26,6 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
-//#include "llvm/ExecutionEngine/JIT.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Analysis/Passes.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
@@ -41,6 +41,8 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/MC/SubtargetFeature.h"
+#include "llvm/Option/ArgList.h"
+#include "llvm/Option/OptTable.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/FormattedStream.h"
@@ -49,6 +51,7 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/PrettyStackTrace.h"
+#include "llvm/Support/Process.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetRegistry.h"
@@ -66,7 +69,9 @@
 #include <memory>
 
 using namespace llvm;
+using namespace llvm::opt;
 using namespace fort;
+using namespace fort::driver;
 
 //===----------------------------------------------------------------------===//
 // Command line options.
@@ -162,86 +167,6 @@ cl::opt<std::string>
 
 } // end anonymous namespace
 
-/*
-extern "C" void jit_write_start(void *) { }
-
-extern "C" void jit_write_character(void *,const char *Ptr, size_t Length) {
-  for(size_t I = 0; I < Length; ++I)
-    llvm::outs() << Ptr[I];
-}
-
-extern "C" void jit_write_integer(void *,const void *Ptr, int32_t Size) {
-  if(Size != 4) return;
-  llvm::outs() << *reinterpret_cast<const int32_t*>(Ptr);
-}
-
-extern "C" void jit_write_logical(void *,const void *Ptr, int32_t Size) {
-  if(Size != 4) return;
-  llvm::outs() << ((*reinterpret_cast<const int32_t*>(Ptr)) != 0? "true" :
-"false");
-}
-
-extern "C" void jit_write_end(void *) {
-  llvm::outs() << "\n";
-}
-
-extern "C" void jit_assignment_char1(char *LHS, size_t LHSLength,
-                                     char *RHS, size_t RHSLength) {
-  memmove(LHS, RHS, std::min(LHSLength, RHSLength));
-}
-
-extern "C" void jit_init() {}
-
-static int Execute(llvm::Module *Module, const char * const *envp) {
-  std::string Error;
-  std::unique_ptr<llvm::ExecutionEngine> EE(
-    llvm::ExecutionEngine::createJIT(Module, &Error));
-  if (!EE) {
-    llvm::errs() << "unable to make execution engine: " << Error << "\n";
-    return -1;
-  }
-
-  llvm::Function *EntryFn = Module->getFunction("main");
-  if (!EntryFn) {
-    llvm::errs() << "'main' function not found in module.\n";
-    return -1;
-  }
-
-  if(auto F = Module->getFunction("libfort_write_start")) {
-    EE->addGlobalMapping(F, (void*) &jit_write_start);
-  }
-  if(auto F = Module->getFunction("libfort_write_end")) {
-    EE->addGlobalMapping(F, (void*) &jit_write_end);
-  }
-  if(auto F = Module->getFunction("libfort_write_character")) {
-    EE->addGlobalMapping(F, (void*) &jit_write_character);
-  }
-  if(auto F = Module->getFunction("libfort_write_integer")) {
-    EE->addGlobalMapping(F, (void*) &jit_write_integer);
-  }
-  if(auto F = Module->getFunction("libfort_write_logical")) {
-    EE->addGlobalMapping(F, (void*) &jit_write_logical);
-  }
-  if(auto F = Module->getFunction("libfort_assignment_char1")) {
-    EE->addGlobalMapping(F, (void*) &jit_assignment_char1);
-  }
-  if(auto F = Module->getFunction("libfort_malloc")) {
-    EE->addGlobalMapping(F, (void*) &malloc);
-  }
-  if(auto F = Module->getFunction("libfort_free")) {
-    EE->addGlobalMapping(F, (void*) &free);
-  }
-  if(auto F = Module->getFunction("libfort_sys_init")) {
-    EE->addGlobalMapping(F, (void*) &jit_init);
-  }
-
-  std::vector<std::string> Args;
-  Args.push_back(Module->getModuleIdentifier());
-
-  return EE->runFunctionAsMain(EntryFn, Args, envp);
-}
-*/
-
 static void PrintVersion(raw_ostream &OS) {
   OS << getFortFullVersion() << '\n';
 }
@@ -268,18 +193,12 @@ std::string GetOutputName(StringRef Filename, BackendAction Action) {
   return std::string(Path.begin(), Path.size());
 }
 
-// static bool EmitFile(llvm::raw_ostream &Out,
 static bool EmitFile(llvm::raw_pwrite_stream &Out, llvm::Module *Module,
                      llvm::TargetMachine *TM, BackendAction Action) {
   // write instructions to file
   if (Action == Backend_EmitObj || Action == Backend_EmitAssembly) {
     llvm::Module &Mod = *Module;
-#if 0
-    llvm::TargetMachine &Target = *TM;
-    llvm::TargetMachine::CodeGenFileType FileType =
-      Action == Backend_EmitObj ? llvm::TargetMachine::CGFT_ObjectFile :
-                                  llvm::TargetMachine::CGFT_AssemblyFile;
-#endif
+
     llvm::TargetMachine::CodeGenFileType CGFT =
         llvm::TargetMachine::CGFT_AssemblyFile;
 
@@ -482,14 +401,10 @@ static bool ParseFile(const std::string &Filename,
     TheTarget = llvm::TargetRegistry::lookupTarget(TargetOptions->Triple, Err);
 
     CodeGenOpt::Level TMOptLevel = CodeGenOpt::Default;
-    switch (OptLevel) {
-    case 0:
+    if (OptLevel == 0)
       TMOptLevel = CodeGenOpt::None;
-      break;
-    case 3:
+    else if (OptLevel > 2)
       TMOptLevel = CodeGenOpt::Aggressive;
-      break;
-    }
 
     llvm::TargetOptions Options;
 
@@ -547,7 +462,22 @@ int main(int argc, char **argv) {
   sys::PrintStackTraceOnErrorSignal(llvm::StringRef(argv[0]));
   PrettyStackTraceProgram X(argc, argv);
   cl::SetVersionPrinter(PrintVersion);
+#if 0
   cl::ParseCommandLineOptions(argc, argv, "LLVM Fortran compiler");
+#else
+  // TODO hash out errors
+  auto OptTable = createDriverOptTable();
+  SmallVector<const char *, 256> argvv(argv, argv + argc);
+
+  ArrayRef<const char*> argvRef = argvv;
+  unsigned MissingArgIndex, MissingArgCount;
+  InputArgList Args =
+      OptTable->ParseArgs(argvRef.slice(1), MissingArgIndex, MissingArgCount);
+  for (auto A : Args) {
+    if (A->getOption().getKind() == Option::InputClass)
+      InputFiles.push_back(A->getValue());
+  }
+#endif
 
   bool CanonicalPrefixes = true;
   for (int i = 1; i < argc; ++i)

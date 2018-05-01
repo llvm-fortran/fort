@@ -25,11 +25,6 @@ class APInt;
 class APFloat;
 class StringRef;
 class Twine;
-#if 0
-  template<typename T> class ArrayRef;
-  template<typename T, unsigned N> class SmallVector;
-  template<typename T> class SmallVectorImpl;
-#endif
 template <typename T> class ArrayRef;
 template <unsigned InternalLen> class SmallString;
 template <typename T, unsigned N> class SmallVector;
