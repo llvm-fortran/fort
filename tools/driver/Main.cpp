@@ -79,35 +79,8 @@ using namespace fort::driver;
 
 namespace {
 
-cl::list<std::string> InputFiles(cl::Positional, cl::desc("<input file>"));
-
-cl::list<std::string> IncludeDirs("I", cl::desc("Directory of include files"),
-                                  cl::value_desc("directory"), cl::Prefix);
-
-cl::opt<bool> ReturnComments("C", cl::desc("Do not discard comments"),
-                             cl::init(false));
-
-cl::opt<bool> RunVerifier("verify", cl::desc("Run the verifier"),
-                          cl::init(false));
-
-cl::opt<bool> SyntaxOnly("fsyntax-only", cl::desc("Do not compile code"),
-                         cl::init(false));
-
-cl::opt<bool> PrintAST("ast-print", cl::desc("Prints AST"), cl::init(false));
-
-cl::opt<bool> DumpAST("ast-dump", cl::desc("Dumps AST"), cl::init(false));
-
-cl::opt<bool> EmitLLVM("emit-llvm", cl::desc("Emit llvm"), cl::init(false));
-
-cl::opt<bool> EmitASM("S", cl::desc("Emit assembly"), cl::init(false));
-
-cl::opt<std::string> OutputFile("o", cl::desc("<output file>"), cl::init(""));
-
 cl::opt<int> OptLevel("O", cl::desc("optimization level"), cl::init(0),
                       cl::Prefix);
-
-cl::opt<bool> EmitDebugInfo("g", cl::desc("Emit debugging info"),
-                            cl::init(false));
 
 cl::list<std::string>
     LinkDirectories("L", cl::desc("Additional directories for library files"),
@@ -118,52 +91,6 @@ cl::list<std::string> LinkLibraries("l", cl::desc("Additional libraries"),
 
 cl::opt<bool> CompileOnly("c", cl::desc("compile only, do not link"),
                           cl::init(false));
-
-cl::opt<bool> Interpret("interpret",
-                        cl::desc("run the code from the given input"),
-                        cl::init(false));
-
-cl::opt<std::string> TargetTriple("triple", cl::desc("target triple"),
-                                  cl::init(""));
-
-cl::opt<bool>
-    DefaultReal8("fdefault-real-8",
-                 cl::desc("set the kind of the default real type to 8"),
-                 cl::init(false));
-
-cl::opt<bool>
-    DefaultDouble8("fdefault-double-8",
-                   cl::desc("set the kind of the default double type to 8"),
-                   cl::init(false));
-
-cl::opt<bool>
-    DefaultInt8("fdefault-integer-8",
-                cl::desc("set the kind of the default integer type to 8"),
-                cl::init(false));
-
-cl::opt<bool> FreeForm("ffree-form",
-                       cl::desc("the source files are using free form layout"),
-                       cl::init(false));
-
-cl::opt<bool>
-    FixedForm("ffixed-form",
-              cl::desc("the source files are using fixed form layout"),
-              cl::init(false));
-
-cl::opt<bool> Fortran77("f77", cl::desc("compile with Fortran77 features"),
-                        cl::init(false));
-
-cl::opt<std::string>
-    FixedFormLineLength("ffixed-line-length-",
-                        cl::desc("maximum allowed line length in fixed form, 0 "
-                                 "or 'none' to disable the limit"),
-                        cl::Prefix, cl::ValueRequired);
-
-cl::opt<std::string>
-    FreeFormLineLength("ffree-line-length-",
-                       cl::desc("maximum allowed line length in free form, 0 "
-                                "or 'none' to disable the limit"),
-                       cl::Prefix, cl::ValueRequired);
 
 } // end anonymous namespace
 
@@ -249,7 +176,8 @@ static bool EmitOutputFile(const std::string &Input, llvm::Module *Module,
   return EmitFile(Out, Module, TM, Action);
 }
 
-static bool LinkFiles(ArrayRef<std::string> OutputFiles) {
+static bool LinkFiles(ArrayRef<std::string> OutputFiles,
+                      const std::string &Output) {
   const char *Driver = "gcc";
   std::string Cmd;
   llvm::raw_string_ostream OS(Cmd);
@@ -263,42 +191,19 @@ static bool LinkFiles(ArrayRef<std::string> OutputFiles) {
     OS << " -l " << I;
   // Link with the math library.
   OS << " -l m";
-  if (OutputFile.size())
-    OS << " -o " << OutputFile;
+  if (Output.size())
+    OS << " -o " << Output;
   Cmd = OS.str();
   return system(Cmd.c_str());
 }
 
-// Parse a "line length" argument (-ffixed-length-N, -ffree-length-N)
-// throw errors for non-integer values and values that are too big for the
-// target field to store
-static bool ParseLineLengthArg(cl::opt<std::string> &Arg, unsigned &Val) {
-  if (Arg.empty())
-    return false;
-
-  if (Arg == "none") {
-    Val = 0;
-    return false;
-  }
-
-  char *rest;
-  unsigned long val = strtoul(Arg.c_str(), &rest, 10);
-
-  if (*rest != '\0') {
-    Arg.error("'" + Arg + "' value invalid");
-    return true;
-  }
-  if (val > std::numeric_limits<unsigned>::max()) {
-    Arg.error("'" + Arg + "' value too big");
-    return true;
-  }
-  Val = val;
-
-  return false;
-}
+/// Type of output from single input
+enum OutputType { Object, Assembly, LLVM };
 
 static bool ParseFile(const std::string &Filename,
                       const std::vector<std::string> &IncludeDirs,
+                      const OutputType OutType, const std::string &OutName,
+                      InputArgList &Args,
                       SmallVectorImpl<std::string> &OutputFiles) {
   ErrorOr<std::unique_ptr<MemoryBuffer>> MBOrErr =
       MemoryBuffer::getFileOrSTDIN(Filename);
@@ -318,42 +223,112 @@ static bool ParseFile(const std::string &Filename,
   SrcMgr.AddNewSourceBuffer(std::move(MB), llvm::SMLoc());
 
   LangOptions Opts;
-  Opts.DefaultReal8 = DefaultReal8;
-  Opts.DefaultDouble8 = DefaultDouble8;
-  Opts.DefaultInt8 = DefaultInt8;
-  Opts.ReturnComments = ReturnComments;
-  Opts.Fortran77 = Fortran77;
+
+  if (Args.hasArg(options::OPT_default_real_8)) {
+    Opts.DefaultReal8 = true;
+    for (auto A : Args.filtered(options::OPT_default_real_8))
+      A->claim();
+  }
+
+  if (Args.hasArg(options::OPT_default_double_8)) {
+    Opts.DefaultDouble8 = true;
+    for (auto A : Args.filtered(options::OPT_default_double_8))
+      A->claim();
+  }
+
+  if (Args.hasArg(options::OPT_default_integer_8)) {
+    Opts.DefaultInt8 = true;
+    for (auto A : Args.filtered(options::OPT_default_integer_8))
+      A->claim();
+  }
+
+  if (Args.hasArg(options::OPT_C)) {
+    Opts.ReturnComments = true;
+    for (auto A : Args.filtered(options::OPT_C))
+      A->claim();
+  }
 
   llvm::StringRef Ext = llvm::sys::path::extension(Filename);
-  if (!FreeForm && !FixedForm) {
+  if (!Args.hasArg(options::OPT_free_form, options::OPT_fixed_form)) {
     if (Ext.equals_lower(".f")) {
       Opts.FixedForm = 1;
       Opts.FreeForm = 0;
       Opts.LineLength = 72;
     }
-  } else if (FixedForm) {
-    Opts.FixedForm = 1;
-    Opts.FreeForm = 0;
-    Opts.LineLength = 72;
-  }
-  if (!Fortran77 && Ext.equals_lower(".f77"))
-    Opts.Fortran77 = 1;
+  } else {
+    auto A = Args.getLastArg(options::OPT_free_form, options::OPT_fixed_form);
+    if (A->getOption().matches(options::OPT_fixed_form)) {
+      Opts.FixedForm = 1;
+      Opts.FreeForm = 0;
+      Opts.LineLength = 72;
+    }
 
-  unsigned LineLength;
-  if (ParseLineLengthArg(FreeFormLineLength, LineLength))
-    return true;
-  if (Opts.FreeForm && !FreeFormLineLength.empty())
-    Opts.LineLength = LineLength;
-  if (ParseLineLengthArg(FixedFormLineLength, LineLength))
-    return true;
-  if (Opts.FixedForm && !FixedFormLineLength.empty())
-    Opts.LineLength = LineLength;
+    for (auto A :
+         Args.filtered(options::OPT_free_form, options::OPT_fixed_form))
+      A->claim();
+  }
+
+  if (Args.hasArg(options::OPT_Fortran77) || Ext.equals_lower(".f77")) {
+    Opts.Fortran77 = 1;
+    for (auto A : Args.filtered(options::OPT_Fortran77)) {
+      A->claim();
+    }
+  }
+
+  // Process line length arguments
+  if (Args.hasArg(options::OPT_free_line_length,
+                  options::OPT_fixed_line_length)) {
+    // Validate all
+    for (Arg *L : Args.filtered(options::OPT_free_line_length,
+                                options::OPT_fixed_line_length)) {
+      const char *Length = L->getValue();
+      bool IsFreeForm = L->getOption().matches(options::OPT_free_line_length) &&
+                        Opts.FreeForm;
+      bool IsFixedForm =
+          L->getOption().matches(options::OPT_fixed_line_length) &&
+          Opts.FixedForm;
+      L->claim();
+
+      if (!strcmp(Length, "none")) {
+        Opts.LineLength = 0;
+      } else {
+        char *rest;
+        unsigned long val = strtoul(Length, &rest, 10);
+
+        if (*rest != '\0') {
+          // FIXME need a proper diagnostic, like such:
+          // fort: for the -ffixed-line-length- option: 1parrot value invalid
+          llvm::errs() << "'" << std::string(Length) << "' value invalid\n";
+          return true;
+        }
+        if (val > std::numeric_limits<unsigned>::max()) {
+          // FIXME need a proper diagnostic, like such:
+          // fort: for the -ffixed-line-length- option: 1parrot value invalid
+          llvm::errs() << "'" << std::string(Length) << "' value too big\n";
+          return true;
+        }
+
+        if (IsFreeForm || IsFixedForm)
+          Opts.LineLength = val;
+      }
+    }
+  }
+
+  bool SyntaxOnly = Args.hasArg(options::OPT_fsyntax_only);
+  if (SyntaxOnly) {
+    for (auto A : Args.filtered(options::OPT_fsyntax_only)) {
+      A->claim();
+    }
+  }
 
   TextDiagnosticPrinter TDP(SrcMgr);
   DiagnosticsEngine Diag(new DiagnosticIDs, &SrcMgr, &TDP, false);
   // Chain in -verify checker, if requested.
-  if (RunVerifier)
+  if (Args.hasArg(options::OPT_verify)) {
     Diag.setClient(new VerifyDiagnosticConsumer(Diag));
+    for (auto A : Args.filtered(options::OPT_verify))
+      A->claim();
+  }
 
   ASTContext Context(SrcMgr, Opts);
   Sema SA(Context, Diag);
@@ -363,7 +338,11 @@ static bool ParseFile(const std::string &Filename,
   Diag.getClient()->EndSourceFile();
 
   // Dump
-  if (PrintAST || DumpAST) {
+  if (Args.hasArg(options::OPT_ast_print, options::OPT_ast_dump)) {
+    for (auto A :
+         Args.filtered(options::OPT_ast_print, options::OPT_ast_dump)) {
+      A->claim();
+    }
     auto Dumper = CreateASTDumper("");
     Dumper->HandleTranslationUnit(Context);
     delete Dumper;
@@ -373,9 +352,15 @@ static bool ParseFile(const std::string &Filename,
   if (!SyntaxOnly && !Diag.hadErrors()) {
     std::shared_ptr<fort::TargetOptions> TargetOptions =
         std::make_shared<fort::TargetOptions>();
-    TargetOptions->Triple = TargetTriple.empty()
-                                ? llvm::sys::getDefaultTargetTriple()
-                                : TargetTriple;
+
+    if (Arg *T = Args.getLastArg(options::OPT_triple)) {
+      TargetOptions->Triple = T->getValue();
+      for (auto A : Args.filtered(options::OPT_triple))
+        A->claim();
+    } else {
+      TargetOptions->Triple = llvm::sys::getDefaultTargetTriple();
+    }
+
     TargetOptions->CPU = llvm::sys::getHostCPUName();
     std::shared_ptr<LLVMContext> LLContext(new LLVMContext);
 
@@ -390,11 +375,18 @@ static bool ParseFile(const std::string &Filename,
     CG->Initialize(Context);
     CG->HandleTranslationUnit(Context);
 
-    BackendAction BA = Backend_EmitObj;
-    if (EmitASM)
+    BackendAction BA;
+    switch (OutType) {
+    case Assembly:
       BA = Backend_EmitAssembly;
-    if (EmitLLVM)
+      break;
+    case LLVM:
       BA = Backend_EmitLL;
+      break;
+    default:
+      BA = Backend_EmitObj;
+      break;
+    }
 
     const llvm::Target *TheTarget = 0;
     std::string Err;
@@ -412,7 +404,7 @@ static bool ParseFile(const std::string &Filename,
         TargetOptions->Triple, TargetOptions->CPU, "", Options, Reloc::Static,
         llvm::None, TMOptLevel);
 
-    if (!(EmitLLVM && OptLevel == 0)) {
+    if (!(OutType == LLVM && OptLevel == 0)) {
       auto TheModule = CG->GetModule();
       auto PM = new llvm::legacy::PassManager();
       // llvm::legacy::FunctionPassManager *FPM = new
@@ -441,17 +433,14 @@ static bool ParseFile(const std::string &Filename,
       // delete MPM;
     }
 
-    if (Interpret) {
-      // const char *Env[] = { "", nullptr };
-      // Execute(CG->ReleaseModule(), Env);
+    if (OutName == "-") {
+      OutputFiles.push_back(OutName);
     } else {
-      if (OutputFile == "-") {
-        OutputFiles.push_back(OutputFile);
-      } else {
-        OutputFiles.push_back(GetOutputName(Filename, BA));
-      }
-      EmitOutputFile(OutputFiles.back(), CG->GetModule(), TM, BA);
+      OutputFiles.push_back(GetOutputName(Filename, BA));
     }
+
+    EmitOutputFile(OutputFiles.back(), CG->GetModule(), TM, BA);
+
     delete CG;
   }
 
@@ -462,10 +451,10 @@ int main(int argc, char **argv) {
   sys::PrintStackTraceOnErrorSignal(llvm::StringRef(argv[0]));
   PrettyStackTraceProgram X(argc, argv);
   cl::SetVersionPrinter(PrintVersion);
-#if 0
-  cl::ParseCommandLineOptions(argc, argv, "LLVM Fortran compiler");
-#else
+
+  SmallVector<std::string, 32> InputFiles;
   // TODO hash out errors
+  // FIXME -no-canonical-prefixes and rename argc/argv
   auto OptTable = createDriverOptTable();
   SmallVector<const char *, 256> argvv(argv, argv + argc);
 
@@ -477,7 +466,6 @@ int main(int argc, char **argv) {
     if (A->getOption().getKind() == Option::InputClass)
       InputFiles.push_back(A->getValue());
   }
-#endif
 
   bool CanonicalPrefixes = true;
   for (int i = 1; i < argc; ++i)
@@ -486,12 +474,43 @@ int main(int argc, char **argv) {
       break;
     }
 
+  // Output of compilation for each input
+  OutputType OutType = Object;
+  // -S or --assemble implies assembly output
+  if (Args.hasArg(options::OPT_S)) {
+    OutType = Assembly;
+    for (auto A : Args.filtered(options::OPT_S)) {
+      A->claim();
+    }
+  }
+  // But it can be overriden by -emit-llvm
+  if (Args.hasArg(options::OPT_emit_llvm)) {
+    OutType = LLVM;
+    for (auto A : Args.filtered(options::OPT_emit_llvm)) {
+      A->claim();
+    }
+  }
+
+  // Set output name
+  std::string OutName;
+  if (Args.hasArg(options::OPT_o)) {
+    OutName = Args.getLastArg(options::OPT_o)->getValue();
+    for (auto A : Args.filtered(options::OPT_o))
+      A->claim();
+  }
+
+  // Collect include directories
+  std::vector<std::string> IncludeDirs;
+  for (Arg *A : Args.filtered(options::OPT_I)) {
+    IncludeDirs.push_back(A->getValue());
+  }
+
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
   llvm::InitializeAllAsmPrinters();
   llvm::InitializeAllAsmParsers();
 
-  // Parse the input file.
+  // Parse input files
   bool HadErrors = false;
   SmallVector<std::string, 32> OutputFiles;
   OutputFiles.reserve(1);
@@ -503,11 +522,12 @@ int main(int argc, char **argv) {
     if (Ext.equals_lower(".o") || Ext.equals_lower(".obj") ||
         Ext.equals_lower(".a") || Ext.equals_lower(".lib"))
       OutputFiles.push_back(I);
-    else if (ParseFile(I, IncludeDirs, OutputFiles))
+    else if (ParseFile(I, IncludeDirs, OutType, OutName, Args, OutputFiles))
       HadErrors = true;
   }
-  if (OutputFiles.size() && !HadErrors && !CompileOnly && !EmitLLVM && !EmitASM)
-    LinkFiles(OutputFiles);
+
+  if (OutputFiles.size() && !HadErrors && !CompileOnly && OutType == Object)
+    LinkFiles(OutputFiles, OutName);
 
   // If any timers were active but haven't been destroyed yet, print their
   // results now. This happens in -disable-free mode.
