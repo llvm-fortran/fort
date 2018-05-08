@@ -71,6 +71,7 @@ static const StaticDiagInfoRec StaticDiagInfo[] = {
    NOWERROR,   SHOWINSYSHEADER, CATEGORY, GROUP,  STR_SIZE(DESC, uint16_t),    \
    DESC},
 #include "fort/Basic/DiagnosticCommonKinds.inc"
+#include "fort/Basic/DiagnosticDriverKinds.inc"
 #include "fort/Basic/DiagnosticFrontendKinds.inc"
 #include "fort/Basic/DiagnosticLexKinds.inc"
 #include "fort/Basic/DiagnosticParseKinds.inc"
@@ -122,8 +123,8 @@ static const StaticDiagInfoRec *GetDiagInfo(unsigned DiagID) {
     Offset += NUM_BUILTIN_##PREV##_DIAGNOSTICS - DIAG_START_##PREV - 1;        \
     ID -= DIAG_START_##NAME - DIAG_START_##PREV;                               \
   }
-  // CATEGORY(DRIVER, COMMON)
-  CATEGORY(FRONTEND, COMMON)
+  CATEGORY(DRIVER, COMMON)
+  CATEGORY(FRONTEND, DRIVER)
   // CATEGORY(SERIALIZATION, FRONTEND)
   CATEGORY(LEX, FRONTEND)
   CATEGORY(PARSE, LEX)

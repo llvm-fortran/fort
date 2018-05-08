@@ -9,6 +9,7 @@ endmacro(fort_diag_gen)
 fort_diag_gen(Common)
 fort_diag_gen(Lex)
 fort_diag_gen(Parse)
+fort_diag_gen(Driver)
 fort_diag_gen(Frontend)
 fort_diag_gen(Sema)
 fort_tablegen(DiagnosticGroups.inc -gen-fort-diag-groups

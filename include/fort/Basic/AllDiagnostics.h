@@ -15,6 +15,7 @@
 #ifndef LLVM_FORT_ALL_DIAGNOSTICS_H
 #define LLVM_FORT_ALL_DIAGNOSTICS_H
 
+#include "fort/Driver/DriverDiagnostic.h"
 #include "fort/Frontend/FrontendDiagnostic.h"
 #include "fort/Parse/LexDiagnostic.h"
 #include "fort/Parse/ParseDiagnostic.h"

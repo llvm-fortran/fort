@@ -12,20 +12,18 @@
 //===----------------------------------------------------------------------===//
 
 #include "fort/AST/ASTConsumer.h"
+#include "fort/Basic/Diagnostic.h"
 #include "fort/Basic/TargetInfo.h"
 #include "fort/Basic/Version.h"
 #include "fort/CodeGen/BackendUtil.h"
 #include "fort/CodeGen/ModuleBuilder.h"
+#include "fort/Driver/DriverDiagnostic.h"
 #include "fort/Driver/Options.h"
 #include "fort/Frontend/ASTConsumers.h"
 #include "fort/Frontend/TextDiagnosticPrinter.h"
 #include "fort/Frontend/VerifyDiagnosticConsumer.h"
 #include "fort/Parse/Parser.h"
 #include "fort/Sema/Sema.h"
-#include "llvm/ExecutionEngine/ExecutionEngine.h"
-#include "llvm/IR/DataLayout.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Analysis/Passes.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
@@ -35,8 +33,10 @@
 #include "llvm/CodeGen/RegAllocRegistry.h"
 #include "llvm/CodeGen/SchedulerRegistry.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/IRPrintingPasses.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
@@ -275,6 +275,10 @@ static bool ParseFile(const std::string &Filename,
     }
   }
 
+  // Error printing
+  TextDiagnosticPrinter TDP(SrcMgr);
+  DiagnosticsEngine Diag(new DiagnosticIDs, &SrcMgr, &TDP, false);
+
   // Process line length arguments
   if (Args.hasArg(options::OPT_free_line_length,
                   options::OPT_fixed_line_length)) {
@@ -296,15 +300,15 @@ static bool ParseFile(const std::string &Filename,
         unsigned long val = strtoul(Length, &rest, 10);
 
         if (*rest != '\0') {
-          // FIXME need a proper diagnostic, like such:
-          // fort: for the -ffixed-line-length- option: 1parrot value invalid
-          llvm::errs() << "'" << std::string(Length) << "' value invalid\n";
+          Diag.Report(diag::err_line_length_value)
+              << L->getAsString(Args) << std::string(Length);
           return true;
         }
         if (val > std::numeric_limits<unsigned>::max()) {
           // FIXME need a proper diagnostic, like such:
           // fort: for the -ffixed-line-length- option: 1parrot value invalid
-          llvm::errs() << "'" << std::string(Length) << "' value too big\n";
+          Diag.Report(diag::err_line_length_size)
+              << L->getOption().getPrefixedName() << std::string(Length);
           return true;
         }
 
@@ -321,8 +325,6 @@ static bool ParseFile(const std::string &Filename,
     }
   }
 
-  TextDiagnosticPrinter TDP(SrcMgr);
-  DiagnosticsEngine Diag(new DiagnosticIDs, &SrcMgr, &TDP, false);
   // Chain in -verify checker, if requested.
   if (Args.hasArg(options::OPT_verify)) {
     Diag.setClient(new VerifyDiagnosticConsumer(Diag));
