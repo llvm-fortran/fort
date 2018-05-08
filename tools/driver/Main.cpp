@@ -76,6 +76,18 @@ using namespace fort::driver;
 // Command line options.
 //===----------------------------------------------------------------------===//
 
+static void PrintHelp(const OptTable &Opts, bool ShowHidden) {
+  unsigned IncludedFlagsBitmask = 0; // FIXME print all
+  unsigned ExcludedFlagsBitmask = 0;
+
+  if (!ShowHidden)
+    ExcludedFlagsBitmask |= HelpHidden;
+
+  Opts.PrintHelp(llvm::outs(), "fort", "Fortran compiler", IncludedFlagsBitmask,
+                 ExcludedFlagsBitmask,
+                 /*ShowAllAliases=*/false);
+}
+
 static void PrintVersion(raw_ostream &OS) {
   OS << getFortFullVersion() << '\n';
 }
@@ -444,11 +456,8 @@ static bool ParseFile(const std::string &Filename,
 
 int main(int argc_, char **argv_) {
   sys::PrintStackTraceOnErrorSignal(llvm::StringRef(argv_[0]));
-  PrettyStackTraceProgram X(argc_, argv_);
-  cl::SetVersionPrinter(PrintVersion);
 
   SmallVector<std::string, 32> InputFiles;
-  // TODO hash out errors
   auto OptTable = createDriverOptTable();
   SmallVector<const char *, 256> argv(argv_, argv_ + argc_);
 
@@ -459,6 +468,25 @@ int main(int argc_, char **argv_) {
   for (auto A : Args) {
     if (A->getOption().getKind() == Option::InputClass)
       InputFiles.push_back(A->getValue());
+  }
+
+  if (Args.hasArg(options::OPT_help) ||
+      Args.hasArg(options::OPT__help_hidden)) {
+    PrintHelp(*OptTable.get(), Args.hasArg(options::OPT__help_hidden));
+    return false;
+  }
+
+  // TODO this is --version, do we need -version?
+  if (Args.hasArg(options::OPT__version)) {
+    // Follow gcc behavior and use stdout for --version and stderr for -v.
+    PrintVersion(llvm::outs());
+    return false;
+  }
+
+  if (Args.hasArg(options::OPT_v) ||
+      Args.hasArg(options::OPT__HASH_HASH_HASH)) {
+    PrintVersion(llvm::errs());
+    // TODO further process -v and -###
   }
 
   // FIXME seemingly dead option

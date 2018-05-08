@@ -287,6 +287,18 @@ def c : Flag<["-"], "c">, Flags<[DriverOption]>, Group<Action_Group>,
 def no_canonical_prefixes : Flag<["-"], "no-canonical-prefixes">, Flags<[HelpHidden]>,
   HelpText<"Use relative instead of canonical paths">;
 
+def help : Flag<["-", "--"], "help">, Flags<[FC1Option,FC1AsOption]>,
+  HelpText<"Display available options">;
+
+def _help_hidden : Flag<["--"], "help-hidden">,
+  HelpText<"Display help for hidden options">;
+
+def _version : Flag<["--"], "version">, Flags<[FC1Option]>,
+  HelpText<"Print version information">;
+def v : Flag<["-"], "v">, Flags<[FC1Option]>,
+  HelpText<"Show commands to run and use verbose output">;
+def _verbose : Flag<["--"], "verbose">, Alias<v>;
+
 def default_real_8 : Flag<["-"], "fdefault-real-8">, Flags<[FC1Option]>,
   HelpText<"set the kind of the default real type to 8">;
 
