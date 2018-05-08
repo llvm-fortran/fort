@@ -449,18 +449,17 @@ static bool ParseFile(const std::string &Filename,
   return Diag.hadErrors();
 }
 
-int main(int argc, char **argv) {
-  sys::PrintStackTraceOnErrorSignal(llvm::StringRef(argv[0]));
-  PrettyStackTraceProgram X(argc, argv);
+int main(int argc_, char **argv_) {
+  sys::PrintStackTraceOnErrorSignal(llvm::StringRef(argv_[0]));
+  PrettyStackTraceProgram X(argc_, argv_);
   cl::SetVersionPrinter(PrintVersion);
 
   SmallVector<std::string, 32> InputFiles;
   // TODO hash out errors
-  // FIXME -no-canonical-prefixes and rename argc/argv
   auto OptTable = createDriverOptTable();
-  SmallVector<const char *, 256> argvv(argv, argv + argc);
+  SmallVector<const char *, 256> argv(argv_, argv_ + argc_);
 
-  ArrayRef<const char*> argvRef = argvv;
+  ArrayRef<const char *> argvRef = argv;
   unsigned MissingArgIndex, MissingArgCount;
   InputArgList Args =
       OptTable->ParseArgs(argvRef.slice(1), MissingArgIndex, MissingArgCount);
@@ -469,11 +468,11 @@ int main(int argc, char **argv) {
       InputFiles.push_back(A->getValue());
   }
 
-  bool CanonicalPrefixes = true;
-  for (int i = 1; i < argc; ++i)
-    if (llvm::StringRef(argv[i]) == "-no-canonical-prefixes") {
-      CanonicalPrefixes = false;
-      break;
+  // FIXME seemingly dead option
+  bool CanonicalPrefixes = !Args.hasArg(options::OPT_no_canonical_prefixes);
+  if (!CanonicalPrefixes)
+    for (auto A : Args.filtered(options::OPT_no_canonical_prefixes)) {
+      A->claim();
     }
 
   // Output of compilation for each input

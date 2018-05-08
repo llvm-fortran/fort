@@ -233,8 +233,6 @@ def _DASH_DASH : Option<["--"], "", KIND_REMAINING_ARGS>,
 // TODO Add Fort options here
 //      Equivalents of commented out options are not present in this file
 
-//cl::list<std::string> InputFiles(cl::Positional, cl::desc("<input file>"));
-
 def ast_print : Flag<["-"], "ast-print">,
   HelpText<"Build ASTs and then pretty-print them">;
 def ast_dump : Flag<["-"], "ast-dump">,
@@ -285,6 +283,9 @@ def l : JoinedOrSeparate<["-"], "l">, Flags<[LinkerInput, RenderJoined]>,
 
 def c : Flag<["-"], "c">, Flags<[DriverOption]>, Group<Action_Group>,
   HelpText<"Compile only -- only run preprocess, compile, and assemble steps">;
+
+def no_canonical_prefixes : Flag<["-"], "no-canonical-prefixes">, Flags<[HelpHidden]>,
+  HelpText<"Use relative instead of canonical paths">;
 
 def default_real_8 : Flag<["-"], "fdefault-real-8">, Flags<[FC1Option]>,
   HelpText<"set the kind of the default real type to 8">;
