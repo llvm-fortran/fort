@@ -43,7 +43,6 @@
 #include "llvm/MC/SubtargetFeature.h"
 #include "llvm/Option/ArgList.h"
 #include "llvm/Option/OptTable.h"
-#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/Host.h"
@@ -76,23 +75,6 @@ using namespace fort::driver;
 //===----------------------------------------------------------------------===//
 // Command line options.
 //===----------------------------------------------------------------------===//
-
-namespace {
-
-cl::opt<int> OptLevel("O", cl::desc("optimization level"), cl::init(0),
-                      cl::Prefix);
-
-cl::list<std::string>
-    LinkDirectories("L", cl::desc("Additional directories for library files"),
-                    cl::Prefix);
-
-cl::list<std::string> LinkLibraries("l", cl::desc("Additional libraries"),
-                                    cl::Prefix);
-
-cl::opt<bool> CompileOnly("c", cl::desc("compile only, do not link"),
-                          cl::init(false));
-
-} // end anonymous namespace
 
 static void PrintVersion(raw_ostream &OS) {
   OS << getFortFullVersion() << '\n';
@@ -177,6 +159,8 @@ static bool EmitOutputFile(const std::string &Input, llvm::Module *Module,
 }
 
 static bool LinkFiles(ArrayRef<std::string> OutputFiles,
+                      ArrayRef<std::string> LinkLibraries,
+                      ArrayRef<std::string> LinkDirectories,
                       const std::string &Output) {
   const char *Driver = "gcc";
   std::string Cmd;
@@ -394,11 +378,20 @@ static bool ParseFile(const std::string &Filename,
     std::string Err;
     TheTarget = llvm::TargetRegistry::lookupTarget(TargetOptions->Triple, Err);
 
+    unsigned OptLevel = 0;
     CodeGenOpt::Level TMOptLevel = CodeGenOpt::Default;
-    if (OptLevel == 0)
-      TMOptLevel = CodeGenOpt::None;
-    else if (OptLevel > 2)
-      TMOptLevel = CodeGenOpt::Aggressive;
+    // TODO legal values for -O flags
+    if (Arg *A = Args.getLastArg(options::OPT_O_Group)) {
+      if (A->getOption().matches(options::OPT_O0)) {
+        TMOptLevel = CodeGenOpt::None;
+      } else if (A->getOption().matches(options::OPT_O)) {
+        StringRef S(A->getValue());
+        OptLevel = 2;
+        // TODO -Os, -Oz, and others are ingnored
+        if (S.getAsInteger(10, OptLevel) && OptLevel > 2)
+          TMOptLevel = CodeGenOpt::Aggressive;
+      }
+    }
 
     llvm::TargetOptions Options;
 
@@ -506,6 +499,11 @@ int main(int argc_, char **argv_) {
     IncludeDirs.push_back(A->getValue());
   }
 
+  bool CompileOnly = Args.hasArg(options::OPT_c);
+  if (CompileOnly)
+    for (auto A : Args.filtered(options::OPT_c))
+      A->claim();
+
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
   llvm::InitializeAllAsmPrinters();
@@ -527,8 +525,18 @@ int main(int argc_, char **argv_) {
       HadErrors = true;
   }
 
+  SmallVector<std::string, 32> LinkDirectories;
+  for (Arg *A : Args.filtered(options::OPT_L)) {
+    LinkDirectories.push_back(A->getValue());
+  }
+
+  SmallVector<std::string, 32> LinkLibraries;
+  for (Arg *A : Args.filtered(options::OPT_l)) {
+    LinkLibraries.push_back(A->getValue());
+  }
+
   if (OutputFiles.size() && !HadErrors && !CompileOnly && OutType == Object)
-    LinkFiles(OutputFiles, OutName);
+    LinkFiles(OutputFiles, LinkLibraries, LinkDirectories, OutName);
 
   // If any timers were active but haven't been destroyed yet, print their
   // results now. This happens in -disable-free mode.
