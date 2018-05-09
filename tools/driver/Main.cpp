@@ -463,24 +463,42 @@ int main(int argc_, char **argv_) {
 
   ArrayRef<const char *> argvRef = argv;
   unsigned MissingArgIndex, MissingArgCount;
+  bool HadErrors = false;
+
+  SourceMgr SrcMgr;
+  TextDiagnosticPrinter TDP(SrcMgr);
+  DiagnosticsEngine Diag(new DiagnosticIDs, &SrcMgr, &TDP, false);
+
   InputArgList Args =
       OptTable->ParseArgs(argvRef.slice(1), MissingArgIndex, MissingArgCount);
+
   for (auto A : Args) {
     if (A->getOption().getKind() == Option::InputClass)
       InputFiles.push_back(A->getValue());
+    // Issue errors on unknown arguments.
+    if (A->getOption().matches(options::OPT_UNKNOWN)) {
+      auto ArgString = A->getAsString(Args);
+      std::string Nearest;
+      if (OptTable->findNearest(ArgString, Nearest) > 1)
+        Diag.Report(diag::err_drv_unknown_argument) << ArgString;
+      else
+        Diag.Report(diag::err_drv_unknown_argument_with_suggestion)
+            << ArgString << Nearest;
+      HadErrors = true;
+    }
   }
 
   if (Args.hasArg(options::OPT_help) ||
       Args.hasArg(options::OPT__help_hidden)) {
     PrintHelp(*OptTable.get(), Args.hasArg(options::OPT__help_hidden));
-    return false;
+    return HadErrors;
   }
 
   // TODO this is --version, do we need -version?
   if (Args.hasArg(options::OPT__version)) {
     // Follow gcc behavior and use stdout for --version and stderr for -v.
     PrintVersion(llvm::outs());
-    return false;
+    return HadErrors;
   }
 
   if (Args.hasArg(options::OPT_v) ||
@@ -488,6 +506,10 @@ int main(int argc_, char **argv_) {
     PrintVersion(llvm::errs());
     // TODO further process -v and -###
   }
+
+  // Quit if there were errors
+  if (HadErrors)
+    return HadErrors;
 
   // FIXME seemingly dead option
   bool CanonicalPrefixes = !Args.hasArg(options::OPT_no_canonical_prefixes);
@@ -538,7 +560,6 @@ int main(int argc_, char **argv_) {
   llvm::InitializeAllAsmParsers();
 
   // Parse input files
-  bool HadErrors = false;
   SmallVector<std::string, 32> OutputFiles;
   OutputFiles.reserve(1);
 
