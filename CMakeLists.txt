@@ -298,20 +298,7 @@ macro(add_fort_library name)
   else()
     set(libkind)
   endif()
-  add_library( ${name} ${libkind} ${srcs} )
-  llvm_update_compile_flags(${name} ${srcs})
-  if( LLVM_COMMON_DEPENDS )
-    add_dependencies( ${name} ${LLVM_COMMON_DEPENDS} )
-  endif( LLVM_COMMON_DEPENDS )
-
-  llvm_config( ${name} ${LLVM_LINK_COMPONENTS} )
-  target_link_libraries( ${name} ${LLVM_COMMON_LIBS} )
-
-  install(TARGETS ${name}
-    LIBRARY DESTINATION lib${LLVM_LIBDIR_SUFFIX}
-    ARCHIVE DESTINATION lib${LLVM_LIBDIR_SUFFIX}
-    RUNTIME DESTINATION bin)
-  set_target_properties(${name} PROPERTIES FOLDER "Fort libraries")
+  llvm_add_library( ${name} ${libkind} ${srcs} )
 endmacro(add_fort_library)
 
 macro(add_fort_executable name)
