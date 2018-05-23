@@ -141,7 +141,8 @@ static bool EmitFile(llvm::raw_pwrite_stream &Out, llvm::Module *Module,
     // if (Target.addPassesToEmitFile(PM, FOS, FileType, true)) {
     //  return true;
     //}
-    if (TM->addPassesToEmitFile(PM, Out, CGFT, true, nullptr)) {
+    // FIXME: DWARF output stream (may be set from target)
+    if (TM->addPassesToEmitFile(PM, Out, /*DwOS=*/nullptr, CGFT, true, nullptr)) {
       return false;
     }
 

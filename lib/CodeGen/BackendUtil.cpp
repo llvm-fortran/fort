@@ -426,7 +426,8 @@ bool EmitAssemblyHelper::AddEmitPasses(BackendAction Action,
   else
     assert(Action == Backend_EmitAssembly && "Invalid action!");
 
-  if (TM->addPassesToEmitFile(*PM, OS, CGFT,
+  // FIXME add DWARF output stream
+  if (TM->addPassesToEmitFile(*PM, OS, /*DwOS=*/nullptr, CGFT,
                               /*DisableVerify=*/!CodeGenOpts.VerifyModule)) {
     Diags.Report(diag::err_fe_unable_to_interface_with_target);
     return false;
