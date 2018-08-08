@@ -15,6 +15,8 @@ program declAttrTest
   integer, dimension(20), &
            dimension(40) :: vector ! expected-error {{duplicate 'dimension' attribute specifier}}
 
+  integer, save x ! expected-error {{expected '::'}}
+
   if(lle('a','b')) then
   end if
 

@@ -8,6 +8,7 @@ PROGRAM assignment
   COMPLEX c
   LOGICAL l
   CHARACTER * 10 chars
+  INTEGER n = 1 ! expected-error{{expected line break or ';' at end of statement}}
 
   i = 1
   r = 1.0

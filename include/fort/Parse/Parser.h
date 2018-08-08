@@ -395,7 +395,8 @@ private:
   /// ParseEntityDeclarationList - returns true if a parsing error
   /// occurred.
   bool ParseEntityDeclarationList(DeclSpec &DS,
-                                  SmallVectorImpl<DeclResult> &Decls);
+                                  SmallVectorImpl<DeclResult> &Decls,
+                                  bool AllowInit);
 
   /// ParseDimensionAttributeSpec - parses the DIMENSION attribute
   /// for the given declaration and returns true if a parsing error

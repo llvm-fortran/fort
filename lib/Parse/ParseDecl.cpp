@@ -25,6 +25,7 @@ namespace fort {
 ///     type-declaration-stmt :=
 ///         declaration-type-spec [ [ , attr-spec ] ... :: ] entity-decl-list
 bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
+  bool EntityStyle = false;
   DeclSpec DS;
   if (ParseDeclarationTypeSpec(DS))
     return true;
@@ -50,6 +51,7 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
     //    or TARGET
     //    or VALUE
     //    or VOLATILE
+    EntityStyle = true; // Require '::' later
     auto Kind = Tok.getKind();
     auto Loc = Tok.getLocation();
     if (!ExpectAndConsume(tok::identifier)) {
@@ -142,10 +144,20 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
     }
   }
 
-  ConsumeIfPresent(tok::coloncolon);
+  // Elements of entity-style declaration need to be consistent with each
+  // other
+  if (EntityStyle) {
+    if (!ExpectAndConsume(tok::coloncolon))
+      return true;
 
-  if (ParseEntityDeclarationList(DS, Decls))
-    return true;
+    if (ParseEntityDeclarationList(DS, Decls, true))
+      return true;
+  } else {
+    bool AllowInit = ConsumeIfPresent(tok::coloncolon);
+
+    if (ParseEntityDeclarationList(DS, Decls, AllowInit))
+      return true;
+  }
 
   return false;
 error:
@@ -188,7 +200,8 @@ static bool isAttributeSpec(tok::TokenKind Kind) {
 }
 
 bool Parser::ParseEntityDeclarationList(DeclSpec &DS,
-                                        SmallVectorImpl<DeclResult> &Decls) {
+                                        SmallVectorImpl<DeclResult> &Decls,
+                                        bool AllowInit) {
   do {
     auto IDLoc = Tok.getLocation();
     auto ID = Tok.getIdentifierInfo();
@@ -200,6 +213,9 @@ bool Parser::ParseEntityDeclarationList(DeclSpec &DS,
       return true;
     if (ParseObjectCharLength(IDLoc, ObjectDS))
       return true;
+    if (AllowInit) {
+      // FIXME handle init here
+    }
     Decls.push_back(Actions.ActOnEntityDecl(Context, ObjectDS, IDLoc, ID));
 
   } while (ConsumeIfPresent(tok::comma));
