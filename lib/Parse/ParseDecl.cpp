@@ -209,14 +209,27 @@ bool Parser::ParseEntityDeclarationList(DeclSpec &DS,
       return true;
 
     DeclSpec ObjectDS(DS);
+    Expr *Initializer = nullptr;
+    SourceLocation EqualLoc;
     if (ParseObjectArraySpec(IDLoc, ObjectDS))
       return true;
     if (ParseObjectCharLength(IDLoc, ObjectDS))
       return true;
-    if (AllowInit) {
-      // FIXME handle init here
+    if (AllowInit && IsPresent(tok::equal)) {
+      EqualLoc = Tok.getLocation();
+      ExpectAndConsume(tok::equal);
+      Initializer = ParseExpression().get();
+      // Initializer implies SAVE attribute (adds if not present)
+      if (!ObjectDS.hasAttributeSpec(DeclSpec::AS_save))
+        Actions.ActOnAttrSpec(IDLoc, ObjectDS, DeclSpec::AS_save);
     }
-    Decls.push_back(Actions.ActOnEntityDecl(Context, ObjectDS, IDLoc, ID));
+
+    auto VD = Actions.ActOnEntityDecl(Context, ObjectDS, IDLoc, ID);
+    if (Initializer)
+      Actions.ActOnEntityDeclInit(Context, VD, IDLoc, ID, EqualLoc,
+                                  Initializer);
+
+    Decls.push_back(VD);
 
   } while (ConsumeIfPresent(tok::comma));
   return false;

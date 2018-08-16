@@ -347,7 +347,7 @@ Decl *Sema::ActOnParameterEntityDecl(ASTContext &C, QualType T,
     Diags.Report(IDLoc, diag::err_parameter_requires_const_init)
         << IDInfo << Value.get()->getSourceRange();
     for (auto E : Results) {
-      Diags.Report(E->getLocation(), diag::note_parameter_value_invalid_expr)
+      Diags.Report(E->getLocation(), diag::note_constant_value_invalid_expr)
           << E->getSourceRange();
     }
     return nullptr;
@@ -426,6 +426,42 @@ Decl *Sema::ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
                             const IdentifierInfo *IDInfo) {
   QualType T = ActOnTypeName(C, DS);
   return ActOnEntityDecl(C, T, IDLoc, IDInfo);
+}
+
+Decl *Sema::ActOnEntityDeclInit(ASTContext &C, Decl *D, SourceLocation IDLoc,
+                                const IdentifierInfo *IDInfo,
+                                SourceLocation EqualLoc, Expr *Value) {
+  // Make sure the initializer value is a constant expression
+  if (Value && !Value->isEvaluatable(C)) {
+    llvm::SmallVector<const Expr *, 16> Results;
+    Value->GatherNonEvaluatableExpressions(C, Results);
+    Diags.Report(IDLoc, diag::err_requires_const_init)
+        << IDInfo << Value->getSourceRange();
+    for (auto E : Results) {
+      Diags.Report(E->getLocation(), diag::note_constant_value_invalid_expr)
+          << E->getSourceRange();
+    }
+    return nullptr;
+  }
+
+  auto VD = dyn_cast<VarDecl>(D);
+
+  if (!VD) {
+    // FIXME do we need to throw an error if D is not a VarDecl?
+    return nullptr;
+  }
+
+  // Check and apply type constraints
+  if (Value) {
+    ExprResult Res = CheckAndApplyAssignmentConstraints(
+        EqualLoc, VD->getType(), Value,
+        Sema::AssignmentAction::Initializing);
+    if (Res.isInvalid())
+      return nullptr;
+    VD->setInit(Value);
+  }
+
+  return VD;
 }
 
 //

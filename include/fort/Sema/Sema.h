@@ -271,6 +271,10 @@ public:
   Decl *ActOnEntityDecl(ASTContext &C, DeclSpec &DS, SourceLocation IDLoc,
                         const IdentifierInfo *IDInfo);
 
+  Decl *ActOnEntityDeclInit(ASTContext &C, Decl *D, SourceLocation IDLoc,
+                            const IdentifierInfo *IDInfo,
+                            SourceLocation EqualLoc, Expr *Value);
+
   QualType ResolveImplicitType(const IdentifierInfo *IDInfo);
 
   Decl *ActOnImplicitEntityDecl(ASTContext &C, SourceLocation IDLoc,
