@@ -117,6 +117,8 @@ def err_invalid_decl_spec_combination : Error<
 def err_use_of_attr_spec_in_type_decl : Error<
   "use of %0 attribute specifier in a type construct">;
 
+def err_parameter_requires_init : Error<
+  "%0: 'parameter' attribute requires explicit initializer">;
 
 } // end of Parse Issue category.
 } // end of Parser diagnostics

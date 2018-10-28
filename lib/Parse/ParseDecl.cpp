@@ -113,6 +113,7 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
       Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_optional);
       break;
     case tok::kw_PARAMETER:
+      // FIXME this case should mutate val into param (invoking ActOnParameterEntityDecl for instance)
       Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_parameter);
       break;
     case tok::kw_POINTER:
@@ -215,13 +216,18 @@ bool Parser::ParseEntityDeclarationList(DeclSpec &DS,
       return true;
     if (ParseObjectCharLength(IDLoc, ObjectDS))
       return true;
-    if (AllowInit && IsPresent(tok::equal)) {
-      EqualLoc = Tok.getLocation();
-      ExpectAndConsume(tok::equal);
-      Initializer = ParseExpression().get();
-      // Initializer implies SAVE attribute (adds if not present)
-      if (!ObjectDS.hasAttributeSpec(DeclSpec::AS_save))
-        Actions.ActOnAttrSpec(IDLoc, ObjectDS, DeclSpec::AS_save);
+    if (AllowInit) {
+      if (IsPresent(tok::equal)) {
+        EqualLoc = Tok.getLocation();
+        ExpectAndConsume(tok::equal);
+        Initializer = ParseExpression().get();
+        // Initializer implies SAVE attribute (adds if not present)
+        if (!ObjectDS.hasAttributeSpec(DeclSpec::AS_save))
+          Actions.ActOnAttrSpec(IDLoc, ObjectDS, DeclSpec::AS_save);
+      } else if (ObjectDS.hasAttributeSpec(DeclSpec::AS_parameter)) {
+        Diag.Report(IDLoc, diag::err_parameter_requires_init) << ID;
+        return true;
+      }
     }
 
     auto VD = Actions.ActOnEntityDecl(Context, ObjectDS, IDLoc, ID);
