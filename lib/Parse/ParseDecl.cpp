@@ -113,7 +113,6 @@ bool Parser::ParseTypeDeclarationStmt(SmallVectorImpl<DeclResult> &Decls) {
       Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_optional);
       break;
     case tok::kw_PARAMETER:
-      // FIXME this case should mutate val into param (invoking ActOnParameterEntityDecl for instance)
       Actions.ActOnAttrSpec(Loc, DS, DeclSpec::AS_parameter);
       break;
     case tok::kw_POINTER:
@@ -231,9 +230,14 @@ bool Parser::ParseEntityDeclarationList(DeclSpec &DS,
     }
 
     auto VD = Actions.ActOnEntityDecl(Context, ObjectDS, IDLoc, ID);
-    if (Initializer)
-      Actions.ActOnEntityDeclInit(Context, VD, IDLoc, ID, EqualLoc,
-                                  Initializer);
+    if (Initializer) {
+      if (ObjectDS.hasAttributeSpec(DeclSpec::AS_parameter))
+        Actions.ActOnParameterEntityDecl(Context, Initializer->getType(), IDLoc,
+                                         ID, EqualLoc, Initializer);
+      else
+        Actions.ActOnEntityDeclInit(Context, VD, IDLoc, ID, EqualLoc,
+                                    Initializer);
+    }
 
     Decls.push_back(VD);
 

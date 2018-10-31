@@ -8,6 +8,8 @@ PROGRAM init
   REAL, PARAMETER :: p = 3.5 ! CHECK: real p = 3.5
   REAL :: q = .false. ! expected-error {{initializing 'real' with an expression of incompatible type 'logical'}}
   REAL, PARAMETER :: r ! expected-error {{'r': 'parameter' attribute requires explicit initializer}}
+  ! FIXME should this be evaluated to 4.5 at compile time?
+  REAL, PARAMETER :: s = p + 1 ! CHECK: real s = (p+real(1))
   INTEGER :: j = 10, k = 3 + 2 ! CHECK: integer j = 10
   ! CHECK: integer k = (3+2)
 
