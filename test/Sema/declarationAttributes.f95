@@ -17,6 +17,9 @@ program declAttrTest
 
   integer, save x ! expected-error {{expected '::'}}
 
+  real :: r = 1.5
+  save r ! expected-error {{the specification statement 'save' cannot be applied to the variable 'r' more than once}}
+
   if(lle('a','b')) then
   end if
 
