@@ -127,6 +127,9 @@ void CodeGenFunction::EmitFunctionBody(const DeclContext *DC, const Stmt *S) {
   if (HasSavedVariables)
     EmitFirstInvocationBlock(DC, S);
   EmitVarInitializers(DC);
+  // Main needs to init save vars differently
+  if (IsMainProgram)
+    EmitSavedVarInitializers(DC);
   if (S)
     EmitStmt(S);
 }
