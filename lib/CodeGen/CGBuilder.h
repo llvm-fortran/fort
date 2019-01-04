@@ -15,12 +15,7 @@
 namespace fort {
 namespace CodeGen {
 
-// Don't preserve names on values in an optimized build.
-#ifdef NDEBUG
-typedef llvm::IRBuilder<false> CGBuilderTy;
-#else
-typedef llvm::IRBuilder<> CGBuilderTy;
-#endif
+typedef llvm::IRBuilder<> CGBuilderTy; // FIXME more explicit type?
 
 } // end namespace CodeGen
 } // end namespace fort
