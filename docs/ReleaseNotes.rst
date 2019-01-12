@@ -1,6 +1,6 @@
-=======================================
-Fort 7.0.0 (In-Progress) Release Notes
-=======================================
+======================
+Fort 7.0 Release Notes
+======================
 
 .. contents::
    :local:
@@ -8,12 +8,8 @@ Fort 7.0.0 (In-Progress) Release Notes
 
 Written by the `Fort Team <http://fort-compiler.org/>`_
 
-.. warning::
-
-   These are in-progress notes for the upcoming Fort 7 release.
-
-What's New in Fort 7.0.0?
-==========================
+What's New in Fort 7.0?
+=======================
 
 Mainly improvements to data initialization:
 
