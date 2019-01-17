@@ -1,5 +1,5 @@
 =======================================
-Fort 8.0.0 (In-Progress) Release Notes
+Fort 9.0.0 (In-Progress) Release Notes
 =======================================
 
 .. contents::
@@ -10,9 +10,9 @@ Written by the `Fort Team <http://fort-compiler.org/>`_
 
 .. warning::
 
-   These are in-progress notes for the upcoming Fort 8 release.
+   These are in-progress notes for the upcoming Fort 9 release.
 
-What's New in Fort 8.0.0?
+What's New in Fort 9.0.0?
 ==========================
 
 Major New Features
