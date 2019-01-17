@@ -15,8 +15,6 @@ Written by the `Fort Team <http://fort-compiler.org/>`_
 What's New in Fort 8.0.0?
 ==========================
 
-Major New Features
-------------------
-
-...
+- Switched to fort-N versioning scheme for the compiler executable (instead of major.minor)
+- Removed Nios target
 
