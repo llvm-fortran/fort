@@ -333,11 +333,11 @@ add_definitions( -D_GNU_SOURCE )
 
 # Fort version information
 set(FORT_EXECUTABLE_VERSION
-     "${FORT_VERSION_MAJOR}.${FORT_VERSION_MINOR}" CACHE STRING
-    "Version number that will be placed into the fort executable, in the form XX.YY")
+     "${FORT_VERSION_MAJOR}" CACHE STRING
+    "Version number that will be appended to the fort executable")
 set(LIBFORT_LIBRARY_VERSION
-     "${FORT_VERSION_MAJOR}.${FORT_VERSION_MINOR}" CACHE STRING
-    "Version number that will be placed into the libfort library , in the form XX.YY")
+     "${FORT_VERSION_MAJOR}" CACHE STRING
+    "Version number that will be appended to the libfort library")
 mark_as_advanced(FORT_EXECUTABLE_VERSION LIBFORT_LIBRARY_VERSION)
 
 add_subdirectory(utils/TableGen)
