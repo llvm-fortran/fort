@@ -72,9 +72,6 @@ public:
   enum { NumLowBitsAvailable = 0 };
 };
 
-template <class T> struct isPodLike<fort::OpaquePtr<T>> {
-  static const bool value = true;
-};
 } // namespace llvm
 
 namespace fort {

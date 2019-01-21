@@ -59,9 +59,6 @@ public:
   enum { NumLowBitsAvailable = fort::TypeAlignmentInBits };
 };
 
-template <> struct isPodLike<fort::QualType> {
-  static const bool value = true;
-};
 } // namespace llvm
 
 namespace fort {

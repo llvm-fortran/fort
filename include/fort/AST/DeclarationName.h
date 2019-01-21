@@ -265,10 +265,6 @@ template <> struct DenseMapInfo<fort::DeclarationName> {
   }
 };
 
-template <> struct isPodLike<fort::DeclarationName> {
-  static const bool value = true;
-};
-
 } // end namespace llvm
 
 #endif
