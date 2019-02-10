@@ -18,8 +18,8 @@
 #include <cstdlib>
 #include <cstring>
 
-#ifdef HAVE_SVN_VERSION_INC
-#include "SVNVersion.inc"
+#ifdef HAVE_VCS_VERSION_INC
+#include "VCSVersion.inc"
 #endif
 
 namespace fort {
@@ -28,18 +28,18 @@ std::string getFortRepositoryPath() {
 #if defined(FORT_REPOSITORY_STRING)
   return FORT_REPOSITORY_STRING;
 #else
-#ifdef SVN_REPOSITORY
-  StringRef URL(SVN_REPOSITORY);
+#ifdef FORT_REPOSITORY
+  StringRef URL(FORT_REPOSITORY);
 #else
   StringRef URL("");
 #endif
 
-  // If the SVN_REPOSITORY is empty, try to use the SVN keyword. This helps us
-  // pick up a tag in an SVN export, for example.
-  StringRef SVNRepository("$URL$");
+  // If the FORT_REPOSITORY is empty, try to use the VCS keyword. This helps us
+  // pick up a tag in an VCS export, for example.
+  StringRef VCSRepository("$URL$");
   if (URL.empty()) {
-    URL = SVNRepository.slice(SVNRepository.find(':'),
-                              SVNRepository.find("/lib/Basic"));
+    URL = VCSRepository.slice(VCSRepository.find(':'),
+                              VCSRepository.find("/lib/Basic"));
   }
 
   // Strip off version from a build from an integration branch.
@@ -72,8 +72,8 @@ std::string getLLVMRepositoryPath() {
 }
 
 std::string getFortRevision() {
-#ifdef SVN_REVISION
-  return SVN_REVISION;
+#ifdef FORT_REVISION
+  return FORT_REVISION;
 #else
   return "";
 #endif
