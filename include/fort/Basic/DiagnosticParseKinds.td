@@ -95,6 +95,9 @@ def err_expected_do_var : Error<
 def err_expected_int_var : Error<
   "expected an integer variable after '%0'">;
 
+def err_expected_array_spec: Error<
+  "expected array specification">;
+
 def err_expected_after_recursive : Error<
   "expected 'function' or 'subroutine' after 'recursive'">;
 def err_expected_fn_body : Error<
