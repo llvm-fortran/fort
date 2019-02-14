@@ -1952,26 +1952,12 @@ Parser::StmtResult Parser::ParseVALUEStmt() { return StmtResult(); }
 ///         VOLATILE [::] object-name-list
 Parser::StmtResult Parser::ParseVOLATILEStmt() { return StmtResult(); }
 
-/// ParseALLOCATEStmt - Parse the ALLOCATE statement.
-///
-///   [R623]:
-///     allocate-stmt :=
-///         ALLOCATE ( [ type-spec :: ] alocation-list [ , alloc-opt-list ] )
-Parser::StmtResult Parser::ParseALLOCATEStmt() { return StmtResult(); }
-
 /// ParseNULLIFYStmt - Parse the NULLIFY statement.
 ///
 ///   [R633]:
 ///     nullify-stmt :=
 ///         NULLIFY ( pointer-object-list )
 Parser::StmtResult Parser::ParseNULLIFYStmt() { return StmtResult(); }
-
-/// ParseDEALLOCATEStmt - Parse the DEALLOCATE statement.
-///
-///   [R635]:
-///     deallocate-stmt :=
-///         DEALLOCATE ( allocate-object-list [ , dealloc-op-list ] )
-Parser::StmtResult Parser::ParseDEALLOCATEStmt() { return StmtResult(); }
 
 /// ParseFORALLStmt - Parse the FORALL construct statement.
 ///

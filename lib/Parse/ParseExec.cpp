@@ -125,6 +125,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
   switch (Tok.getKind()) {
   default:
     return ParseAssignmentStmt();
+  case tok::kw_ALLOCATE:
+    return ParseALLOCATEStmt();
   case tok::kw_ASSIGN:
     return ParseAssignStmt();
   case tok::kw_GOTO:
@@ -137,6 +139,8 @@ Parser::StmtResult Parser::ParseActionStmt() {
     return ParseElseStmt();
   case tok::kw_ENDIF:
     return ParseEndIfStmt();
+  case tok::kw_DEALLOCATE:
+    return ParseDEALLOCATEStmt();
   case tok::kw_DO:
     return ParseDoStmt();
   case tok::kw_DOWHILE:
@@ -666,6 +670,70 @@ Parser::StmtResult Parser::ParseCallStmt() {
 
   return Actions.ActOnCallStmt(Context, Loc, RParenLoc, IDLoc, ID, Arguments,
                                StmtLabel);
+}
+
+/// ParseALLOCATEStmt - Parse the ALLOCATE statement.
+///
+///   [R623]:
+///     allocate-stmt :=
+///         ALLOCATE ( [ type-spec :: ] alocation-list [ , alloc-opt-list ] )
+Parser::StmtResult Parser::ParseALLOCATEStmt() {
+  auto Loc = ConsumeToken();
+
+  if (!ExpectAndConsume(tok::l_paren))
+    return StmtError();
+
+  // TODO [ type-spec :: ]
+
+  // allocation-list
+  do {
+    auto ID = Tok.getIdentifierInfo();
+    auto IDLoc = Tok.getLocation();
+    if (!ExpectAndConsume(tok::identifier))
+      return StmtError();
+    SmallVector<ArraySpec *, 8> Dimensions;
+    if (ParseArraySpec(Dimensions)) {
+      Diag.Report(IDLoc, diag::err_expected_array_spec);
+      return StmtError();
+    }
+  } while (ConsumeIfPresent(tok::comma));
+
+  // TODO [ , alloc-opt-list ]
+
+  if (!ExpectAndConsume(tok::r_paren))
+    return StmtError();
+
+  // FIXME Sema
+  return StmtResult();
+}
+
+/// ParseDEALLOCATEStmt - Parse the DEALLOCATE statement.
+///
+///   [R635]:
+///     deallocate-stmt :=
+///         DEALLOCATE ( allocate-object-list [ , dealloc-op-list ] )
+Parser::StmtResult Parser::ParseDEALLOCATEStmt() {
+  auto Loc = ConsumeToken();
+
+  if (!ExpectAndConsume(tok::l_paren))
+    return StmtError();
+
+  // allocate-object-list
+  SmallVector<std::pair<IdentifierInfo, SmallVectorImpl<ArraySpec *>>, 8> Alloc;
+  do {
+    auto ID = Tok.getIdentifierInfo();
+    auto IDLoc = Tok.getLocation();
+    if (!ExpectAndConsume(tok::identifier))
+      return StmtError();
+  } while (ConsumeIfPresent(tok::comma));
+
+  // TODO [ , dealloc-opt-list ]
+
+  if (!ExpectAndConsume(tok::r_paren))
+    return StmtError();
+
+  // FIXME Sema
+  return StmtResult();
 }
 
 Parser::StmtResult Parser::ParseAmbiguousAssignmentStmt() {
