@@ -10,4 +10,5 @@ program a
   deallocate(.5) ! expected-error {{expected identifier}}
   deallocate(c ! expected-error {{expected ')'}}
   deallocate(a,) ! expected-error {{expected identifier}}
+  deallocate(a)
 end program

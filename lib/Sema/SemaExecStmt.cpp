@@ -919,4 +919,21 @@ StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
+StmtResult Sema::ActOnDeallocateStmt(ASTContext &C, SourceLocation Loc,
+                                     ArrayRef<ExprResult> IDList,
+                                     Expr *StmtLabel) {
+  SmallVector<Expr *, 4> DeallocList;
+  for (auto ID : IDList)
+    DeallocList.push_back(ID.take());
+
+  Stmt *Result = DeallocateStmt::Create(C, Loc, DeallocList, StmtLabel);
+
+  getCurrentBody()->Append(Result);
+
+  if (StmtLabel)
+    DeclareStatementLabel(StmtLabel, Result);
+
+  return Result;
+}
+
 } // end namespace fort

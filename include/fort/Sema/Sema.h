@@ -548,6 +548,8 @@ public:
                             FormatSpec *FS, ArrayRef<ExprResult> OutputItemList,
                             Expr *StmtLabel);
 
+  StmtResult ActOnDeallocateStmt(ASTContext &C, SourceLocation Loc,
+                                 ArrayRef<ExprResult> IDList, Expr *StmtLabel);
   // FIXME: TODO:
 
   QualType ActOnBuiltinType(ASTContext *Ctx, BuiltinType::TypeSpec TS,
