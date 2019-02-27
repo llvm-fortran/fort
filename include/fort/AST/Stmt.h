@@ -1082,7 +1082,7 @@ public:
 };
 
 /// DeallocateStmt
-class DeallocateStmt : public Stmt, protected MultiArgumentExpr {
+class DeallocateStmt : public Stmt, public MultiArgumentExpr {
   DeallocateStmt(ASTContext &C, SourceLocation Loc, ArrayRef<Expr *> ids,
                  Expr *StmtLabel);
 
