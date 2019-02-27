@@ -52,6 +52,7 @@ public:
 
   // types
   void dumpType(QualType T);
+  void dumpQualType(QualType T);
   void VisitBuiltinType(const BuiltinType *T, Qualifiers QS);
   void VisitCharacterType(const CharacterType *T, Qualifiers QS);
   void VisitArrayType(const ArrayType *T, Qualifiers QS);
@@ -222,7 +223,7 @@ void ASTDumper::VisitFunctionDecl(const FunctionDecl *D) {
 
 void ASTDumper::VisitVarDecl(const VarDecl *D) {
   if (!D->getType().isNull()) {
-    D->getType().print(OS);
+    D->getType().dump(OS);
     OS << ' ';
   }
   OS << D->getName();
@@ -237,54 +238,52 @@ void ASTDumper::VisitVarDecl(const VarDecl *D) {
 
 void ASTDumper::dumpType(QualType T) {
   TypeVisitor::Visit(T);
+}
 
-  /*
-   * FIXME: Print out declarations.
+void ASTDumper::dumpQualType(QualType T) {
+  Qualifiers Quals = T.getQualifiers();
+  dumpType(T);
+
 #define PRINT_QUAL(Q, QNAME) \
   do {                                                      \
     if (Quals.hasAttributeSpec(Qualifiers::Q)) {            \
-      if (Comma) OS << ", "; Comma = true;                  \
-      OS << QNAME;                                          \
+      OS << ", " << QNAME;                                  \
     }                                                       \
   } while (0)
 
-  Qualifiers Quals = EQ->getQualifiers();
-  PRINT_QUAL(AS_allocatable,  "ALLOCATABLE");
-  PRINT_QUAL(AS_asynchronous, "ASYNCHRONOUS");
-  PRINT_QUAL(AS_codimension,  "CODIMENSION");
-  PRINT_QUAL(AS_contiguous,   "CONTIGUOUS");
-  PRINT_QUAL(AS_external,     "EXTERNAL");
-  PRINT_QUAL(AS_intrinsic,    "INTRINSIC");
-  PRINT_QUAL(AS_optional,     "OPTIONAL");
-  PRINT_QUAL(AS_parameter,    "PARAMETER");
-  PRINT_QUAL(AS_pointer,      "POINTER");
-  PRINT_QUAL(AS_protected,    "PROTECTED");
-  PRINT_QUAL(AS_save,         "SAVE");
-  PRINT_QUAL(AS_target,       "TARGET");
-  PRINT_QUAL(AS_value,        "VALUE");
-  PRINT_QUAL(AS_volatile,     "VOLATILE");
+  PRINT_QUAL(AS_allocatable,  "allocatable");
+  PRINT_QUAL(AS_asynchronous, "asynchronous");
+  PRINT_QUAL(AS_codimension,  "codimension");
+  PRINT_QUAL(AS_contiguous,   "contiguous");
+  PRINT_QUAL(AS_external,     "external");
+  PRINT_QUAL(AS_intrinsic,    "intrinsic");
+  PRINT_QUAL(AS_optional,     "optional");
+  PRINT_QUAL(AS_parameter,    "parameter");
+  PRINT_QUAL(AS_pointer,      "pointer");
+  PRINT_QUAL(AS_protected,    "protected");
+  PRINT_QUAL(AS_save,         "save");
+  PRINT_QUAL(AS_target,       "target");
+  PRINT_QUAL(AS_value,        "value");
+  PRINT_QUAL(AS_volatile,     "volatile");
 
   if (Quals.hasIntentAttr()) {
-    if (Comma) OS << ", "; Comma = true;
-    OS << "INTENT(";
+    OS << ", intent(";
     switch (Quals.getIntentAttr()) {
     default: assert(false && "Invalid intent attribute"); break;
-    case Qualifiers::IS_in:    OS << "IN"; break;
-    case Qualifiers::IS_out:   OS << "OUT"; break;
-    case Qualifiers::IS_inout: OS << "INOUT"; break;
+    case Qualifiers::IS_in:    OS << "in"; break;
+    case Qualifiers::IS_out:   OS << "out"; break;
+    case Qualifiers::IS_inout: OS << "inout"; break;
     }
     OS << ")";
   }
 
   if (Quals.hasAccessAttr()) {
-    if (Comma) OS << ", "; Comma = true;
     switch (Quals.getAccessAttr()) {
     default: assert(false && "Invalid access attribute"); break;
-    case Qualifiers::AC_public:  OS << "PUBLIC";  break;
-    case Qualifiers::AC_private: OS << "PRIVATE"; break;
+    case Qualifiers::AC_public:  OS << ", public";  break;
+    case Qualifiers::AC_private: OS << ", private"; break;
     }
-    OS << ")";
-  } */
+  }
 }
 
 void ASTDumper::VisitBuiltinType(const BuiltinType *T, Qualifiers QS) {
@@ -327,7 +326,7 @@ void ASTDumper::VisitCharacterType(const CharacterType *T, Qualifiers QS) {
 }
 
 void ASTDumper::VisitArrayType(const ArrayType *T, Qualifiers QS) {
-  dumpType(T->getElementType());
+  dumpQualType(T->getElementType());
   OS << " array";
 }
 
@@ -984,7 +983,11 @@ void Decl::dump(llvm::raw_ostream &OS) const {
   SV.dumpDecl(this);
 }
 
-void QualType::dump() const { print(llvm::errs()); }
+void QualType::dump() const { dump(llvm::errs()); }
+void QualType::dump(raw_ostream &OS) const {
+  ASTDumper SV(OS);
+  SV.dumpQualType(*this);
+}
 
 void QualType::print(raw_ostream &OS) const {
   ASTDumper SV(OS);

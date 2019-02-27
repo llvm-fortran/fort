@@ -719,21 +719,31 @@ Parser::StmtResult Parser::ParseDEALLOCATEStmt() {
     return StmtError();
 
   // allocate-object-list
-  SmallVector<std::pair<IdentifierInfo, SmallVectorImpl<ArraySpec *>>, 8> Alloc;
+  SmallVector<ExprResult, 4> Alloc;
+  bool UnknownID = false;
   do {
     auto ID = Tok.getIdentifierInfo();
+    auto IDRange = getTokenRange();
     auto IDLoc = Tok.getLocation();
     if (!ExpectAndConsume(tok::identifier))
       return StmtError();
+    auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, ID);
+    if (VD) {
+      auto Var = VarExpr::Create(Context, IDRange, VD);
+      Alloc.push_back(Var);
+    } else
+      UnknownID = true; // Accumulate errors
   } while (ConsumeIfPresent(tok::comma));
+
+  if (UnknownID)
+    return StmtError();
 
   // TODO [ , dealloc-opt-list ]
 
   if (!ExpectAndConsume(tok::r_paren))
     return StmtError();
 
-  // FIXME Sema
-  return StmtResult();
+  return Actions.ActOnDeallocateStmt(Context, Loc, Alloc, StmtLabel);
 }
 
 Parser::StmtResult Parser::ParseAmbiguousAssignmentStmt() {

@@ -688,6 +688,19 @@ AssignmentStmt *AssignmentStmt::Create(ASTContext &C, SourceLocation Loc,
 }
 
 //===----------------------------------------------------------------------===//
+// Deallocate Statement
+//===----------------------------------------------------------------------===//
+
+DeallocateStmt::DeallocateStmt(ASTContext &C, SourceLocation Loc,
+                               ArrayRef<Expr *> ids, Expr *StmtLabel)
+    : Stmt(DeallocateStmtClass, Loc, StmtLabel), MultiArgumentExpr(C, ids) {}
+
+DeallocateStmt *DeallocateStmt::Create(ASTContext &C, SourceLocation Loc,
+                                       ArrayRef<Expr *> IDs, Expr *StmtLabel) {
+  return new (C) DeallocateStmt(C, Loc, IDs, StmtLabel);
+}
+
+//===----------------------------------------------------------------------===//
 // Print Statement
 //===----------------------------------------------------------------------===//
 
