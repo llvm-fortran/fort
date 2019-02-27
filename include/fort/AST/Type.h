@@ -394,8 +394,11 @@ public:
     return LHS.Value != RHS.Value;
   }
 
+  /// Short form print -- no attributes
   void print(raw_ostream &OS) const;
+  /// Fully qualified type dump
   void dump() const;
+  void dump(raw_ostream &OS) const;
 
   void Profile(llvm::FoldingSetNodeID &ID) const {
     ID.AddPointer(getAsOpaquePtr());
