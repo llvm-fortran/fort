@@ -95,6 +95,7 @@ public:
   void VisitStopStmt(const StopStmt *S);
   void VisitReturnStmt(const ReturnStmt *S);
   void VisitCallStmt(const CallStmt *S);
+  void VisitDeallocateStmt(const DeallocateStmt *S);
   void VisitAssignmentStmt(const AssignmentStmt *S);
   void VisitPrintStmt(const PrintStmt *S);
   void VisitWriteStmt(const WriteStmt *S);
@@ -655,6 +656,12 @@ void ASTDumper::VisitReturnStmt(const ReturnStmt *S) {
 
 void ASTDumper::VisitCallStmt(const CallStmt *S) {
   OS << "call " << S->getFunction()->getName() << '(';
+  dumpExprList(S->getArguments());
+  OS << ")\n";
+}
+
+void ASTDumper::VisitDeallocateStmt(const DeallocateStmt *S) {
+  OS << "deallocate(";
   dumpExprList(S->getArguments());
   OS << ")\n";
 }

@@ -1,7 +1,9 @@
 ! RUN: %fort -fsyntax-only -verify %s
+! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
 program a
   implicit none
-  integer, allocatable :: a(10)
+  integer, allocatable :: a(10), c(5) ! CHECK: integer, allocatable array a
+  continue ! CHECK: integer, allocatable array c
   deallocate(b) ! expected-error {{use of undeclared identifier 'b'}}
-  deallocate(a)
+  deallocate(a,c) ! CHECK: deallocate(a, c)
 end program

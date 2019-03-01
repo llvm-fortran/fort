@@ -45,7 +45,14 @@ llvm::Value *CodeGenFunction::CreateArrayAlloca(QualType T,
                                                 const llvm::Twine &Name,
                                                 bool IsTemp) {
   auto ATy = cast<ArrayType>(T.getTypePtr());
+  auto ElementType = ATy->getElementType();
   uint64_t ArraySize;
+
+  if (ElementType.hasAttributeSpec(Qualifiers::AS_allocatable)) {
+    auto Ty = llvm::PointerType::get(ConvertType(ElementType), 0);
+    return Builder.CreateAlloca(Ty, nullptr, Name);
+  }
+
   if (ATy->EvaluateSize(ArraySize, getContext())) {
     auto Ty = getTypes().GetFixedSizeArrayType(ATy, ArraySize);
     if (IsTemp)
