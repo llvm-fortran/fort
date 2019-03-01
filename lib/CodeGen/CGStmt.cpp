@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "CGIORuntime.h"
+#include "CGSystemRuntime.h"
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
 #include "fort/AST/StmtVisitor.h"
@@ -45,6 +46,9 @@ public:
   }
   void VisitComputedGotoStmt(const ComputedGotoStmt *S) {
     CGF.EmitComputedGotoStmt(S);
+  }
+  void VisitDeallocateStmt(const DeallocateStmt *S) {
+    CGF.EmitDeallocateStmt(S);
   }
   void VisitIfStmt(const IfStmt *S) { CGF.EmitIfStmt(S); }
   void VisitDoStmt(const DoStmt *S) { CGF.EmitDoStmt(S); }
@@ -190,6 +194,13 @@ void CodeGenFunction::EmitComputedGotoStmt(const ComputedGotoStmt *S) {
     Switch->addCase(cast<llvm::ConstantInt>(Val), Dest);
   }
   EmitBlock(DefaultCase);
+}
+
+void CodeGenFunction::EmitDeallocateStmt(const DeallocateStmt *S) {
+  for (auto Arg : S->getArguments()) {
+    auto A = EmitScalarExpr(Arg);
+    CGM.getSystemRuntime().EmitFree(*this, A);
+  }
 }
 
 void CodeGenFunction::EmitIfStmt(const IfStmt *S) {

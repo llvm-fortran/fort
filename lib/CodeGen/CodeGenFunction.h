@@ -237,6 +237,7 @@ public:
   void EmitAssignedGotoStmt(const AssignedGotoStmt *S);
   void EmitAssignedGotoDispatcher();
   void EmitComputedGotoStmt(const ComputedGotoStmt *S);
+  void EmitDeallocateStmt(const DeallocateStmt *S);
   void EmitIfStmt(const IfStmt *S);
   void EmitDoStmt(const DoStmt *S);
   void EmitDoWhileStmt(const DoWhileStmt *S);
