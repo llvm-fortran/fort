@@ -545,6 +545,26 @@ public:
 };
 
 //===----------------------------------------------------------------------===//
+/// AllocExpr - dynamic allocation specification
+class AllocExpr : public DesignatorExpr {
+  ArrayType *AllocShape;
+
+  // TODO explicit type parameter
+  AllocExpr(ASTContext &C, SourceLocation Loc, Expr *E, ArrayType *Shape);
+
+public:
+  static AllocExpr *Create(ASTContext &C, Expr *E, ArrayType *Shape);
+
+  ArrayType *getShape() const { return AllocShape; }
+  bool isArrayAlloc() const { return AllocShape != nullptr; }
+
+  static bool classof(const Expr *E) {
+    return E->getExprClass() == AllocExprClass;
+  }
+  static bool classof(const AllocExpr *) { return true; }
+};
+
+//===----------------------------------------------------------------------===//
 
 /// EvaluatedArraySpec - represents an evaluated array specification.
 class EvaluatedArraySpec {

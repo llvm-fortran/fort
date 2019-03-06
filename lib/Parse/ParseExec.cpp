@@ -686,7 +686,10 @@ Parser::StmtResult Parser::ParseALLOCATEStmt() {
   // TODO [ type-spec :: ]
 
   // allocation-list
+  SmallVector<ExprResult, 4> Alloc;
+  bool HasErrors = false;
   do {
+    Expr *AE = nullptr;
     auto ID = Tok.getIdentifierInfo();
     auto IDLoc = Tok.getLocation();
     if (!ExpectAndConsume(tok::identifier))
@@ -696,15 +699,25 @@ Parser::StmtResult Parser::ParseALLOCATEStmt() {
       Diag.Report(IDLoc, diag::err_expected_array_spec);
       return StmtError();
     }
+    auto VD = Actions.ExpectVarRefOrDeclImplicitVar(IDLoc, ID);
+    if (VD) {
+      AE = Actions.ActOnArrayAlloc(VD, Dimensions);
+    }
+    if (AE)
+      Alloc.push_back(AE);
+    else
+      HasErrors = true;
   } while (ConsumeIfPresent(tok::comma));
+
+  if (HasErrors)
+    return StmtError();
 
   // TODO [ , alloc-opt-list ]
 
   if (!ExpectAndConsume(tok::r_paren))
     return StmtError();
 
-  // FIXME Sema
-  return StmtResult();
+  return Actions.ActOnAllocateStmt(Context, Loc, Alloc, StmtLabel);
 }
 
 /// ParseDEALLOCATEStmt - Parse the DEALLOCATE statement.

@@ -919,6 +919,32 @@ StmtResult Sema::ActOnCallStmt(ASTContext &C, SourceLocation Loc,
   return Result;
 }
 
+StmtResult Sema::ActOnAllocateStmt(ASTContext &C, SourceLocation Loc,
+                                   ArrayRef<ExprResult> AllocList,
+                                   Expr *StmtLabel) {
+  SmallVector<Expr *, 4> AllocExprList;
+  for (auto A : AllocList) {
+    if (!A.isUsable()) {
+      // TODO error
+      continue;
+    }
+    auto AE = A.takeAs<AllocExpr>();
+    if (!AE) {
+      // TODO assert or error
+    } else
+      AllocExprList.push_back(AE);
+  }
+
+  Stmt *Result = AllocateStmt::Create(C, Loc, AllocExprList, StmtLabel);
+
+  getCurrentBody()->Append(Result);
+
+  if (StmtLabel)
+    DeclareStatementLabel(StmtLabel, Result);
+
+  return Result;
+}
+
 StmtResult Sema::ActOnDeallocateStmt(ASTContext &C, SourceLocation Loc,
                                      ArrayRef<ExprResult> IDList,
                                      Expr *StmtLabel) {

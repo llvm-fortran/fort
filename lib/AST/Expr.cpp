@@ -294,6 +294,14 @@ ImplicitTempArrayExpr *ImplicitTempArrayExpr::Create(ASTContext &C, Expr *E) {
   return new (C) ImplicitTempArrayExpr(E->getLocation(), E);
 }
 
+AllocExpr::AllocExpr(ASTContext &C, SourceLocation Loc, Expr *E,
+                     ArrayType *Shape)
+    : DesignatorExpr(AllocExprClass, E->getType(), Loc, E), AllocShape(Shape) {}
+
+AllocExpr *AllocExpr::Create(ASTContext &C, Expr *E, ArrayType *Shape) {
+  return new (C) AllocExpr(C, E->getLocation(), E, Shape);
+}
+
 FunctionRefExpr::FunctionRefExpr(SourceLocation Loc, SourceLocation LocEnd,
                                  const FunctionDecl *Func, QualType T)
     : Expr(FunctionRefExprClass, T, Loc), NameLocEnd(LocEnd), Function(Func) {}

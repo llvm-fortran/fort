@@ -95,6 +95,7 @@ public:
   void VisitStopStmt(const StopStmt *S);
   void VisitReturnStmt(const ReturnStmt *S);
   void VisitCallStmt(const CallStmt *S);
+  void VisitAllocateStmt(const AllocateStmt *S);
   void VisitDeallocateStmt(const DeallocateStmt *S);
   void VisitAssignmentStmt(const AssignmentStmt *S);
   void VisitPrintStmt(const PrintStmt *S);
@@ -132,6 +133,7 @@ public:
   void VisitCallExpr(const CallExpr *E);
   void VisitIntrinsicCallExpr(const IntrinsicCallExpr *E);
   void VisitImpliedDoExpr(const ImpliedDoExpr *E);
+  void VisitAllocExpr(const AllocExpr *E);
   void VisitArrayConstructorExpr(const ArrayConstructorExpr *E);
   void VisitTypeConstructorExpr(const TypeConstructorExpr *E);
   void VisitRangeExpr(const RangeExpr *E);
@@ -660,6 +662,12 @@ void ASTDumper::VisitCallStmt(const CallStmt *S) {
   OS << ")\n";
 }
 
+void ASTDumper::VisitAllocateStmt(const AllocateStmt *S) {
+  OS << "allocate(";
+  dumpExprList(S->getArguments());
+  OS << ")\n";
+}
+
 void ASTDumper::VisitDeallocateStmt(const DeallocateStmt *S) {
   OS << "deallocate(";
   dumpExprList(S->getArguments());
@@ -938,6 +946,15 @@ void ASTDumper::VisitImpliedDoExpr(const ImpliedDoExpr *E) {
     dumpExpr(E->getIncrementationParameter());
   }
   OS << ')';
+}
+
+void ASTDumper::VisitAllocExpr(const AllocExpr *E) {
+  dumpExprList(E->getTarget());
+  for (auto Dim : *E->getShape()) {
+    OS << "(";
+    dumpArraySpec(Dim);
+    OS << ")";
+  }
 }
 
 void ASTDumper::VisitArrayConstructorExpr(const ArrayConstructorExpr *E) {

@@ -759,6 +759,22 @@ Expr *Sema::ActOnArrayArgument(VarDecl *Arg, Expr *E) {
   return E;
 }
 
+Expr *Sema::ActOnArrayAlloc(VarDecl *Decl, ArrayRef<ArraySpec *> Dimensions) {
+  auto DeclType = Decl->getType();
+  // TODO verify Decl is an array
+  if (!DeclType->isArrayType()) { /* TODO Implicit declaration or error */
+  }
+  auto ATy = DeclType->asArrayType();
+  // TODO check whether shape is compatible with declaration
+  if (ATy->getDimensionCount() != Dimensions.size()) { /* TODO Error */
+  }
+  auto ElemType = ATy->getElementType();
+  auto VE = VarExpr::Create(Context, Decl->getSourceRange(), Decl);
+  auto Shape = ArrayType::Create(Context, ElemType, Dimensions);
+  auto E = AllocExpr::Create(Context, VE, Shape);
+  return E;
+}
+
 ExprResult Sema::ActOnCallExpr(ASTContext &C, SourceLocation Loc,
                                SourceLocation RParenLoc, SourceLocation IDLoc,
                                FunctionDecl *Function,
