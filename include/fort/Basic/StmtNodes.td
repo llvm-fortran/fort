@@ -51,6 +51,7 @@ def StopStmt : Stmt;
 def ReturnStmt : Stmt;
 def CallStmt : Stmt;
 def AssignmentStmt : Stmt;
+def AllocateStmt : Stmt;
 def DeallocateStmt : Stmt;
 def PrintStmt : Stmt;
 def WriteStmt : Stmt;

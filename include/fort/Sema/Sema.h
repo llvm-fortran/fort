@@ -548,6 +548,9 @@ public:
                             FormatSpec *FS, ArrayRef<ExprResult> OutputItemList,
                             Expr *StmtLabel);
 
+  StmtResult ActOnAllocateStmt(ASTContext &C, SourceLocation Loc,
+                               ArrayRef<ExprResult> AllocList, Expr *StmtLabel);
+
   StmtResult ActOnDeallocateStmt(ASTContext &C, SourceLocation Loc,
                                  ArrayRef<ExprResult> IDList, Expr *StmtLabel);
   // FIXME: TODO:
@@ -970,6 +973,10 @@ public:
   /// Returns an array that is passed to a function, with optional implcit
   /// operations.
   Expr *ActOnArrayArgument(VarDecl *Arg, Expr *E);
+
+  /// Returns an array that is passed to a function, with optional implcit
+  /// operations.
+  Expr *ActOnArrayAlloc(VarDecl *Decl, ArrayRef<ArraySpec *> Dimensions);
 
   /// Returns true if an array expression needs a temporary storage array.
   bool ArrayExprNeedsTemp(const Expr *E);

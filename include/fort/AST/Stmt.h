@@ -1081,6 +1081,23 @@ public:
   }
 };
 
+/// AllocateStmt
+class AllocateStmt : public Stmt, public MultiArgumentExpr {
+  AllocateStmt(ASTContext &C, SourceLocation Loc, ArrayRef<Expr *> allocs,
+               Expr *StmtLabel);
+
+public:
+  static AllocateStmt *Create(ASTContext &C, SourceLocation Loc,
+                              ArrayRef<Expr *> Allocs, Expr *StmtLabel);
+
+  ArrayRef<Expr *> getAllocationList() const { return getArguments(); }
+
+  static bool classof(const AllocateStmt *) { return true; }
+  static bool classof(const Stmt *S) {
+    return S->getStmtClass() == AllocateStmtClass;
+  }
+};
+
 /// DeallocateStmt
 class DeallocateStmt : public Stmt, public MultiArgumentExpr {
   DeallocateStmt(ASTContext &C, SourceLocation Loc, ArrayRef<Expr *> ids,

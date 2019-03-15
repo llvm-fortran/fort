@@ -33,6 +33,7 @@ def MemberExpr : DExpr<DesignatorExpr>;
 def SubstringExpr : DExpr<DesignatorExpr>;
 def ArrayElementExpr : DExpr<DesignatorExpr>;
 def ArraySectionExpr : DExpr<DesignatorExpr>;
+def AllocExpr : DExpr<DesignatorExpr>;
 def ImplicitArrayOperationExpr : Expr<1>;
 def ImplicitArrayPackExpr : DExpr<ImplicitArrayOperationExpr>;
 def ImplicitTempArrayExpr : DExpr<ImplicitArrayOperationExpr>;
