@@ -203,8 +203,8 @@ public:
 
   void EmitCommonBlock(const CommonBlockSet *S);
 
-  llvm::Value *CreateArrayAlloca(QualType T, const llvm::Twine &Name = "",
-                                 bool IsTemp = false);
+  llvm::Value *CreateArrayTypeAlloca(QualType T, const llvm::Twine &Name = "",
+                                     bool IsTemp = false);
 
   /// CreateTempAlloca - This creates a alloca and inserts it into the entry
   /// block. The caller is responsible for setting an appropriate alignment on
@@ -223,6 +223,9 @@ public:
   llvm::Value *CreateTempHeapArrayAlloca(QualType T,
                                          const ArrayValueRef &Value);
 
+  /// CreateHeapArrayAlloca - This allocates an array on the heap
+  llvm::Value *CreateHeapArrayAlloca(AllocExpr *Alloc);
+
   void EmitBlock(llvm::BasicBlock *BB);
   void EmitBranch(llvm::BasicBlock *Target);
   void EmitBranchOnLogicalExpr(const Expr *Condition, llvm::BasicBlock *ThenBB,
@@ -237,6 +240,7 @@ public:
   void EmitAssignedGotoStmt(const AssignedGotoStmt *S);
   void EmitAssignedGotoDispatcher();
   void EmitComputedGotoStmt(const ComputedGotoStmt *S);
+  void EmitAllocateStmt(const AllocateStmt *S);
   void EmitDeallocateStmt(const DeallocateStmt *S);
   void EmitIfStmt(const IfStmt *S);
   void EmitDoStmt(const DoStmt *S);
@@ -482,6 +486,8 @@ public:
   ArrayDimensionValueTy GetVectorDimensionInfo(QualType T);
 
   void GetArrayDimensionsInfo(QualType T,
+                              SmallVectorImpl<ArrayDimensionValueTy> &Dims);
+  void GetArrayDimensionsInfo(const ArrayType *ATy,
                               SmallVectorImpl<ArrayDimensionValueTy> &Dims);
 
   llvm::Value *EmitArrayArgumentPointerValueABI(const Expr *E);

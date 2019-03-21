@@ -47,6 +47,7 @@ public:
   void VisitComputedGotoStmt(const ComputedGotoStmt *S) {
     CGF.EmitComputedGotoStmt(S);
   }
+  void VisitAllocateStmt(const AllocateStmt *S) { CGF.EmitAllocateStmt(S); }
   void VisitDeallocateStmt(const DeallocateStmt *S) {
     CGF.EmitDeallocateStmt(S);
   }
@@ -194,6 +195,17 @@ void CodeGenFunction::EmitComputedGotoStmt(const ComputedGotoStmt *S) {
     Switch->addCase(cast<llvm::ConstantInt>(Val), Dest);
   }
   EmitBlock(DefaultCase);
+}
+
+void CodeGenFunction::EmitAllocateStmt(const AllocateStmt *S) {
+  for (auto Arg : S->getArguments()) {
+    auto Alloc = dyn_cast<AllocExpr>(Arg);
+    assert(Alloc && "Expecting allocate expression");
+    auto Ptr = CreateHeapArrayAlloca(Alloc);
+    auto Target = Alloc->getTarget();
+    auto Loc = EmitLValue(Target);
+    EmitStore(Ptr, Loc, Target->getType());
+  }
 }
 
 void CodeGenFunction::EmitDeallocateStmt(const DeallocateStmt *S) {
