@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "CGArray.h"
+#include "CGSystemRuntime.h"
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
 #include "fort/AST/ASTContext.h"
@@ -41,9 +42,9 @@ llvm::ArrayType *CodeGenTypes::ConvertArrayTypeForMem(const ArrayType *T) {
   return nullptr;
 }
 
-llvm::Value *CodeGenFunction::CreateArrayAlloca(QualType T,
-                                                const llvm::Twine &Name,
-                                                bool IsTemp) {
+llvm::Value *CodeGenFunction::CreateArrayTypeAlloca(QualType T,
+                                                    const llvm::Twine &Name,
+                                                    bool IsTemp) {
   auto ATy = cast<ArrayType>(T.getTypePtr());
   auto ElementType = ATy->getElementType();
   uint64_t ArraySize;
@@ -80,6 +81,22 @@ CodeGenFunction::CreateTempHeapArrayAlloca(QualType T,
   return CreateTempHeapArrayAlloca(T, EmitArraySize(Value));
 }
 
+llvm::Value *CodeGenFunction::CreateHeapArrayAlloca(AllocExpr *Alloc) {
+  auto Shape = Alloc->getShape();
+  assert(Shape && "Expecting array allocation expression");
+  SmallVector<ArrayDimensionValueTy, 8> Dims;
+  GetArrayDimensionsInfo(Shape, Dims);
+  auto ElType = getTypes().ConvertTypeForMem(Shape->getElementType());
+  llvm::Value *Sz = llvm::ConstantInt::get(
+      CGM.SizeTy, CGM.getDataLayout().getTypeStoreSize(ElType));
+  for (auto D : Dims) {
+    Sz = Builder.CreateMul(Sz, EmitDimSize(D));
+  }
+  auto Call = CGM.getSystemRuntime().EmitMalloc(*this, Sz);
+  auto RHS = Builder.CreateBitCast(Call, llvm::PointerType::get(ElType, 0));
+  return RHS;
+}
+
 ArrayDimensionValueTy CodeGenFunction::GetVectorDimensionInfo(QualType T) {
   auto ATy = cast<ArrayType>(T.getTypePtr());
   auto Dimension = ATy->getDimensions().front();
@@ -93,6 +110,11 @@ ArrayDimensionValueTy CodeGenFunction::GetVectorDimensionInfo(QualType T) {
 void CodeGenFunction::GetArrayDimensionsInfo(
     QualType T, SmallVectorImpl<ArrayDimensionValueTy> &Dims) {
   auto ATy = cast<ArrayType>(T.getTypePtr());
+  GetArrayDimensionsInfo(ATy, Dims);
+}
+
+void CodeGenFunction::GetArrayDimensionsInfo(
+    const ArrayType *ATy, SmallVectorImpl<ArrayDimensionValueTy> &Dims) {
   auto Dimensions = ATy->getDimensions();
   llvm::Value *Stride = llvm::ConstantInt::get(CGM.SizeTy, 1);
 

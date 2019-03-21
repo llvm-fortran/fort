@@ -58,7 +58,7 @@ void CodeGenFunction::EmitVarDecl(const VarDecl *D) {
     HasSavedVariables = true;
   } else {
     if (Type->isArrayType())
-      Ptr = CreateArrayAlloca(Type, D->getName());
+      Ptr = CreateArrayTypeAlloca(Type, D->getName());
     else
       Ptr =
           Builder.CreateAlloca(ConvertTypeForMem(Type), nullptr, D->getName());

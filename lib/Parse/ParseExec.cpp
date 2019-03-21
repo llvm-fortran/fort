@@ -684,6 +684,7 @@ Parser::StmtResult Parser::ParseALLOCATEStmt() {
     return StmtError();
 
   // TODO [ type-spec :: ]
+  // TODO (Language standard specific)
 
   // allocation-list
   SmallVector<ExprResult, 4> Alloc;
