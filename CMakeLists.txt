@@ -233,11 +233,6 @@ configure_file(
 
 #include(LLVMParseArguments)
 
-# Enable C++ 11
-if(NOT MSVC)
-  add_definitions(-std=c++11)
-endif()
-
 function(fort_tablegen)
   # Syntax:
   # fort_tablegen output-file [tablegen-arg ...] SOURCE source-file
