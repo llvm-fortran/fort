@@ -8,8 +8,8 @@ PROGRAM test
   CONTINUE    ! CHECK: load float, float*
 
   C = +C
-  C = -C      ! CHECK: fsub float
-  CONTINUE    ! CHECK: fsub float
+  C = -C      ! CHECK: fneg float
+  CONTINUE    ! CHECK: fneg float
 
   C = C + C   ! CHECK: fadd float
   CONTINUE    ! CHECK: fadd float

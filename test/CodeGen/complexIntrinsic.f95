@@ -7,7 +7,7 @@ PROGRAM testcomplexintrinsics
   c = (1.0, 0.0) ! CHECK: store float
   CONTINUE       ! CHECK: store float
   r = aimag(c)   ! CHECK: store float
-  c = conjg(c)   ! CHECK: fsub float
+  c = conjg(c)   ! CHECK: fneg float
   CONTINUE       ! CHECK: store float
   CONTINUE       ! CHECK: store float
 

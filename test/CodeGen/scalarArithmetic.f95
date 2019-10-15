@@ -15,7 +15,7 @@ PROGRAM test
   X = X / X ! CHECK: sdiv i32
 
   Y = Y     ! CHECK: load float, float*
-  Y = -Y    ! CHECK: fsub
+  Y = -Y    ! CHECK: fneg
 
   Y = Y + Y ! CHECK: fadd float
   Y = Y - Y ! CHECK: fsub float
