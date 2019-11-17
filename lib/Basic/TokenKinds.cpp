@@ -107,4 +107,22 @@ const char *tok::getTokenSimpleSpelling(enum TokenKind Kind) {
   return 0;
 }
 
+const char *tok::getPunctuatorSpelling(TokenKind Kind) {
+  switch (Kind) {
+#define PUNCTUATOR(X,Y) case X: return Y;
+#include "fort/Basic/TokenKinds.def"
+  default: break;
+  }
+  return nullptr;
+}
+
+const char *tok::getKeywordSpelling(TokenKind Kind) {
+  switch (Kind) {
+#define KEYWORD(X,Y) case kw_ ## X: return #X;
+#include "fort/Basic/TokenKinds.def"
+    default: break;
+  }
+  return nullptr;
+}
+
 } // namespace fort

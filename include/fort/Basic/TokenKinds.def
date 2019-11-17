@@ -17,6 +17,9 @@
 #ifndef TOK
 #define TOK(X)
 #endif
+#ifndef PUNCTUATOR
+#define PUNCTUATOR(X,Y) TOK(X)
+#endif
 #ifndef KEYWORD
 #define KEYWORD(X,Y) TOK(kw_ ## X)
 #endif
@@ -71,46 +74,46 @@ TOK(logical_literal_constant) // .TRUE., .FALSE.
 // [R309]: Intrinsic Operator
 TOK(intrinsic_operator)  // .EQ., .NE., ...
 
-// [FIXME]: Punctuators.
-TOK(equal)               // =
-TOK(equalequal)          // ==
-TOK(equalgreater)        // =>
-TOK(plus)                // +
-TOK(minus)               // -
-TOK(star)                // *
-TOK(starstar)            // **
-TOK(slash)               // /
-TOK(slashslash)          // //
-TOK(slashequal)          // /=
-TOK(backslash)           // <backslash>
-TOK(l_parenslash)        // (/
-TOK(slashr_paren)        // /)
-TOK(l_paren)             // (
-TOK(r_paren)             // )
-TOK(l_square)            // [
-TOK(r_square)            // ]
-TOK(l_brace)             // {
-TOK(r_brace)             // }
-TOK(comma)               // ,
-TOK(period)              // .
-TOK(colon)               // :
-TOK(coloncolon)          // ::
-TOK(semicolon)           // ;
-TOK(exclaim)             // !
-TOK(percent)             // %
-TOK(ampersand)           // &
-TOK(tilde)               // ~
-TOK(less)                // <
-TOK(lessequal)           // <=
-TOK(greater)             // >
-TOK(greaterequal)        // >=
-TOK(question)            // ?
-TOK(backtick)            // `
-TOK(caret)               // ^
-TOK(pipe)                // |
-TOK(dollar)              // $
-TOK(hash)                // #
-TOK(at)                  // @
+// Punctuators.
+PUNCTUATOR(equal,               "=")
+PUNCTUATOR(equalequal,          "==")
+PUNCTUATOR(equalgreater,        "=>")
+PUNCTUATOR(plus,                "+")
+PUNCTUATOR(minus,               "-")
+PUNCTUATOR(star,                "*")
+PUNCTUATOR(starstar,            "**")
+PUNCTUATOR(slash,               "/")
+PUNCTUATOR(slashslash,          "//")
+PUNCTUATOR(slashequal,          "/=")
+PUNCTUATOR(backslash,           "\\")
+PUNCTUATOR(l_parenslash,        "(/")
+PUNCTUATOR(slashr_paren,        "/)")
+PUNCTUATOR(l_paren,             "(")
+PUNCTUATOR(r_paren,             ")")
+PUNCTUATOR(l_square,            "[")
+PUNCTUATOR(r_square,            "]")
+PUNCTUATOR(l_brace,             "{")
+PUNCTUATOR(r_brace,             "}")
+PUNCTUATOR(comma,               ",")
+PUNCTUATOR(period,              ".")
+PUNCTUATOR(colon,               ":")
+PUNCTUATOR(coloncolon,          "::")
+PUNCTUATOR(semicolon,           ";")
+PUNCTUATOR(exclaim,             "!")
+PUNCTUATOR(percent,             "%")
+PUNCTUATOR(ampersand,           "&")
+PUNCTUATOR(tilde,               "~")
+PUNCTUATOR(less,                "<")
+PUNCTUATOR(lessequal,           "<=")
+PUNCTUATOR(greater,             ">")
+PUNCTUATOR(greaterequal,        ">=")
+PUNCTUATOR(question,            "?")
+PUNCTUATOR(backtick,            "`")
+PUNCTUATOR(caret,               "^")
+PUNCTUATOR(pipe,                "|")
+PUNCTUATOR(dollar,              "$")
+PUNCTUATOR(hash,                "#")
+PUNCTUATOR(at,                  "@")
 
 // [FIXME]: Keywords. These turn into kw_* tokens. All keywords may be
 // redefined. So these are `keywords' only in a context where they need to be a
