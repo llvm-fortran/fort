@@ -19,6 +19,6 @@ except KeyError:
 
 # Let the main config do the real work.
 config.test_dir = "@FORT_SOURCE_DIR@/test"
-config.file_check = "@LLVM_BINARY_DIR@/bin/FileCheck"
+config.file_check = "@FORT_BINARY_DIR@/bin/FileCheck"
 lit_config.load_config(config, "@FORT_SOURCE_DIR@/test/lit.cfg")
 
