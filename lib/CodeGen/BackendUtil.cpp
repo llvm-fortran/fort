@@ -417,11 +417,11 @@ bool EmitAssemblyHelper::AddEmitPasses(BackendAction Action,
 
   // Normal mode, emit a .s or .o file by running the code generator. Note,
   // this also adds codegenerator level optimization passes.
-  TargetMachine::CodeGenFileType CGFT = TargetMachine::CGFT_AssemblyFile;
+  CodeGenFileType CGFT = CGFT_AssemblyFile;
   if (Action == Backend_EmitObj)
-    CGFT = TargetMachine::CGFT_ObjectFile;
+    CGFT = CGFT_ObjectFile;
   else if (Action == Backend_EmitMCNull)
-    CGFT = TargetMachine::CGFT_Null;
+    CGFT = CGFT_Null;
   else
     assert(Action == Backend_EmitAssembly && "Invalid action!");
 
