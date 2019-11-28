@@ -1,5 +1,5 @@
 ! RUN: %fort -fsyntax-only -verify < %s
-! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
+! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | FileCheck %s
 
 PROGRAM datatest
   INTEGER I, J, K, M, NNN, O, P, Q

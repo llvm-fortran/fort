@@ -1,5 +1,5 @@
 ! RUN: %fort -fsyntax-only -verify < %s
-! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
+! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | FileCheck %s
 PROGRAM init
   INTEGER n = 1 ! expected-error {{expected line break or ';' at end of statement}}
   INTEGER var ! expected-note@+1 {{this expression is not allowed in a constant expression}}

@@ -1,4 +1,4 @@
-! RUN: %fort -triple "x86_64-unknown-linux" -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -triple "x86_64-unknown-linux" -emit-llvm -o - %s | FileCheck %s
 
 complex function foo() ! CHECK: define <2 x float> @foo_()
   foo = (1.0, 2.0)

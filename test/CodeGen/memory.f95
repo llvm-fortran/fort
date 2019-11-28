@@ -1,4 +1,4 @@
-! RUN: %fort %s -O0 -S -emit-llvm -o - | %file_check %s
+! RUN: %fort %s -O0 -S -emit-llvm -o - | FileCheck %s
 program p
   integer(kind=4), allocatable :: a(10), b(5) ! CHECK: %a = alloca i32*
   continue                                    ! CHECK: %b = alloca i32*

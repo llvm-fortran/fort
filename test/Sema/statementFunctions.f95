@@ -1,5 +1,5 @@
 ! RUN: %fort -fsyntax-only -verify < %s
-! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
+! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | FileCheck %s
 PROGRAM test
   X(I) = I+2 ! CHECK: real((i+2))
   Y(A) = 1.0 ! CHECK: 1

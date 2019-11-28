@@ -1,4 +1,4 @@
-! RUN: %fort -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | FileCheck %s
 
 SUBROUTINE SUB()  ! CHECK: @sub_i_ = {{.*}} global i32
   INTEGER I       ! CHECK: @sub_r_ = {{.*}} global float

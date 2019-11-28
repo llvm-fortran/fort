@@ -1,4 +1,4 @@
-! RUN: %fort -emit-llvm -o - -O1 %s | %file_check %s
+! RUN: %fort -emit-llvm -o - -O1 %s | FileCheck %s
 PROGRAM testcomplexintrinsicmath
   COMPLEX c
   INTRINSIC abs, sqrt, sin, cos, log, exp

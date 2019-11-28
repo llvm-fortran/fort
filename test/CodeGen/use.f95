@@ -1,4 +1,4 @@
-! RUN: %fort %s -S -emit-llvm -o - | %file_check %s
+! RUN: %fort %s -S -emit-llvm -o - | FileCheck %s
 module m
   integer n ! CHECK: @__m_MOD_n_ = internal global i32
   contains

@@ -1,5 +1,5 @@
 ! RUN: %fort -fsyntax-only -verify %s
-! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
+! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | FileCheck %s
 program a
   implicit none
   integer, allocatable :: a(10), c(5) ! CHECK: integer, allocatable array a

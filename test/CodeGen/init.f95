@@ -1,4 +1,4 @@
-! RUN: %fort -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | FileCheck %s
 SUBROUTINE sub()
   ! CHECK: @sub_r_ = {{.*}} global float
   ! CHECK: store float 2.500000e+00, float* @sub_r_

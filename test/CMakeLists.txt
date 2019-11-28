@@ -1,6 +1,6 @@
 configure_lit_site_cfg(
-  ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.in
-  ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
+  ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
+  ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py
   )
 
 configure_file(TestRunner.sh.in ${CMAKE_CURRENT_BINARY_DIR}/TestRunner.sh)
@@ -15,7 +15,7 @@ list(APPEND FORT_TEST_DEPS
   )
 
 set(FORT_TEST_PARAMS
-  fort_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg
+  fort_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py
   )
 
 if( NOT FORT_BUILT_STANDALONE )
