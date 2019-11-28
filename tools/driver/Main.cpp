@@ -120,13 +120,12 @@ static bool EmitFile(llvm::raw_pwrite_stream &Out, llvm::Module *Module,
   if (Action == Backend_EmitObj || Action == Backend_EmitAssembly) {
     llvm::Module &Mod = *Module;
 
-    llvm::TargetMachine::CodeGenFileType CGFT =
-        llvm::TargetMachine::CGFT_AssemblyFile;
+    CodeGenFileType CGFT = CGFT_AssemblyFile;
 
     if (Action == Backend_EmitObj)
-      CGFT = llvm::TargetMachine::CGFT_ObjectFile;
+      CGFT = CGFT_ObjectFile;
     else if (Action == Backend_EmitMCNull)
-      CGFT = llvm::TargetMachine::CGFT_Null;
+      CGFT = CGFT_Null;
     else
       assert(Action == Backend_EmitAssembly && "Invalid action!");
 
