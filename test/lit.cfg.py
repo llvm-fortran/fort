@@ -135,7 +135,6 @@ if not lit_config.quiet:
     lit_config.note('using fort: %r' % config.fort)
 config.substitutions.append( ('%fort', ' ' + config.fort + ' ') )
 config.substitutions.append( ('%test_dir', config.test_dir) )
-config.substitutions.append( ('%file_check', config.file_check) )
 config.substitutions.append( ('%test_debuginfo', ' ' + config.llvm_src_root + '/utils/test_debuginfo.pl ') )
 
 # FIXME: Find nicer way to prohibit this.

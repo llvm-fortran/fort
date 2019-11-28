@@ -1,4 +1,4 @@
-! RUN: %fort -fdefault-real-8 -fdefault-double-8 -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -fdefault-real-8 -fdefault-double-8 -emit-llvm -o - %s | FileCheck %s
 
 program test
   real x             ! CHECK:      alloca double

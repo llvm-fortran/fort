@@ -1,5 +1,5 @@
 ! RUN: %fort -fsyntax-only -verify < %s
-! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
+! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | FileCheck %s
 
 INTEGER FUNCTION FOO() RESULT(I)
   I = 1 ! CHECK: i = 1

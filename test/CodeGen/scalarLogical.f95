@@ -1,4 +1,4 @@
-! RUN: %fort -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | FileCheck %s
 PROGRAM test
   LOGICAL L            ! CHECK: alloca i32
   INTEGER I

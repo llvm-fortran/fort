@@ -1,4 +1,4 @@
-! RUN: %fort -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | FileCheck %s
 
 program com   ! CHECK: @__BLNK__ = common global { i32, i32, float, { float, float } } zeroinitializer, align 16
   integer i,j ! CHECK: @dir_ = common global { [20 x i8], i32 } zeroinitializer, align 16

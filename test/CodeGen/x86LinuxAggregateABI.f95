@@ -1,4 +1,4 @@
-! RUN: %fort -triple "i686-unknown-linux" -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -triple "i686-unknown-linux" -emit-llvm -o - %s | FileCheck %s
 
 complex function foo() ! CHECK: define void @foo_({ float, float }*
   foo = (1.0, 2.0)

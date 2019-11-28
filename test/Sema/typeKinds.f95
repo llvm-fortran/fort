@@ -1,5 +1,5 @@
 ! RUN: %fort -fsyntax-only -verify < %s
-! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
+! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | FileCheck %s
 
 REAL(Kind=8) FUNCTION A()
   A = 1.0 ! CHECK: a = real(1,Kind=8)

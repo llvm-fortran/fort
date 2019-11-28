@@ -1,4 +1,4 @@
-! RUN: %fort -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | FileCheck %s
 
 PROGRAM sys ! CHECK: call void @libfort_sys_init()
 

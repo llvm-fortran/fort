@@ -1,4 +1,4 @@
-! RUN: %fort -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | FileCheck %s
 
 SUBROUTINE FOO(STR) ! CHECK: define void @foo_(i8* %str, i32 %str.length)
   CHARACTER*(*) STR

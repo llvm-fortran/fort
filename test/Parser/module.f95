@@ -1,5 +1,5 @@
 ! RUN: %fort -fsyntax-only -verify %s
-! RUN: %fort -fsyntax-only -verify %s -ast-print 2>&1 | %file_check %s
+! RUN: %fort -fsyntax-only -verify %s -ast-print 2>&1 | FileCheck %s
 module e   ! CHECK: module e
 end module ! CHECK: end module
 module c   ! CHECK: module c

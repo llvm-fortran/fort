@@ -1,5 +1,5 @@
 ! RUN: %fort -fsyntax-only -verify < %s
-! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
+! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | FileCheck %s
 program intrinfuntest
   integer i_mat(4,4), i_arr(5)
   integer(8) i64

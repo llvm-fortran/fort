@@ -1,4 +1,4 @@
-! RUN: %fort -emit-llvm -o - %s | %file_check %s
+! RUN: %fort -emit-llvm -o - %s | FileCheck %s
 PROGRAM test
   INTEGER I, J
   CHARACTER (Len = 10) STR, NAME

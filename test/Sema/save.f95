@@ -1,5 +1,5 @@
 ! RUN: %fort -verify -fsyntax-only < %s
-! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | %file_check %s
+! RUN: %fort -fsyntax-only -verify -ast-print %s 2>&1 | FileCheck %s
 
 SUBROUTINE FOO
   INTEGER I
