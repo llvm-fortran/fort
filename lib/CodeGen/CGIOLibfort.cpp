@@ -136,7 +136,7 @@ void CGLibfortIORuntime::EmitWriteStmt(CodeGenFunction &CGF,
   // FIXME
   auto ControllerPtr = CGF.CreateTempAlloca(GetWriteControllerType(), "write");
   CGF.getBuilder().CreateMemSet(ControllerPtr, CGF.getBuilder().getInt8(0),
-                                WriteControllerTypeSize, 0);
+                                WriteControllerTypeSize, llvm::MaybeAlign(0));
   CGLibfortWriteEmitter Writer(CGM, CGF, ControllerPtr);
 
   Writer.EmitStart();
@@ -149,7 +149,7 @@ void CGLibfortIORuntime::EmitPrintStmt(CodeGenFunction &CGF,
   // FIXME
   auto ControllerPtr = CGF.CreateTempAlloca(GetWriteControllerType(), "print");
   CGF.getBuilder().CreateMemSet(ControllerPtr, CGF.getBuilder().getInt8(0),
-                                WriteControllerTypeSize, 0);
+                                WriteControllerTypeSize, llvm::MaybeAlign(0));
   CGLibfortWriteEmitter Writer(CGM, CGF, ControllerPtr);
 
   Writer.EmitStart();
