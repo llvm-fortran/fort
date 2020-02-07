@@ -3924,7 +3924,8 @@ class ARMTargetInfo : public TargetInfo {
   static const TargetInfo::GCCRegAlias GCCRegAliases[];
   static const char *const GCCRegNames[];
 
-  std::string ABI, CPU;
+  std::string ABI;
+  StringRef CPU;
 
   StringRef CPUProfile;
   StringRef CPUAttr;

@@ -206,7 +206,7 @@ ASTConsumer *CodeGenAction::CreateASTConsumer(CompilerInstance &CI,
 
   BEConsumer = new BackendConsumer(BA, CI.getDiagnostics(), CI.getCodeGenOpts(),
                                    CI.getTargetOpts(), CI.getLangOpts(),
-                                   CI.getFrontendOpts().ShowTimers, InFile,
+                                   CI.getFrontendOpts().ShowTimers, std::string(InFile),
                                    LinkModuleToUse, OS.release(), *VMContext);
   return BEConsumer;
 }

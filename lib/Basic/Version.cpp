@@ -29,46 +29,19 @@ std::string getFortRepositoryPath() {
   return FORT_REPOSITORY_STRING;
 #else
 #ifdef FORT_REPOSITORY
-  StringRef URL(FORT_REPOSITORY);
+  return FORT_REPOSITORY;
 #else
-  StringRef URL("");
+  return "";
 #endif
-
-  // If the FORT_REPOSITORY is empty, try to use the VCS keyword. This helps us
-  // pick up a tag in an VCS export, for example.
-  StringRef VCSRepository("$URL$");
-  if (URL.empty()) {
-    URL = VCSRepository.slice(VCSRepository.find(':'),
-                              VCSRepository.find("/lib/Basic"));
-  }
-
-  // Strip off version from a build from an integration branch.
-  URL = URL.slice(0, URL.find("/src/tools/fort"));
-
-  // Trim path prefix off, assuming path came from standard cfe path.
-  size_t Start = URL.find("cfe/");
-  if (Start != StringRef::npos)
-    URL = URL.substr(Start + 4);
-
-  return URL;
 #endif
 }
 
 std::string getLLVMRepositoryPath() {
 #ifdef LLVM_REPOSITORY
-  StringRef URL(LLVM_REPOSITORY);
+  return LLVM_REPOSITORY;
 #else
-  StringRef URL("");
+  return "";
 #endif
-
-  // Trim path prefix off, assuming path came from standard llvm path.
-  // Leave "llvm/" prefix to distinguish the following llvm revision from the
-  // fort revision.
-  size_t Start = URL.find("llvm/");
-  if (Start != StringRef::npos)
-    URL = URL.substr(Start);
-
-  return URL;
 }
 
 std::string getFortRevision() {

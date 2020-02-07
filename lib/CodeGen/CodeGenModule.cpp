@@ -119,7 +119,7 @@ static std::string FortranNameMangle(StringRef ModuleName, StringRef SymName) {
   llvm::raw_svector_ostream Out(Buffer);
   Out << "__" << ModuleName << "_MOD_" << SymName << "_";
 
-  return Out.str();
+  return std::string(Out.str());
 }
 
 /// Produce IR function definition for a Fortran function

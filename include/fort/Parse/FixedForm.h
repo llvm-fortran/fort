@@ -14,6 +14,7 @@
 #include "fort/Basic/TokenKinds.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringSet.h"
+#include "llvm/Support/Allocator.h"
 
 namespace fort {
 namespace fixedForm {

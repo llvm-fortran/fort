@@ -561,7 +561,7 @@ public:
     assert(NumArgs < DiagnosticsEngine::MaxArguments &&
            "Too many arguments to diagnostic!");
     DiagObj->DiagArgumentsKind[NumArgs] = DiagnosticsEngine::ak_std_string;
-    DiagObj->DiagArgumentsStr[NumArgs++] = S;
+    DiagObj->DiagArgumentsStr[NumArgs++] = std::string(S);
   }
 
   void AddTaggedVal(intptr_t V, DiagnosticsEngine::ArgumentKind Kind) const {

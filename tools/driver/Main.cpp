@@ -359,7 +359,7 @@ static bool ParseFile(const std::string &Filename,
       TargetOptions->Triple = llvm::sys::getDefaultTargetTriple();
     }
 
-    TargetOptions->CPU = llvm::sys::getHostCPUName();
+    TargetOptions->CPU = std::string(llvm::sys::getHostCPUName());
     std::shared_ptr<LLVMContext> LLContext(new LLVMContext);
 
     // FIXME data layout is not getting set in the AST context
