@@ -72,7 +72,7 @@ public:
 std::pair<Record *, Record *>
 FortASTNodesEmitter::EmitNode(const ChildMap &Tree, raw_ostream &OS,
                               Record *Base) {
-  std::string BaseName = macroName(Base->getName());
+  std::string BaseName = macroName(std::string(Base->getName()));
 
   ChildIterator i = Tree.lower_bound(Base), e = Tree.upper_bound(Base);
 
@@ -85,7 +85,7 @@ FortASTNodesEmitter::EmitNode(const ChildMap &Tree, raw_ostream &OS,
   for (; i != e; ++i) {
     Record *R = i->second;
     bool Abstract = R->getValueAsBit("Abstract");
-    std::string NodeName = macroName(R->getName());
+    std::string NodeName = macroName(std::string(R->getName()));
 
     OS << "#ifndef " << NodeName << "\n";
     OS << "#  define " << NodeName << "(Type, Base) " << BaseName
@@ -93,7 +93,7 @@ FortASTNodesEmitter::EmitNode(const ChildMap &Tree, raw_ostream &OS,
     OS << "#endif\n";
 
     if (Abstract)
-      OS << "ABSTRACT_" << macroName(Root.getName()) << "(" << NodeName << "("
+      OS << "ABSTRACT_" << macroName(std::string(Root.getName())) << "(" << NodeName << "("
          << R->getName() << ", " << baseName(*Base) << "))\n";
     else
       OS << NodeName << "(" << R->getName() << ", " << baseName(*Base) << ")\n";
@@ -119,9 +119,9 @@ FortASTNodesEmitter::EmitNode(const ChildMap &Tree, raw_ostream &OS,
   if (First) {
     assert(Last && "Got a first node but not a last node for a range!");
     if (Base == &Root)
-      OS << "LAST_" << macroName(Root.getName()) << "_RANGE(";
+      OS << "LAST_" << macroName(std::string(Root.getName())) << "_RANGE(";
     else
-      OS << macroName(Root.getName()) << "_RANGE(";
+      OS << macroName(std::string(Root.getName())) << "_RANGE(";
     OS << Base->getName() << ", " << First->getName() << ", " << Last->getName()
        << ")\n\n";
   }
@@ -133,18 +133,18 @@ void FortASTNodesEmitter::run(raw_ostream &OS) {
   emitSourceFileHeader("List of AST nodes of a particular kind", OS);
 
   // Write the preamble
-  OS << "#ifndef ABSTRACT_" << macroName(Root.getName()) << "\n";
-  OS << "#  define ABSTRACT_" << macroName(Root.getName()) << "(Type) Type\n";
+  OS << "#ifndef ABSTRACT_" << macroName(std::string(Root.getName())) << "\n";
+  OS << "#  define ABSTRACT_" << macroName(std::string(Root.getName())) << "(Type) Type\n";
   OS << "#endif\n";
 
-  OS << "#ifndef " << macroName(Root.getName()) << "_RANGE\n";
-  OS << "#  define " << macroName(Root.getName())
+  OS << "#ifndef " << macroName(std::string(Root.getName())) << "_RANGE\n";
+  OS << "#  define " << macroName(std::string(Root.getName()))
      << "_RANGE(Base, First, Last)\n";
   OS << "#endif\n\n";
 
-  OS << "#ifndef LAST_" << macroName(Root.getName()) << "_RANGE\n";
-  OS << "#  define LAST_" << macroName(Root.getName())
-     << "_RANGE(Base, First, Last) " << macroName(Root.getName())
+  OS << "#ifndef LAST_" << macroName(std::string(Root.getName())) << "_RANGE\n";
+  OS << "#  define LAST_" << macroName(std::string(Root.getName()))
+     << "_RANGE(Base, First, Last) " << macroName(std::string(Root.getName()))
      << "_RANGE(Base, First, Last)\n";
   OS << "#endif\n\n";
 
@@ -165,10 +165,10 @@ void FortASTNodesEmitter::run(raw_ostream &OS) {
 
   EmitNode(Tree, OS, &Root);
 
-  OS << "#undef " << macroName(Root.getName()) << "\n";
-  OS << "#undef " << macroName(Root.getName()) << "_RANGE\n";
-  OS << "#undef LAST_" << macroName(Root.getName()) << "_RANGE\n";
-  OS << "#undef ABSTRACT_" << macroName(Root.getName()) << "\n";
+  OS << "#undef " << macroName(std::string(Root.getName())) << "\n";
+  OS << "#undef " << macroName(std::string(Root.getName())) << "_RANGE\n";
+  OS << "#undef LAST_" << macroName(std::string(Root.getName())) << "_RANGE\n";
+  OS << "#undef ABSTRACT_" << macroName(std::string(Root.getName())) << "\n";
 }
 
 namespace fort {

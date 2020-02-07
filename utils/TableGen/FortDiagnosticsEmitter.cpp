@@ -63,7 +63,7 @@ static std::string
 getCategoryFromDiagGroup(const Record *Group,
                          DiagGroupParentMap &DiagGroupParents) {
   // If the DiagGroup has a category, return it.
-  std::string CatName = Group->getValueAsString("CategoryName");
+  std::string CatName = std::string(Group->getValueAsString("CategoryName"));
   if (!CatName.empty())
     return CatName;
 
@@ -92,7 +92,7 @@ static std::string getDiagnosticCategory(const Record *R,
   }
 
   // If the diagnostic itself has a category, get it.
-  return R->getValueAsString("CategoryName");
+  return std::string(R->getValueAsString("CategoryName"));
 }
 
 namespace {
@@ -191,7 +191,7 @@ static void groupDiagnostics(const std::vector<Record *> &Diags,
   // groups (these are warnings that GCC supports that fort never produces).
   for (unsigned i = 0, e = DiagGroups.size(); i != e; ++i) {
     Record *Group = DiagGroups[i];
-    GroupInfo &GI = DiagsInGroup[Group->getValueAsString("GroupName")];
+    GroupInfo &GI = DiagsInGroup[std::string(Group->getValueAsString("GroupName"))];
     if (Group->isAnonymous()) {
       if (GI.DiagsInGroup.size() > 1)
         ImplicitGroups.insert(&GI);
@@ -232,7 +232,7 @@ static void groupDiagnostics(const std::vector<Record *> &Diags,
     ArrayRef<const Record *> GroupDiags = (*I)->DiagsInGroup;
 
     if ((*I)->ExplicitDef) {
-      std::string Name = (*I)->ExplicitDef->getValueAsString("GroupName");
+      std::string Name = (*I)->std::string(ExplicitDef->getValueAsString("GroupName"));
       for (ArrayRef<const Record *>::const_iterator DI = GroupDiags.begin(),
                                                     DE = GroupDiags.end();
            DI != DE; ++DI) {
@@ -267,7 +267,7 @@ static void groupDiagnostics(const std::vector<Record *> &Diags,
 
       const DefInit *GroupInit = cast<DefInit>((*DI)->getValueInit("Group"));
       const Record *NextDiagGroup = GroupInit->getDef();
-      std::string Name = NextDiagGroup->getValueAsString("GroupName");
+      std::string Name = std::string(NextDiagGroup->getValueAsString("GroupName"));
 
       SMRange InGroupRange = findSuperClassRange(*DI, "InGroup");
       SrcMgr.PrintMessage(NextDiagGroup->getLoc().front(), SourceMgr::DK_Error,
@@ -341,7 +341,7 @@ private:
 bool InferPedantic::isSubGroupOfGroup(const Record *Group,
                                       llvm::StringRef GName) {
 
-  const std::string &GroupName = Group->getValueAsString("GroupName");
+  const std::string &GroupName = std::string(Group->getValueAsString("GroupName"));
   if (GName == GroupName)
     return true;
 
@@ -355,12 +355,12 @@ bool InferPedantic::isSubGroupOfGroup(const Record *Group,
 
 /// Determine if the diagnostic is an extension.
 bool InferPedantic::isExtension(const Record *Diag) {
-  const std::string &ClsName = Diag->getValueAsDef("Class")->getName();
+  const std::string &ClsName = std::string(Diag->getValueAsDef("Class")->getName());
   return ClsName == "CLASS_EXTENSION";
 }
 
 bool InferPedantic::isOffByDefault(const Record *Diag) {
-  const std::string &DefMap = Diag->getValueAsDef("DefaultMapping")->getName();
+  const std::string &DefMap = std::string(Diag->getValueAsDef("DefaultMapping")->getName());
   return DefMap == "MAP_IGNORE";
 }
 
@@ -368,7 +368,7 @@ bool InferPedantic::groupInPedantic(const Record *Group, bool increment) {
   GMap::mapped_type &V = GroupCount[Group];
   // Lazily compute the threshold value for the group count.
   if (!V.second.hasValue()) {
-    const GroupInfo &GI = DiagsInGroup[Group->getValueAsString("GroupName")];
+    const GroupInfo &GI = DiagsInGroup[std::string(Group->getValueAsString("GroupName"))];
     V.second = GI.SubGroups.size() + GI.DiagsInGroup.size();
   }
 
@@ -471,7 +471,7 @@ void InferPedantic::compute(VecOrSet DiagsInPedantic,
 //===----------------------------------------------------------------------===//
 
 static bool isError(const Record &Diag) {
-  const std::string &ClsName = Diag.getValueAsDef("Class")->getName();
+  const std::string &ClsName = std::string(Diag.getValueAsDef("Class")->getName());
   return ClsName == "CLASS_ERROR";
 }
 
@@ -515,7 +515,7 @@ void EmitFortDiagsDefs(RecordKeeper &Records, raw_ostream &OS,
     if (isError(R)) {
       if (DefInit *Group = dyn_cast<DefInit>(R.getValueInit("Group"))) {
         const Record *GroupRec = Group->getDef();
-        const std::string &GroupName = GroupRec->getValueAsString("GroupName");
+        const std::string &GroupName = std::string(GroupRec->getValueAsString("GroupName"));
         PrintFatalError(R.getLoc(), "Error " + R.getName() +
                                         " cannot be in a warning group [" +
                                         GroupName + "]");
