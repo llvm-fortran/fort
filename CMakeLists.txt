@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.4.3)
 
+if(POLICY CMP0077)
+  cmake_policy(SET CMP0077 NEW)
+endif()
+
 # If we are not building as a part of LLVM, build Fort as an
 # standalone project, using LLVM as an external library:
 if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
