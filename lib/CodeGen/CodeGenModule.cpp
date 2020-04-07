@@ -273,7 +273,7 @@ llvm::Value *CodeGenModule::EmitCommonBlock(const CommonBlockDecl *CB,
   auto CBVar = new llvm::GlobalVariable(TheModule, Type, false,
                                         llvm::GlobalValue::CommonLinkage,
                                         Initializer, NameRef);
-  CBVar->setAlignment(16); // FIXME: proper target dependent alignment value
+  CBVar->setAlignment(llvm::Align(16)); // FIXME: proper target dependent alignment value
   return CBVar;
 }
 
