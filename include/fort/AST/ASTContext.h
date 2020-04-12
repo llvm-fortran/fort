@@ -85,9 +85,7 @@ public:
   void *Allocate(unsigned Size, unsigned Align = 8) const {
     return BumpAlloc.Allocate(Size, Align);
   }
-  void Deallocate(void *Ptr, size_t size) const {
-    BumpAlloc.Deallocate((const void *)Ptr, size);
-  }
+  void Deallocate(void *Ptr, size_t size) const {}
 
   const LangOptions &getLangOpts() const { return LanguageOptions; }
 

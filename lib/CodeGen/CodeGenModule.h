@@ -195,10 +195,10 @@ public:
   llvm::Value *EmitCommonBlock(const CommonBlockDecl *CB, llvm::Type *Type,
                                llvm::Constant *Initializer = nullptr);
 
-  llvm::Value *GetCFunction(StringRef Name, ArrayRef<llvm::Type *> ArgTypes,
+  llvm::FunctionCallee GetCFunction(StringRef Name, ArrayRef<llvm::Type *> ArgTypes,
                             llvm::Type *ReturnType = nullptr);
 
-  llvm::Value *GetRuntimeFunction(StringRef Name,
+  llvm::FunctionCallee GetRuntimeFunction(StringRef Name,
                                   ArrayRef<llvm::Type *> ArgTypes,
                                   llvm::Type *ReturnType = nullptr);
 

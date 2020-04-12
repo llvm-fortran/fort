@@ -223,25 +223,27 @@ llvm::Value *CodeGenFunction::CreateTempHeapAlloca(llvm::Value *Size,
   return P->getType() != PtrType ? Builder.CreateBitCast(P, PtrType) : P;
 }
 
-llvm::Value *
-CodeGenFunction::GetIntrinsicFunction(int FuncID,
+llvm::FunctionCallee
+CodeGenFunction::GetIntrinsicFunction(llvm::Intrinsic::ID FuncID,
                                       ArrayRef<llvm::Type *> ArgTypes) const {
-  return llvm::Intrinsic::getDeclaration(&CGM.getModule(),
-                                         (llvm::Intrinsic::ID)FuncID, ArgTypes);
+  auto M = &CGM.getModule();
+  return M->getOrInsertFunction(llvm::Intrinsic::getName(FuncID, ArgTypes),
+                                llvm::Intrinsic::getType(M->getContext(), FuncID, ArgTypes));
 }
 
-llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID,
-                                                   llvm::Type *T1) const {
-  return llvm::Intrinsic::getDeclaration(&CGM.getModule(),
-                                         (llvm::Intrinsic::ID)FuncID, T1);
+llvm::FunctionCallee CodeGenFunction::GetIntrinsicFunction(llvm::Intrinsic::ID FuncID,
+                                                           llvm::Type *T1) const {
+  auto M = &CGM.getModule();
+  return M->getOrInsertFunction(llvm::Intrinsic::getName(FuncID, T1),
+                                llvm::Intrinsic::getType(M->getContext(), FuncID, T1));
 }
 
-llvm::Value *CodeGenFunction::GetIntrinsicFunction(int FuncID, llvm::Type *T1,
+llvm::FunctionCallee CodeGenFunction::GetIntrinsicFunction(llvm::Intrinsic::ID FuncID, llvm::Type *T1,
                                                    llvm::Type *T2) const {
   llvm::Type *ArgTypes[2] = {T1, T2};
-  return llvm::Intrinsic::getDeclaration(&CGM.getModule(),
-                                         (llvm::Intrinsic::ID)FuncID,
-                                         ArrayRef<llvm::Type *>(ArgTypes, 2));
+  auto M = &CGM.getModule();
+  return M->getOrInsertFunction(llvm::Intrinsic::getName(FuncID, ArrayRef<llvm::Type *>(ArgTypes, 2)),
+                                llvm::Intrinsic::getType(M->getContext(), FuncID, ArrayRef<llvm::Type *>(ArgTypes, 2)));
 }
 
 llvm::Type *CodeGenFunction::ConvertTypeForMem(QualType T) const {

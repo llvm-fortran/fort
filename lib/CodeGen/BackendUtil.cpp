@@ -231,9 +231,7 @@ void EmitAssemblyHelper::CreatePasses() {
     Options.EmitNotes = CodeGenOpts.EmitGcovNotes;
     Options.EmitData = CodeGenOpts.EmitGcovArcs;
     memcpy(Options.Version, CodeGenOpts.CoverageVersion, 4);
-    Options.UseCfgChecksum = CodeGenOpts.CoverageExtraChecksum;
     Options.NoRedZone = CodeGenOpts.DisableRedZone;
-    Options.FunctionNamesInData = !CodeGenOpts.CoverageNoFunctionNamesInData;
     MPM->add(createGCOVProfilerPass(Options));
     if (CodeGenOpts.getDebugInfo() == CodeGenOptions::NoDebugInfo)
       MPM->add(createStripSymbolsPass(true));

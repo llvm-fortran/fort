@@ -151,7 +151,7 @@ CodeGenFunction::EmitEquivalenceSet(const EquivalenceSet *S) {
       new llvm::AllocaInst(
           CGM.Int8Ty, DL.getAllocaAddrSpace(),
           llvm::ConstantInt::get(CGM.SizeTy, HighestBound - LowestBound),
-          llvm::MaybeAlign(CGM.getDataLayout().getTypeStoreSize(CGM.DoubleTy))),
+          llvm::Align(CGM.getDataLayout().getTypeStoreSize(CGM.DoubleTy))),
       "equivalence-set");
 #if 0
   AllocaInst(Type *Ty, unsigned AddrSpace,

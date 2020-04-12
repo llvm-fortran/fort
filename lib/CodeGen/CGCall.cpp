@@ -22,7 +22,6 @@
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Analysis/Utils/Local.h"
 #include "llvm/IR/Attributes.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/InlineAsm.h"
 #include "llvm/MC/SubtargetFeature.h"
@@ -190,7 +189,10 @@ RValueTy CodeGenFunction::EmitCall(llvm::Value *Callee,
     ArgList.add(ResultTemp);
   }
 
-  auto Result = Builder.CreateCall(Callee, ArgList.createValues());
+  auto Result = Builder.CreateCall(
+    llvm::FunctionCallee(FuncInfo->getFunctionType(),
+      Callee),
+    ArgList.createValues());
   Result->setCallingConv(FuncInfo->getCallingConv());
 
   if (ReturnsNothing || RetABIKind == ABIRetInfo::Nothing)
@@ -408,29 +410,6 @@ llvm::Value *CodeGenFunction::EmitCallArgPtr(const Expr *E) {
   auto Temp = CreateTempAlloca(ConvertType(E->getType()));
   EmitAssignment(Temp, Value);
   return Temp;
-}
-
-llvm::CallInst *CodeGenFunction::EmitRuntimeCall(llvm::Value *Func) {
-  auto Result = Builder.CreateCall(Func, NULL, llvm::Twine(Func->getName()));
-  Result->setCallingConv(CGM.getRuntimeCC());
-  return Result;
-}
-
-llvm::CallInst *
-CodeGenFunction::EmitRuntimeCall(llvm::Value *Func,
-                                 llvm::ArrayRef<llvm::Value *> Args) {
-  auto Result = Builder.CreateCall(Func, Args, llvm::Twine(Func->getName()));
-  Result->setCallingConv(CGM.getRuntimeCC());
-  return Result;
-}
-
-llvm::CallInst *CodeGenFunction::EmitRuntimeCall2(llvm::Value *Func,
-                                                  llvm::Value *A1,
-                                                  llvm::Value *A2) {
-  llvm::Value *Args[] = {A1, A2};
-  auto Result = Builder.CreateCall(Func, Args, llvm::Twine(Func->getName()));
-  Result->setCallingConv(CGM.getRuntimeCC());
-  return Result;
 }
 
 /// StatementFunctionInliningScope - inlines the statement functions.

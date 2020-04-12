@@ -154,15 +154,15 @@ public:
     return llvm::BasicBlock::Create(getLLVMContext(), name, parent, before);
   }
 
-  llvm::Value *GetIntrinsicFunction(int FuncID,
+  llvm::FunctionCallee GetIntrinsicFunction(llvm::Intrinsic::ID FuncID,
                                     ArrayRef<llvm::Type *> ArgTypes) const;
-  llvm::Value *GetIntrinsicFunction(int FuncID, llvm::Type *T1) const;
-  llvm::Value *GetIntrinsicFunction(int FuncID, llvm::Type *T1,
+  llvm::FunctionCallee GetIntrinsicFunction(llvm::Intrinsic::ID FuncID, llvm::Type *T1) const;
+  llvm::FunctionCallee GetIntrinsicFunction(llvm::Intrinsic::ID FuncID, llvm::Type *T1,
                                     llvm::Type *T2) const;
-  inline llvm::Value *GetIntrinsicFunction(int FuncID, QualType T1) const {
+  inline llvm::FunctionCallee GetIntrinsicFunction(llvm::Intrinsic::ID FuncID, QualType T1) const {
     return GetIntrinsicFunction(FuncID, ConvertType(T1));
   }
-  inline llvm::Value *GetIntrinsicFunction(int FuncID, QualType T1,
+  inline llvm::FunctionCallee GetIntrinsicFunction(llvm::Intrinsic::ID FuncID, QualType T1,
                                            QualType T2) const {
     return GetIntrinsicFunction(FuncID, ConvertType(T1), ConvertType(T2));
   }
@@ -434,12 +434,6 @@ public:
   void EmitCallArg(CallArgList &Args, CharacterValueTy Value,
                    CGFunctionInfo::ArgInfo ArgInfo);
   llvm::Value *EmitCallArgPtr(const Expr *E);
-
-  llvm::CallInst *EmitRuntimeCall(llvm::Value *Func);
-  llvm::CallInst *EmitRuntimeCall(llvm::Value *Func,
-                                  llvm::ArrayRef<llvm::Value *> Args);
-  llvm::CallInst *EmitRuntimeCall2(llvm::Value *Func, llvm::Value *A1,
-                                   llvm::Value *A2);
 
   RValueTy EmitStatementFunctionCall(const FunctionDecl *Function,
                                      ArrayRef<Expr *> Arguments);

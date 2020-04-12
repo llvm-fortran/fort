@@ -23,7 +23,6 @@
 #include "llvm/ADT/APSInt.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/Triple.h"
-#include "llvm/IR/CallSite.h"
 #include "llvm/IR/CallingConv.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Intrinsics.h"
@@ -69,7 +68,7 @@ CodeGenModule::~CodeGenModule() {
 
 void CodeGenModule::Release() {}
 
-llvm::Value *CodeGenModule::GetCFunction(StringRef Name,
+llvm::FunctionCallee CodeGenModule::GetCFunction(StringRef Name,
                                          ArrayRef<llvm::Type *> ArgTypes,
                                          llvm::Type *ReturnType) {
   if (auto Func = TheModule.getFunction(Name))
@@ -82,7 +81,7 @@ llvm::Value *CodeGenModule::GetCFunction(StringRef Name,
   return Func;
 }
 
-llvm::Value *CodeGenModule::GetRuntimeFunction(StringRef Name,
+llvm::FunctionCallee CodeGenModule::GetRuntimeFunction(StringRef Name,
                                                ArrayRef<llvm::Type *> ArgTypes,
                                                llvm::Type *ReturnType) {
   llvm::SmallString<32> MangledName("libfort_");

@@ -185,10 +185,10 @@ public:
     DirectiveList Warnings;
     DirectiveList Notes;
 
-    ~ExpectedData() {
-      llvm::DeleteContainerPointers(Errors);
-      llvm::DeleteContainerPointers(Warnings);
-      llvm::DeleteContainerPointers(Notes);
+    void Reset() {
+      Errors.clear();
+      Warnings.clear();
+      Notes.clear();
     }
   };
 

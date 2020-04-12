@@ -131,7 +131,7 @@ RValueTy CodeGenFunction::EmitIntrinsicCall(const IntrinsicCallExpr *E) {
 
 llvm::Value *CodeGenFunction::EmitIntrinsicCallScalarTruncation(
     intrinsic::FunctionKind Func, llvm::Value *Value, QualType ResultType) {
-  llvm::Value *FuncDecl = nullptr;
+  llvm::FunctionCallee FuncDecl = nullptr;
   auto ValueType = Value->getType();
   switch (Func) {
   case intrinsic::AINT:
@@ -166,7 +166,7 @@ CodeGenFunction::EmitIntrinsicCallScalarMath(intrinsic::FunctionKind Func,
                                              llvm::Value *A1, llvm::Value *A2) {
   using namespace intrinsic;
 
-  llvm::Value *FuncDecl = nullptr;
+  llvm::FunctionCallee FuncDecl = nullptr;
   auto ValueType = A1->getType();
   switch (Func) {
   case ABS:
