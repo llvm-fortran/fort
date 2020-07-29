@@ -1217,13 +1217,6 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
     Builder.defineMacro("_ARCH_QP");
   }
 
-  if (getTriple().getVendor() == llvm::Triple::BGQ) {
-    Builder.defineMacro("__bg__");
-    Builder.defineMacro("__THW_BLUEGENE__");
-    Builder.defineMacro("__bgq__");
-    Builder.defineMacro("__TOS_BGQ__");
-  }
-
   if (HasAltivec) {
     Builder.defineMacro("__VEC__", "10206");
     Builder.defineMacro("__ALTIVEC__");
