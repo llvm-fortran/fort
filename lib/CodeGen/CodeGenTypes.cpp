@@ -97,7 +97,7 @@ llvm::Type *CodeGenTypes::GetComplexType(llvm::Type *ElementType) {
 }
 
 llvm::Type *CodeGenTypes::GetComplexTypeAsVector(llvm::Type *ElementType) {
-  return llvm::VectorType::get(ElementType, 2);
+  return llvm::FixedVectorType::get(ElementType, 2);
 }
 
 llvm::Type *CodeGenTypes::ConvertCharType(const CharacterType *T) {

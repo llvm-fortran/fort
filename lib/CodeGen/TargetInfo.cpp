@@ -71,7 +71,7 @@ void X86_64ABIInfo::computeReturnTypeInfo(QualType T, ABIRetInfo &Info) const {
     switch (T->getBuiltinTypeKind()) {
     case BuiltinType::Real4:
       Info =
-          ABIRetInfo(ABIRetInfo::Value, llvm::VectorType::get(CGM.FloatTy, 2));
+          ABIRetInfo(ABIRetInfo::Value, llvm::FixedVectorType::get(CGM.FloatTy, 2));
       break;
     case BuiltinType::Real8:
       break;
