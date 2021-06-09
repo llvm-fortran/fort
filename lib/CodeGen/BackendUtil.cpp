@@ -373,7 +373,7 @@ TargetMachine *EmitAssemblyHelper::CreateTargetMachine(bool MustCreateTM) {
   // TODO : This definition has moved to Module code rather thn TargetOptions
   //       This is true from LLVM trunk r237079 and beyond
   // Options.UseSoftFloat = CodeGenOpts.SoftFloat;
-  Options.StackAlignmentOverride = CodeGenOpts.StackAlignment;
+  // TODO : Is this needed
   // Options.RealignStack = CodeGenOpts.StackRealignment;
   // Options.DisableTailCalls = CodeGenOpts.DisableTailCalls;
   // Options.TrapFuncName = CodeGenOpts.TrapFuncName;
